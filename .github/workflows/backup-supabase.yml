@@ -1,0 +1,446 @@
+name: Backup Supabase Database
+
+on:
+  schedule:
+    # Executa todos os dias às 3h da manhã (horário de Brasília: 6h UTC)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Permite execução manual para testes
+
+env:
+  TZ: America/Sao_Paulo
+
+jobs:
+  backup:
+    name: PostgreSQL Backup & S3 Upload
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Get Brazilian Date/Time
+        id: datetime
+        run: |
+          # Obter data/hora no fuso horário brasileiro
+          BRAZIL_DATE=$(TZ=America/Sao_Paulo date '+%Y-%m-%d')
+          BRAZIL_DATETIME=$(TZ=America/Sao_Paulo date '+%d/%m/%Y às %H:%M:%S')
+          BRAZIL_TIMESTAMP=$(TZ=America/Sao_Paulo date '+%Y%m%d_%H%M%S')
+          
+          echo "date=$BRAZIL_DATE" >> $GITHUB_OUTPUT
+          echo "datetime=$BRAZIL_DATETIME" >> $GITHUB_OUTPUT
+          echo "timestamp=$BRAZIL_TIMESTAMP" >> $GITHUB_OUTPUT
+          
+          # Determinar tipo de backup
+          DAY_OF_WEEK=$(TZ=America/Sao_Paulo date '+%u') # 1=Monday, 7=Sunday
+          DAY_OF_MONTH=$(TZ=America/Sao_Paulo date '+%d')
+          
+          if [ "$DAY_OF_WEEK" -eq 1 ] && [ "$DAY_OF_MONTH" -le 7 ]; then
+            BACKUP_TYPE="monthly"
+            echo "backup_type=monthly" >> $GITHUB_OUTPUT
+            echo "backup_label=Mensal" >> $GITHUB_OUTPUT
+          elif [ "$DAY_OF_WEEK" -eq 1 ]; then
+            BACKUP_TYPE="weekly"
+            echo "backup_type=weekly" >> $GITHUB_OUTPUT
+            echo "backup_label=Semanal" >> $GITHUB_OUTPUT
+          else
+            BACKUP_TYPE="daily"
+            echo "backup_type=daily" >> $GITHUB_OUTPUT
+            echo "backup_label=Diário" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "Data: $BRAZIL_DATE"
+          echo "Data/Hora: $BRAZIL_DATETIME" 
+          echo "Tipo de Backup: $BACKUP_TYPE"
+
+      - name: Install Required Tools
+        run: |
+          echo "Instalando ferramentas necessárias..."
+          sudo apt-get update -qq
+          sudo apt-get install -y curl jq
+          
+          echo "Verificando instalações..."
+          curl --version
+          jq --version
+          
+      - name: Create Database Backup using Supabase API
+        id: backup
+        run: |
+          # Usar API REST do Supabase para backup (contorna problemas de rede)
+          SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          SERVICE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+          
+          echo "Iniciando backup via Supabase API..."
+          echo "URL: $SUPABASE_URL"
+          
+          # Nome do arquivo de backup
+          BACKUP_FILE="colmeia_backup_${{ steps.datetime.outputs.timestamp }}.json"
+          COMPRESSED_FILE="colmeia_backup_${{ steps.datetime.outputs.timestamp }}.json.gz"
+          
+
+          
+          # Lista das tabelas que realmente existem no Supabase
+          TABLES=(
+            "users"
+            "projects"
+            "notifications"
+            "configs"
+            "financial_transactions"
+            "fixed_costs"
+            "active_sessions"
+            "trigger_log"
+          )
+          
+          # Criar objeto JSON principal
+          echo "{" > $BACKUP_FILE
+          echo "  \"backup_info\": {" >> $BACKUP_FILE
+          echo "    \"timestamp\": \"${{ steps.datetime.outputs.datetime }}\"," >> $BACKUP_FILE
+          echo "    \"type\": \"${{ steps.datetime.outputs.backup_type }}\"," >> $BACKUP_FILE
+          echo "    \"source\": \"supabase_api\"" >> $BACKUP_FILE
+          echo "  }," >> $BACKUP_FILE
+          echo "  \"tables\": {" >> $BACKUP_FILE
+          
+          # Backup de cada tabela
+          successful_tables=()
+          
+          for table in "${TABLES[@]}"; do
+            echo "Fazendo backup da tabela: $table"
+            
+            # Fazer backup via API REST
+            response=$(curl -s -X GET "$SUPABASE_URL/rest/v1/$table?select=*" \
+              -H "apikey: $SERVICE_KEY" \
+              -H "Authorization: Bearer $SERVICE_KEY" \
+              -H "Content-Type: application/json")
+            
+            # Debug: Mostrar tamanho da resposta
+            response_size=$(echo "$response" | wc -c)
+            echo "  → Tamanho da resposta: $response_size bytes"
+            
+                         # Debug: Mostrar primeiros caracteres (robusto para arquivos grandes)
+             if [ $response_size -gt 200 ]; then
+               echo "  → Início da resposta: $(echo "$response" | cut -c1-200)..."
+             else
+               echo "  → Resposta completa: $response"
+             fi
+            
+            # Verificar se é JSON válido e array
+            if echo "$response" | jq . >/dev/null 2>&1; then
+              if echo "$response" | jq -e 'type == "array"' >/dev/null 2>&1; then
+                record_count=$(echo "$response" | jq length)
+                echo "  → Registros encontrados: $record_count"
+                
+                                 # Salvar dados da tabela em arquivo temporário
+                 echo "$response" > "/tmp/table_${table}.json"
+                 successful_tables+=("$table")
+                 echo "✓ Backup da tabela $table concluído"
+              else
+                echo "  → ⚠️ Resposta não é um array - pulando tabela $table"
+              fi
+            else
+              echo "  → ❌ Resposta não é JSON válido - pulando tabela $table"
+            fi
+          done
+          
+                     # Construir JSON final apenas com tabelas bem-sucedidas
+           successful_count=${#successful_tables[@]}
+           if [ $successful_count -gt 0 ]; then
+             echo "📊 Construindo backup final com $successful_count tabelas..."
+             echo "📋 Tabelas processadas: ${successful_tables[*]}"
+             
+             # Verificar se arquivo principal existe
+             echo "🔍 Arquivo de backup: $BACKUP_FILE"
+             if [ -f "$BACKUP_FILE" ]; then
+               echo "✅ Arquivo base existe, tamanho atual: $(stat -c%s "$BACKUP_FILE") bytes"
+             else
+               echo "❌ Arquivo base não existe!"
+               exit 1
+             fi
+             
+             # Adicionar dados das tabelas ao arquivo final
+             for i in "${!successful_tables[@]}"; do
+               table="${successful_tables[$i]}"
+               temp_file="/tmp/table_${table}.json"
+               
+               echo "📄 Processando tabela $table ($(($i + 1))/$successful_count)"
+               
+               # Verificar arquivo temporário
+               if [ -f "$temp_file" ]; then
+                 temp_size=$(stat -c%s "$temp_file")
+                 echo "  ✅ Arquivo temp existe: $temp_size bytes"
+               else
+                 echo "  ❌ Arquivo temp não encontrado: $temp_file"
+                 continue
+               fi
+               
+               # Adicionar ao arquivo principal
+               echo "    \"$table\": " >> $BACKUP_FILE
+               cat "$temp_file" >> $BACKUP_FILE
+               
+               # Adicionar vírgula se não for a última tabela
+               if [ $((i + 1)) -lt $successful_count ]; then
+                 echo "," >> $BACKUP_FILE
+               else
+                 echo "" >> $BACKUP_FILE
+               fi
+               
+               # Verificar tamanho após adicionar
+               current_size=$(stat -c%s "$BACKUP_FILE")
+               echo "  📊 Tamanho após adicionar: $current_size bytes"
+               
+               # Limpar arquivo temporário desta tabela
+               rm -f "$temp_file"
+             done
+             
+             echo "🎯 Construção do JSON concluída"
+           else
+             echo "⚠️ Nenhuma tabela foi processada com sucesso!"
+           fi
+          
+          # Fechar JSON
+          echo "  }" >> $BACKUP_FILE
+          echo "}" >> $BACKUP_FILE
+          
+          # Verificar se backup foi criado
+          echo "🔍 Verificando arquivo final de backup..."
+          if [ ! -f "$BACKUP_FILE" ]; then
+            echo "❌ Erro: Arquivo de backup não foi criado!"
+            echo "📂 Listando arquivos /tmp:"
+            ls -la /tmp/
+            exit 1
+          fi
+          
+          # Verificar tamanho do arquivo
+          BACKUP_SIZE=$(stat -c%s "$BACKUP_FILE")
+          
+          # Calcular tamanhos em diferentes unidades (sem dependências externas)
+          if [ $BACKUP_SIZE -gt 1048576 ]; then
+            # Maior que 1 MB - calcular com precisão de 2 casas
+            BACKUP_SIZE_MB_INT=$((BACKUP_SIZE * 100 / 1024 / 1024))
+            BACKUP_SIZE_MB_MAJOR=$((BACKUP_SIZE_MB_INT / 100))
+            BACKUP_SIZE_MB_MINOR=$((BACKUP_SIZE_MB_INT % 100))
+            SIZE_DISPLAY="${BACKUP_SIZE_MB_MAJOR}.$(printf "%02d" $BACKUP_SIZE_MB_MINOR) MB"
+          elif [ $BACKUP_SIZE -gt 1024 ]; then
+            # Maior que 1 KB - calcular com precisão de 1 casa
+            BACKUP_SIZE_KB_INT=$((BACKUP_SIZE * 10 / 1024))
+            BACKUP_SIZE_KB_MAJOR=$((BACKUP_SIZE_KB_INT / 10))
+            BACKUP_SIZE_KB_MINOR=$((BACKUP_SIZE_KB_INT % 10))
+            SIZE_DISPLAY="${BACKUP_SIZE_KB_MAJOR}.${BACKUP_SIZE_KB_MINOR} KB"
+          else
+            # Menor que 1 KB
+            SIZE_DISPLAY="${BACKUP_SIZE} bytes"
+          fi
+          
+          echo "📊 Tamanho do arquivo de backup: $BACKUP_SIZE bytes ($SIZE_DISPLAY)"
+          
+          if [ $BACKUP_SIZE -lt 100 ]; then
+            echo "⚠️ Arquivo muito pequeno ($BACKUP_SIZE bytes). Investigando..."
+            echo "📄 Conteúdo completo do arquivo:"
+            cat "$BACKUP_FILE"
+            echo ""
+            echo "📄 Últimas 10 linhas:"
+            tail -10 "$BACKUP_FILE"
+            echo ""
+            echo "🔍 Verificando estrutura do JSON..."
+            if jq . "$BACKUP_FILE" >/dev/null 2>&1; then
+              echo "✅ JSON é válido"
+            else
+              echo "❌ JSON é inválido"
+            fi
+          else
+            echo "✅ Arquivo tem tamanho adequado!"
+            echo "📄 Primeiras 5 linhas:"
+            head -5 "$BACKUP_FILE"
+            echo ""
+            echo "📄 Últimas 5 linhas:"
+            tail -5 "$BACKUP_FILE"
+          fi
+          
+          echo "📏 Tamanho final: $SIZE_DISPLAY"
+          
+          # Comprimir arquivo
+          echo "Comprimindo backup..."
+          gzip "$BACKUP_FILE"
+          
+          COMPRESSED_SIZE=$(stat -c%s "$COMPRESSED_FILE")
+          
+          # Calcular tamanho comprimido com precisão
+          if [ $COMPRESSED_SIZE -gt 1048576 ]; then
+            COMPRESSED_SIZE_MB_INT=$((COMPRESSED_SIZE * 100 / 1024 / 1024))
+            COMPRESSED_SIZE_MB_MAJOR=$((COMPRESSED_SIZE_MB_INT / 100))
+            COMPRESSED_SIZE_MB_MINOR=$((COMPRESSED_SIZE_MB_INT % 100))
+            COMPRESSED_SIZE_DISPLAY="${COMPRESSED_SIZE_MB_MAJOR}.$(printf "%02d" $COMPRESSED_SIZE_MB_MINOR) MB"
+          elif [ $COMPRESSED_SIZE -gt 1024 ]; then
+            COMPRESSED_SIZE_KB_INT=$((COMPRESSED_SIZE * 10 / 1024))
+            COMPRESSED_SIZE_KB_MAJOR=$((COMPRESSED_SIZE_KB_INT / 10))
+            COMPRESSED_SIZE_KB_MINOR=$((COMPRESSED_SIZE_KB_INT % 10))
+            COMPRESSED_SIZE_DISPLAY="${COMPRESSED_SIZE_KB_MAJOR}.${COMPRESSED_SIZE_KB_MINOR} KB"
+          else
+            COMPRESSED_SIZE_DISPLAY="${COMPRESSED_SIZE} bytes"
+          fi
+          
+          echo "Tamanho comprimido: $COMPRESSED_SIZE_DISPLAY"
+          echo "Backup concluído com sucesso!"
+          
+          # Salvar informações para próximos steps
+          echo "backup_file=$COMPRESSED_FILE" >> $GITHUB_OUTPUT
+          echo "backup_size_display=$SIZE_DISPLAY" >> $GITHUB_OUTPUT
+          echo "compressed_size_display=$COMPRESSED_SIZE_DISPLAY" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload to S3
+        id: s3upload
+        run: |
+          echo "🔍 DEBUG: Verificando arquivo para upload..."
+          
+          # Verificar arquivo de backup
+          BACKUP_FILE="${{ steps.backup.outputs.backup_file }}"
+          echo "📄 Arquivo esperado: $BACKUP_FILE"
+          
+          # Listar arquivos no diretório atual
+          echo "📂 Arquivos no diretório atual:"
+          ls -la
+          
+          # Listar arquivos em /tmp (onde o backup foi criado)
+          echo "📂 Arquivos em /tmp:"
+          ls -la /tmp/*.gz 2>/dev/null || echo "Nenhum arquivo .gz em /tmp"
+          
+          # Se arquivo não existe no diretório atual, procurar em /tmp
+          if [ ! -f "$BACKUP_FILE" ]; then
+            echo "⚠️ Arquivo não encontrado no diretório atual, procurando em /tmp..."
+            BACKUP_FILE_BASENAME=$(basename "$BACKUP_FILE")
+            if [ -f "/tmp/$BACKUP_FILE_BASENAME" ]; then
+              echo "✅ Arquivo encontrado em /tmp, movendo para diretório atual..."
+              mv "/tmp/$BACKUP_FILE_BASENAME" "./$BACKUP_FILE_BASENAME"
+              BACKUP_FILE="./$BACKUP_FILE_BASENAME"
+            else
+              echo "❌ Arquivo de backup não encontrado!"
+              exit 1
+            fi
+          fi
+          
+          # Verificar tamanho do arquivo
+          if [ -f "$BACKUP_FILE" ]; then
+            FILE_SIZE=$(stat -c%s "$BACKUP_FILE")
+            echo "✅ Arquivo encontrado: $BACKUP_FILE ($FILE_SIZE bytes)"
+          else
+            echo "❌ Arquivo não encontrado: $BACKUP_FILE"
+            exit 1
+          fi
+          
+          # Testar conectividade AWS
+          echo "🔐 Testando credenciais AWS..."
+          aws sts get-caller-identity || {
+            echo "❌ Erro nas credenciais AWS!"
+            exit 1
+          }
+          
+          # Estrutura de pastas: ano/mês/dia/tipo/arquivo
+          YEAR=$(TZ=America/Sao_Paulo date '+%Y')
+          MONTH=$(TZ=America/Sao_Paulo date '+%m')
+          DAY=$(TZ=America/Sao_Paulo date '+%d')
+          
+          S3_PATH="$YEAR/$MONTH/$DAY/${{ steps.datetime.outputs.backup_type }}/$(basename "$BACKUP_FILE")"
+          S3_FULL_URL="s3://${{ secrets.S3_BUCKET_NAME }}/$S3_PATH"
+          
+          echo "📤 Fazendo upload para: $S3_FULL_URL"
+          echo "📊 Tamanho do arquivo: $FILE_SIZE bytes"
+          
+          # Upload para S3 com verbose
+          aws s3 cp "$BACKUP_FILE" "$S3_FULL_URL" \
+            --metadata "backup-type=${{ steps.datetime.outputs.backup_type }},backup-date=${{ steps.datetime.outputs.date }},original-size=${{ steps.backup.outputs.backup_size_display }}" \
+            --debug 2>&1 | head -20
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Upload realizado com sucesso!"
+            echo "🔗 URL S3: $S3_FULL_URL"
+            echo "s3_path=$S3_PATH" >> $GITHUB_OUTPUT
+            echo "s3_url=https://${{ secrets.S3_BUCKET_NAME }}.s3.${{ secrets.AWS_REGION }}.amazonaws.com/$S3_PATH" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Erro no upload para S3!"
+            exit 1
+          fi
+
+      - name: Cleanup Old Backups
+        run: |
+          echo "Iniciando limpeza de backups antigos..."
+          
+          # Função para calcular data X dias atrás
+          get_date_days_ago() {
+            TZ=America/Sao_Paulo date -d "$1 days ago" '+%Y/%m/%d'
+          }
+          
+          # Calcular datas limite
+          DAILY_LIMIT=$(get_date_days_ago 14)    # 14 dias
+          WEEKLY_LIMIT=$(get_date_days_ago 60)   # 60 dias  
+          MONTHLY_LIMIT=$(get_date_days_ago 365) # 365 dias
+          
+          echo "Limites de retenção:"
+          echo "  Diário: antes de $DAILY_LIMIT"
+          echo "  Semanal: antes de $WEEKLY_LIMIT" 
+          echo "  Mensal: antes de $MONTHLY_LIMIT"
+          
+          # Listar e deletar backups antigos por tipo
+          for backup_type in daily weekly monthly; do
+            case $backup_type in
+              daily) CUTOFF_DATE=$DAILY_LIMIT ;;
+              weekly) CUTOFF_DATE=$WEEKLY_LIMIT ;;
+              monthly) CUTOFF_DATE=$MONTHLY_LIMIT ;;
+            esac
+            
+            echo "Procurando backups $backup_type anteriores a $CUTOFF_DATE..."
+            
+            # Listar objetos antigos deste tipo
+            aws s3api list-objects-v2 \
+              --bucket "${{ secrets.S3_BUCKET_NAME }}" \
+              --query "Contents[?contains(Key, '/$backup_type/') && LastModified < '$CUTOFF_DATE'].Key" \
+              --output text | \
+            while read -r key; do
+              if [ -n "$key" ] && [ "$key" != "None" ]; then
+                echo "Deletando: $key"
+                aws s3 rm "s3://${{ secrets.S3_BUCKET_NAME }}/$key"
+              fi
+            done
+          done
+
+      - name: Send Success Notification
+        if: success()
+        run: |
+          echo "Enviando email de sucesso..."
+          
+          # Enviar email usando AWS SES (sintaxe simples com região)
+          aws ses send-email \
+            --region sa-east-1 \
+            --from "${{ secrets.SES_SOURCE_EMAIL }}" \
+            --to "${{ secrets.BACKUP_ADMIN_EMAIL }}" \
+            --subject "Backup Supabase - Sucesso (${{ steps.datetime.outputs.backup_label }})" \
+            --text "Backup do Supabase realizado com sucesso! Tipo: ${{ steps.datetime.outputs.backup_label }} | Data: ${{ steps.datetime.outputs.datetime }} | Tamanho original: ${{ steps.backup.outputs.backup_size_display }} | Tamanho comprimido: ${{ steps.backup.outputs.compressed_size_display }} | Local: AWS S3 bucket backupsgfcolmeia | Repositorio: ${{ github.repository }} | Execucao: ${{ github.run_id }} | Sistema de Backup Colmeia Solar"
+          
+          if [ $? -eq 0 ]; then
+            echo "Email de sucesso enviado!"
+          else
+            echo "Falha no envio do email, mas backup realizado com sucesso"
+          fi
+
+      - name: Send Failure Notification  
+        if: failure()
+        run: |
+          echo "Enviando email de falha..."
+          
+          # Enviar email de falha
+          aws ses send-email \
+            --region sa-east-1 \
+            --from "${{ secrets.SES_SOURCE_EMAIL }}" \
+            --to "${{ secrets.BACKUP_ADMIN_EMAIL }}" \
+            --subject "FALHA no Backup Supabase" \
+            --text "ATENCAO: Falha no backup do Supabase! Repositorio: ${{ github.repository }} | Execucao: ${{ github.run_id }} | Data: $(date) | Verifique os logs no GitHub Actions | Sistema Colmeia Solar"
+          
+          echo "Email de falha enviado ou tentativa realizada"
+
+      - name: Cleanup Local Files
+        if: always()
+        run: |
+          echo "Limpando arquivos temporários..."
+          rm -f *.sql *.sql.gz *.json
+          echo "Limpeza concluída!" 

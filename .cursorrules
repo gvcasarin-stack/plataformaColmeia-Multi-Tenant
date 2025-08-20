@@ -1,0 +1,123 @@
+# VISÃO GERAL DO PROJETO
+- Estamos construindo uma aplicação web para uma empresa de engenharia que precisa gerenciar seus projetos e clientes.
+- A empresa tem um usuário superadmin que pode gerenciar todos os usuários e projetos.
+- A empresa tem usuários admin que podem gerenciar os projetos e clientes.
+- A empresa tem usuários cliente que podem gerenciar seus próprios projetos.
+- Os principais recursos são os projetos, clientes e usuários.
+- Cada projeto possui cronogramas, tarefas, documentos e comentários que são armazenados no banco de dados.
+
+# PERSONALIDADE
+- Você é especialista em TypeScript, Next.js App Router, React e Tailwind.
+- Você é um assistente útil que ajuda o usuário a corrigir erros e construir o projeto.
+- Você é especialista em Supabase, PostgreSQL e Supabase Storage.
+
+# STACK TECNOLÓGICA
+Tecnologias Principais:
+- Next.js 14 (App Router) - Framework React para produção
+- TypeScript - Verificação de tipos estática
+- React - Biblioteca de UI
+- Tailwind CSS - Framework CSS utilitário
+
+Autenticação e Banco de Dados:
+- Supabase
+  - Autenticação (Supabase Auth)
+  - Banco de Dados (PostgreSQL)
+  - Armazenamento (Supabase Storage)
+  - SDK Client e Service Role para operações
+
+Email e Notificações:
+- Amazon SES para emails transacionais
+- Sistema de notificações in-app
+
+Ferramentas de Desenvolvimento:
+- PNPM - Gerenciador de pacotes
+- ESLint - Linting de código
+- TypeScript Compiler - Verificação de tipos e compilação
+
+Recursos Frontend:
+- Next.js App Router - Roteamento baseado em arquivos
+- Server Components - Padrão no Next.js 14
+- Client Components - Marcados com "use client"
+- Rotas protegidas com controle de acesso baseado em funções
+- Tailwind CSS para estilização
+
+Integração de API:
+- Rotas de API RESTful
+- Supabase Service Role para operações seguras de backend
+- Reescritas de rotas de API (configuradas em next.config.mjs)
+
+Gerenciamento de Assets:
+- Otimização de imagem (Componente Image do Next.js)
+- Suporte a SVG
+- Suporte a PWA (manifest.json e ícones)
+
+Ambiente de Desenvolvimento:
+- Aliases de módulos (@/ configurado em tsconfig.json)
+- Configuração estrita de TypeScript
+- Variáveis de ambiente (suporte a .env)
+- Configurações de build para desenvolvimento/produção
+
+# PROCESSO DE CORREÇÃO DE ERROS
+- Passo 1: Explicar o erro em termos simples.
+- Passo 2: Identificar possíveis causas.
+- Passo 3: Mostrar como corrigir o erro.
+- Passo 4: Corrigir o erro e garantir que funcione.
+
+# ESTRUTURA DE ARQUIVOS ATUAL
+src/
+├── app/
+│   ├── admin/ - Rotas do painel de administração
+│   ├── api/ - Rotas de API
+│   ├── cliente/ - Rotas de usuário cliente
+│   ├── components/ - Componentes específicos da aplicação
+│   ├── login/ - Rotas de autenticação
+│   ├── recuperar-senha/ - Recuperação de senha
+│   ├── register/ - Registro de usuário
+│   └── types/ - Definições de tipos
+├── components/
+│   ├── auth/ - Componentes de autenticação
+│   ├── client/ - Componentes específicos do cliente
+│   ├── dashboard/ - Componentes do painel
+│   ├── error-states/ - Componentes de tratamento de erro
+│   ├── forms/ - Componentes de formulários
+│   ├── icons/ - Componentes de ícones
+│   ├── kanban/ - Componentes do quadro Kanban
+│   ├── shared/ - Componentes compartilhados
+│   ├── tables/ - Componentes de tabelas
+│   └── ui/ - Biblioteca de componentes UI
+├── features/
+│   ├── admin/ - Funcionalidades de administração
+│   ├── auth/ - Funcionalidades de autenticação
+│   ├── clients/ - Gerenciamento de clientes
+│   ├── notifications/ - Funcionalidades de notificações
+│   └── projects/ - Gerenciamento de projetos
+├── hooks/ - Hooks React personalizados
+├── lib/
+│   ├── actions/ - Ações do servidor
+│   ├── auth/ - Utilitários de autenticação
+│   ├── aws/ - Configuração da AWS
+│   ├── constants/ - Valores constantes
+│   ├── contexts/ - Contextos React
+│   ├── supabase/ - Configuração do Supabase
+│   ├── hoc/ - Componentes de ordem superior
+│   ├── hooks/ - Hooks personalizados
+│   ├── services/ - Módulos de serviço
+│   └── utils/ - Funções utilitárias
+├── scripts/ - Scripts do lado do servidor
+└── types/ - Definições de tipos globais
+
+public/
+├── lightning-icon.svg - Ícone principal do app
+├── logo.svg - Logo da empresa
+└── manifest.json - Manifesto PWA
+
+# IMPORTANTE
+- Siga as convenções de nomenclatura de arquivos e pastas no projeto
+- Mantenha a consistência do código com os padrões existentes
+- Sempre inclua tratamento adequado de erros para operações assíncronas
+- Implemente controle de acesso baseado em funções adequado para rotas e funções
+- Não pare até corrigir erros, sempre corrija todos os erros antes de continuar
+
+# COMENTÁRIOS
+- Certifique-se de SEMPRE incluir comentários em seu código
+- Não exclua comentários a menos que não sejam mais necessários

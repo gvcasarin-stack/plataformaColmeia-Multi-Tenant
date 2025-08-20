@@ -1,0 +1,4 @@
+warning: in the working copy of 'src/lib/services/emailService.ts', LF will be replaced by CRLF the next time Git touches it
+docs/sistemaEmails.md
+src/app/api/debug/test-rpc-claim/route.ts
+src/lib/services/emailService.ts

@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+
+console.log('🚨 PROBLEMA IDENTIFICADO: SUPABASE_SERVICE_ROLE_KEY AUSENTE');
+console.log('');
+console.log('📋 PARA RESOLVER O ERRO 500:');
+console.log('');
+console.log('1. Acesse o Dashboard do Supabase:');
+console.log('   https://supabase.com/dashboard/project/uvdyxurnvatomlxevrmu');
+console.log('');
+console.log('2. Vá para Settings > API');
+console.log('');
+console.log('3. Copie a "service_role" key (não a "anon" key)');
+console.log('');
+console.log('4. Adicione ao arquivo .env.local:');
+console.log('   SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key_aqui');
+console.log('');
+console.log('⚠️  IMPORTANTE:');
+console.log('   - A service_role key é SECRETA (não compartilhe)');
+console.log('   - Ela começa com "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."');
+console.log('   - É diferente da anon key que você já tem');
+console.log('');
+console.log('5. Reinicie o servidor de desenvolvimento:');
+console.log('   pnpm dev');
+console.log('');
+console.log('🎯 APÓS ADICIONAR A CHAVE:');
+console.log('   ✅ Criação de projetos funcionará');
+console.log('   ✅ Todas as server actions funcionarão');
+console.log('   ✅ Sistema 100% operacional');
+console.log('');
+console.log('📝 FORMATO FINAL DO .env.local:');
+console.log('NEXT_PUBLIC_SUPABASE_URL=https://uvdyxurnvatomlxevrmu.supabase.co');
+console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+console.log('SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+console.log('');
+console.log('🚀 PROBLEMA RESOLVIDO APÓS CONFIGURAÇÃO!'); 

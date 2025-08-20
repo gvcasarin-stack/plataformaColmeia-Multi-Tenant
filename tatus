@@ -1,0 +1,8 @@
+[33ma9fd6c0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: implement conditional dark mode - public pages always light, authenticated areas with user choice
+[33m4045684[m fix: remove auto-fill of nomeClienteFinal field in project creation modal
+[33m2eaed08[m cleanup: remover sistema de backup Firebase obsoleto
+[33m7e95bbb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: melhorar consistência dark mode - página login admin, SimpleModal, NewCardModal e ProjectDetailsDialog
+[33m42196dd[m fix: corrigir inconsistências do dark mode no painel admin - background, tooltips e textos
+[33m8425192[m cleanup: remover arquivos sidebar e dynamic-layout obsoletos
+[33ma5afc56[m fix: adicionar botao de tema no AdminSidebar correto
+[33mc3e6136[m feat: add proper dark mode toggle button to admin sidebar

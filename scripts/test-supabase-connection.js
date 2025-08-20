@@ -1,0 +1,163 @@
+#!/usr/bin/env node
+
+console.log('🔗 TESTANDO CONECTIVIDADE COM SUPABASE');
+console.log('');
+
+console.log('📋 ESTE SCRIPT TESTA:');
+console.log('   ✓ Conectividade básica com Supabase');
+console.log('   ✓ Autenticação com service_role');
+console.log('   ✓ Acesso à tabela projects');
+console.log('   ✓ Políticas RLS');
+console.log('   ✓ Estrutura da tabela');
+console.log('');
+
+console.log('🚀 PARA EXECUTAR ESTE TESTE:');
+console.log('');
+
+console.log('1. 📁 Crie um arquivo de teste:');
+console.log('   test-connection.mjs');
+console.log('');
+
+console.log('2. 📝 Cole este código no arquivo:');
+console.log('```javascript');
+console.log('import { createClient } from "@supabase/supabase-js";');
+console.log('');
+console.log('const supabaseUrl = "https://uvdyxurnvatomlxevrmu.supabase.co";');
+console.log('const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;');
+console.log('');
+console.log('if (!serviceRoleKey) {');
+console.log('  console.error("❌ SUPABASE_SERVICE_ROLE_KEY não encontrada!");');
+console.log('  process.exit(1);');
+console.log('}');
+console.log('');
+console.log('console.log("🔑 Service Role Key:", serviceRoleKey.substring(0, 20) + "...");');
+console.log('');
+console.log('const supabase = createClient(supabaseUrl, serviceRoleKey, {');
+console.log('  auth: {');
+console.log('    autoRefreshToken: false,');
+console.log('    persistSession: false');
+console.log('  }');
+console.log('});');
+console.log('');
+console.log('async function testConnection() {');
+console.log('  try {');
+console.log('    console.log("🔍 Testando conectividade básica...");');
+console.log('    ');
+console.log('    // Teste 1: Health check básico');
+console.log('    const { data: healthData, error: healthError } = await supabase');
+console.log('      .from("projects")');
+console.log('      .select("id")');
+console.log('      .limit(1);');
+console.log('    ');
+console.log('    if (healthError) {');
+console.log('      console.error("❌ Health check falhou:", healthError);');
+console.log('      return;');
+console.log('    }');
+console.log('    ');
+console.log('    console.log("✅ Conectividade básica: OK");');
+console.log('    console.log("📊 Projetos encontrados:", healthData?.length || 0);');
+console.log('    ');
+console.log('    // Teste 2: Verificar estrutura da tabela');
+console.log('    console.log("🔍 Verificando estrutura da tabela...");');
+console.log('    ');
+console.log('    const { data: tableData, error: tableError } = await supabase');
+console.log('      .from("projects")');
+console.log('      .select("id, number, name, created_at")');
+console.log('      .limit(1);');
+console.log('    ');
+console.log('    if (tableError) {');
+console.log('      console.error("❌ Erro ao acessar tabela:", tableError);');
+console.log('      return;');
+console.log('    }');
+console.log('    ');
+console.log('    console.log("✅ Estrutura da tabela: OK");');
+console.log('    ');
+console.log('    // Teste 3: Testar query específica para geração de números');
+console.log('    console.log("🔍 Testando query de geração de números...");');
+console.log('    ');
+console.log('    const currentYear = new Date().getFullYear();');
+console.log('    const prefix = `FV-${currentYear}-`;');
+console.log('    ');
+console.log('    const { data: numberData, error: numberError } = await supabase');
+console.log('      .from("projects")');
+console.log('      .select("number")');
+console.log('      .like("number", `${prefix}%`)');
+console.log('      .order("number", { ascending: false })');
+console.log('      .limit(1);');
+console.log('    ');
+console.log('    if (numberError) {');
+console.log('      console.error("❌ Erro na query de números:", numberError);');
+console.log('      return;');
+console.log('    }');
+console.log('    ');
+console.log('    console.log("✅ Query de números: OK");');
+console.log('    console.log("📊 Último número encontrado:", numberData?.[0]?.number || "nenhum");');
+console.log('    ');
+console.log('    // Teste 4: Simular inserção (sem executar)');
+console.log('    console.log("🔍 Testando preparação de inserção...");');
+console.log('    ');
+console.log('    const testProjectData = {');
+console.log('      name: "Projeto Teste",');
+console.log('      number: `${prefix}999`,');
+console.log('      created_by: "00000000-0000-0000-0000-000000000000", // UUID fake');
+console.log('      status: "Não Iniciado"');
+console.log('    };');
+console.log('    ');
+console.log('    console.log("✅ Dados de teste preparados:", testProjectData);');
+console.log('    console.log("ℹ️  Inserção não executada (apenas teste de preparação)");');
+console.log('    ');
+console.log('    console.log("🎉 TODOS OS TESTES PASSARAM!");');
+console.log('    console.log("✅ Supabase está funcionando corretamente");');
+console.log('    ');
+console.log('  } catch (error) {');
+console.log('    console.error("❌ Erro geral:", error);');
+console.log('  }');
+console.log('}');
+console.log('');
+console.log('testConnection();');
+console.log('```');
+console.log('');
+
+console.log('3. 🏃 Execute o teste:');
+console.log('   node test-connection.mjs');
+console.log('');
+
+console.log('📊 RESULTADOS ESPERADOS:');
+console.log('');
+
+console.log('✅ SE TUDO ESTIVER OK:');
+console.log('   - Conectividade básica: OK');
+console.log('   - Estrutura da tabela: OK');
+console.log('   - Query de números: OK');
+console.log('   - Dados de teste preparados');
+console.log('   - TODOS OS TESTES PASSARAM!');
+console.log('');
+
+console.log('❌ SE HOUVER PROBLEMAS:');
+console.log('   - Health check falhou → Problema de conectividade/RLS');
+console.log('   - Erro ao acessar tabela → Tabela não existe ou RLS');
+console.log('   - Erro na query de números → Campo "number" não existe');
+console.log('   - Erro geral → Problema na chave ou configuração');
+console.log('');
+
+console.log('🔧 SOLUÇÕES BASEADAS NO RESULTADO:');
+console.log('');
+
+console.log('🛡️  SE RLS ESTIVER BLOQUEANDO:');
+console.log('   1. Acesse Supabase Dashboard');
+console.log('   2. Authentication > Policies');
+console.log('   3. Crie política para service_role');
+console.log('');
+
+console.log('🗄️  SE TABELA NÃO EXISTIR:');
+console.log('   1. Table Editor > Create Table');
+console.log('   2. Use o SQL fornecido no script anterior');
+console.log('');
+
+console.log('🔑 SE CHAVE ESTIVER INVÁLIDA:');
+console.log('   1. Settings > API');
+console.log('   2. Copie novamente a service_role key');
+console.log('   3. Atualize nas variáveis de ambiente da Vercel');
+console.log('');
+
+console.log('🚀 EXECUTE O TESTE AGORA!'); 

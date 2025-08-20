@@ -1,0 +1,65 @@
+warning: in the working copy of 'src/app/cliente/projetos/page.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/app/cliente/projetos/page.tsx b/src/app/cliente/projetos/page.tsx[m
+[1mindex 453562f..7b48892 100644[m
+[1m--- a/src/app/cliente/projetos/page.tsx[m
+[1m+++ b/src/app/cliente/projetos/page.tsx[m
+[36m@@ -8,11 +8,22 @@[m [mimport { LazyClientCreateProjectModal } from "@/lib/utils/lazy-components";[m
+ import { useState, useEffect, useRef } from "react";[m
+ import { createProjectClientAction } from "@/lib/actions/project-actions";[m
+ import { getUserDataSupabase } from "@/lib/services/authService.supabase";[m
+[32m+[m[32mimport { calculateProjectCost } from "@/lib/utils/projectUtils";[m
+ import { useAuth } from "@/lib/hooks/useAuth";[m
+ import { useProjects } from "@/lib/hooks/useProjects";[m
+ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";[m
+ import { ScrollArea } from "@/components/ui/scroll-area";[m
+[31m-import * as Icons from "lucide-react";[m
+[32m+[m[32mimport {[m[41m [m
+[32m+[m[32m  Clock,[m[41m [m
+[32m+[m[32m  Activity,[m[41m [m
+[32m+[m[32m  AlertTriangle,[m[41m [m
+[32m+[m[32m  CheckCircle,[m[41m [m
+[32m+[m[32m  PauseCircle,[m[41m [m
+[32m+[m[32m  XCircle,[m
+[32m+[m[32m  Filter,[m
+[32m+[m[32m  Eye,[m
+[32m+[m[32m  Plus[m
+[32m+[m[32m} from "lucide-react";[m
+ import {[m
+   Table,[m
+   TableBody,[m
+[36m@@ -227,22 +238,26 @@[m [mexport default function ClientProjects() {[m
+       [m
+       diagnosticLog += `[DIAGNÓSTICO] Submissão registrada como processada\n`;[m
+       [m
+[31m-      // Dados que o cliente pode fornecer e que a action espera[m
+[31m-      // O projectNumber é opcional no formulário, será gerado se não existir[m
+[32m+[m[32m      // Get current date in ISO format[m
+[32m+[m[32m      const currentDate = new Date().toISOString();[m
+[32m+[m[41m      [m
+[32m+[m[32m      // Calcular o valor do projeto com base na potência usando a função calculateProjectCost[m
+[32m+[m[32m      const valorCalculado = calculateProjectCost(data.power);[m
+[32m+[m[41m      [m
+[32m+[m[32m      // Preparar dados para a action[m
+       const projectDataForAction = {[m
+[31m-        name: `Projeto ${data.nomeClienteFinal}`, // Nome do projeto[m
+[31m-        number: data.projectNumber, // Número do projeto (pode ser undefined e será gerado pela action/service)[m
+[31m-        empresaIntegradora: userData?.companyName || userData?.name || "Cliente Individual",[m
+[32m+[m[32m        name: `Projeto ${data.nomeClienteFinal}`,[m
+[32m+[m[32m        number: data.projectNumber, // Será gerado pela action/service se undefined[m
+[32m+[m[32m        empresaIntegradora: data.empresaIntegradora || userData?.companyName || userData?.name || "Cliente Individual",[m
+         nomeClienteFinal: data.nomeClienteFinal,[m
+         distribuidora: data.distribuidora,[m
+[31m-        potencia: data.power, // 'power' é o campo do formulário do modal[m
+[32m+[m[32m        potencia: data.power, // 'power' é o campo do formulário[m
+         listaMateriais: data.listaMateriais, // ADICIONADO: Lista de materiais[m
+         disjuntorPadraoEntrada: data.disjuntorPadraoEntrada, // ADICIONADO: Disjuntor do padrão de entrada[m
+[31m-        dataEntrega: new Date().toISOString(), // Data de entrega padrão[m
+[32m+[m[32m        valorProjeto: valorCalculado, // ✅ ADICIONADO: Valor calculado automaticamente[m
+[32m+[m[32m        dataEntrega: currentDate,[m
+         // status e prioridade serão definidos pela action[m
+         // userId será pego do clientUser na action[m
+[31m-        // valorProjeto, pagamento, price não são enviados pelo cliente na criação inicial via este modal.[m
+[31m-        // Eles podem ser adicionados/editados depois pelo admin.[m
+       };[m
+ [m
+       const clientUserInfo = {[m

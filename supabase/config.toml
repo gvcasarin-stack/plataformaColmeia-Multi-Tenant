@@ -1,0 +1,5 @@
+# Configuração mínima do Supabase
+# Usando 100% sistema nativo - sem Edge Functions personalizadas
+
+# Sem configurações de functions = usa apenas sistema nativo
+# Todos os emails serão gerenciados pelo Supabase nativo

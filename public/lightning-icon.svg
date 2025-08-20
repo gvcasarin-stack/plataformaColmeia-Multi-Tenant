@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Background square -->
+  <rect width="512" height="512" fill="#3b82f6" rx="64" ry="64" />
+  
+  <!-- Yellow lightning bolt centered -->
+  <path d="M320 120L192 120L128 320L224 320L160 480L352 240L256 240L320 120Z" 
+        fill="#fbbf24" 
+        stroke="#fbbf24" 
+        stroke-width="8" />
+</svg> 
