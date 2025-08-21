@@ -10,6 +10,25 @@ export async function middleware(request: NextRequest) {
     return createBuildTimeResponse(request.nextUrl.pathname);
   }
 
+  // 🏢 MULTI-TENANT: Detecção de subdomínio ANTES de tudo
+  const hostname = request.headers.get('host') || '';
+  const { pathname } = request.nextUrl;
+  
+  // Detectar tipo de site baseado no hostname
+  const isMainSite = hostname === 'gerenciamentofotovoltaico.com.br';
+  const isRegistroSite = hostname === 'registro.gerenciamentofotovoltaico.com.br';
+  const isSubdomain = hostname.includes('.gerenciamentofotovoltaico.com.br') && !isMainSite && !isRegistroSite;
+  const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
+  
+  devLog.log(`[Middleware] 🏢 Multi-tenant detection:`, {
+    hostname,
+    pathname,
+    isMainSite,
+    isRegistroSite,
+    isSubdomain,
+    isLocalhost
+  });
+
   // 1. Inicializa a resposta, copiando os headers da requisição original
   let response = NextResponse.next({
     request: {
@@ -22,8 +41,6 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-  const { pathname } = request.nextUrl;
 
   // 3. Configurar CORS para requisições da API
   if (pathname.startsWith('/api/')) {
@@ -66,19 +83,82 @@ export async function middleware(request: NextRequest) {
   // 6. Obter dados do usuário para lógica de proteção de rotas
   const { data: { user } } = await supabase.auth.getUser();
   
+  // 🏢 MULTI-TENANT: Validação e configuração de tenant
+  let tenantId = null;
+  let tenantSlug = null;
+  let organizationData = null;
+
+  // Se é subdomínio de tenant, extrair e validar
+  if (isSubdomain && !isLocalhost) {
+    tenantSlug = hostname.split('.')[0];
+    
+    try {
+      // Verificar se organização existe
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name, slug, status, is_trial, subscription_status, trial_ends_at')
+        .eq('slug', tenantSlug)
+        .eq('status', 'active')
+        .single();
+
+      if (orgError || !orgData) {
+        devLog.warn(`[Middleware] 🚫 Tenant não encontrado:`, { tenantSlug, error: orgError });
+        // Redirecionar para página de tenant não encontrado
+        return NextResponse.redirect(new URL('/tenant-not-found', 'https://gerenciamentofotovoltaico.com.br'));
+      }
+
+      tenantId = orgData.id;
+      organizationData = orgData;
+      
+      // Adicionar headers de tenant
+      response.headers.set('x-tenant-id', tenantId);
+      response.headers.set('x-tenant-slug', tenantSlug);
+      response.headers.set('x-tenant-name', orgData.name);
+      response.headers.set('x-tenant-trial', orgData.is_trial.toString());
+      
+      devLog.log(`[Middleware] ✅ Tenant válido:`, {
+        slug: tenantSlug,
+        id: tenantId,
+        name: orgData.name,
+        isTrial: orgData.is_trial,
+        status: orgData.subscription_status
+      });
+
+    } catch (error) {
+      devLog.error(`[Middleware] Erro ao validar tenant:`, error);
+      return NextResponse.redirect(new URL('/error', 'https://gerenciamentofotovoltaico.com.br'));
+    }
+  }
+
   // ✅ PRODUÇÃO - Buscar role e status de bloqueio do usuário da tabela users se ele estiver autenticado
   let userRole = null;
   let isBlocked = false;
+  let userTenantId = null;
+  
   if (user) {
     try {
       const { data: userData } = await supabase
         .from('users')
-        .select('role, is_blocked')
+        .select('role, is_blocked, tenant_id')
         .eq('id', user.id)
         .single();
       
       userRole = userData?.role;
       isBlocked = userData?.is_blocked || false;
+      userTenantId = userData?.tenant_id;
+      
+      // 🔒 SEGURANÇA: Verificar se usuário pertence ao tenant correto
+      if (isSubdomain && tenantId && userTenantId !== tenantId) {
+        devLog.warn(`[Middleware] 🚫 Usuário não pertence ao tenant:`, {
+          userId: user.id,
+          userTenant: userTenantId,
+          requestedTenant: tenantId
+        });
+        // Fazer logout e redirecionar para login
+        await supabase.auth.signOut();
+        return NextResponse.redirect(new URL(`${pathname.startsWith('/admin') ? '/admin' : '/cliente'}/login`, request.url));
+      }
+      
     } catch (error) {
       devLog.error(`[Middleware] Erro ao buscar dados do usuário:`, error);
     }
@@ -94,7 +174,27 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // 7. Lógica de Proteção de Rotas
+  // 🏢 MULTI-TENANT: Lógica de Proteção de Rotas por Contexto
+  
+  // Se é site principal, ignorar proteção de rotas (deixar passar)
+  if (isMainSite || isLocalhost) {
+    devLog.log(`[Middleware] ✅ Site principal ou localhost - sem proteção de rotas`);
+    return response;
+  }
+  
+  // Se é site de registro, permitir acesso livre (será página pública)
+  if (isRegistroSite) {
+    devLog.log(`[Middleware] ✅ Site de registro - acesso livre`);
+    return response;
+  }
+  
+  // Se é subdomínio de tenant, aplicar proteção de rotas
+  if (!isSubdomain) {
+    devLog.log(`[Middleware] ✅ Não é subdomínio - deixar passar`);
+    return response;
+  }
+
+  // 7. Lógica de Proteção de Rotas para Tenants
   const adminLoginPath = '/admin/login';
   const adminRegisterPath = '';
   const adminDashboardPath = '/admin/painel';
