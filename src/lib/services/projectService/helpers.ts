@@ -6,7 +6,7 @@
 import { TimelineEvent, Comment } from '@/types/project';
 import { ProjectStatus } from '@/types/kanban';
 import { TimelineEventData, CommentData } from './types';
-import { Timestamp } from 'firebase/firestore';
+// ❌ FIREBASE - REMOVIDO: import { Timestamp } from 'firebase/firestore';
 
 /**
  * Normaliza o status do projeto para um valor válido

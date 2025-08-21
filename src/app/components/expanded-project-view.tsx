@@ -38,7 +38,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { calculateProjectCost } from "@/lib/utils/projectUtils"
 import { resetAllForms } from '@/lib/utils/reset'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
-import { Timestamp } from 'firebase/firestore'
+// ❌ FIREBASE - REMOVIDO: import { Timestamp } from 'firebase/firestore'
 import { deleteCommentAction, deleteFileAction } from '@/lib/actions/project-actions'
 import { useTransition } from 'react'
 
