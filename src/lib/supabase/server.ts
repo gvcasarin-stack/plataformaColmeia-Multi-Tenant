@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 // Define a function to create a Supabase client for server-side operations (Server Components, Route Handlers)
@@ -20,6 +21,20 @@ export function createSupabaseServerClient() {
           cookieStore.delete({ name, ...options });
         },
       },
+    }
+  );
+}
+
+// ✅ MULTI-TENANT: Função para Service Role Client (operações administrativas)
+export function createSupabaseServiceRoleClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
     }
   );
 } 
