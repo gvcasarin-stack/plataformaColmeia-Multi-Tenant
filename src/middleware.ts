@@ -182,9 +182,12 @@ export async function middleware(request: NextRequest) {
     return response;
   }
   
-  // Se é site de registro, permitir acesso livre (será página pública)
+  // Se é site de registro, redirecionar para página de registro
   if (isRegistroSite) {
-    devLog.log(`[Middleware] ✅ Site de registro - acesso livre`);
+    devLog.log(`[Middleware] ✅ Site de registro - redirecionando para /registro`);
+    if (pathname !== '/registro') {
+      return NextResponse.redirect(new URL('/registro', request.url));
+    }
     return response;
   }
   

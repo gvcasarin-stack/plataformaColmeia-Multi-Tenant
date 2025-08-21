@@ -179,11 +179,13 @@ interface RegistrationData {
 
 #### Tarefas:
 - [x] **Criar página de registro** `src/app/(registro)/page.tsx`
+  - [x] Configurado para funcionar em `registro.gerenciamentofotovoltaico.com.br`
   - [x] Formulário com validação em tempo real
   - [x] Verificação de slug disponível (debounced)
   - [x] Seleção de plano (básico/profissional)
   - [x] Termos de uso e política de privacidade
   - [x] Loading states e error handling
+  - [x] Redirecionamento para `{slug}.gerenciamentofotovoltaico.com.br/admin/login`
 
 - [x] **Componentes necessários**:
   - [x] `RegistrationForm` principal com formulário multi-step
@@ -198,6 +200,7 @@ interface RegistrationData {
 - [x] Preview da URL final
 - [x] Comparação clara dos planos
 - [x] Processo em etapas (3 passos implementados)
+- [x] Redirecionamento automático para tenant após registro
 
 ---
 
