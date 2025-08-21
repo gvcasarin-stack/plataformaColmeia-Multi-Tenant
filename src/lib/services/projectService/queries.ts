@@ -189,7 +189,7 @@ export const getProjects = async (options: GetProjectsOptions = {}): Promise<Pro
     
     // Filtrar por usuário se não for admin
     if (options.userId && !options.isAdmin) {
-      constraints.push(where('userId', '==', options.userId));
+      constraints.push(where('created_by', '==', options.userId));
     }
     
     // Filtrar por status se especificado
@@ -383,7 +383,7 @@ export const searchProjects = async (options: GetProjectsOptions = {}): Promise<
     
     // Adicionar filtros conforme necessário
     if (options.userId && !options.isAdmin) {
-      constraints.push(where('userId', '==', options.userId));
+      constraints.push(where('created_by', '==', options.userId));
     }
     
     if (options.status) {

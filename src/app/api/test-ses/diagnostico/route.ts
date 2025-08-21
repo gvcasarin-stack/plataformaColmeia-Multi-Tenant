@@ -3,7 +3,7 @@ import { SESClient, GetSendQuotaCommand, ListIdentitiesCommand } from '@aws-sdk/
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth-options';
 import logger from '@/lib/utils/logger';
-import { logUnauthorizedAccess, logAdminAction } from '@/lib/utils/security-audit';
+// import { logUnauthorizedAccess, logAdminAction } from '@/lib/utils/security-audit'; // TEMPORARIAMENTE DESABILITADO
 
 /**
  * Rota GET para diagnóstico avançado de configuração SES
@@ -18,8 +18,8 @@ export async function GET(request: Request) {
     // Verificar autenticação
     const session = await getServerSession(authOptions);
     if (!session?.user || (session.user.role !== 'admin' && session.user.role !== 'superadmin')) {
-      // Registrar tentativa de acesso não autorizado
-      await logUnauthorizedAccess('Acesso a diagnóstico SES', {
+      // TODO: Registrar tentativa de acesso não autorizado (função temporariamente desabilitada)
+      logger.warn('[DIAGNOSTICO-SES] Tentativa de acesso não autorizado:', {
         userId: session?.user?.id,
         email: session?.user?.email,
         route: '/api/test-ses/diagnostico',
@@ -34,13 +34,12 @@ export async function GET(request: Request) {
       }, { status: 403 });
     }
     
-    // Registrar acesso autorizado
-    await logAdminAction('Execução de diagnóstico SES', {
+    // TODO: Registrar acesso autorizado (função temporariamente desabilitada)
+    logger.info('[DIAGNOSTICO-SES] Acesso autorizado por admin:', {
       adminId: session.user.id,
       email: session.user.email,
-      details: {
-        role: session.user.role
-      }
+      role: session.user.role,
+      details: 'Iniciando diagnóstico completo de AWS SES'
     });
     
     // 1. Verificar variáveis de ambiente
