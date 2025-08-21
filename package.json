@@ -47,8 +47,7 @@
     "clsx": "^2.1.1",
     "critters": "^0.0.20",
     "date-fns": "4.1.0",
-    "firebase": "^10.14.1",
-    "firebase-admin": "^13.0.1",
+
     "framer-motion": "^11.13.1",
     "js-cookie": "^3.0.5",
     "lucide-react": "0.483.0",
