@@ -593,4 +593,4 @@ export default function ClientProjects() {
       />
     </div>
   );
-} 
+}

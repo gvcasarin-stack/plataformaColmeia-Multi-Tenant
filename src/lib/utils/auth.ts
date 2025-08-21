@@ -1,4 +1,3 @@
-
 export function hasAdminAccess(userData: { role?: string } | null | undefined): boolean {
   if (!userData) return false;
   return userData?.role === 'admin' || userData?.role === 'superadmin';

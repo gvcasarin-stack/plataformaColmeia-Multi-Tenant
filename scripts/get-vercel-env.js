@@ -38,4 +38,4 @@ console.log('- Não commite ela no Git');
 console.log('- Use apenas para desenvolvimento local');
 console.log('');
 
-console.log('🚀 APÓS CONFIGURAR: Criação de projetos funcionará!'); 
+console.log('🚀 APÓS CONFIGURAR: Criação de projetos funcionará!');

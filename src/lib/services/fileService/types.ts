@@ -148,4 +148,4 @@ export interface ProjectStorageStats {
   lastUploadDate: string;
   /** Tipos de arquivo presentes */
   fileTypes: Record<string, number>;
-} 
+}

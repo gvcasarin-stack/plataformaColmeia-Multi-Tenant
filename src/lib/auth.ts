@@ -54,4 +54,4 @@ export async function signOut() {
   } catch (error) {
     throw error;
   }
-} 
+}

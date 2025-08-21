@@ -9,4 +9,4 @@
 declare module 'date-fns' {
   // Declaração vazia para permitir importações
   // Isto permite que o TypeScript encontre o módulo sem erros
-} 
+}

@@ -312,4 +312,4 @@ export async function changePassword(currentPassword: string, newPassword: strin
     devLog.error('[Auth] Erro no changePassword:', error);
     throw error;
   }
-} 
+}

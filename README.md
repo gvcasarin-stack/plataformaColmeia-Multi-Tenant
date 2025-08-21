@@ -24,23 +24,23 @@ Plataforma de gestão de projetos de engenharia para monitoramento e acompanhame
 
 1. Clone o repositório
 2. Instale as dependências:
-   ```
+   \`\`\`
    pnpm install
-   ```
+   \`\`\`
 3. Configure as variáveis de ambiente (ver seção abaixo)
 4. Execute o servidor de desenvolvimento:
-   ```
+   \`\`\`
    pnpm dev
-   ```
+   \`\`\`
 
 ## Variáveis de Ambiente
 
 Para configurar o projeto corretamente, você precisa definir as variáveis de ambiente necessárias:
 
 1. Copie o arquivo `.env.example` para um novo arquivo chamado `.env.local`:
-   ```
+   \`\`\`
    cp .env.example .env.local
-   ```
+   \`\`\`
 
 2. Preencha o arquivo `.env.local` com suas credenciais:
    - Firebase Client SDK (variáveis públicas com prefixo NEXT_PUBLIC_)
@@ -87,8 +87,8 @@ Para desenvolvedores, oferecemos ferramentas internas para monitorar a migraçã
 
 Para gerar uma build de produção:
 
-```
+\`\`\`
 pnpm build
-```
+\`\`\`
 
 O projeto está configurado para deploy na Vercel, que detecta automaticamente as configurações do Next.js.

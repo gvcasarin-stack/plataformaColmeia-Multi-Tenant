@@ -40,4 +40,4 @@ export function generateProjectNumber(
   }
 
   return newNumber
-} 
+}

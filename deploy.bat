@@ -29,4 +29,4 @@ vercel --prod
 
 echo [SUCESSO] Deploy concluído!
 echo Acesse: https://plataforma-colmeia27-03.vercel.app
-pause 
+pause

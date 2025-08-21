@@ -102,4 +102,4 @@ COMMENT ON TABLE configs IS 'Configurações gerais do sistema - OTIMIZADA e LIM
 -- ✅ 7 configurações essenciais mantidas  
 -- ✅ tabela_precos mantida (é usada no código)
 -- ✅ Funcionalidade 100% preservada
--- ✅ Tabela mais limpa e eficiente 
+-- ✅ Tabela mais limpa e eficiente

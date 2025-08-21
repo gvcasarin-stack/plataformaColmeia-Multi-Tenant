@@ -280,4 +280,4 @@ export const getPerformanceReport = () => systemMonitor.getPerformanceReport();
 export const exportSystemReport = () => systemMonitor.exportFullReport();
 
 // Exportar tipos
-export type { SystemMetrics, PerformanceTest }; 
+export type { SystemMetrics, PerformanceTest };

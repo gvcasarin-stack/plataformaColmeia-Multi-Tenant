@@ -851,4 +851,4 @@ export const getProjectsAdmin = async (
     }
     throw new Error('Falha desconhecida ao buscar projetos (Supabase).');
   }
-}; 
+};

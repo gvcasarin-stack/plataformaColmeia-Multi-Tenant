@@ -178,4 +178,4 @@ BEGIN
   END IF;
   
   RAISE NOTICE '🎉 Migração das tabelas essenciais concluída!';
-END $$; 
+END $$;

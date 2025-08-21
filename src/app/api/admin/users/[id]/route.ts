@@ -45,5 +45,3 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
-
-

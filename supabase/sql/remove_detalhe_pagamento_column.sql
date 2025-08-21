@@ -39,4 +39,4 @@ FROM information_schema.columns
 WHERE table_schema = 'public' 
 AND table_name = 'projects' 
 AND column_name IN ('pagamento', 'price', 'valor_projeto')
-ORDER BY column_name; 
+ORDER BY column_name;

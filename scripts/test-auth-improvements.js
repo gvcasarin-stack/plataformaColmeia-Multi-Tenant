@@ -50,4 +50,4 @@ console.log('');
 console.log('💡 IMPORTANTE:');
 console.log('   - As melhorias são compatíveis com desenvolvimento e produção');
 console.log('   - Não afetam usuários já logados');
-console.log('   - Melhoram a estabilidade geral do sistema'); 
+console.log('   - Melhoram a estabilidade geral do sistema');

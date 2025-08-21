@@ -58,4 +58,4 @@ export async function GET() {
     requiredFields: ['email'],
     optionalFields: ['name'],
   });
-} 
+}

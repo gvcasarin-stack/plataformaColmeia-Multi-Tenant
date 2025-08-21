@@ -728,4 +728,4 @@ export default function AdminPainelPage() {
       </main>
     </div>
   )
-} 
+}

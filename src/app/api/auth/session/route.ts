@@ -33,4 +33,4 @@ export async function GET(request: NextRequest) {
       ApiErrorCode.INTERNAL_SERVER_ERROR
     );
   }
-} 
+}

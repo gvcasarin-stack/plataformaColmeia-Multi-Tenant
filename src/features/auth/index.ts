@@ -3,4 +3,4 @@
  */
 
 export { ProtectedRoute } from './ProtectedRoute';
-export { ProtectedDashboard } from './ProtectedDashboard'; 
+export { ProtectedDashboard } from './ProtectedDashboard';

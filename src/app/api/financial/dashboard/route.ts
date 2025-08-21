@@ -229,4 +229,4 @@ export async function GET(request: NextRequest) {
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   }
-} 
+}

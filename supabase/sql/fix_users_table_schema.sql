@@ -213,4 +213,4 @@ BEGIN
     RAISE NOTICE '📋 Colunas na tabela users: %', columns_info;
     RAISE NOTICE '✅ Correção do schema da tabela users concluída!';
     RAISE NOTICE '🎉 Agora a página /admin/clientes deve funcionar corretamente!';
-END $$; 
+END $$;

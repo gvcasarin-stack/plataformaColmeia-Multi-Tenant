@@ -37,4 +37,4 @@ export const EditableColumnTitle = dynamic(
     loading: () => <div className="p-2 rounded-md bg-gray-100 animate-pulse">Carregando...</div>,
     ssr: false 
   }
-); 
+);

@@ -77,4 +77,4 @@ export function LayoutManager({ sidebar, children }: LayoutManagerProps) {
       </div>
     </div>
   );
-} 
+}

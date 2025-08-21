@@ -40,7 +40,7 @@
 
 ## 🏗️ **ARQUITETURA ATUAL (PROBLEMÁTICA)**
 
-```
+\`\`\`
 Ações do Usuário
        ↓
 Server Actions
@@ -51,7 +51,7 @@ Firebase  Supabase  Cloud Function
 Core      Core      Firebase
 (DESAB.)  (N.USADO)    ↓
                    E-mail SES
-```
+\`\`\`
 
 **Problemas:**
 - 🔴 Firebase Core desabilitado
@@ -70,9 +70,9 @@ Core      Core      Firebase
 - **Status**: ✅ E-mail OK, ❌ Notificação in-app quebrada
 
 **Fluxo esperado:**
-```
+\`\`\`
 Cliente cria projeto → Server Action → E-mail para admins + Notificação in-app
-```
+\`\`\`
 
 ### **2. Comentário Adicionado**
 **Onde está implementado:** 
@@ -81,10 +81,10 @@ Cliente cria projeto → Server Action → E-mail para admins + Notificação in
 - **Status**: ❌ E-mail e notificação in-app quebrados
 
 **Fluxo esperado:**
-```
+\`\`\`
 Admin comenta → E-mail para cliente + Notificação in-app
 Cliente comenta → E-mail para admins + Notificação in-app
-```
+\`\`\`
 
 ### **3. Documento Adicionado**
 **Onde está implementado:**
@@ -93,10 +93,10 @@ Cliente comenta → E-mail para admins + Notificação in-app
 - **Status**: ✅ E-mail OK, ❌ Notificação in-app quebrada
 
 **Fluxo esperado:**
-```
+\`\`\`
 Admin upload → E-mail para cliente + Notificação in-app
 Cliente upload → E-mail para admins + Notificação in-app
-```
+\`\`\`
 
 ### **4. Mudança de Status**  
 **Onde está implementado:**
@@ -105,9 +105,9 @@ Cliente upload → E-mail para admins + Notificação in-app
 - **Status**: ✅ E-mail OK, ❌ Notificação in-app quebrada
 
 **Fluxo esperado:**
-```
+\`\`\`
 Admin muda status → E-mail para cliente + Notificação in-app
-```
+\`\`\`
 
 ---
 
@@ -121,14 +121,14 @@ Admin muda status → E-mail para cliente + Notificação in-app
 5. **`docs/notifications-guide.md`** - Documentação desatualizada
 
 ### **Cloud Function Ativa:**
-```typescript
+\`\`\`typescript
 // functions/src/index.ts
 export const processNotificationTrigger = 
   v1.firestore.document('notifications/{notificationId}')
   .onCreate(async (snapshot, context) => {
     // Processa notificações e envia e-mails
   });
-```
+\`\`\`
 
 ### **Firestore Collections Usadas:**
 - `notifications` - Para notificações in-app
@@ -198,7 +198,7 @@ export const processNotificationTrigger =
 ## 🛠️ **DETALHES TÉCNICOS**
 
 ### **Estrutura de Notificação Atual:**
-```typescript
+\`\`\`typescript
 interface NotificationData {
   id?: string;
   type: string; // 'new_comment', 'document_upload', 'status_change', etc.
@@ -221,17 +221,17 @@ interface NotificationData {
     // ... outros campos específicos
   };
 }
-```
+\`\`\`
 
 ### **Fluxo de E-mail Via Cloud Function:**
-```
+\`\`\`
 1. Server Action cria notificação no Firestore
 2. Cloud Function é acionada automaticamente
 3. Function busca destinatários no Firestore
 4. Function verifica preferências de e-mail
 5. Function monta template HTML
 6. Function envia via AWS SES
-```
+\`\`\`
 
 ### **Preferências de E-mail (Firestore users):**
 - `emailNotificacaoStatus` - Para mudanças de status
@@ -286,4 +286,4 @@ interface NotificationData {
 
 ---
 
-**Conclusão**: O sistema está em estado híbrido inconsistente e necessita urgentemente de restauração completa para garantir que usuários recebam todas as notificações e e-mails importantes do sistema. 
+**Conclusão**: O sistema está em estado híbrido inconsistente e necessita urgentemente de restauração completa para garantir que usuários recebam todas as notificações e e-mails importantes do sistema.

@@ -227,4 +227,4 @@ SELECT id, name, number, status FROM public.projects WHERE number = 'FV-2025-TES
 -- ✅ Constraints e índices configurados
 -- ✅ RLS configurado corretamente
 -- ✅ Aproximadamente 26 colunas no total
--- ✅ Sistema pronto para criação de projetos 
+-- ✅ Sistema pronto para criação de projetos

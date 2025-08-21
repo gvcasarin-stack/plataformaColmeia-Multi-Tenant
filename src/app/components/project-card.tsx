@@ -154,4 +154,4 @@ export function ProjectCard({ project, onClick, onUpdate }: ProjectCardProps) {
       </div>
     </div>
   )
-} 
+}

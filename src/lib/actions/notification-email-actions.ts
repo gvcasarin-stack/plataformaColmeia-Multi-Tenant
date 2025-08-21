@@ -173,4 +173,4 @@ export async function sendStatusChangeEmail(params: {
     logger.error('[sendStatusChangeEmail] Erro:', error);
     return false;
   }
-} 
+}

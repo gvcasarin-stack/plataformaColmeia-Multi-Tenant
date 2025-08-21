@@ -22,4 +22,4 @@ export default function Clock({ size = 24, ...props }: IconProps) {
       <polyline points="12 6 12 12 16 14" />
     </svg>
   )
-} 
+}

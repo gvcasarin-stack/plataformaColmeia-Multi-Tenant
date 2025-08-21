@@ -117,4 +117,4 @@ export function DataChart({
       </GlassCardContent>
     </GlassCard>
   )
-} 
+}

@@ -70,4 +70,4 @@ export async function POST(request: NextRequest) {
       error: error.message || 'Erro interno do servidor'
     }, { status: 500 });
   }
-} 
+}

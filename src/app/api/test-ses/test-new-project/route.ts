@@ -184,4 +184,4 @@ export async function GET(request: Request) {
       error: `Erro ao enviar email: ${error.message || 'Erro desconhecido'}`
     }, { status: 500 });
   }
-} 
+}

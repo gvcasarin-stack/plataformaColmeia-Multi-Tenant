@@ -680,4 +680,4 @@ export const getEventBgColorClass = (event: TimelineEvent) => {
   
   // Cor de fundo padrão para outros tipos de eventos
   return 'bg-gray-50 dark:bg-gray-800';
-}; 
+};

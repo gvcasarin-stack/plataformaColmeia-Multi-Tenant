@@ -130,4 +130,4 @@ export function AddColumnDialog({ onColumnAdded }: AddColumnDialogProps) {
       </DialogContent>
     </Dialog>
   )
-} 
+}

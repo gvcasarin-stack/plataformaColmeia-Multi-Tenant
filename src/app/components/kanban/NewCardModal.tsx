@@ -168,4 +168,4 @@ export default function NewCardModal({ isOpen, onClose, onAdd, columns }: NewCar
       </div>
     </div>
   );
-} 
+}

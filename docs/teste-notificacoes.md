@@ -53,7 +53,7 @@
 
 Se quiser testar rapidamente via console do navegador:
 
-```javascript
+\`\`\`javascript
 // 1. Teste buscar notificações (na página admin ou cliente)
 // Abra DevTools > Console e execute:
 
@@ -68,7 +68,7 @@ fetch('/api/notifications/user', {
 fetch('/api/notifications/unread-count')
 .then(r => r.json())
 .then(data => console.log('Não lidas:', data));
-```
+\`\`\`
 
 ---
 
@@ -104,7 +104,7 @@ fetch('/api/notifications/unread-count')
 ## 🔧 **CONFIGURAÇÕES NECESSÁRIAS**
 
 ### **Variáveis de Ambiente (Vercel):**
-```env
+\`\`\`env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -115,7 +115,7 @@ AWS_REGION=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 SES_SENDER_EMAIL=no-reply@colmeiasolar.com
-```
+\`\`\`
 
 ---
 
@@ -138,4 +138,4 @@ SES_SENDER_EMAIL=no-reply@colmeiasolar.com
 
 ---
 
-**🎯 STATUS: PRONTO PARA DEPLOY E TESTE** ✅ 
+**🎯 STATUS: PRONTO PARA DEPLOY E TESTE** ✅

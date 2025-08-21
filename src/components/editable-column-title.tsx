@@ -136,4 +136,4 @@ export function EditableColumnTitle({ columnId, title, originalStatus, onTitleUp
       )}
     </div>
   )
-} 
+}

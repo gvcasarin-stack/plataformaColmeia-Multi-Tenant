@@ -67,4 +67,4 @@ export function validateProject(data: {
   }
 
   return errors;
-} 
+}

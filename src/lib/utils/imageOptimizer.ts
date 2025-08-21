@@ -208,4 +208,4 @@ export function shouldPrioritizeImage(
   return criticalPaths.some(criticalPath => 
     imagePath.includes(criticalPath)
   );
-} 
+}

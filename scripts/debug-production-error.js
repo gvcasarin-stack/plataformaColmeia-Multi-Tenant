@@ -66,4 +66,4 @@ console.log('3. Testar RLS');
 console.log('4. Reportar erro específico encontrado');
 console.log('');
 
-console.log('💡 DICA: O erro "Server Components render" indica problema no servidor, não no cliente!'); 
+console.log('💡 DICA: O erro "Server Components render" indica problema no servidor, não no cliente!');

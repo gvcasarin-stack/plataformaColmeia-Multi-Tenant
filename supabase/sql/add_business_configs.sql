@@ -143,4 +143,4 @@ BEGIN
   RAISE NOTICE '🏢 Configurações de negócio: %', business_count;
   RAISE NOTICE '💰 Configurações de preços: %', pricing_count;
   RAISE NOTICE '🎉 Tabela configs está completa para o SaaS de energia solar!';
-END $$; 
+END $$;

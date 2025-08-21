@@ -7,4 +7,4 @@ export default function ProjectNotFound() {
       </div>
     </div>
   );
-} 
+}

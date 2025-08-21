@@ -533,4 +533,4 @@ export const getRecentSecurityThreats = (hours?: number) =>
   securityHardening.getRecentThreats(hours);
 
 // Exportar tipos
-export type { SecurityConfig, SecurityMetrics, SecurityThreat }; 
+export type { SecurityConfig, SecurityMetrics, SecurityThreat };

@@ -9,4 +9,4 @@ export function ProjectSpeedometer() {
       </div>
     </div>
   )
-} 
+}

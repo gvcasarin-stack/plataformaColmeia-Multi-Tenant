@@ -161,4 +161,4 @@ export default function KanbanItem({ card }: KanbanItemProps) {
       </div>
     </div>
   );
-} 
+}

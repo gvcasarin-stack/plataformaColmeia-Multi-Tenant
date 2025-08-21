@@ -133,4 +133,4 @@ export interface ProjectSearchResult {
   projects: Project[];
   lastVisible: any | null;
   hasMore: boolean;
-} 
+}

@@ -14,20 +14,20 @@ A Plataforma Colmeia Solar possui um sistema complexo de notificações por emai
 **Localização**: `src/lib/services/emailService.ts`
 
 #### Função Central:
-```typescript
+\`\`\`typescript
 export async function sendEmail(
   to: string | string[],
   subject: string,
   htmlBody: string,
   sourceEmail?: string
 ): Promise<boolean>
-```
+\`\`\`
 - **Status**: ✅ **COM cooldown via `sendEmailWithCooldown`**
 - **SES Client**: `sesClient.send(new SendEmailCommand(params))`
 - **Uso**: Sistema principal para todas as notificações de projetos
 
 #### Função de Cooldown:
-```typescript
+\`\`\`typescript
 async function sendEmailWithCooldown(
   recipientUserId: string,
   projectId: string, 
@@ -35,14 +35,14 @@ async function sendEmailWithCooldown(
   subject: string,
   htmlBody: string
 ): Promise<boolean>
-```
+\`\`\`
 
 ---
 
 ## 📧 Funções Especializadas (COM cooldown)
 
 ### 1. **Notificações de Comentários**
-```typescript
+\`\`\`typescript
 export async function sendEmailNotificationForComment(
   projectId: string,
   commentId: string,
@@ -50,20 +50,20 @@ export async function sendEmailNotificationForComment(
   author: User,
   projectOwnerUserId?: string
 ): Promise<void>
-```
+\`\`\`
 - **Status**: ✅ **COM cooldown** (linhas 504, 509)
 - **Fluxo**: Cliente comenta → Notifica admins | Admin comenta → Notifica cliente
 - **Usado por**: `commentService/core.ts`, `projectService/core.ts`
 
 ### 2. **Notificações de Documentos**
-```typescript
+\`\`\`typescript
 export async function sendEmailNotificationForDocument(
   projectId: string,
   fileName: string,
   uploader: User,
   projectOwnerUserId?: string
 ): Promise<void>
-```
+\`\`\`
 - **Status**: ✅ **COM cooldown** (linhas 603, 608)
 - **Fluxo**: Upload de documento → Notifica partes interessadas
 
@@ -84,14 +84,14 @@ export async function sendEmailNotificationForDocument(
 ### ❌ **1. API `/api/emails/send-template`**
 **Localização**: `src/app/api/emails/send-template/route.ts`
 
-```typescript
+\`\`\`typescript
 const sendEmailCommand = new SendEmailCommand({
   Source: senderEmail,
   Destination: { ToAddresses: [email] },
   Message: { /* ... */ }
 });
 const response = await sesClient.send(sendEmailCommand);
-```
+\`\`\`
 
 - **Status**: ❌ **SEM cooldown** - **PROBLEMA PRINCIPAL!**
 - **Usado por**: `/api/notifications/project-created/route.ts` (linha 125)
@@ -100,10 +100,10 @@ const response = await sesClient.send(sendEmailCommand);
 ### ❌ **2. API `/api/emails/send`**
 **Localização**: `src/app/api/emails/send/route.ts`
 
-```typescript
+\`\`\`typescript
 const { sendEmail } = await import('@/lib/services/emailService');
 const result = await sendEmail(email, subject, message);
-```
+\`\`\`
 
 - **Status**: ⚠️ **Usa função com cooldown, mas pode ser chamada externamente**
 
@@ -125,9 +125,9 @@ const result = await sendEmail(email, subject, message);
 ### ❌ **4. API de Registro**
 **Localização**: `src/app/api/auth/register-client/route.ts`
 
-```typescript
+\`\`\`typescript
 const emailSent = await sendEmail(email, subject, htmlContent);
-```
+\`\`\`
 
 - **Status**: ⚠️ **Usa função principal, mas pode não ter projectId**
 
@@ -138,14 +138,14 @@ const emailSent = await sendEmail(email, subject, htmlContent);
 ### **Cloud Functions**
 **Localização**: `functions/src/utils/email-service.ts`
 
-```typescript
+\`\`\`typescript
 export async function sendEmail(
   to: string,
   subject: string,
   htmlBody: string,
   textBody: string
 ): Promise<boolean>
-```
+\`\`\`
 
 - **Status**: ✅ **Sistema separado** (Firebase)
 - **Uso**: Sistema de notificações Firebase
@@ -174,17 +174,17 @@ export async function sendEmail(
 ## 🎯 **Sistema de Cooldown**
 
 ### **Tabela Supabase**: `email_cooldowns`
-```sql
+\`\`\`sql
 CREATE TABLE email_cooldowns (
     user_id UUID NOT NULL,
     project_id UUID NOT NULL,
     last_email_sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, project_id)
 );
-```
+\`\`\`
 
 ### **Funções de Cooldown**:
-```typescript
+\`\`\`typescript
 // Verifica se está em cooldown
 async function isUserInEmailCooldown(userId: string, projectId: string): Promise<boolean>
 
@@ -193,7 +193,7 @@ async function updateEmailCooldown(userId: string, projectId: string): Promise<b
 
 // Envia com verificação de cooldown
 async function sendEmailWithCooldown(...)
-```
+\`\`\`
 
 ### **Regra**: 5 minutos por combinação `(user_id, project_id)`
 
@@ -218,14 +218,14 @@ Múltiplas APIs enviando emails direto via SES sem cooldown
 
 **Localização**: `src/lib/services/emailService.ts` → `emailTemplates`
 
-```typescript
+\`\`\`typescript
 export const emailTemplates = {
   commentAdded: (projectName, projectNumber, authorName, commentText, projectUrl) => {...},
   documentAdded: (projectName, projectNumber, documentName, projectUrl) => {...},
   statusChange: (projectName, projectNumber, oldStatus, newStatus, projectUrl) => {...},
   newProject: (projectName, projectNumber, clientName, projectUrl, potencia?, distribuidora?) => {...}
 };
-```
+\`\`\`
 
 ---
 
@@ -237,14 +237,14 @@ export const emailTemplates = {
 - **Email origem**: Via `AWS_CONFIG.getSESSourceEmail()`
 
 ### **Variáveis de Ambiente**
-```env
+\`\`\`env
 AWS_REGION=southamerica-east1
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 SES_SOURCE_EMAIL=noreply@colmeiasolar.com
 NEXT_PUBLIC_SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
-```
+\`\`\`
 
 ---
 
@@ -289,14 +289,14 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## 📚 **DEPENDÊNCIAS**
 
-```json
+\`\`\`json
 {
   "@aws-sdk/client-ses": "SES v3 SDK",
   "@supabase/supabase-js": "Cooldown storage",
   "firebase-admin": "Cloud Functions",
   "firebase-functions": "Cloud Functions"
 }
-```
+\`\`\`
 
 ---
 

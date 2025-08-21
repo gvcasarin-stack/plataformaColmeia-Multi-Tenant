@@ -25,4 +25,4 @@ export default function File({ size = 24, ...props }: IconProps) {
       <line x1="10" y1="9" x2="8" y2="9" />
     </svg>
   )
-} 
+}

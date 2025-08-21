@@ -63,4 +63,4 @@ DROP TRIGGER IF EXISTS update_active_sessions_updated_at ON public.active_sessio
 CREATE TRIGGER update_active_sessions_updated_at
     BEFORE UPDATE ON public.active_sessions
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column(); 
+    EXECUTE FUNCTION update_updated_at_column();

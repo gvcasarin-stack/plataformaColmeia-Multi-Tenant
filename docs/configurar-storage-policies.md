@@ -22,40 +22,40 @@ Depois de executar `supabase/sql/create_storage_buckets_simple.sql`, você preci
 3. **Clique em "New Policy"**
 
 #### **Política 1: Visualizar arquivos (SELECT)**
-```sql
+\`\`\`sql
 -- Nome: Allow authenticated users to view project files
 -- Operação: SELECT
 -- Target roles: authenticated
 
 bucket_id = 'project-files' AND auth.role() = 'authenticated'
-```
+\`\`\`
 
 #### **Política 2: Upload de arquivos (INSERT)**
-```sql
+\`\`\`sql
 -- Nome: Allow admin/superadmin to upload project files  
 -- Operação: INSERT
 -- Target roles: authenticated
 
 bucket_id = 'project-files' AND (auth.jwt()->>'role')::text IN ('admin', 'superadmin')
-```
+\`\`\`
 
 #### **Política 3: Deletar arquivos (DELETE)**
-```sql
+\`\`\`sql
 -- Nome: Allow admin/superadmin to delete project files
 -- Operação: DELETE
 -- Target roles: authenticated
 
 bucket_id = 'project-files' AND (auth.jwt()->>'role')::text IN ('admin', 'superadmin')
-```
+\`\`\`
 
 #### **Política 4: Atualizar arquivos (UPDATE)**
-```sql
+\`\`\`sql
 -- Nome: Allow admin/superadmin to update project files
 -- Operação: UPDATE
 -- Target roles: authenticated
 
 bucket_id = 'project-files' AND (auth.jwt()->>'role')::text IN ('admin', 'superadmin')
-```
+\`\`\`
 
 ### 3️⃣ **Configurar Políticas para project-documents**
 
@@ -64,7 +64,7 @@ bucket_id = 'project-files' AND (auth.jwt()->>'role')::text IN ('admin', 'supera
 3. **Clique em "New Policy"**
 
 #### **Política 1: Visualizar documentos (SELECT)**
-```sql
+\`\`\`sql
 -- Nome: Allow users to view their project documents
 -- Operação: SELECT
 -- Target roles: authenticated
@@ -78,25 +78,25 @@ bucket_id = 'project-documents' AND auth.role() = 'authenticated' AND (
     )
   )
 )
-```
+\`\`\`
 
 #### **Política 2: Upload de documentos (INSERT)**
-```sql
+\`\`\`sql
 -- Nome: Allow admin/superadmin to upload project documents
 -- Operação: INSERT
 -- Target roles: authenticated
 
 bucket_id = 'project-documents' AND (auth.jwt()->>'role')::text IN ('admin', 'superadmin')
-```
+\`\`\`
 
 #### **Política 3: Deletar documentos (DELETE)**
-```sql
+\`\`\`sql
 -- Nome: Allow admin/superadmin to delete project documents
 -- Operação: DELETE
 -- Target roles: authenticated
 
 bucket_id = 'project-documents' AND (auth.jwt()->>'role')::text IN ('admin', 'superadmin')
-```
+\`\`\`
 
 ### 4️⃣ **Configurar Políticas para user-avatars**
 
@@ -105,40 +105,40 @@ bucket_id = 'project-documents' AND (auth.jwt()->>'role')::text IN ('admin', 'su
 3. **Clique em "New Policy"**
 
 #### **Política 1: Visualizar avatares (SELECT)**
-```sql
+\`\`\`sql
 -- Nome: Allow authenticated users to view avatars
 -- Operação: SELECT
 -- Target roles: authenticated
 
 bucket_id = 'user-avatars' AND auth.role() = 'authenticated'
-```
+\`\`\`
 
 #### **Política 2: Upload de avatar próprio (INSERT)**
-```sql
+\`\`\`sql
 -- Nome: Allow users to upload their own avatar
 -- Operação: INSERT
 -- Target roles: authenticated
 
 bucket_id = 'user-avatars' AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text
-```
+\`\`\`
 
 #### **Política 3: Atualizar avatar próprio (UPDATE)**
-```sql
+\`\`\`sql
 -- Nome: Allow users to update their own avatar
 -- Operação: UPDATE
 -- Target roles: authenticated
 
 bucket_id = 'user-avatars' AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text
-```
+\`\`\`
 
 #### **Política 4: Deletar avatar próprio (DELETE)**
-```sql
+\`\`\`sql
 -- Nome: Allow users to delete their own avatar
 -- Operação: DELETE
 -- Target roles: authenticated
 
 bucket_id = 'user-avatars' AND auth.role() = 'authenticated' AND (storage.foldername(name))[1] = auth.uid()::text
-```
+\`\`\`
 
 ## ✅ **Verificação Final**
 
@@ -171,4 +171,4 @@ Após configurar todas as políticas:
 
 ---
 
-**🎉 Após configurar todas as políticas, o Storage estará 100% funcional!** 
+**🎉 Após configurar todas as políticas, o Storage estará 100% funcional!**

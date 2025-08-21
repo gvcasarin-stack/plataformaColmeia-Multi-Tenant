@@ -75,4 +75,4 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
       </div>
     </div>
   )
-} 
+}

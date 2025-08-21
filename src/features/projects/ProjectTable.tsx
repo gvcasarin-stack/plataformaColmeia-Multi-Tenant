@@ -225,4 +225,4 @@ export function ProjectTable({ projects, onProjectClick }: ProjectTableProps) {
       </Table>
     </div>
   )
-} 
+}

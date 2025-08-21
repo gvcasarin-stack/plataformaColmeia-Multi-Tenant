@@ -21,4 +21,4 @@ export default function PreferenciasLayout({
       {children}
     </div>
   );
-} 
+}

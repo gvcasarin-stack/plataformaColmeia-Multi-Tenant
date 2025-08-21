@@ -332,4 +332,4 @@ export async function revertPaymentStatus(projectId: string): Promise<boolean> {
     devLog.error('[BillingService.API] Exceção ao reverter status de pagamento:', error);
     return false;
   }
-} 
+}

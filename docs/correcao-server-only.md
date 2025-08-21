@@ -8,7 +8,7 @@
 ## 🚨 **PROBLEMA IDENTIFICADO**
 
 ### **Erro Original:**
-```
+\`\`\`
 Error: You're importing a component that needs server-only. 
 That only works in a Server Component which is not supported in the pages/ directory.
 
@@ -18,7 +18,7 @@ Import trace for requested module:
 ./src/lib/services/notificationService/index.ts
 ./src/lib/services/notificationService.ts
 ./src/app/cliente/notificacoes/page.tsx
-```
+\`\`\`
 
 ### **Causa Raiz:**
 - `emailService.ts` tem `import 'server-only'`
@@ -36,7 +36,7 @@ Import trace for requested module:
 - **Benefício**: Isolamento completo do emailService
 
 ### **2. Funções Criadas:**
-```typescript
+\`\`\`typescript
 'use server';
 
 - sendNewProjectEmail()     // ✅ Projeto criado
@@ -45,7 +45,7 @@ Import trace for requested module:
 - sendAdminDocumentEmail()  // ✅ Admin → Cliente
 - sendClientDocumentEmail() // ✅ Cliente → Admins
 - sendStatusChangeEmail()   // ✅ Status alterado
-```
+\`\`\`
 
 ### **3. Helpers Atualizados:**
 - Removida importação dinâmica do emailService
@@ -58,14 +58,14 @@ Import trace for requested module:
 ## 🎯 **ARQUITETURA FINAL**
 
 ### **Fluxo Anterior (Problemático):**
-```
+\`\`\`
 Page Cliente → Helpers → EmailService (server-only) ❌
-```
+\`\`\`
 
 ### **Fluxo Atual (Funcional):**
-```
+\`\`\`
 Page Cliente → Helpers → Server Actions → EmailService ✅
-```
+\`\`\`
 
 ### **Separação Clara:**
 - **Cliente**: Pode usar helpers normalmente
@@ -110,19 +110,19 @@ Page Cliente → Helpers → Server Actions → EmailService ✅
 ## 🧪 **TESTE DE VALIDAÇÃO**
 
 ### **1. Build Vercel:**
-```bash
+\`\`\`bash
 ✅ pnpm build - SUCCESS
 ✅ Deploy - SUCCESS  
 ✅ Páginas carregam - SUCCESS
-```
+\`\`\`
 
 ### **2. Funcionalidades:**
-```bash
+\`\`\`bash
 ✅ Criar projeto → Email enviado
 ✅ Adicionar comentário → Email enviado
 ✅ Upload documento → Email enviado  
 ✅ Alterar status → Email enviado
-```
+\`\`\`
 
 ---
 
@@ -142,4 +142,4 @@ Page Cliente → Helpers → Server Actions → EmailService ✅
 
 **🎯 STATUS: PROBLEMA RESOLVIDO DEFINITIVAMENTE** ✅
 
-**Próximo passo**: Deploy e teste das funcionalidades! 
+**Próximo passo**: Deploy e teste das funcionalidades!

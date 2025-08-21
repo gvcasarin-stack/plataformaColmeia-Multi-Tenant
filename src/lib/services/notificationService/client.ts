@@ -90,4 +90,4 @@ export async function markAllNotificationsAsRead(userId: string): Promise<boolea
     devLog.error('[NotificationClient] Erro ao marcar todas como lidas:', error);
     return false;
   }
-} 
+}

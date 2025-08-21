@@ -256,4 +256,4 @@ module.exports = {
   testBlockedUserPage,
   testBlockMiddleware,
   testUIComponents
-}; 
+};

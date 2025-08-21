@@ -98,4 +98,4 @@ SELECT COUNT(*) as total_users FROM public.users;
 -- 4. Constraints de FK devem estar corretas
 -- 5. Tabela users deve ter registros
 
-RAISE NOTICE '✅ Debug queries executadas. Verifique os resultados acima.'; 
+RAISE NOTICE '✅ Debug queries executadas. Verifique os resultados acima.';

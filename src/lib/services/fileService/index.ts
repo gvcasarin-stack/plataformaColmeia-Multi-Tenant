@@ -183,4 +183,4 @@ const fileService = {
   sendEmailNotificationForDocument
 };
 
-export default fileService; 
+export default fileService;

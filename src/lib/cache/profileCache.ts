@@ -324,4 +324,4 @@ class ProfileCache {
 export const profileCache = ProfileCache.getInstance();
 
 // Exportar interface para uso em tipos
-export type { CachedProfile, CacheStats }; 
+export type { CachedProfile, CacheStats };

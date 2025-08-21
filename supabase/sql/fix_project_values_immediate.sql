@@ -87,4 +87,4 @@ SELECT
     END as status
 FROM configs 
 WHERE key IN ('faixas_potencia', 'tabela_precos')
-  AND is_active = true; 
+  AND is_active = true;

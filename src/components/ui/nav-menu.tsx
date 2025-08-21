@@ -119,4 +119,4 @@ interface NavMenuProps {
 
 export function NavMenu({ children }: NavMenuProps) {
   return <nav className="space-y-2">{children}</nav>
-} 
+}

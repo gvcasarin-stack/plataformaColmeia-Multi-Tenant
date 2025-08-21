@@ -379,4 +379,4 @@ export async function createNotificationForAllAdmins(
       error: error instanceof Error ? error.message : 'Erro desconhecido'
     };
   }
-} 
+}

@@ -39,4 +39,4 @@ export function useMediaQuery(query: string): boolean {
   
   // Return false during SSR
   return mounted ? matches : false;
-} 
+}

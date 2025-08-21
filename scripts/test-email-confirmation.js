@@ -82,4 +82,4 @@ if (require.main === module) {
   runTests().catch(console.error);
 }
 
-module.exports = { testHealthCheck, testEmailConfirmation }; 
+module.exports = { testHealthCheck, testEmailConfirmation };

@@ -34,7 +34,7 @@ Implementamos um sistema completo e profissional para bloqueio/desbloqueio de us
 ### **Hooks Personalizados**
 
 #### `useClients.ts`
-```typescript
+\`\`\`typescript
 // Gerencia estado global de clientes
 const { 
   clients, 
@@ -43,10 +43,10 @@ const {
   updateClientOptimistic,
   revertOptimisticUpdate 
 } = useClients()
-```
+\`\`\`
 
 #### `useBlockUser.ts`
-```typescript
+\`\`\`typescript
 // Gerencia ações de bloqueio com atualização otimista
 const { 
   isLoading, 
@@ -57,16 +57,16 @@ const {
   revertOptimisticUpdate,
   refreshClients
 })
-```
+\`\`\`
 
 ### **Serviços**
 
 #### `auditService.ts`
-```typescript
+\`\`\`typescript
 // Sistema de auditoria para compliance
 await AuditService.logUserBlock(clientId, clientName, reason, adminUser)
 await AuditService.logUserUnblock(clientId, clientName, adminUser)
-```
+\`\`\`
 
 ### **Componentes Atualizados**
 
@@ -171,4 +171,4 @@ O sistema agora oferece uma experiência **enterprise-grade** para bloqueio/desb
 - 🔄 **Recuperação automática** (rollback em caso de erro)
 - 📊 **Compliance total** (logs de auditoria completos)
 
-Esta implementação coloca a plataforma no mesmo nível de qualidade de grandes SaaS comerciais, oferecendo uma experiência administrativa de primeira classe. 
+Esta implementação coloca a plataforma no mesmo nível de qualidade de grandes SaaS comerciais, oferecendo uma experiência administrativa de primeira classe.

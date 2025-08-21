@@ -130,4 +130,4 @@ async function debugUserProfile() {
 }
 
 // Executar diagnóstico
-debugUserProfile().catch(console.error); 
+debugUserProfile().catch(console.error);

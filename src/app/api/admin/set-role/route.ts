@@ -70,4 +70,4 @@ export async function GET() {
     optionalFields: ['role'],
     note: 'A função padrão é "admin" se não especificada. As opções são "admin" ou "client".'
   });
-} 
+}

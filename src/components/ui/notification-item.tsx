@@ -222,4 +222,4 @@ const NotificationItem = memo(({
 
 NotificationItem.displayName = 'NotificationItem';
 
-export default NotificationItem; 
+export default NotificationItem;

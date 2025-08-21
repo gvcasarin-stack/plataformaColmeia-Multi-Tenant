@@ -105,4 +105,4 @@ export async function POST() {
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
-} 
+}

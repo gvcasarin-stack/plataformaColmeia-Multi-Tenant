@@ -37,4 +37,4 @@ export default function RecoverPasswordPage() {
       </div>
     </div>
   );
-} 
+}

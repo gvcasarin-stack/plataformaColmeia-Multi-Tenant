@@ -92,4 +92,4 @@ async function main() {
   await checkFunctions();
 }
 
-main().catch(console.error); 
+main().catch(console.error);

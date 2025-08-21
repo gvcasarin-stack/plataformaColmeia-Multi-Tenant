@@ -213,4 +213,4 @@ export default function ConfirmEmailPage() {
       <ConfirmEmailContent />
     </Suspense>
   );
-} 
+}

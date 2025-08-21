@@ -58,4 +58,4 @@ export default function ClientLoginLayout({
       {children}
     </ErrorBoundary>
   );
-} 
+}

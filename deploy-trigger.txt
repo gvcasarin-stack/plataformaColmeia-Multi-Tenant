@@ -39,4 +39,4 @@ Timestamp: 2024-01-20 - Correções implementadas:
    - Eliminação de "[object Object]" na interface
 
 Status: Pronto para deploy
-Objetivo: Resolver erro React #130 na tab /admin/financeiro 
+Objetivo: Resolver erro React #130 na tab /admin/financeiro

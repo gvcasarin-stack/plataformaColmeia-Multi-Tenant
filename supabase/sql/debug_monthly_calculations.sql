@@ -92,4 +92,4 @@ SELECT
     TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as data_formatada,
     'Agora deveria aparecer no faturamento mensal' as observacao
 FROM projects
-WHERE number = 'FV-2025-001'; 
+WHERE number = 'FV-2025-001';

@@ -190,4 +190,4 @@ export function handleResourceNotFound(
     ApiErrorCode.NOT_FOUND,
     404
   );
-} 
+}

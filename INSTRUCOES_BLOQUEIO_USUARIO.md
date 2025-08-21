@@ -41,7 +41,7 @@ A funcionalidade de bloqueio de usuários foi **completamente implementada** com
 
 **IMPORTANTE**: Você já executou estes comandos SQL no Supabase:
 
-```sql
+\`\`\`sql
 -- Adicionar campos de bloqueio na tabela users
 ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT false;
 ALTER TABLE users ADD COLUMN blocked_reason TEXT;
@@ -50,15 +50,15 @@ ALTER TABLE users ADD COLUMN blocked_by UUID REFERENCES users(id);
 
 -- Índice para performance
 CREATE INDEX idx_users_is_blocked ON users(is_blocked);
-```
+\`\`\`
 
 ## 🧪 Como Testar a Funcionalidade
 
 ### 1. Teste Básico de Arquivos
-```bash
+\`\`\`bash
 # Execute o script de teste
 node src/scripts/test-block-functionality.js
-```
+\`\`\`
 
 ### 2. Teste na Interface Administrativa
 
@@ -107,7 +107,7 @@ node src/scripts/test-block-functionality.js
 #### Usando Postman ou similar:
 
 **Bloquear Usuário:**
-```
+\`\`\`
 POST /api/admin/block-user
 Content-Type: application/json
 Authorization: Bearer <token-admin>
@@ -116,10 +116,10 @@ Authorization: Bearer <token-admin>
   "userId": "uuid-do-usuario",
   "reason": "Motivo do bloqueio"
 }
-```
+\`\`\`
 
 **Desbloquear Usuário:**
-```
+\`\`\`
 POST /api/admin/unblock-user
 Content-Type: application/json
 Authorization: Bearer <token-admin>
@@ -127,13 +127,13 @@ Authorization: Bearer <token-admin>
 {
   "userId": "uuid-do-usuario"
 }
-```
+\`\`\`
 
 **Verificar Status:**
-```
+\`\`\`
 GET /api/user/block-status
 Authorization: Bearer <token-usuario>
-```
+\`\`\`
 
 ## 🔧 Configurações Necessárias
 
@@ -144,22 +144,22 @@ Edite o arquivo `/cliente/bloqueado/page.tsx` nas linhas:
 - **Link WhatsApp**: `https://wa.me/5511999999999`
 
 ### 2. Ambiente de Desenvolvimento
-```bash
+\`\`\`bash
 # Instalar dependências (se necessário)
 npm install
 
 # Iniciar servidor de desenvolvimento
 npm run dev
-```
+\`\`\`
 
 ### 3. Deploy para Produção
-```bash
+\`\`\`bash
 # Build da aplicação
 npm run build
 
 # Deploy (Vercel)
 vercel --prod
-```
+\`\`\`
 
 ## 🎯 Funcionalidades Específicas
 
@@ -224,4 +224,4 @@ Se encontrar problemas durante os testes:
 
 **Status:** ✅ Implementação 100% Completa
 **Testado:** ✅ Arquivos e estrutura
-**Pronto para:** 🚀 Testes de funcionalidade e deploy 
+**Pronto para:** 🚀 Testes de funcionalidade e deploy

@@ -114,4 +114,4 @@ FROM public.projects;
 -- DROP POLICY IF EXISTS "Allow users to read their own projects" ON public.projects;
 -- DROP POLICY IF EXISTS "Allow users to update their own projects" ON public.projects;
 -- DROP POLICY IF EXISTS "Allow users to delete their own projects" ON public.projects;
--- DROP POLICY IF EXISTS "Allow admin/superadmin full access to projects" ON public.projects; 
+-- DROP POLICY IF EXISTS "Allow admin/superadmin full access to projects" ON public.projects;

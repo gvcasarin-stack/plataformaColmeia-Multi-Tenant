@@ -337,4 +337,4 @@ export function invalidateClientCache(clientId?: string): void {
     cache.clientById.clear();
     logger.debug('[ClientService] Todo o cache de clientes invalidado');
   }
-} 
+}

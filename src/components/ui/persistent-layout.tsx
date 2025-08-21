@@ -104,4 +104,4 @@ export function PersistentLayout({ sidebar, initialPath }: PersistentLayoutProps
       </div>
     </div>
   );
-} 
+}

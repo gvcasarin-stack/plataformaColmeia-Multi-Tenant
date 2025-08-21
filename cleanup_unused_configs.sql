@@ -104,4 +104,4 @@ SELECT
     '🎯 CONFIGURAÇÕES ANALISADAS' as resultado,
     '6 configurações não utilizadas identificadas' as configs_inuteis,
     '7 configurações essenciais mantidas' as configs_uteis,
-    'Remova apenas se tiver 100% de certeza' as recomendacao; 
+    'Remova apenas se tiver 100% de certeza' as recomendacao;

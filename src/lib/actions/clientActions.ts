@@ -80,4 +80,4 @@ export async function updateClientProfileDetails(data: ClientProfileDetailsData)
 
     devLog.log('[updateClientProfileDetails] Client profile details updated successfully for user:', data.userId);
     return { error: null };
-} 
+}

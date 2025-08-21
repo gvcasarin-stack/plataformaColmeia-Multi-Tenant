@@ -18,4 +18,4 @@ export function getErrorMessage(error: unknown): string {
   } catch (e) {
     return defaultMessage;
   }
-} 
+}

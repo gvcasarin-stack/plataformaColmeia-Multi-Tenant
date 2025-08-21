@@ -65,4 +65,4 @@ export class CommentService {
 }
 
 // Exportação padrão para compatibilidade
-export default CommentService; 
+export default CommentService;

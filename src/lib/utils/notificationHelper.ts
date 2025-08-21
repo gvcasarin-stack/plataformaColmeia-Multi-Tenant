@@ -1805,4 +1805,4 @@ export async function notifyDocumentUpload(
     devLog.error('[NotificationHelper] Erro ao notificar upload de documento:', error);
     return { adminIds: [], clientId: null };
   }
-} 
+}

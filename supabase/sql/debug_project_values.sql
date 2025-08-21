@@ -84,4 +84,4 @@ SELECT
     'Valor valor_projeto atual: R$ ' || COALESCE(valor_projeto::text, 'NULL') as valor_valor_projeto,
     'Status pagamento: ' || COALESCE(pagamento, 'NULL') as status_pagamento
 FROM projects
-WHERE number = 'FV-2025-001'; 
+WHERE number = 'FV-2025-001';

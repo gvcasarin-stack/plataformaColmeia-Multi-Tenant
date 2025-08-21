@@ -216,4 +216,4 @@ export default function ClientProjectDetail() {
       currentUserEmail={user?.email}
     />
   );
-} 
+}

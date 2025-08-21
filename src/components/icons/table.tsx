@@ -23,4 +23,4 @@ export default function Table({ size = 24, className, ...props }: IconProps) {
       <line x1="15" x2="15" y1="3" y2="21" />
     </svg>
   );
-} 
+}

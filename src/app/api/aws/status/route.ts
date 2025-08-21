@@ -95,4 +95,4 @@ export async function OPTIONS() {
     authorization: 'Apenas administradores',
     note: 'Este endpoint verifica a presença das variáveis de ambiente necessárias para usar os serviços AWS'
   });
-} 
+}

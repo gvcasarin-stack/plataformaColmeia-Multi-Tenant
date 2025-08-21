@@ -35,4 +35,4 @@ export const DynamicSimpleModal = dynamic(
     loading: () => <ModalFallback />,
     ssr: false 
   }
-); 
+);

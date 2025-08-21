@@ -115,4 +115,4 @@ export default function MemoizedNotificationsList({
       </div>
     </div>
   );
-} 
+}

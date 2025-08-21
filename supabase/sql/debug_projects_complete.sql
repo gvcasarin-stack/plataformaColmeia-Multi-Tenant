@@ -243,4 +243,4 @@ SELECT
 -- 3. Clique em "Run" para executar
 -- 4. Analise os resultados de cada seção
 -- 5. Se não houver projetos, descomente a seção 16 para criar um projeto de teste
--- ======================================== 
+-- ========================================

@@ -431,4 +431,4 @@ function SecurityPanel({ security }: { security: any }) {
       </div>
     </div>
   );
-} 
+}

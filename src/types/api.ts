@@ -34,4 +34,4 @@ export interface HealthCheckResponse {
   service: string;
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
-} 
+}

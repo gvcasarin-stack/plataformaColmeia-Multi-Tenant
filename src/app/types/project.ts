@@ -52,4 +52,4 @@ export interface ExpandedProjectViewProps {
   onClose: () => void;
   onUpdate: (project: Project) => Promise<void>;
   currentUserEmail?: string;
-} 
+}

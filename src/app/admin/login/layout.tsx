@@ -10,4 +10,4 @@ export default function AdminLoginLayout({
   children: React.ReactNode;
 }) {
   return <>{children}</>;
-} 
+}

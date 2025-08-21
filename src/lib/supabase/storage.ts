@@ -383,4 +383,4 @@ export function generateUniqueFileName(originalName: string): string {
   return `${nameWithoutExtension}_${timestamp}_${random}.${extension}`;
 }
 
-export default SupabaseStorageManager; 
+export default SupabaseStorageManager;

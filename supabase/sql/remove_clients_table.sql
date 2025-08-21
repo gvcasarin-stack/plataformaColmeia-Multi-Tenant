@@ -137,4 +137,4 @@ RESULTADO:
 PRÓXIMOS PASSOS:
 - Verificar se o código precisa ser atualizado para usar apenas a tabela users
 - Confirmar que não há referências à tabela clients no código
-*/ 
+*/

@@ -160,4 +160,4 @@ console.log('   2. Copie novamente a service_role key');
 console.log('   3. Atualize nas variáveis de ambiente da Vercel');
 console.log('');
 
-console.log('🚀 EXECUTE O TESTE AGORA!'); 
+console.log('🚀 EXECUTE O TESTE AGORA!');

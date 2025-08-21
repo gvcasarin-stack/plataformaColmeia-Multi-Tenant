@@ -25,4 +25,4 @@ WHERE tablename = 'projects'
 ORDER BY policyname;
 
 -- Resultado esperado: rowsecurity = true
-RAISE NOTICE '✅ RLS reabilitado na tabela projects'; 
+RAISE NOTICE '✅ RLS reabilitado na tabela projects';

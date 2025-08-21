@@ -534,4 +534,4 @@ export async function uploadMultipleFiles(
     failureCount,
     projectId
   };
-} 
+}

@@ -424,4 +424,4 @@ export async function checkClientServiceHealth(): Promise<{ status: string; deta
       }
     };
   }
-} 
+}

@@ -259,4 +259,4 @@ RAISE NOTICE '   - Admins: acesso total a todos os buckets';
 RAISE NOTICE '   - Clientes: acesso limitado aos próprios projetos';
 RAISE NOTICE '   - Usuários: podem gerenciar próprios avatares';
 RAISE NOTICE '';
-RAISE NOTICE '🚀 PRÓXIMO PASSO: Testar upload/download de arquivos!'; 
+RAISE NOTICE '🚀 PRÓXIMO PASSO: Testar upload/download de arquivos!';

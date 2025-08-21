@@ -72,4 +72,4 @@ export interface Column {
 }
 
 // Alias do tipo Priority para compatibilidade
-export type Priority = ProjectPriority; 
+export type Priority = ProjectPriority;

@@ -7,4 +7,4 @@
 // Formulários compartilhados
 export { RecoverPasswordForm } from './recover-password-form';
 
-// Adicionar outras exportações conforme os componentes forem migrados para esta pasta 
+// Adicionar outras exportações conforme os componentes forem migrados para esta pasta

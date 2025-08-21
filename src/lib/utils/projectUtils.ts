@@ -109,4 +109,4 @@ export const calculateProjectCost = (potencia: number): number => {
   );
   
   return maiorFaixa?.valorBase || 4000; // Valor de fallback
-}; 
+};

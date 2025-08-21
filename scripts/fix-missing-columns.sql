@@ -46,4 +46,4 @@ WHERE table_schema = 'public' AND table_name = 'projects'
 AND column_name IN ('comments', 'timeline_events', 'documents', 'files', 'history', 'last_update_by')
 ORDER BY column_name;
 
--- Comentário: Execute este script no Supabase Dashboard > SQL Editor 
+-- Comentário: Execute este script no Supabase Dashboard > SQL Editor

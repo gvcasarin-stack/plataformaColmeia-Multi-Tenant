@@ -122,4 +122,4 @@ async function analyzeApiErrorHandling() {
 }
 
 // Executar análise
-analyzeApiErrorHandling(); 
+analyzeApiErrorHandling();

@@ -48,4 +48,4 @@ export async function GET() {
       ApiErrorCode.INTERNAL_SERVER_ERROR
     );
   }
-} 
+}

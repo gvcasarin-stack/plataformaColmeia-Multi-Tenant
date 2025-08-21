@@ -8,4 +8,4 @@
 interface Window {
   runValorProjetoMigration: () => Promise<string[]>;
   updateValorProjetoForProject: (projectId: string, value?: number | null) => Promise<boolean>;
-} 
+}

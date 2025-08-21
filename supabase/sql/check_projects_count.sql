@@ -35,4 +35,4 @@ SELECT
     u.role as usuario_role
 FROM public.projects p
 LEFT JOIN public.users u ON p.created_by = u.id
-ORDER BY p.created_at DESC; 
+ORDER BY p.created_at DESC;

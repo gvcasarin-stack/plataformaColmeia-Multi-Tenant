@@ -55,4 +55,4 @@ export { DashboardLayout } from './dashboard-layout';
 export { DashboardStats } from './dashboard-stats';
 
 // Notification components
-export { default as NotificationItem } from './notification-item'; 
+export { default as NotificationItem } from './notification-item';

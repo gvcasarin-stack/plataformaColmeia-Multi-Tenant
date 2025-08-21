@@ -250,4 +250,4 @@ export async function GET() {
     optionalFields: ['subject', 'htmlContent', 'templateName', 'templateData'],
     note: 'Autenticação via Bearer token no header Authorization é necessária para usar este endpoint'
   });
-} 
+}

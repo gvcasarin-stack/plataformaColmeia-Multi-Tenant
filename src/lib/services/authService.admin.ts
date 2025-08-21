@@ -62,4 +62,4 @@ export async function getUserDataAdmin(userId: string): Promise<UserData | null>
     devLog.error(`[getUserDataAdmin] Error fetching user data for ID ${userId} (authService.admin.ts):`, error);
     return null; 
   }
-} 
+}

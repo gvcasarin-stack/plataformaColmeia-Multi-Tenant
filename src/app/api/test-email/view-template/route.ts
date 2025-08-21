@@ -1,4 +1,3 @@
-
 export async function GET() {
   const templateHTML = `
     <!DOCTYPE html>
@@ -69,4 +68,4 @@ export async function GET() {
       'Content-Type': 'text/html; charset=utf-8',
     },
   });
-} 
+}

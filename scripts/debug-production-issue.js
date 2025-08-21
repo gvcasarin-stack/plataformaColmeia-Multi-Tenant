@@ -102,4 +102,4 @@ console.log('   mesmo se a query falhar. Se ainda está falhando,');
 console.log('   pode ser um problema mais profundo na estrutura.');
 console.log('');
 
-console.log('🎯 TESTE AGORA E VERIFIQUE OS LOGS!'); 
+console.log('🎯 TESTE AGORA E VERIFIQUE OS LOGS!');

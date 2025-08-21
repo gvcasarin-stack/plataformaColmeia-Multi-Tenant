@@ -72,4 +72,4 @@ declare module '@tanstack/react-table' {
   }
   
   // Add other types as needed
-} 
+}

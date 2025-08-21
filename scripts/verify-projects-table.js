@@ -98,4 +98,4 @@ console.log('   ✅ Todos os dados devem ser salvos corretamente');
 console.log('');
 console.log('💡 DICA: O campo "number" é o mais crítico!');
 console.log('   Se ele estiver faltando, você verá o erro:');
-console.log('   "Could not find the \'number\' column of \'projects\' in the schema cache"'); 
+console.log('   "Could not find the \'number\' column of \'projects\' in the schema cache"');

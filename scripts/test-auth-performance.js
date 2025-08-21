@@ -52,4 +52,4 @@ if (require.main === module) {
   measureAuthPerformance().catch(console.error);
 }
 
-module.exports = { measureAuthPerformance }; 
+module.exports = { measureAuthPerformance };

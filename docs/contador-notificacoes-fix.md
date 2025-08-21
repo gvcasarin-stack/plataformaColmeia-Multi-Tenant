@@ -27,7 +27,7 @@
 **Arquivo**: `src/lib/contexts/NotificationContext.tsx`
 
 #### **🚀 Nova Função: `updateCounterOptimistic`**
-```typescript
+\`\`\`typescript
 // Atualização imediata antes mesmo da API responder
 const updateCounterOptimistic = useCallback((change: number) => {
   setUnreadCount(prev => {
@@ -36,10 +36,10 @@ const updateCounterOptimistic = useCallback((change: number) => {
     return newCount;
   });
 }, []);
-```
+\`\`\`
 
 #### **🚀 Melhoria na função `markAsRead`**
-```typescript
+\`\`\`typescript
 const markAsRead = useCallback(async (notificationId: string) => {
   // 1. ATUALIZAÇÃO IMEDIATA (otimística)
   updateCounterOptimistic(-1);
@@ -55,7 +55,7 @@ const markAsRead = useCallback(async (notificationId: string) => {
     updateCounterOptimistic(1);
   }
 }, [user?.id, updateCounterOptimistic, refreshUnreadCount]);
-```
+\`\`\`
 
 ### **2. Atualização das Páginas de Notificações**
 
@@ -70,7 +70,7 @@ const markAsRead = useCallback(async (notificationId: string) => {
 
 ### **3. Estratégia de Atualização Híbrida**
 
-```typescript
+\`\`\`typescript
 // 🚀 ESTRATÉGIA 3-CAMADAS:
 
 // 1. OTIMISTA (0ms): Atualização imediata para UX
@@ -85,7 +85,7 @@ if (response.ok) {
 
 // 3. SERVIDOR (500ms): Garantir sincronização real
 setTimeout(() => refreshUnreadCount(), 500);
-```
+\`\`\`
 
 ---
 
@@ -159,12 +159,12 @@ setTimeout(() => refreshUnreadCount(), 500);
 ## 🔍 MONITORAMENTO
 
 ### **Logs para Acompanhar:**
-```typescript
+\`\`\`typescript
 // Logs de debug implementados:
 "[NotificationContext] Contador atualizado otimisticamente: 3 → 2"
 "[NotificationContext] Notificação marcada como lida com sucesso"
 "[NotificationContext] Rollback: Erro ao marcar como lida"
-```
+\`\`\`
 
 ### **Métricas Relevantes:**
 - ✅ Tempo de resposta do contador: **0ms** (imediato)
@@ -180,4 +180,4 @@ setTimeout(() => refreshUnreadCount(), 500);
 ✅ **UX MELHORADA**: Feedback imediato para usuários do SaaS  
 ✅ **CÓDIGO LIMPO**: Solução bem documentada e testável  
 
-**Status**: 🎉 **IMPLEMENTADO E FUNCIONANDO EM PRODUÇÃO** 
+**Status**: 🎉 **IMPLEMENTADO E FUNCIONANDO EM PRODUÇÃO**

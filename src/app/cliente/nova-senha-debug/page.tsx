@@ -132,4 +132,4 @@ export default function DebugPage() {
       <DebugContent />
     </Suspense>
   );
-} 
+}

@@ -110,4 +110,4 @@ export function SimpleModalDemo() {
       </div>
     </div>
   )
-} 
+}

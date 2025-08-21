@@ -458,4 +458,4 @@ export default function EquipePage() {
       )}
     </div>
   );
-} 
+}

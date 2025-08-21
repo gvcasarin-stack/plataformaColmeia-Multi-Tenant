@@ -74,4 +74,4 @@ SELECT
     'notifications' as tabela,
     COUNT(*) as total_registros
 FROM public.notifications
-ORDER BY tabela; 
+ORDER BY tabela;

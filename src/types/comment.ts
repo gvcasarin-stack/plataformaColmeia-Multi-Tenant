@@ -35,4 +35,4 @@ export interface Comment {
   
   /** Data e hora da última atualização no formato ISO */
   updatedAt?: string;
-} 
+}

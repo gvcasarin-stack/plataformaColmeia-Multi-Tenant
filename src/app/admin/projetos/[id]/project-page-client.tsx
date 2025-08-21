@@ -249,4 +249,4 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
       currentUserEmail={user?.email}
     />
   );
-} 
+}

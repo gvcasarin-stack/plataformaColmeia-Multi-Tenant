@@ -10,4 +10,4 @@ export default function ProjectDetailLayout({
       </div>
     </div>
   );
-} 
+}

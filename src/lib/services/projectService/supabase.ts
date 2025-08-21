@@ -302,4 +302,4 @@ export const getProjectsWithFilters = async (filters: {
     logger.error('[getProjectsWithFilters] Erro ao buscar projetos com filtros:', error);
     throw new Error(`Erro ao buscar projetos: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
   }
-}; 
+};

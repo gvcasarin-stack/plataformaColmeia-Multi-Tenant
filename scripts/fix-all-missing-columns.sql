@@ -57,4 +57,4 @@ SELECT COUNT(*) as total_columns
 FROM information_schema.columns 
 WHERE table_schema = 'public' AND table_name = 'projects';
 
--- Comentário: Este script adiciona TODAS as colunas necessárias para o funcionamento completo 
+-- Comentário: Este script adiciona TODAS as colunas necessárias para o funcionamento completo

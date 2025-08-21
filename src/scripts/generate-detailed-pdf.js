@@ -1,4 +1,3 @@
-
 const markdownpdf = require('markdown-pdf');
 const fs = require('fs');
 const path = require('path');
@@ -278,4 +277,4 @@ markdownpdf(options)
     } catch (err) {
       devLog.error('Erro ao remover arquivos temporários:', err);
     }
-  }); 
+  });

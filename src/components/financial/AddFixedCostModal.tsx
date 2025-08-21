@@ -218,4 +218,4 @@ export default function AddFixedCostModal({ onCostAdded }: AddFixedCostModalProp
       </DialogContent>
     </Dialog>
   );
-} 
+}

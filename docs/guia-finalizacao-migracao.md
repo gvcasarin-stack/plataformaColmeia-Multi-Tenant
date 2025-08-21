@@ -23,10 +23,10 @@ A migração está **praticamente finalizada**! Restam apenas alguns passos fina
 2. **Vá para:** `Storage` no menu lateral
 
 3. **Execute o SQL:** Vá para `SQL Editor` e execute:
-   ```sql
+   \`\`\`sql
    -- Cole todo o conteúdo do arquivo:
    supabase/sql/create_storage_buckets_simple.sql
-   ```
+   \`\`\`
    
    ⚠️ **IMPORTANTE:** Use o arquivo `create_storage_buckets_simple.sql` que funciona sem permissões especiais!
 
@@ -36,9 +36,9 @@ A migração está **praticamente finalizada**! Restam apenas alguns passos fina
    - ✅ `user-avatars` (público, 5MB)
 
 5. **Configure Políticas RLS:** Siga o guia detalhado em:
-   ```
+   \`\`\`
    docs/configurar-storage-policies.md
-   ```
+   \`\`\`
    
    ⚠️ **OBRIGATÓRIO:** As políticas RLS devem ser configuradas manualmente via Dashboard!
 
@@ -81,9 +81,9 @@ A migração está **praticamente finalizada**! Restam apenas alguns passos fina
 1. **Backup do projeto** antes de remover qualquer coisa
 
 2. **Remover do package.json:**
-   ```bash
+   \`\`\`bash
    pnpm remove firebase firebase-admin
-   ```
+   \`\`\`
 
 3. **Limpar imports não utilizados:**
    - Busque por `import.*firebase` no projeto
@@ -155,9 +155,9 @@ Se encontrar algum problema:
 1. **Verifique os logs** no console do navegador
 2. **Consulte a documentação** em `docs/migracaoSupabase.md`
 3. **Execute os scripts de verificação:**
-   ```bash
+   \`\`\`bash
    node scripts/test-migration-status.js
-   ```
+   \`\`\`
 
 ## 📚 Recursos Úteis
 
@@ -168,4 +168,4 @@ Se encontrar algum problema:
 
 ---
 
-**🚀 Boa sorte com a finalização! A migração está quase completa!** ✨ 
+**🚀 Boa sorte com a finalização! A migração está quase completa!** ✨

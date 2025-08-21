@@ -42,7 +42,7 @@ Durante a análise do sistema em produção, identificamos que algumas tabelas e
 **Propósito:** Armazenar configurações gerais do sistema de forma centralizada.
 
 **Estrutura:**
-```sql
+\`\`\`sql
 CREATE TABLE configs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   key TEXT NOT NULL UNIQUE,
@@ -55,7 +55,7 @@ CREATE TABLE configs (
   created_by UUID REFERENCES auth.users(id),
   updated_by UUID REFERENCES auth.users(id)
 );
-```
+\`\`\`
 
 **Categorias Implementadas:**
 - `general` - Configurações gerais (nome da app, versão)
@@ -65,7 +65,7 @@ CREATE TABLE configs (
 - `kanban` - Configurações do quadro Kanban
 
 **Configurações Iniciais Inseridas:**
-```json
+\`\`\`json
 {
   "app_name": "Plataforma Colmeia",
   "app_version": "1.0.0",
@@ -77,13 +77,13 @@ CREATE TABLE configs (
   "default_project_status": "planejamento",
   "kanban_columns": ["backlog", "planejamento", "em_andamento", "revisao", "concluido"]
 }
-```
+\`\`\`
 
 #### 2. Tabela `notifications`
 **Propósito:** Sistema completo de notificações da aplicação.
 
 **Estrutura:**
-```sql
+\`\`\`sql
 CREATE TABLE notifications (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   type TEXT NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-```
+\`\`\`
 
 **Tipos de Notificação:**
 - `info` - Informações gerais
@@ -178,9 +178,9 @@ CREATE TABLE notifications (
 ### 🚀 Instruções de Execução
 
 **Passo 1:** Executar o script de migração
-```bash
+\`\`\`bash
 node scripts/migrate-firebase-tables.js
-```
+\`\`\`
 
 **Passo 2:** Copiar o SQL gerado e executar no Supabase Dashboard
 - Acessar: https://supabase.com/dashboard/project/uvdyxurnvatomlxevrmu/sql
@@ -247,11 +247,11 @@ O objetivo principal desta fase foi estabelecer a infraestrutura base do Supabas
     *   Gerar e armazenar de forma segura a `service_role_key`.
 2.  **Configurar Variáveis de Ambiente no Next.js:** (Concluído ✅)
     *   Adicionar as seguintes variáveis ao arquivo `.env.local` (e equivalentes para outros ambientes):
-        ```
+        \`\`\`
         NEXT_PUBLIC_SUPABASE_URL=SUA_URL_SUPABASE
         NEXT_PUBLIC_SUPABASE_ANON_KEY=SUA_ANON_KEY_SUPABASE
         SUPABASE_SERVICE_ROLE_KEY=SUA_SERVICE_ROLE_KEY_SUPABASE
-        ```
+        \`\`\`
     *   Variáveis adicionadas na Vercel.
 3.  **Instalar SDKs Supabase:** (Concluído ✅)
     *   Executar o comando: `pnpm install @supabase/supabase-js @supabase/ssr`
@@ -262,7 +262,7 @@ O objetivo principal desta fase foi estabelecer a infraestrutura base do Supabas
     *   Implementar `src/lib/supabase/service.ts` para operações de backend com privilégios de administrador.
 5.  **Criar Tabela `public.users`:** (Concluído ✅)
     *   No editor SQL do Supabase, criar a tabela `public.users`:
-        ```sql
+        \`\`\`sql
         CREATE TABLE public.users (
             id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
             email VARCHAR(255) UNIQUE,
@@ -276,11 +276,11 @@ O objetivo principal desta fase foi estabelecer a infraestrutura base do Supabas
         COMMENT ON COLUMN public.users.email IS 'Email do usuário, sincronizado de auth.users';
         COMMENT ON COLUMN public.users.full_name IS 'Nome completo do usuário';
         COMMENT ON COLUMN public.users.role IS 'Função do usuário no sistema';
-        ```
+        \`\`\`
     *   Executado via SQL Editor no Supabase.
 6.  **Implementar Função e Trigger `handle_new_user`:** (Concluído ✅)
     *   No editor SQL do Supabase, criar a função para inserir dados em `public.users` após um novo registro em `auth.users`:
-        ```sql
+        \`\`\`sql
         CREATE OR REPLACE FUNCTION public.handle_new_user()
         RETURNS TRIGGER
         LANGUAGE plpgsql
@@ -302,7 +302,7 @@ O objetivo principal desta fase foi estabelecer a infraestrutura base do Supabas
         CREATE TRIGGER on_auth_user_created
           AFTER INSERT ON auth.users
           FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-        ```
+        \`\`\`
     *   Executado via SQL Editor no Supabase. Trigger confirmado como existente.
 
 ### Semanas 3-4: Implementação e Teste da Autenticação (Concluído ✅)
@@ -356,7 +356,7 @@ O objetivo principal desta fase foi estabelecer a infraestrutura base do Supabas
 **Tarefas:**
 1.  **Definir e Criar Tabelas Principais:** (Concluído ✅)
     *   `clients`: Informações dos clientes. (Feito ✅)
-        ```sql
+        \`\`\`sql
         CREATE TABLE public.clients (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             name TEXT NOT NULL,
@@ -367,9 +367,9 @@ O objetivo principal desta fase foi estabelecer a infraestrutura base do Supabas
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
         );
-        ```
+        \`\`\`
     *   `projects`: Informações dos projetos. (Feito ✅)
-        ```sql
+        \`\`\`sql
         CREATE TABLE public.projects (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             name TEXT NOT NULL,
@@ -382,7 +382,7 @@ O objetivo principal desta fase foi estabelecer a infraestrutura base do Supabas
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
         );
-        ```
+        \`\`\`
     *   Posteriormente, criar tabelas relacionadas: `project_schedules`, `project_tasks`, `project_documents`, `project_comments`.
 2.  **Estabelecer Relacionamentos e Constraints:** (Concluído ✅)
     *   Chaves primárias (UUIDs) - Implementadas com `gen_random_uuid()`.
@@ -435,11 +435,11 @@ Durante a migração das funcionalidades core, foi identificado um **erro 500 cr
 ### 📋 Análise da Causa Raiz
 
 **Erro Encontrado:**
-```javascript
+\`\`\`javascript
 // ❌ FIREBASE - Código que causava o erro 500
 getOrCreateFirebaseAdminApp();
 createProjectCore(projectInputData, creationOptions); // Também usava Firebase
-```
+\`\`\`
 
 **Problema Principal:**
 - A função `createProjectClientAction` ainda chamava Firebase Admin SDK
@@ -452,7 +452,7 @@ createProjectCore(projectInputData, creationOptions); // Também usava Firebase
 #### 1. **Correção do RLS (Row Level Security)**
 
 **Problema:** Recursão infinita nas políticas RLS
-```sql
+\`\`\`sql
 -- ❌ PROBLEMA: Política consultava tabela users causando loop infinito
 CREATE POLICY "Allow users to read their own projects" ON public.projects
   FOR SELECT USING (
@@ -460,10 +460,10 @@ CREATE POLICY "Allow users to read their own projects" ON public.projects
       SELECT id FROM public.users WHERE auth.uid() = id AND role = 'cliente'
     )
   );
-```
+\`\`\`
 
 **Solução:** Uso direto de `auth.jwt()` claims
-```sql
+\`\`\`sql
 -- ✅ SOLUÇÃO: Arquivo supabase/sql/fix_rls_recursion.sql
 CREATE POLICY "Allow users to read their own projects" ON public.projects
   FOR SELECT USING (created_by = auth.uid());
@@ -473,7 +473,7 @@ CREATE POLICY "Allow admin/superadmin full read access to projects" ON public.pr
   FOR SELECT USING (
     (auth.jwt()->>'role')::text IN ('admin', 'superadmin')
   );
-```
+\`\`\`
 
 **Resultado:** ✅ **14 políticas RLS corrigidas** sem recursão
 
@@ -490,7 +490,7 @@ CREATE POLICY "Allow admin/superadmin full read access to projects" ON public.pr
 - ✅ Relacionamentos com `users` e `clients`
 
 **Campos Principais:**
-```sql
+\`\`\`sql
 CREATE TABLE public.projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -513,22 +513,22 @@ CREATE TABLE public.projects (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
+\`\`\`
 
 #### 3. **Refatoração Completa da createProjectClientAction**
 
 **❌ Código Firebase Removido:**
-```javascript
+\`\`\`javascript
 // Inicialização Firebase
 getOrCreateFirebaseAdminApp();
 const adminDb = getFirestore();
 
 // Uso do createProjectCore (Firebase)
 newProject = await createProjectCore(projectInputData, creationOptions);
-```
+\`\`\`
 
 **✅ Código Supabase Implementado:**
-```javascript
+\`\`\`javascript
 // ✅ SUPABASE - Initialize Supabase Service Role Client
 const supabase = createSupabaseServiceRoleClient();
 
@@ -558,7 +558,7 @@ const { data, error } = await supabase
   .insert([projectData])
   .select()
   .single();
-```
+\`\`\`
 
 #### 4. **Mapeamento Preciso de Campos**
 
@@ -573,7 +573,7 @@ const { data, error } = await supabase
 
 #### 5. **Tratamento Robusto de Erros**
 
-```javascript
+\`\`\`javascript
 // ✅ Tratamento específico para erros do Supabase
 if (insertError instanceof Error) {
   if (insertError.message.includes('duplicate key')) {
@@ -584,7 +584,7 @@ if (insertError instanceof Error) {
   }
   return { error: `Erro ao criar projeto: ${insertError.message}` };
 }
-```
+\`\`\`
 
 #### 6. **Outras Funções Migradas para Supabase**
 
@@ -838,10 +838,10 @@ A migração está **excepcionalmente bem encaminhada** e pronta para finalizaç
 ### 🚀 **PRÓXIMOS PASSOS FINAIS (5% RESTANTE)**
 
 #### **1. Executar SQL dos Buckets**
-```bash
+\`\`\`bash
 # No SQL Editor do Supabase, execute:
 supabase/sql/create_storage_buckets.sql
-```
+\`\`\`
 
 #### **2. Testar Sistema de Arquivos**
 - Upload de arquivos em projetos
@@ -874,7 +874,7 @@ A migração Firebase → Supabase está **praticamente finalizada** e funcionan
 #### 7. **Funcionalidades Restauradas**
 
 **✅ Notificações por Email:**
-```javascript
+\`\`\`javascript
 // ✅ RESTAURADO - Notificação para admins sobre novo projeto
 await notifyAdminAboutNewProject(
   clientNameToDisplay,
@@ -884,18 +884,18 @@ await notifyAdminAboutNewProject(
   projectResult.distribuidora,
   projectUrlForAdmin
 );
-```
+\`\`\`
 
 **✅ Revalidação de Paths:**
-```javascript
+\`\`\`javascript
 // ✅ RESTAURADO - Revalidação de caminhos
 revalidatePath('/cliente/projetos');
 revalidatePath('/admin/projetos');
 revalidatePath('/');
-```
+\`\`\`
 
 **✅ Conversão de Dados:**
-```javascript
+\`\`\`javascript
 // ✅ SUPABASE - Conversão correta dos dados para TypeScript
 const projectResult: Project = {
   id: newProject.id,
@@ -909,7 +909,7 @@ const projectResult: Project = {
   files: newProject.files || [],
   comments: newProject.comments || [],
 };
-```
+\`\`\`
 
 ### 🧪 Testes Realizados
 
@@ -947,12 +947,12 @@ const projectResult: Project = {
 ### 🔧 Correções Técnicas Específicas
 
 #### Fix para Tipo `potencia`:
-```javascript
+\`\`\`javascript
 // ✅ CORREÇÃO - Tratamento correto do tipo potencia
 potencia: typeof projectDataFromClient.potencia === 'string' 
   ? parseFloat(projectDataFromClient.potencia) || 0 
   : (projectDataFromClient.potencia as number) || 0,
-```
+\`\`\`
 
 ### 📝 Documentação Criada
 
@@ -1087,17 +1087,17 @@ Esta fase completará a migração removendo todas as dependências do Firebase 
 ### 🔧 Próximos Passos Imediatos
 
 1. **Executar SQL da Tabela Completa:**
-   ```bash
+   \`\`\`bash
    # No SQL Editor do Supabase, execute:
    supabase/sql/create_projects_table_complete.sql
-   ```
+   \`\`\`
 
 2. **Verificar Variáveis de Ambiente:**
-   ```env
+   \`\`\`env
    NEXT_PUBLIC_SUPABASE_URL=sua_url_supabase
    NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key
    SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
-   ```
+   \`\`\`
 
 3. **Testar Criação de Projetos:**
    - Acessar como cliente
@@ -1106,12 +1106,12 @@ Esta fase completará a migração removendo todas as dependências do Firebase 
    - Validar dados no Supabase
 
 4. **Monitorar Logs:**
-   ```javascript
+   \`\`\`javascript
    // Logs importantes para acompanhar:
    logger.info('[createProjectClientAction] Supabase Service Role Client inicializado');
    logger.info('[createProjectClientAction] Número do projeto gerado:', projectNumber);
    logger.info('[createProjectClientAction] Projeto criado com sucesso no Supabase');
-   ```
+   \`\`\`
 
 ### 🎉 Conclusão da Fase 2
 
@@ -1160,41 +1160,41 @@ Durante os testes em produção, foram identificados dois problemas críticos:
 
 #### 3. **Atualização do Middleware**
 
-```javascript
+\`\`\`javascript
 // Middleware simplificado - apenas 2 rotas essenciais
 export const config = {
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|logo.svg|lightning-icon.svg|manifest.json|cliente/nova-senha|confirmar-email).*)'
   ],
 };
-```
+\`\`\`
 
 ### 📍 **Configuração de URLs no Supabase Dashboard**
 
 **Acesse:** Dashboard Supabase > Authentication > Settings
 
 #### **1. Site URL**
-```
+\`\`\`
 https://seudominio.com
-```
+\`\`\`
 *Para desenvolvimento local:*
-```
+\`\`\`
 http://localhost:3000
-```
+\`\`\`
 
 #### **2. Redirect URLs**
 Adicione **apenas estas 2 URLs**:
 
-```
+\`\`\`
 https://seudominio.com/confirmar-email
 https://seudominio.com/cliente/nova-senha
-```
+\`\`\`
 
 *Para desenvolvimento local:*
-```
+\`\`\`
 http://localhost:3000/confirmar-email
 http://localhost:3000/cliente/nova-senha
-```
+\`\`\`
 
 #### **3. Templates de Email**
 
@@ -1239,9 +1239,9 @@ http://localhost:3000/cliente/nova-senha
 ### 🎯 **Problema Identificado**
 
 Após as correções anteriores, o usuário ainda enfrentava o erro:
-```
+\`\`\`
 AuthApiError: invalid request: both auth code and code verifier should be non-empty
-```
+\`\`\`
 
 ### 🔍 **Causa Raiz**
 
@@ -1270,9 +1270,9 @@ Criado `scripts/configure-supabase-urls.js` que:
 ### 📋 **CONFIGURAÇÃO CRÍTICA OBRIGATÓRIA**
 
 #### **Execute o Script de Configuração:**
-```bash
+\`\`\`bash
 node scripts/configure-supabase-urls.js
-```
+\`\`\`
 
 #### **Configure Manualmente no Dashboard:**
 
@@ -1281,10 +1281,10 @@ node scripts/configure-supabase-urls.js
 2. **Authentication > URL Configuration:**
    - **Site URL:** `https://app.colmeiasolar.com`
    - **Redirect URLs:**
-     ```
+     \`\`\`
      https://app.colmeiasolar.com/confirmar-email
      https://app.colmeiasolar.com/cliente/nova-senha
-     ```
+     \`\`\`
 
 3. **Authentication > Email Templates:**
    - **Confirm signup:** `{{ .SiteURL }}/confirmar-email`
@@ -1448,10 +1448,10 @@ O sistema agora opera 100% em Supabase, oferecendo:
 3. **Fase 3:** Limpeza final com testes extensivos
 
 **Comando para Análise:**
-```bash
+\`\`\`bash
 # Identificar referências ativas (não comentadas)
 grep -r "firebase" src --include="*.ts" --include="*.tsx" | grep -v "// ❌" | grep -v "// Comentado"
-```
+\`\`\`
 
 #### **⚠️ Cuidados Importantes:**
 - **Testar extensivamente** antes de remover qualquer código
@@ -1466,12 +1466,12 @@ grep -r "firebase" src --include="*.ts" --include="*.tsx" | grep -v "// ❌" | g
 - 🚀 Melhor performance de build
 
 #### **📝 Nota para o Futuro:**
-```typescript
+\`\`\`typescript
 // ⚠️ LEGACY: Este arquivo ainda usa Firebase
 // TODO: Migrar para Supabase quando necessário
 // Status: Funcional, baixa prioridade para remoção
 // Migração: 100% concluída no Supabase
-```
+\`\`\`
 
 **🎯 Conclusão:** Firebase permanece no código como "legacy code" funcional, sem impacto na operação atual. Remoção fica como tarefa de limpeza para momento apropriado no futuro. 
 
@@ -1493,9 +1493,9 @@ Durante a análise do banco de dados, identificamos que a tabela `clients` era *
 **Resultado:** A tabela `clients` **NÃO EXISTE** no banco de dados atual
 
 #### **Erro Recebido:**
-```
+\`\`\`
 ERROR: 42P01: relation "public.clients" does not exist
-```
+\`\`\`
 
 **✅ Este erro confirma que a tabela já foi removida ou nunca foi criada, que é exatamente o resultado desejado!**
 
@@ -1505,10 +1505,10 @@ ERROR: 42P01: relation "public.clients" does not exist
 - **`supabase/sql/verify_tables_status.sql`** - Verificação completa do status das tabelas
 
 #### **Execute para confirmar:**
-```bash
+\`\`\`bash
 # No Supabase Dashboard SQL Editor, execute:
 supabase/sql/verify_tables_status.sql
-```
+\`\`\`
 
 ### 📊 **Estrutura Final Confirmada**
 

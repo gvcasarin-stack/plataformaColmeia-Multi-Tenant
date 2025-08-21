@@ -200,4 +200,4 @@ export interface SystemMessageNotification extends NotificacaoPadrao {
     actionUrl?: string;
     actionLabel?: string;
   };
-} 
+}

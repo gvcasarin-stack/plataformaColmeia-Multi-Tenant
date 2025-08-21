@@ -22,4 +22,4 @@ export default function LayoutGrid({ size = 24, className, ...props }: IconProps
       <rect width="7" height="7" x="3" y="14" rx="1" />
     </svg>
   );
-} 
+}

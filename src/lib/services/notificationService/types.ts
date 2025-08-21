@@ -127,4 +127,4 @@ export interface BaseNotification {
   senderId?: string;
   senderName?: string;
   senderType?: 'admin' | 'client' | 'system';
-} 
+}

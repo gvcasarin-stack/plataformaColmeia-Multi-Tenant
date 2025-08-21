@@ -330,4 +330,4 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
   logger.info('[ConfigService] [FALLBACK] Retornando configuração padrão (tabela configs)');
 
   return defaultConfig;
-} 
+}

@@ -21,4 +21,4 @@ export default function AdminDashboardLayout({
       {children}
     </div>
   );
-} 
+}

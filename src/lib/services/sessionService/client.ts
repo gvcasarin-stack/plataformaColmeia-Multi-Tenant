@@ -91,4 +91,4 @@ export async function endSession(userId: string): Promise<boolean> {
     devLog.error('[SessionClient] Erro ao finalizar sessão:', error);
     return false;
   }
-} 
+}

@@ -90,4 +90,4 @@ export interface UserUpdate {
   
   /** Tipo de usuário (opcional) */
   userType?: string;
-} 
+}

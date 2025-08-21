@@ -130,7 +130,7 @@ Concluímos com sucesso a padronização de todos os 59 endpoints da API, repres
 
 ## 🔄 Estrutura de Pastas Padronizada
 
-```
+\`\`\`
 src/
 ├── components/             # Componentes reutilizáveis em todo o aplicativo
 │   ├── ui/                 # Componentes de UI básicos e genéricos 
@@ -153,7 +153,7 @@ src/
 │   ├── hooks/              # Hooks React personalizados
 │   └── utils/              # Funções utilitárias
 └── types/                  # Definições de tipos TypeScript
-```
+\`\`\`
 
 ## 📋 Melhorias Já Implementadas
 
@@ -503,23 +503,23 @@ Criamos um módulo centralizado em `src/lib/utils/apiErrorHandler.ts` que fornec
 ### Formato Padrão de Resposta
 
 **Respostas de Sucesso:**
-```json
+\`\`\`json
 {
   "success": true,
   "data": { /* dados da resposta */ },
   "message": "Mensagem de sucesso (opcional)"
 }
-```
+\`\`\`
 
 **Respostas de Erro:**
-```json
+\`\`\`json
 {
   "success": false,
   "error": "Mensagem descritiva do erro",
   "errorCode": "CODIGO_DE_ERRO",
   "details": "Detalhes adicionais do erro (quando disponíveis)"
 }
-```
+\`\`\`
 
 ### Funções Disponíveis
 

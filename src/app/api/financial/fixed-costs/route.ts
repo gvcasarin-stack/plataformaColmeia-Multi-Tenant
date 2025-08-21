@@ -173,4 +173,4 @@ export async function DELETE(request: NextRequest) {
     devLog.error('[API Fixed Costs] Erro:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
-} 
+}

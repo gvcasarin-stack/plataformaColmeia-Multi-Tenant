@@ -32,4 +32,4 @@ SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role_aqui
 
 Depois reinicie o servidor de desenvolvimento.
 `;
-} 
+}

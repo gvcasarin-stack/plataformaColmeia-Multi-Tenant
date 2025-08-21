@@ -172,4 +172,4 @@ const TabsWithProvider = React.forwardRef<HTMLDivElement, TabsProps & { children
 )
 TabsWithProvider.displayName = "Tabs"
 
-export { TabsWithProvider as Tabs, TabsList, TabsTrigger, TabsContent } 
+export { TabsWithProvider as Tabs, TabsList, TabsTrigger, TabsContent }

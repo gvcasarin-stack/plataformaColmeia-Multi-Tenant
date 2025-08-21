@@ -34,4 +34,4 @@ export async function sendVerificationEmailAction(
     logger.error(`[AuthActions] Exception sending verification email to ${email}:`, error);
     return { success: false, error: error.message || 'Erro inesperado ao enviar email de verificação.' };
   }
-} 
+}

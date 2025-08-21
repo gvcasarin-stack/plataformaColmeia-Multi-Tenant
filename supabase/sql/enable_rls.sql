@@ -118,4 +118,4 @@ USING (
 
 COMMENT ON TABLE public.users IS 'Tabela de usuários com RLS habilitado - usuários podem ver apenas seus próprios dados, admins veem todos';
 COMMENT ON TABLE public.clients IS 'Tabela de clientes com RLS habilitado - usuários veem apenas clientes que criaram, admins veem todos';
-COMMENT ON TABLE public.projects IS 'Tabela de projetos com RLS habilitado - usuários veem apenas projetos que criaram, admins veem todos'; 
+COMMENT ON TABLE public.projects IS 'Tabela de projetos com RLS habilitado - usuários veem apenas projetos que criaram, admins veem todos';

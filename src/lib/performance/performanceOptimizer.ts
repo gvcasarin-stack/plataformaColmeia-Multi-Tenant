@@ -476,4 +476,4 @@ export const useOptimizedQuery = <T>(
 };
 
 // Exportar tipos
-export type { PerformanceConfig, QueryMetrics, PerformanceMetrics }; 
+export type { PerformanceConfig, QueryMetrics, PerformanceMetrics };

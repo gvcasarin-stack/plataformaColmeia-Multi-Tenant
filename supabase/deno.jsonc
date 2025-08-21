@@ -22,4 +22,4 @@
   }
   // Se você tiver um import_map.json, descomente e ajuste a linha abaixo:
   // "importMap": "./functions/import_map.json"
-} 
+}

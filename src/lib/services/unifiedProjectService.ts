@@ -174,4 +174,4 @@ export const getProjectsWithBilling = () => unifiedProjectService.getProjects();
 export const updateProjectPayment = (projectId: string, status: 'pendente' | 'parcela1' | 'pago') => 
   unifiedProjectService.updatePaymentStatus(projectId, status);
 export const getProjectPaymentStatus = (projectId: string) => 
-  unifiedProjectService.getPaymentStatus(projectId); 
+  unifiedProjectService.getPaymentStatus(projectId);

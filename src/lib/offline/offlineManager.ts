@@ -513,4 +513,4 @@ export const getOfflineData = (key?: string) => offlineManager.getOfflineData(ke
 export const getOfflineMetrics = () => offlineManager.getOfflineMetrics();
 
 // Exportar tipos
-export type { OfflineConfig, OfflineAction, OfflineState, OfflineEvents }; 
+export type { OfflineConfig, OfflineAction, OfflineState, OfflineEvents };

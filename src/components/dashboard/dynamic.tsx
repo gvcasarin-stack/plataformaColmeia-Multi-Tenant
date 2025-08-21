@@ -45,4 +45,4 @@ export const ClientWrapper = dynamic(
     loading: () => <div className="p-4 rounded-md bg-gray-100 animate-pulse h-[150px]">Carregando...</div>,
     ssr: false 
   }
-); 
+);

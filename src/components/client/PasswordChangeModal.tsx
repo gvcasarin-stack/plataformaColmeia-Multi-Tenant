@@ -193,4 +193,4 @@ export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProp
       </DialogContent>
     </Dialog>
   );
-} 
+}

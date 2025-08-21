@@ -73,4 +73,4 @@ export default function KanbanColumn({ column, cards }: KanbanColumnProps) {
       </div>
     </div>
   );
-} 
+}

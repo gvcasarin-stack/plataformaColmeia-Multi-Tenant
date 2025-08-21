@@ -110,4 +110,4 @@ configureSupabaseUrls()
   .catch((error) => {
     console.error('❌ Erro inesperado:', error);
     process.exit(1);
-  }); 
+  });

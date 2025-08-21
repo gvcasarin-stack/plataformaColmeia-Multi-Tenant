@@ -12,7 +12,7 @@ Este documento explica como usar os **sistemas enterprise implementados na FASE 
 
 Cache inteligente em 3 camadas com expiração e promoção automática:
 
-```typescript
+\`\`\`typescript
 // ✅ Uso básico - automático no AuthContext
 import { profileCache } from '@/lib/cache/profileCache';
 
@@ -25,7 +25,7 @@ profileCache.setProfile(userId, profile, 'database');
 // Verificar estatísticas
 const stats = profileCache.getStats();
 console.log('Cache hit rate:', stats.hitRate);
-```
+\`\`\`
 
 **Camadas do Cache:**
 - **Memória (5min)**: Mais rápido, perdido ao refresh da página
@@ -36,7 +36,7 @@ console.log('Cache hit rate:', stats.hitRate);
 
 Recovery automático com circuit breaker e fallback inteligente:
 
-```typescript
+\`\`\`typescript
 // ✅ Uso para operações críticas
 import { fetchUserProfileWithRecovery } from '@/lib/recovery/errorRecovery';
 
@@ -60,7 +60,7 @@ const profile = await fetchUserProfileWithRecovery(
   } : null,
   userId // Contexto para logging
 );
-```
+\`\`\`
 
 **Features:**
 - **Retry exponencial** com jitter anti-thundering herd
@@ -72,7 +72,7 @@ const profile = await fetchUserProfileWithRecovery(
 
 Logging profissional com contexto e níveis por ambiente:
 
-```typescript
+\`\`\`typescript
 // ✅ Logging básico
 import { logger } from '@/lib/utils/logger';
 
@@ -89,7 +89,7 @@ logger.performance.timing('database_query', duration, { success: true });
 // ✅ Logging de API
 logger.api.request('/api/users', 'GET', { userId });
 logger.api.response('/api/users', 200, duration, { cached: false });
-```
+\`\`\`
 
 **Níveis de Log:**
 - **Debug**: Apenas desenvolvimento
@@ -105,7 +105,7 @@ logger.api.response('/api/users', 200, duration, { cached: false });
 
 Acompanha métricas em tempo real dos sistemas implementados:
 
-```typescript
+\`\`\`typescript
 // ✅ Verificar saúde do sistema
 import { systemMonitor } from '@/lib/monitoring/systemMonitor';
 
@@ -121,13 +121,13 @@ console.log('Tempo de resposta:', testResult.duration, 'ms');
 // Relatório completo
 const report = systemMonitor.exportFullReport();
 // Salva JSON com todas as métricas
-```
+\`\`\`
 
 ### Componente de Debug (`src/components/debug/SystemHealthDebug.tsx`)
 
 Interface visual para desenvolvedores acompanharem métricas:
 
-```tsx
+\`\`\`tsx
 // ✅ Adicionar temporariamente durante desenvolvimento
 import { SystemHealthDebug } from '@/components/debug/SystemHealthDebug';
 
@@ -142,7 +142,7 @@ export default function MyPage() {
     </div>
   );
 }
-```
+\`\`\`
 
 **Atalhos do Debug:**
 - **Ctrl+Shift+D**: Mostrar/ocultar painel
@@ -156,14 +156,14 @@ export default function MyPage() {
 
 Os sistemas estão **totalmente integrados** no AuthContext. Nenhuma ação é necessária:
 
-```typescript
+\`\`\`typescript
 // ✅ Uso normal do AuthContext - sistemas funcionam automaticamente
 const { user, isLoading, signIn } = useAuth();
 
 // Cache automático: perfil do usuário é automaticamente cacheado
 // Error recovery: falhas de rede são automaticamente tratadas  
 // Logging: todas as operações são automaticamente logadas
-```
+\`\`\`
 
 **O que acontece automaticamente:**
 1. **Login**: Busca perfil com cache + error recovery + logging
@@ -182,7 +182,7 @@ const { user, isLoading, signIn } = useAuth();
 - ✅ **Success Rate**: 99%+ (com fallback)
 
 ### Monitoramento Contínuo:
-```typescript
+\`\`\`typescript
 // ✅ Verificar métricas regularmente
 const healthCheck = () => {
   const metrics = systemMonitor.getSystemMetrics();
@@ -196,34 +196,34 @@ const healthCheck = () => {
     logger.warn('Circuit breaker aberto', { state: metrics.errorRecovery.circuitBreakerState });
   }
 };
-```
+\`\`\`
 
 ---
 
 ## 🚨 Troubleshooting
 
 ### 1. Cache não está funcionando
-```typescript
+\`\`\`typescript
 // Verificar stats do cache
 const stats = profileCache.getStats();
 console.log('Cache stats:', stats);
 
 // Limpar cache se necessário
 profileCache.clearAll();
-```
+\`\`\`
 
 ### 2. Error recovery não está funcionando
-```typescript
+\`\`\`typescript
 // Verificar estado do circuit breaker
 const recoveryStats = errorRecovery.getStats();
 console.log('Circuit breaker:', recoveryStats.circuitBreakerState);
 
 // Resetar se necessário (apenas em desenvolvimento)
 errorRecovery.reset();
-```
+\`\`\`
 
 ### 3. Logs não aparecem
-```typescript
+\`\`\`typescript
 // Verificar configuração do logger
 logger.updateConfig({
   minLevel: 'debug',        // Mostrar todos os logs
@@ -234,10 +234,10 @@ logger.updateConfig({
 // Verificar logs armazenados
 const logs = logger.getLogs('info', 'Auth', 50);
 console.log('Últimos logs:', logs);
-```
+\`\`\`
 
 ### 4. Performance ruim
-```typescript
+\`\`\`typescript
 // Executar teste de performance
 const testResult = await systemMonitor.testProfileFetchPerformance(userId);
 console.log('Resultado:', testResult);
@@ -245,7 +245,7 @@ console.log('Resultado:', testResult);
 // Verificar relatório detalhado
 const report = systemMonitor.getPerformanceReport();
 console.log('Performance médio:', report.averageResponseTime, 'ms');
-```
+\`\`\`
 
 ---
 
@@ -302,4 +302,4 @@ console.log('Performance médio:', report.averageResponseTime, 'ms');
 
 *Documento atualizado: Dezembro 2024*  
 *Versão: 1.0*  
-*Status: FASE 1 - Sistemas Ativos e Funcionais* 
+*Status: FASE 1 - Sistemas Ativos e Funcionais*

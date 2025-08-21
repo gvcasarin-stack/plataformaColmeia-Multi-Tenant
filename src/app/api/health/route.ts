@@ -99,4 +99,4 @@ export async function HEAD(request: NextRequest) {
     logger.error('Health ping failed', { error: error.message }, 'HealthAPI');
     return new NextResponse(null, { status: 500 });
   }
-} 
+}

@@ -23,4 +23,4 @@ export function createSupabaseServiceRoleClient() {
       detectSessionInUrl: false 
     },
   });
-} 
+}

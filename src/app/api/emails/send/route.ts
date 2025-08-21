@@ -95,4 +95,4 @@ export async function GET() {
     optionalFields: ['subject', 'message', 'template'],
     note: 'Autenticação necessária para usar este endpoint'
   });
-} 
+}

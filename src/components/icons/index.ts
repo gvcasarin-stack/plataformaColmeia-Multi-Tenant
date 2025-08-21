@@ -42,4 +42,4 @@ export { SearchIcon as Search };
 export { TableIcon as Table };
 
 // Exporta tipo IconProps
-export type { IconProps }; 
+export type { IconProps };

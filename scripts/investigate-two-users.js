@@ -115,4 +115,4 @@ async function investigateUsers() {
 }
 
 // Executar investigação
-investigateUsers().catch(console.error); 
+investigateUsers().catch(console.error);

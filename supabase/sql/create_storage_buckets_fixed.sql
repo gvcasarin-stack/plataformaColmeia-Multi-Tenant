@@ -262,4 +262,4 @@ BEGIN
   RAISE NOTICE '   - Usuários: podem gerenciar próprios avatares';
   RAISE NOTICE '';
   RAISE NOTICE '🚀 PRÓXIMO PASSO: Testar upload/download de arquivos!';
-END $$; 
+END $$;

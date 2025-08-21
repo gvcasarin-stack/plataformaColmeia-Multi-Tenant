@@ -147,4 +147,4 @@ export async function getViewedProjects(userId: string): Promise<{ ids: string[]
     devLog.error('Erro ao obter projetos visualizados:', error);
     return null;
   }
-} 
+}

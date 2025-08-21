@@ -182,4 +182,4 @@ export async function GET(req: NextRequest) {
       ApiErrorCode.NOTIFICATION_PROCESSING_ERROR
     );
   }
-} 
+}

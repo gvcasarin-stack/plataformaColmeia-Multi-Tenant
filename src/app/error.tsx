@@ -18,4 +18,4 @@ export default function Error({
       </button>
     </div>
   )
-} 
+}

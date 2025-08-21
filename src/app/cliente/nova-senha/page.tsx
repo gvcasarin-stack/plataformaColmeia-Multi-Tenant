@@ -224,4 +224,4 @@ export default function NovaSenhaPage() {
       <NovaSenhaContent />
     </Suspense>
   );
-} 
+}

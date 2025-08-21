@@ -191,4 +191,4 @@ function main() {
 }
 
 // Executar
-main(); 
+main();

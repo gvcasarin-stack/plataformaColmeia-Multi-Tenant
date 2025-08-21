@@ -168,4 +168,4 @@ INSERT INTO public.active_sessions (
 
 RAISE NOTICE '✅ Tabela active_sessions criada com sucesso!';
 RAISE NOTICE '📋 Execute: SELECT * FROM public.active_sessions; para verificar';
-RAISE NOTICE '🧹 Limpeza automática configurada para rodar a cada 30 minutos'; 
+RAISE NOTICE '🧹 Limpeza automática configurada para rodar a cada 30 minutos';

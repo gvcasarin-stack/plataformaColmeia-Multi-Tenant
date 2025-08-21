@@ -374,4 +374,4 @@ export async function getBillingClients(): Promise<any[]> {
     logger.error('[BillingService] Exceção ao buscar clientes:', error);
     return [];
   }
-} 
+}

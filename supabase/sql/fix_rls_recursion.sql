@@ -92,4 +92,4 @@ SELECT
     with_check
 FROM pg_policies 
 WHERE tablename IN ('users', 'clients', 'projects')
-ORDER BY tablename, policyname; 
+ORDER BY tablename, policyname;

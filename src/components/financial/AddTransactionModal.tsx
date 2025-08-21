@@ -185,4 +185,4 @@ export default function AddTransactionModal({ onTransactionAdded, month, year }:
       </DialogContent>
     </Dialog>
   );
-} 
+}

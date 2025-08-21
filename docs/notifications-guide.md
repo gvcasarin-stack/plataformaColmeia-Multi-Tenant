@@ -23,7 +23,7 @@ Este desacoplamento garante que a lógica de envio de e-mail seja centralizada e
 
 Cada documento na coleção `notifications` segue a interface `NotificacaoPadronizada` (definida em `src/lib/services/notificationService/types.ts`):
 
-```typescript
+\`\`\`typescript
 interface NotificacaoPadronizada {
   id: string;                   // ID do documento (gerado pelo Firestore)
   type: NotificationType;       // Tipo de notificação (ex: 'new_comment', 'document_upload')
@@ -55,23 +55,23 @@ interface NotificacaoPadronizada {
     [key: string]: any;
   }
 }
-```
+\`\`\`
 
 ## Como Criar Notificações (Para Desenvolvedores)
 
 Ao implementar uma funcionalidade que deve gerar uma notificação:
 
 1.  **Importe `createNotification`:**
-```typescript
+\`\`\`typescript
     import { createNotification } from '@/lib/services/notificationService/core';
     // Importe também NotificationType se precisar referenciar os tipos literais de string
     // Ex: type: 'new_comment'
-    ```
+    \`\`\`
 
 2.  **Chame `createNotification` com os parâmetros adequados:**
     Os parâmetros são definidos pela interface `CreateNotificationParams` em `src/lib/services/notificationService/types.ts`.
 
-```typescript
+\`\`\`typescript
     // Exemplo dentro de uma Server Action ou serviço de backend
     // após um evento ocorrer (ex: novo comentário salvo).
 
@@ -143,7 +143,7 @@ Ao implementar uma funcionalidade que deve gerar uma notificação:
             }
   });
 }
-``` 
+\`\`\` 
 
 ### Tipos de Notificação Implementados e Dados Esperados em `data`:
 
@@ -212,4 +212,4 @@ Localizada em `functions/src/index.ts`.
     *   Funções de envio direto de e-mail no `src/lib/services/emailService.ts` (como `notifyUserOfNewComment`, `notifyAdminAboutDocument`) **não devem mais ser usadas para os fluxos de comentários e uploads/exclusões de arquivos**, pois estes agora são gerenciados pela Cloud Function via `notifications`.
     *   O `emailService.ts` ainda é válido para e-mails que *não* devem gerar um registro na coleção `notifications` e que são enviados diretamente pela aplicação web (ex: e-mail de boas-vindas, confirmação de e-mail, redefinição de senha, ou a notificação de mudança de status que já funciona diretamente e não foi incluída nesta refatoração).
 
-Este guia deve ajudar a manter a consistência e clareza no sistema de notificações. 
+Este guia deve ajudar a manter a consistência e clareza no sistema de notificações.

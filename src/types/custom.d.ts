@@ -40,4 +40,4 @@ declare module './ui/button' {
     size?: 'default' | 'sm' | 'lg' | 'icon';
     asChild?: boolean;
   }
-} 
+}

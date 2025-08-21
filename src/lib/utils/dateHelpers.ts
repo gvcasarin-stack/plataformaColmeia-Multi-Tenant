@@ -175,4 +175,4 @@ export function isDateFromMonth(date: any, targetMonth: Date): boolean {
   
   return safeDate.getMonth() === targetMonth.getMonth() && 
          safeDate.getFullYear() === targetMonth.getFullYear();
-} 
+}

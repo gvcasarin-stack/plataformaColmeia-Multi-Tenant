@@ -157,4 +157,4 @@ class AuditService {
   }
 }
 
-export { AuditService, type AuditLog, type AuditLogCreate }; 
+export { AuditService, type AuditLog, type AuditLogCreate };

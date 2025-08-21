@@ -1,1 +1,1 @@
-// Searching for dialog component 
+// Searching for dialog component

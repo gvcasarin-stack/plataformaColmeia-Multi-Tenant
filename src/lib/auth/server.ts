@@ -16,4 +16,4 @@ export async function requireAuth() {
     logger.error('Auth error:', error);
     redirect('/login');
   }
-} 
+}

@@ -40,4 +40,4 @@ Para restaurar um backup:
 3. Clique em **Importar e Exportar**
 4. Selecione o backup desejado do bucket de armazenamento para importar
 
-A função de backup diário está agora configurada e ativa no projeto. 
+A função de backup diário está agora configurada e ativa no projeto.

@@ -123,4 +123,4 @@ export function useClients(): UseClientsReturn {
     updateClientOptimistic,
     revertOptimisticUpdate,
   };
-} 
+}

@@ -29,4 +29,4 @@ export const INACTIVITY_SETTINGS = {
     inactivityTime: 30 * 60 * 1000, // 30 minutos
     warningTime: 2 * 60 * 1000,     // 2 minutos
   },
-}; 
+};

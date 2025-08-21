@@ -37,4 +37,4 @@ console.log('⚠️  UID undefined: "ID do usuário não encontrado"');
 console.log('⚠️  Outro erro: Verificar logs detalhados');
 console.log('');
 
-console.log('🚀 TESTE AGORA A CRIAÇÃO DE PROJETO!'); 
+console.log('🚀 TESTE AGORA A CRIAÇÃO DE PROJETO!');

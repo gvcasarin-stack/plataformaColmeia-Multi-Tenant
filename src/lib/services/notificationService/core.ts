@@ -214,4 +214,4 @@ export async function getOrCreateSenderInfo(
     logger.error('[getOrCreateSenderInfo] Error:', error);
     return { id: 'system', name: 'Sistema', type: 'system' };
   }
-} 
+}

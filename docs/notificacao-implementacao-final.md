@@ -84,7 +84,7 @@
 ## 🗄️ **ESTRUTURA DO BANCO DE DADOS**
 
 ### **Tabela `notifications` (Supabase)**
-```sql
+\`\`\`sql
 CREATE TABLE notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type VARCHAR NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-```
+\`\`\`
 
 ### **Campos Principais:**
 - `type`: Tipo de notificação (project_created, comment_added, etc.)
@@ -114,7 +114,7 @@ CREATE TABLE notifications (
 ## 🔧 **ARQUITETURA TÉCNICA**
 
 ### **Fluxo de Notificação:**
-```
+\`\`\`
 Action Triggered → Helper Function → Core Function → Supabase Insert
      ↓                    ↓                ↓              ↓
   (projeto,          (notifyNew*)      (createNot*)   (notifications)
@@ -123,14 +123,14 @@ Action Triggered → Helper Function → Core Function → Supabase Insert
    status)
      ↓
 Email Service → AWS SES → Email Sent
-```
+\`\`\`
 
 ### **Fluxo de E-mail:**
-```
+\`\`\`
 Helper Function → Email Template → AWS SES → Cliente/Admin
       ↓               ↓              ↓           ↓
   (notifyNew*)   (HTML + Text)   (SES Send)  (Inbox)
-```
+\`\`\`
 
 ---
 
@@ -166,7 +166,7 @@ Helper Function → Email Template → AWS SES → Cliente/Admin
 ## 🚀 **COMO USAR (Para Desenvolvedores)**
 
 ### **1. Criar Notificação Simples:**
-```typescript
+\`\`\`typescript
 import { createNotification } from '@/lib/services/notificationService';
 
 await createNotification({
@@ -177,10 +177,10 @@ await createNotification({
   senderId: 'sender-id',
   senderName: 'Nome do Remetente'
 });
-```
+\`\`\`
 
 ### **2. Notificar Projeto Criado:**
-```typescript
+\`\`\`typescript
 import { notifyNewProject } from '@/lib/services/notificationService';
 
 await notifyNewProject({
@@ -192,21 +192,21 @@ await notifyNewProject({
   adminId: 'admin-id',
   adminName: 'Nome do Admin'
 });
-```
+\`\`\`
 
 ### **3. Buscar Notificações do Usuário:**
-```typescript
+\`\`\`typescript
 import { getUserNotifications } from '@/lib/services/notificationService';
 
 const notifications = await getUserNotifications('user-id', 20);
-```
+\`\`\`
 
 ### **4. Marcar como Lida:**
-```typescript
+\`\`\`typescript
 import { markNotificationAsRead } from '@/lib/services/notificationService';
 
 await markNotificationAsRead('notification-id');
-```
+\`\`\`
 
 ---
 
@@ -248,7 +248,7 @@ await markNotificationAsRead('notification-id');
 ## ⚙️ **CONFIGURAÇÕES NECESSÁRIAS**
 
 ### **Variáveis de Ambiente:**
-```env
+\`\`\`env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
@@ -259,7 +259,7 @@ AWS_REGION=your-region
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
 SES_SENDER_EMAIL=no-reply@colmeiasolar.com
-```
+\`\`\`
 
 ### **Permissões Supabase:**
 - ✅ Tabela `notifications` criada
@@ -301,4 +301,4 @@ SES_SENDER_EMAIL=no-reply@colmeiasolar.com
 
 ---
 
-**🎯 STATUS: IMPLEMENTAÇÃO 100% FINALIZADA E FUNCIONAL** ✅ 
+**🎯 STATUS: IMPLEMENTAÇÃO 100% FINALIZADA E FUNCIONAL** ✅

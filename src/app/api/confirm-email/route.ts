@@ -257,4 +257,4 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     message: configured ? 'Serviço funcionando corretamente' : 'Configuração do Supabase necessária'
   });
-} 
+}

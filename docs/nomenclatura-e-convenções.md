@@ -57,17 +57,17 @@ Este documento estabelece as convenções de nomenclatura e boas práticas a ser
 
 Um componente pode ter a seguinte estrutura:
 
-```
+\`\`\`
 Button/
 ├── Button.tsx       # Implementação principal
 ├── index.ts         # Arquivo de barril
 ├── Button.test.tsx  # Testes (opcional)
 └── variants.ts      # Variantes do componente (opcional)
-```
+\`\`\`
 
 Para componentes complexos:
 
-```
+\`\`\`
 DataTable/
 ├── index.ts                 # Exporta tudo
 ├── DataTable.tsx            # Componente principal
@@ -75,20 +75,20 @@ DataTable/
 ├── DataTableRow.tsx         # Sub-componente
 ├── DataTableFooter.tsx      # Sub-componente
 └── useDataTable.ts          # Hook específico do componente
-```
+\`\`\`
 
 ### Serviços
 
 Os serviços devem seguir uma estrutura modular:
 
-```
+\`\`\`
 projectService/
 ├── index.ts         # Arquivo de barril que exporta todas as funções públicas
 ├── core.ts          # Funções essenciais do serviço
 ├── queries.ts       # Funções de consulta (get)
 ├── mutations.ts     # Funções de modificação (create, update, delete)
 └── helpers.ts       # Funções auxiliares internas
-```
+\`\`\`
 
 ## Boas Práticas
 
@@ -102,7 +102,7 @@ projectService/
   5. Importações de estilos
 
 Exemplo:
-```tsx
+\`\`\`tsx
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
@@ -113,7 +113,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { formatDate } from '@/lib/utils/dateHelpers'
 
 import { Project } from '@/types/project'
-```
+\`\`\`
 
 ### Organização de Componentes
 
@@ -128,11 +128,11 @@ import { Project } from '@/types/project'
 - Centralizar exportações em arquivos `index.ts` para simplificar importações
 
 Exemplo de arquivo `index.ts`:
-```tsx
+\`\`\`tsx
 export * from './Button'
 export * from './Card'
 export * from './Badge'
-```
+\`\`\`
 
 ### Funções e Hooks
 
@@ -169,7 +169,7 @@ export * from './Badge'
 
 ### Componente React
 
-```tsx
+\`\`\`tsx
 "use client"
 
 import { useState } from 'react'
@@ -240,11 +240,11 @@ export function ProjectForm({ initialData, onSubmit }: ProjectFormProps) {
     </form>
   )
 }
-```
+\`\`\`
 
 ### Serviço Firebase
 
-```tsx
+\`\`\`tsx
 // projectService/queries.ts
 import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -290,11 +290,11 @@ export async function getProjectById(projectId: string): Promise<Project | null>
     throw new Error('Falha ao buscar detalhes do projeto')
   }
 }
-```
+\`\`\`
 
 ### Hook Personalizado
 
-```tsx
+\`\`\`tsx
 // hooks/useProjectData.ts
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -352,7 +352,7 @@ export function useProjectData() {
     refreshProjects
   }
 }
-```
+\`\`\`
 
 Este documento será revisado e atualizado conforme o projeto evolui.
 
@@ -368,4 +368,4 @@ Antes de submeter código para revisão, verifique:
 - [ ] Estado é gerenciado eficientemente (evita estados derivados)
 - [ ] Tratamento adequado de erros em código assíncrono
 - [ ] Código está comentado onde necessário (lógica complexa)
-- [ ] Não há hardcoding de valores que deveriam ser constantes 
+- [ ] Não há hardcoding de valores que deveriam ser constantes

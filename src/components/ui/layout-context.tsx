@@ -120,4 +120,4 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
       {children}
     </LayoutContext.Provider>
   );
-} 
+}

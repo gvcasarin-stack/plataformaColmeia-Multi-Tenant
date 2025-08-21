@@ -168,4 +168,4 @@ SELECT
 FROM information_schema.columns 
 WHERE table_schema = 'public' 
 AND table_name = 'projects'
-ORDER BY ordinal_position; 
+ORDER BY ordinal_position;

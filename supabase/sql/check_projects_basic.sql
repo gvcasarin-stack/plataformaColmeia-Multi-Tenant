@@ -35,4 +35,4 @@ SELECT
     email,
     role
 FROM public.users 
-LIMIT 3; 
+LIMIT 3;

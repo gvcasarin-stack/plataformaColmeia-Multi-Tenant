@@ -162,4 +162,4 @@ export const VALIDATION_MESSAGES = {
     message: 'As senhas informadas não são iguais.',
     type: 'error' as const
   }
-} as const; 
+} as const;

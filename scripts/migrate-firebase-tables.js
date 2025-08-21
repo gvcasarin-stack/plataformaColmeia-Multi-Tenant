@@ -102,4 +102,4 @@ console.log('3. Qualquer configuração específica do sistema');
 console.log('\nPodemos criar um script específico para migrar esses dados.');
 
 console.log('\n✨ MIGRAÇÃO CONCLUÍDA COM SUCESSO!');
-console.log('Agora execute o SQL no Supabase Dashboard.'); 
+console.log('Agora execute o SQL no Supabase Dashboard.');

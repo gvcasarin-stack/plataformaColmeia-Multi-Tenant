@@ -124,4 +124,4 @@ export function SignOutButton({ onClick }: { onClick: () => void }) {
       <span className="truncate">Sair</span>
     </Button>
   )
-} 
+}

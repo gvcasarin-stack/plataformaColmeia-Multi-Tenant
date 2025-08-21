@@ -10,4 +10,4 @@ export function MonthlyProjectsGraph() {
       </div>
     </div>
   )
-} 
+}

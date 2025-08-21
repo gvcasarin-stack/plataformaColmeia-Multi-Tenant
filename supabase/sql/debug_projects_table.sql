@@ -47,4 +47,4 @@ SELECT
     tablename,
     rowsecurity
 FROM pg_tables 
-WHERE tablename = 'projects'; 
+WHERE tablename = 'projects';

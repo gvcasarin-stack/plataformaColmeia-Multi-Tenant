@@ -81,4 +81,4 @@ SELECT
 FROM projects
 WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW())
   AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())
-  AND price > 0; 
+  AND price > 0;

@@ -106,4 +106,4 @@ export function BlockStatusIcon({ isBlocked, className }: BlockStatusIconProps) 
       className
     )} />
   );
-} 
+}

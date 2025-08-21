@@ -20,4 +20,4 @@ export default function Search({ size = 24, className, ...props }: IconProps) {
       <path d="m21 21-4.3-4.3" />
     </svg>
   );
-} 
+}

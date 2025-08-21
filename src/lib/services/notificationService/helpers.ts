@@ -611,4 +611,4 @@ export async function notifyProjectUpdate(
     logger.error('[notifyProjectUpdate] Erro:', error);
     return { adminIds: [], clientId: null };
   }
-} 
+}

@@ -85,4 +85,4 @@ export interface TimelineEvent {
   
   /** Metadados adicionais do evento */
   metadata?: Record<string, any>;
-} 
+}

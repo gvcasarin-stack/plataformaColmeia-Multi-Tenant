@@ -55,4 +55,4 @@ export function DeleteProjectDialog({
       </AlertDialogContent>
     </AlertDialog>
   )
-} 
+}

@@ -11,4 +11,4 @@ export function useRole() {
     hasAnyRole: (roles: string[]) => roles.includes(user?.role || ''),
     role: user?.role
   }
-} 
+}

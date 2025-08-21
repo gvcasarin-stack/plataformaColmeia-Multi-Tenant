@@ -69,4 +69,4 @@ export function Timeline({ events, onDeleteDocument, onDownloadDocument, onEditC
       ))}
     </div>
   )
-} 
+}

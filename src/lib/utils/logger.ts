@@ -373,4 +373,4 @@ export const logError = (message: string, context?: LogContext, component?: stri
 export type { LogLevel, LogContext, LogEntry, LoggerConfig };
 
 // ✅ PHASE 1: Export default para compatibilidade com imports existentes
-export default logger; 
+export default logger;

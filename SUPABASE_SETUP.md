@@ -31,12 +31,12 @@ O sistema de confirmação de email está **IMPLEMENTADO** e **PRONTO PARA TESTE
 
 1. Crie um arquivo `.env.local` na raiz do projeto:
 
-```bash
+\`\`\`bash
 # Configuração do Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anon_publica_aqui
 SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role_aqui
-```
+\`\`\`
 
 2. **⚠️ IMPORTANTE**: Nunca commite o arquivo `.env.local` no Git!
 
@@ -44,7 +44,7 @@ SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role_aqui
 
 Execute o seguinte SQL no editor SQL do Supabase (**Database** → **SQL Editor**):
 
-```sql
+\`\`\`sql
 -- Tabela de usuários
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -110,7 +110,7 @@ CREATE POLICY "Usuários podem ver apenas seus dados" ON users
 -- Política para usuários atualizarem apenas seus dados
 CREATE POLICY "Usuários podem atualizar apenas seus dados" ON users
   FOR UPDATE USING (auth.uid() = id);
-```
+\`\`\`
 
 ### 5. Configurar Autenticação
 
@@ -132,7 +132,7 @@ CREATE POLICY "Usuários podem atualizar apenas seus dados" ON users
 
 ### 1. Verificar Configuração
 
-```bash
+\`\`\`bash
 # Instalar dependências
 pnpm install
 
@@ -141,17 +141,17 @@ pnpm run dev
 
 # Em outro terminal, executar teste
 node scripts/test-email-confirmation.js
-```
+\`\`\`
 
 **Resultado esperado:**
-```
+\`\`\`
 ✅ Health check resultado: {
   "service": "email-confirmation",
   "status": "healthy",
   "configured": true,
   ...
 }
-```
+\`\`\`
 
 ### 2. Teste Completo
 
@@ -217,4 +217,4 @@ Se encontrar problemas:
 1. Execute o teste: `node scripts/test-email-confirmation.js`
 2. Verifique os logs do console do navegador
 3. Verifique os logs do servidor Next.js
-4. Verifique os logs do Supabase Dashboard 
+4. Verifique os logs do Supabase Dashboard

@@ -343,4 +343,4 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
   );
 }
 
-export default AdminSidebar; 
+export default AdminSidebar;

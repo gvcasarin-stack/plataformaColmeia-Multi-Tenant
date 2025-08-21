@@ -7,4 +7,4 @@
 export { EditableColumnTitle } from './EditableColumnTitle';
 export { DeleteColumnDialog } from './DeleteColumnDialog';
 export { KanbanBoard } from './KanbanBoard';
-export { AddColumnDialog } from './AddColumnDialog'; 
+export { AddColumnDialog } from './AddColumnDialog';

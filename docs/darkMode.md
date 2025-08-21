@@ -19,29 +19,29 @@ Um cliente novo teve seu cadastro exibido em **dark mode** mesmo com essa funcio
 - Cliente teve experiência inconsistente durante cadastro
 
 ### Configurações Corretas Identificadas ✅
-```typescript
+\`\`\`typescript
 // src/components/providers.tsx
 <ThemeProvider
   attribute="class"
   defaultTheme="light"      // ✅ Padrão definido como light
   enableSystem={false}      // ✅ Detecção do sistema desabilitada
 >
-```
+\`\`\`
 
 ### Problemas Identificados 🚨
 
 #### 1. Classes Dark Ainda Presentes
 - **Localização:** Todos os componentes da aplicação
 - **Exemplos:**
-  ```typescript
+  \`\`\`typescript
   // src/app/cliente/cadastro/page.tsx
   <div className="bg-gray-100 dark:bg-gray-900">
   <div className="bg-white dark:bg-gray-800">
   <h1 className="text-gray-900 dark:text-white">
-  ```
+  \`\`\`
 
 #### 2. CSS Dark Mode Ativo
-```css
+\`\`\`css
 /* src/app/globals.css - LINHAS 32-62 */
 .dark {
   --background: 222.2 84% 4.9%;
@@ -49,7 +49,7 @@ Um cliente novo teve seu cadastro exibido em **dark mode** mesmo com essa funcio
   --card: 222.2 84% 6.9%;
   /* ... todas as variáveis dark mode ainda definidas */
 }
-```
+\`\`\`
 
 #### 3. Componentes de Tema Ativos
 - `src/components/ui/theme-toggle.tsx` - Toggle de tema existe
@@ -76,13 +76,13 @@ Um cliente novo teve seu cadastro exibido em **dark mode** mesmo com essa funcio
 - Problema de timing no ThemeProvider
 
 ### 4. Carregamento Assíncrono
-```typescript
+\`\`\`typescript
 // src/components/providers.tsx - PROBLEMA IDENTIFICADO
 if (!mounted) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       // Durante carregamento, usa variáveis CSS que podem ser dark
-```
+\`\`\`
 
 ---
 
@@ -109,14 +109,14 @@ if (!mounted) {
 ### Estratégia 1: FORÇA TEMA LIGHT (Eficácia: 99%)
 **Arquivo:** `src/components/providers.tsx`  
 **Alteração:**
-```typescript
+\`\`\`typescript
 <ThemeProvider
   attribute="class"
   defaultTheme="light"
   enableSystem={false}
   forcedTheme="light"  // ← ADICIONAR ESTA LINHA
 >
-```
+\`\`\`
 
 **Resultado:** Bloqueia qualquer mudança de tema, ignora todas as preferências
 
@@ -125,7 +125,7 @@ if (!mounted) {
 ### Estratégia 2: BLOQUEIO DE LOCALSTORAGE (Eficácia: 95%)
 **Arquivo:** `src/components/providers.tsx`  
 **Alteração:**
-```typescript
+\`\`\`typescript
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
@@ -138,7 +138,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
     setMounted(true)
   }, [])
-```
+\`\`\`
 
 **Resultado:** Limpa estados residuais e previne persistência de dark mode
 
@@ -147,7 +147,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ### Estratégia 3: CSS OVERRIDE (Eficácia: 85%)
 **Arquivo:** `src/app/globals.css`  
 **Alteração:** Adicionar no final do arquivo
-```css
+\`\`\`css
 /* FORCE LIGHT MODE - Remove when dark mode is needed again */
 html.dark,
 html[data-theme="dark"],
@@ -173,7 +173,7 @@ html[data-theme="dark"],
   --input: 214.3 31.8% 91.4% !important;
   --ring: 24 95% 53% !important;
 }
-```
+\`\`\`
 
 **Resultado:** Sobrescreve variáveis CSS forçando aparência light
 
@@ -186,10 +186,10 @@ html[data-theme="dark"],
 - `src/components/layouts/AdminSidebar.tsx` - linha 32
 
 **Alteração:**
-```typescript
+\`\`\`typescript
 // COMENTAR estas linhas temporariamente
 // const { theme, setTheme } = useTheme();
-```
+\`\`\`
 
 **Resultado:** Remove interfaces que permitem mudança de tema
 
@@ -219,7 +219,7 @@ html[data-theme="dark"],
 ### Quando quiserem reinstalar dark mode:
 
 #### Passo 1: Reativar ThemeProvider
-```typescript
+\`\`\`typescript
 // src/components/providers.tsx
 <ThemeProvider
   attribute="class"
@@ -227,25 +227,25 @@ html[data-theme="dark"],
   enableSystem={false}
   // forcedTheme="light"  ← REMOVER/COMENTAR ESTA LINHA
 >
-```
+\`\`\`
 
 #### Passo 2: Remover Bloqueios localStorage
-```typescript
+\`\`\`typescript
 // REMOVER as linhas de limpeza do localStorage
 // localStorage.removeItem('theme');
 // localStorage.setItem('theme', 'light');
-```
+\`\`\`
 
 #### Passo 3: Remover CSS Override
-```css
+\`\`\`css
 /* REMOVER o bloco CSS de override */
-```
+\`\`\`
 
 #### Passo 4: Reativar Interfaces
-```typescript
+\`\`\`typescript
 // DESCOMENTAR
 const { theme, setTheme } = useTheme();
-```
+\`\`\`
 
 **Resultado:** Dark mode volta a funcionar 100% como antes!
 
@@ -354,4 +354,4 @@ const { theme, setTheme } = useTheme();
 
 ---
 
-*Este documento deve ser atualizado conforme o progresso da implementação e feedback dos usuários.* 
+*Este documento deve ser atualizado conforme o progresso da implementação e feedback dos usuários.*

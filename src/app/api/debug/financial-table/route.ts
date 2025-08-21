@@ -146,4 +146,4 @@ export async function GET(request: NextRequest) {
       stack: error.stack
     }, { status: 500 });
   }
-} 
+}

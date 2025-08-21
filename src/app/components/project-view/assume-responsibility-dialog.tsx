@@ -128,4 +128,4 @@ export function AssumeResponsibilityDialog({
       </AlertDialogContent>
     </AlertDialog>
   )
-} 
+}

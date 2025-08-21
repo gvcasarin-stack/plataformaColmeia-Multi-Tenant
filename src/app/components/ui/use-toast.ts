@@ -1,4 +1,3 @@
-
 function toast({ ...props }: Toast) {
   const id = genId()
 
@@ -45,4 +44,4 @@ function toast({ ...props }: Toast) {
     dismiss,
     update,
   }
-} 
+}

@@ -142,4 +142,4 @@ export async function GET(request: Request) {
       erro: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
-} 
+}

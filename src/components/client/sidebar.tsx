@@ -318,4 +318,4 @@ export function Sidebar({ collapsed: collapsedProp, onToggle: onToggleProp }: Si
       />
     </>
   );
-} 
+}

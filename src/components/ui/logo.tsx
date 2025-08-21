@@ -18,4 +18,4 @@ export function Logo({ className }: LogoProps) {
       />
     </div>
   )
-} 
+}

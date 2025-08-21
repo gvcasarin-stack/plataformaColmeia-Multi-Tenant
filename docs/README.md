@@ -55,4 +55,3 @@ O sistema de notificações foi refatorado para:
 ## Convenções
 
 - [Nomenclatura e Convenções](./nomenclatura-e-convenções.md) - Padrões e convenções para nomeação de arquivos, componentes e implementação de código.
-

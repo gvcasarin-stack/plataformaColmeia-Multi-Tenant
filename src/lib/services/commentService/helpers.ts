@@ -133,4 +133,4 @@ export function prepareCommentNotificationData(
     priority: isClientAction ? 'high' : 'normal',
     notificationOrigin: isClientAction ? 'client_comment' : 'admin_comment'
   };
-} 
+}

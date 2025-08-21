@@ -1,4 +1,3 @@
-
 declare module 'next-auth' {
   interface User {
     id: string
@@ -22,4 +21,4 @@ declare module 'next-auth/jwt' {
     id: string
     role: string
   }
-} 
+}

@@ -258,4 +258,4 @@ export async function getKanbanConfigs() {
     columns: configs.find(c => c.key === 'kanban_columns')?.value || 
       ['backlog', 'planejamento', 'em_andamento', 'revisao', 'concluido'],
   };
-} 
+}

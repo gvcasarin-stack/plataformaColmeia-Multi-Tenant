@@ -49,4 +49,4 @@ console.log('');
 
 console.log('🚀 TESTE A CRIAÇÃO DE PROJETO AGORA!');
 console.log('');
-console.log('💡 DICA: Abra o DevTools (F12) para ver os logs detalhados'); 
+console.log('💡 DICA: Abra o DevTools (F12) para ver os logs detalhados');

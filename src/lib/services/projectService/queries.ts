@@ -587,4 +587,4 @@ export const findProjectByNumber = async (projectNumber: string): Promise<Projec
     logger.error(`Erro ao buscar projeto pelo número: ${error}`);
     throw error;
   }
-}; 
+};

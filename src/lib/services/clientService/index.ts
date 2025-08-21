@@ -209,4 +209,4 @@ export const migrationStatus = {
   useSupabase: USE_SUPABASE,
   service: USE_SUPABASE ? 'Supabase' : 'Firebase',
   version: '1.0.0'
-}; 
+};

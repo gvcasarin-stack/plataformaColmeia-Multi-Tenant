@@ -41,4 +41,4 @@ console.log('2. Verifique se user.id existe no console.log');
 console.log('3. Verifique se há outros arquivos usando user.uid');
 console.log('');
 
-console.log('🚀 TESTE A CRIAÇÃO DE PROJETO AGORA!'); 
+console.log('🚀 TESTE A CRIAÇÃO DE PROJETO AGORA!');

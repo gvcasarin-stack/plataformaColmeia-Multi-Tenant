@@ -346,4 +346,4 @@ export function ProjectDetailsDialog({ project, open, onClose, onUpdate }: Proje
       </DialogContent>
     </Dialog>
   )
-} 
+}

@@ -1,1 +1,1 @@
-export { TimeoutError } from './timeout-error'; 
+export { TimeoutError } from './timeout-error';

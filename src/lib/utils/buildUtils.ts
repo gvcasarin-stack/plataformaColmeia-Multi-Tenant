@@ -27,4 +27,4 @@ export const createBuildTimeResponse = (endpoint: string) => {
       headers: { 'Content-Type': 'application/json' }
     }
   );
-}; 
+};

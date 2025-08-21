@@ -91,4 +91,4 @@ export function ProjectChecklist({ projectId, onUpdate }: ProjectChecklistProps)
       ))}
     </div>
   )
-} 
+}

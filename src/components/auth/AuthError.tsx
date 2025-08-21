@@ -34,4 +34,4 @@ export function AuthError({ error }: { error?: string }) {
       </div>
     </div>
   )
-} 
+}

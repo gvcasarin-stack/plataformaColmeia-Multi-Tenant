@@ -29,7 +29,7 @@ A funcionalidade de bloqueio/desbloqueio de usuários foi **completamente implem
 ## 🗂️ ARQUIVOS CRIADOS/MODIFICADOS
 
 ### 📁 Novos Arquivos Criados:
-```
+\`\`\`
 src/lib/services/userBlockService.ts              ✅ Serviço principal
 src/app/api/admin/block-user/route.ts             ✅ API de bloqueio
 src/app/api/admin/unblock-user/route.ts           ✅ API de desbloqueio
@@ -40,16 +40,16 @@ src/components/modals/BlockUserModal.tsx          ✅ Modal de bloqueio
 src/components/modals/UnblockUserModal.tsx        ✅ Modal de desbloqueio
 src/scripts/test-block-functionality.js          ✅ Script de teste
 INSTRUCOES_BLOQUEIO_USUARIO.md                   ✅ Documentação
-```
+\`\`\`
 
 ### 📁 Arquivos Modificados:
-```
+\`\`\`
 src/types/user.ts                                ✅ Tipos atualizados
 src/lib/services/clientService.supabase.ts       ✅ Serviço atualizado
 src/app/admin/clientes/page.tsx                  ✅ Interface admin
 src/middleware.ts                                ✅ Proteção de rotas
 src/app/api/projects/route.ts                    ✅ Exemplo de proteção
-```
+\`\`\`
 
 ---
 
@@ -92,23 +92,23 @@ src/app/api/projects/route.ts                    ✅ Exemplo de proteção
 ## 🗄️ ESTRUTURA DO BANCO DE DADOS
 
 ### Campos Adicionados na Tabela `users`:
-```sql
+\`\`\`sql
 -- Você já executou estes comandos no Supabase:
 ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT false;
 ALTER TABLE users ADD COLUMN blocked_reason TEXT;
 ALTER TABLE users ADD COLUMN blocked_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN blocked_by UUID REFERENCES users(id);
 CREATE INDEX idx_users_is_blocked ON users(is_blocked);
-```
+\`\`\`
 
 ---
 
 ## 🔧 COMO TESTAR
 
 ### 1. Teste Rápido de Arquivos:
-```bash
+\`\`\`bash
 node src/scripts/test-block-functionality.js
-```
+\`\`\`
 
 ### 2. Teste na Interface:
 1. Faça login como administrador
@@ -138,12 +138,12 @@ node src/scripts/test-block-functionality.js
 4. ⏳ Fazer deploy para produção
 
 ### Configurações Necessárias:
-```typescript
+\`\`\`typescript
 // Em src/app/cliente/bloqueado/page.tsx
 const SUPPORT_EMAIL = "suporte@colmeiasolar.com";
 const SUPPORT_WHATSAPP = "(11) 99999-9999";
 const SUPPORT_WHATSAPP_LINK = "https://wa.me/5511999999999";
-```
+\`\`\`
 
 ---
 
@@ -209,4 +209,4 @@ A funcionalidade de bloqueio de usuários foi implementada com **excelência té
 
 ---
 
-*Desenvolvido com foco em segurança, usabilidade e manutenibilidade.* 
+*Desenvolvido com foco em segurança, usabilidade e manutenibilidade.*

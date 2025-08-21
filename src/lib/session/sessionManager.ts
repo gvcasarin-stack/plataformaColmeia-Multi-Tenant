@@ -451,4 +451,4 @@ export const recordUserActivity = () => sessionManager.recordActivity();
 export const getSessionMetrics = () => sessionManager.getSessionMetrics();
 
 // Exportar tipos
-export type { SessionConfig, SessionState, SessionEvents }; 
+export type { SessionConfig, SessionState, SessionEvents };

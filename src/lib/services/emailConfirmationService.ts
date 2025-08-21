@@ -140,4 +140,4 @@ export class EmailConfirmationError extends Error {
 }
 
 // Instância singleton
-export const emailConfirmationService = new EmailConfirmationService(); 
+export const emailConfirmationService = new EmailConfirmationService();

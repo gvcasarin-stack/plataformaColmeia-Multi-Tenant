@@ -120,4 +120,4 @@ export interface CommentNotificationData {
   notificationOrigin?: string;
   /** Dados adicionais */
   [key: string]: any;
-} 
+}

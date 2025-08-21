@@ -82,4 +82,4 @@ console.log('🎉 MIGRAÇÃO FIREBASE → SUPABASE CONCLUÍDA!');
 console.log('');
 console.log('Data da conclusão:', new Date().toLocaleString('pt-BR'));
 console.log('Status: ✅ 100% Migrado para Supabase');
-console.log('Impacto: 🔥 Crítico - Sistema totalmente funcional no Supabase'); 
+console.log('Impacto: 🔥 Crítico - Sistema totalmente funcional no Supabase');

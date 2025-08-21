@@ -120,4 +120,4 @@ BEGIN
   RAISE NOTICE '   - project-files (público, 50MB)';
   RAISE NOTICE '   - project-documents (privado, 100MB)';
   RAISE NOTICE '   - user-avatars (público, 5MB)';
-END $$; 
+END $$;

@@ -461,4 +461,4 @@ export default function KanbanBoard({ projects = [], searchQuery = "" }: {
       />
     </div>
   );
-} 
+}

@@ -239,4 +239,4 @@ try {
 } catch (error) {
   console.error('❌ Erro ao gerar relatório:', error);
   process.exit(1);
-} 
+}

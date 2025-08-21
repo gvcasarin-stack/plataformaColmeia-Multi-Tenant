@@ -370,4 +370,4 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
       </DialogContent>
     </Dialog>
   )
-} 
+}

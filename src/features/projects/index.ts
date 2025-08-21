@@ -11,4 +11,4 @@ export { ProjectDetails } from './ProjectDetails';
 export { ProjectTable } from './ProjectTable';
 export { ProjectChecklist } from './ProjectChecklist';
 export { ProjectManagementTable } from './ProjectManagementTable';
-export { ProjectList } from './ProjectList'; 
+export { ProjectList } from './ProjectList';

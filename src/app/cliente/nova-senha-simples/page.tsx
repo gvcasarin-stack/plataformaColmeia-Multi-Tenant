@@ -5,4 +5,4 @@ export default function NovaSenhaSimples() {
       <p>Timestamp: {Date.now()}</p>
     </div>
   );
-} 
+}

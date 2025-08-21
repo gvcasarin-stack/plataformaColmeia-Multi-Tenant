@@ -233,4 +233,4 @@ export const updateUserFields = async (userId: string, updates: Record<string, a
     logger.error('[updateUserFields] Erro ao atualizar campos do usuário:', error);
     throw new Error(`Erro ao atualizar campos do usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
   }
-}; 
+};

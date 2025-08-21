@@ -140,4 +140,4 @@ export function useInactivityTimer({
     resetTimer,
     hasTimedOut,
   };
-} 
+}

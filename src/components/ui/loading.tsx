@@ -10,4 +10,4 @@ export function Loading() {
       <p className="text-gray-500">Carregando projetos...</p>
     </div>
   );
-} 
+}

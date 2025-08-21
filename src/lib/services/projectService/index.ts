@@ -62,4 +62,4 @@ export default {
   mapTimelineEvent,
   mapComment,
   sanitizeObject
-}; 
+};

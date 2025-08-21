@@ -704,4 +704,4 @@ export default function ClientProfile() {
       />
     </div>
   );
-} 
+}

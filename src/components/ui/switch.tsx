@@ -48,4 +48,4 @@ const Switch = React.forwardRef<HTMLDivElement, SwitchProps>(
 
 Switch.displayName = "Switch"
 
-export { Switch } 
+export { Switch }

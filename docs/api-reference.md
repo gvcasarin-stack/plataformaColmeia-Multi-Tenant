@@ -20,14 +20,14 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Autentica um usuário e retorna um token JWT
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "email": "usuario@email.com",
     "password": "senha123"
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "token": "jwt-token-here",
@@ -38,7 +38,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
       "role": "admin|client"
     }
   }
-  ```
+  \`\`\`
 
 ### 1.2 Registro de Cliente
 
@@ -46,7 +46,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Registra um novo cliente no sistema
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "name": "Nome do Cliente",
     "email": "cliente@email.com",
@@ -54,14 +54,14 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
     "company": "Nome da Empresa",
     "phone": "+5511999999999"
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "userId": "user-id-created"
   }
-  ```
+  \`\`\`
 
 ### 1.3 Recuperação de Senha
 
@@ -69,18 +69,18 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Inicia o processo de recuperação de senha
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "email": "usuario@email.com"
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "message": "Email de recuperação enviado"
   }
-  ```
+  \`\`\`
 
 ## 2. Endpoints de Projetos
 
@@ -94,7 +94,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
   - `page`: Página de resultados (padrão: 1)
   - `status`: Filtrar por status (opcional)
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "projects": [
@@ -113,7 +113,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
       "currentPage": 1
     }
   }
-  ```
+  \`\`\`
 
 ### 2.2 Atualização de Projeto
 
@@ -121,7 +121,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Atualiza informações de um projeto existente
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "projectId": "project-id",
     "data": {
@@ -130,9 +130,9 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
       "description": "Nova descrição"
     }
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "project": {
@@ -142,7 +142,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
       "updatedAt": "2024-05-08T14:30:00Z"
     }
   }
-  ```
+  \`\`\`
 
 ### 2.3 Upload de Arquivo
 
@@ -154,13 +154,13 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
   - `file`: Arquivo a ser enviado
   - `description`: Descrição opcional do arquivo
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "fileId": "file-id",
     "url": "https://storage.example.com/path/to/file"
   }
-  ```
+  \`\`\`
 
 ## 3. Endpoints de Notificações
 
@@ -170,7 +170,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Cria uma nova notificação para usuário(s)
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "type": "new_project",
     "title": "Novo Projeto Criado",
@@ -186,14 +186,14 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
       "skipCreator": true
     }
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "notificationId": "notification-id"
   }
-  ```
+  \`\`\`
 
 ### 3.2 Marcar Notificação como Lida
 
@@ -203,12 +203,12 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Parâmetros de URL**:
   - `id`: ID da notificação
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "id": "notification-id"
   }
-  ```
+  \`\`\`
 
 ### 3.3 Obter Notificações
 
@@ -219,7 +219,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
   - `limit`: Número máximo de notificações (padrão: 20)
   - `unreadOnly`: Se `true`, retorna apenas não lidas (padrão: false)
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "notifications": [
@@ -234,7 +234,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
     ],
     "unreadCount": 5
   }
-  ```
+  \`\`\`
 
 ### 3.4 Notificação de Criação de Projetos
 
@@ -252,7 +252,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
   - Validação de parâmetros obrigatórios (`projectId`)
   - Respostas com formato consistente em casos de sucesso e erro
 - **Resposta de Sucesso**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "message": "Notificação enviada com sucesso",
@@ -261,15 +261,15 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
       "sentTo": ["admin1", "admin2"]
     }
   }
-  ```
+  \`\`\`
 - **Resposta de Erro**:
-  ```json
+  \`\`\`json
   {
     "success": false,
     "error": "ID do projeto é obrigatório",
     "errorCode": "MISSING_REQUIRED_FIELD"
   }
-  ```
+  \`\`\`
 - **Notas**: Este endpoint foi migrado com sucesso do antigo `/api/test-notification/project-created` seguindo as convenções RESTful e implementando o novo sistema padronizado de tratamento de erros.
 
 ## 4. Endpoints de Administração
@@ -280,20 +280,20 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Aprova ou rejeita uma solicitação de cliente
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "requestId": "request-id",
     "action": "approve|reject",
     "notes": "Motivo opcional para rejeição"
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "message": "Solicitação aprovada com sucesso"
   }
-  ```
+  \`\`\`
 
 ### 4.2 Criar Membro da Equipe
 
@@ -301,22 +301,22 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Adiciona um novo membro à equipe administrativa
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "email": "membro@email.com",
     "name": "Nome do Membro",
     "role": "admin|editor|viewer",
     "permissions": ["projects.edit", "clients.view"]
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "userId": "new-user-id",
     "inviteLink": "https://example.com/accept-invite/token"
   }
-  ```
+  \`\`\`
 
 ## 5. Endpoints de Armazenamento
 
@@ -326,22 +326,22 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Obtém um token assinado para upload direto
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "fileName": "documento.pdf",
     "contentType": "application/pdf",
     "projectId": "project-id"
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "uploadUrl": "https://storage.example.com/signed-url",
     "token": "upload-token",
     "expiresAt": "2024-05-08T17:00:00Z"
   }
-  ```
+  \`\`\`
 
 ### 5.2 Notificar Sucesso de Upload
 
@@ -349,7 +349,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Método**: `POST`
 - **Descrição**: Notifica o sistema quando um upload é concluído
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "token": "upload-token",
     "fileId": "file-id",
@@ -359,14 +359,14 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
       "description": "Descrição do arquivo"
     }
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "documentId": "document-id-in-database"
   }
-  ```
+  \`\`\`
 
 ## 6. Endpoints a Serem Renomeados (Usados em Produção)
 
@@ -384,19 +384,19 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Descrição**: Envia emails para usuários através do sistema
 - **Uso em Produção**: Utilizado para comunicações oficiais com clientes
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "email": "destinatario@email.com"
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "message": "E-mail enviado com sucesso",
     "messageId": "message-id-reference"
   }
-  ```
+  \`\`\`
 
 ### 6.2 Serviço de Emails com Templates HTML
 
@@ -410,20 +410,20 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 - **Descrição**: Interface para o serviço Amazon SES para envio de emails formatados em HTML
 - **Uso em Produção**: Utilizado para enviar emails com templates HTML complexos
 - **Corpo**:
-  ```json
+  \`\`\`json
   {
     "email": "destinatario@email.com",
     "subject": "Assunto do email",
     "htmlContent": "<html>Conteúdo formatado em HTML</html>"
   }
-  ```
+  \`\`\`
 - **Resposta**:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "messageId": "ses-message-id"
   }
-  ```
+  \`\`\`
 
 ### 6.3 Notificação de Criação de Projetos
 
@@ -451,7 +451,7 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
 
 #### Fase 2: Redirecionamento (Agosto/2024)
 - ✅ Implementar redirecionamento dos endpoints antigos para os novos:
-  ```typescript
+  \`\`\`typescript
   // Implementado em /api/test-email e /api/test-ses
   export async function POST(req: NextRequest) {
     console.warn("Endpoint legado sendo usado. Redirecionando para novo endpoint");
@@ -459,15 +459,15 @@ Esta documentação contém detalhes sobre os endpoints disponíveis na API da P
     const url = new URL('/api/emails/send-template', req.url);
     // ... código de redirecionamento ...
   }
-  ```
+  \`\`\`
 - ✅ Adicionar avisos de depreciação nos logs e nas respostas HTTP:
-  ```json
+  \`\`\`json
   {
     "success": true,
     "message": "Email enviado com sucesso",
     "deprecationWarning": "Este endpoint está depreciado. Use /api/emails/send-template em vez disso."
   }
-  ```
+  \`\`\`
 
 #### Fase 3: Atualização do Código Cliente (Agosto/2024)
 - ✅ Atualizar o código de teste de emails em `/app/teste-email` para usar o novo endpoint 
@@ -542,14 +542,14 @@ Esta seção lista endpoints usados exclusivamente para testes de funcionalidade
 1. **Segurança**: Todos os endpoints exigem autenticação via Bearer token, exceto endpoints públicos como login e registro.
 
 2. **Tratamento de Erros**: Todos os erros seguem um formato padrão:
-   ```json
+   \`\`\`json
    {
      "success": false,
      "error": "Mensagem de erro",
      "errorCode": "CODIGO_DE_ERRO",
      "details": "Detalhes adicionais (quando disponíveis)"
    }
-   ```
+   \`\`\`
 
 3. **Padrão de Erros**: A partir de Agosto/2024, implementamos um sistema padronizado de tratamento de erros que inclui códigos de erro específicos para facilitar o tratamento pelos clientes da API:
 
@@ -589,14 +589,14 @@ Esta seção lista endpoints usados exclusivamente para testes de funcionalidade
    - `handleResourceNotFound()` - Trata erros de recursos não encontrados
 
    **Exemplo de uso**:
-   ```typescript
+   \`\`\`typescript
    try {
      // Lógica do endpoint
      return createApiSuccess(data, "Operação concluída com sucesso");
    } catch (error) {
      return handleApiError(error, "Erro ao processar a solicitação", ApiErrorCode.INTERNAL_SERVER_ERROR);
    }
-   ```
+   \`\`\`
 
    Este padrão foi implementado nos seguintes endpoints:
    - `/api/auth/login`
@@ -636,4 +636,4 @@ Esta seção lista endpoints usados exclusivamente para testes de funcionalidade
 - **Melhorias de Performance (Planejado)**:
   - Adição de caching para endpoints frequentemente acessados
   - Otimização de consultas ao Firestore
-  - Implementação de websockets para notificações em tempo real 
+  - Implementação de websockets para notificações em tempo real

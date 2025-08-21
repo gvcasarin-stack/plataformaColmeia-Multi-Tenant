@@ -23,18 +23,18 @@ O Supabase identificou **5 warnings críticos de segurança** que precisam ser c
 **Status**: ✅ **FALSO POSITIVO**
 **Motivo**: Função usa apenas `now()` (built-in do PostgreSQL)
 **Código atual**:
-```sql
+\`\`\`sql
 BEGIN
   RETURN now() AT TIME ZONE 'UTC';
 END;
-```
+\`\`\`
 **Conclusão**: Função segura, não precisa correção
 
 #### 2. Função `cleanup_expired_sessions`
 **Status**: ✅ **FALSO POSITIVO**
 **Motivo**: Função já usa `public.active_sessions` com schema explícito
 **Código atual**:
-```sql
+\`\`\`sql
 BEGIN
     UPDATE public.active_sessions 
     SET is_active = false, 
@@ -42,7 +42,7 @@ BEGIN
     WHERE is_active = true 
       AND expires_at < now();
 END;
-```
+\`\`\`
 **Conclusão**: Função segura, não precisa correção
 
 ### ⚠️ WARNINGS VÁLIDOS (3/5):
@@ -74,7 +74,7 @@ END;
 - Funcionalidade não é crítica
 
 **🔧 Solução:**
-```sql
+\`\`\`sql
 -- Criar tabela com RLS
 CREATE TABLE IF NOT EXISTS public.trigger_log (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -90,7 +90,7 @@ ALTER TABLE public.trigger_log ENABLE ROW LEVEL SECURITY;
 -- Política restritiva (apenas service_role)
 CREATE POLICY "trigger_log_service_only" ON public.trigger_log
 FOR ALL USING (auth.role() = 'service_role');
-```
+\`\`\`
 
 ---
 
@@ -111,10 +111,10 @@ FOR ALL USING (auth.role() = 'service_role');
 2. `handle_new_user` (CRÍTICO)
 
 **🔧 Solução Geral:**
-```sql
+\`\`\`sql
 -- Aplicar em todas as funções
 SET search_path = public
-```
+\`\`\`
 
 ---
 
@@ -123,7 +123,7 @@ SET search_path = public
 ### **📊 FASE 1: INVESTIGAÇÃO E BACKUP (15 min)**
 
 #### **1.1 Investigar Tabela trigger_log**
-```sql
+\`\`\`sql
 -- Verificar se a tabela existe
 SELECT * FROM information_schema.tables 
 WHERE table_name = 'trigger_log' AND table_schema = 'public';
@@ -133,10 +133,10 @@ WHERE table_name = 'trigger_log' AND table_schema = 'public';
 
 -- Verificar dados (últimos 10 registros)
 SELECT * FROM public.trigger_log ORDER BY created_at DESC LIMIT 10;
-```
+\`\`\`
 
 #### **1.2 Backup das Functions Atuais**
-```sql
+\`\`\`sql
 -- Exportar definições atuais
 SELECT 
     routine_name,
@@ -149,10 +149,10 @@ WHERE routine_name IN (
     'update_updated_at_column',
     'handle_new_user'
 );
-```
+\`\`\`
 
 #### **1.3 Verificar Uso das Functions**
-```sql
+\`\`\`sql
 -- Verificar triggers que usam as functions
 SELECT 
     trigger_name,
@@ -163,7 +163,7 @@ WHERE action_statement LIKE '%cleanup_expired_sessions%'
    OR action_statement LIKE '%get_utc_timestamp%'
    OR action_statement LIKE '%update_updated_at_column%'
    OR action_statement LIKE '%handle_new_user%';
-```
+\`\`\`
 
 ---
 
@@ -176,7 +176,7 @@ WHERE action_statement LIKE '%cleanup_expired_sessions%'
 - Falta de caminho específico para schemas
 
 **✅ Correção:**
-```sql
+\`\`\`sql
 -- Versão corrigida e otimizada
 CREATE OR REPLACE FUNCTION cleanup_expired_sessions()
 RETURNS void
@@ -207,26 +207,26 @@ BEGIN
     RAISE NOTICE 'Sessões expiradas limpas em %', now();
 END;
 $$;
-```
+\`\`\`
 
 **🧪 Teste:**
-```sql
+\`\`\`sql
 -- Testar função
 SELECT cleanup_expired_sessions();
-```
+\`\`\`
 
 #### **2.2 Corrigir Function `get_utc_timestamp`**
 
 **🔍 Investigação:**
-```sql
+\`\`\`sql
 -- Verificar se a função existe
 SELECT routine_name, routine_definition 
 FROM information_schema.routines 
 WHERE routine_name = 'get_utc_timestamp';
-```
+\`\`\`
 
 **✅ Correção (se existir):**
-```sql
+\`\`\`sql
 CREATE OR REPLACE FUNCTION get_utc_timestamp()
 RETURNS timestamp with time zone
 LANGUAGE plpgsql
@@ -237,7 +237,7 @@ BEGIN
     RETURN now() AT TIME ZONE 'UTC';
 END;
 $$;
-```
+\`\`\`
 
 #### **2.3 Corrigir Function `update_updated_at_column`**
 
@@ -246,7 +246,7 @@ $$;
 - Search path mutável em todas as versões
 
 **✅ Correção Unificada:**
-```sql
+\`\`\`sql
 -- Dropar versões antigas
 DROP FUNCTION IF EXISTS update_updated_at_column();
 
@@ -266,7 +266,7 @@ $$;
 -- Comentário para documentação
 COMMENT ON FUNCTION update_updated_at_column() IS 
 'Função trigger para atualizar automaticamente o campo updated_at. Versão unificada e segura.';
-```
+\`\`\`
 
 #### **2.4 Corrigir Function `handle_new_user`**
 
@@ -275,7 +275,7 @@ COMMENT ON FUNCTION update_updated_at_column() IS
 - Trigger para `auth.users`
 
 **✅ Correção:**
-```sql
+\`\`\`sql
 CREATE OR REPLACE FUNCTION handle_new_user() 
 RETURNS trigger
 LANGUAGE plpgsql
@@ -326,12 +326,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-```
+\`\`\`
 
 #### **2.5 Proteger Tabela trigger_log**
 
 **✅ Implementação:**
-```sql
+\`\`\`sql
 -- Verificar se a tabela existe, se não, criar
 CREATE TABLE IF NOT EXISTS public.trigger_log (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -362,7 +362,7 @@ FOR SELECT USING (
 CREATE INDEX IF NOT EXISTS idx_trigger_log_operation ON public.trigger_log(operation);
 CREATE INDEX IF NOT EXISTS idx_trigger_log_table ON public.trigger_log(table_name);
 CREATE INDEX IF NOT EXISTS idx_trigger_log_created_at ON public.trigger_log(created_at);
-```
+\`\`\`
 
 ---
 
@@ -371,7 +371,7 @@ CREATE INDEX IF NOT EXISTS idx_trigger_log_created_at ON public.trigger_log(crea
 #### **3.1 Otimizar Limpeza de Sessões**
 
 **✅ Implementação:**
-```sql
+\`\`\`sql
 -- Otimizar função de limpeza
 CREATE OR REPLACE FUNCTION cleanup_expired_sessions()
 RETURNS json
@@ -417,12 +417,12 @@ BEGIN
     );
 END;
 $$;
-```
+\`\`\`
 
 #### **3.2 Criar Função de Monitoramento**
 
 **✅ Implementação:**
-```sql
+\`\`\`sql
 -- Função para monitorar saúde do sistema
 CREATE OR REPLACE FUNCTION system_health_check()
 RETURNS json
@@ -483,12 +483,12 @@ BEGIN
     RETURN result;
 END;
 $$;
-```
+\`\`\`
 
 #### **3.3 Configurar Limpeza Automática Otimizada**
 
 **✅ Implementação:**
-```sql
+\`\`\`sql
 -- Reconfigurar cron job com nova função
 SELECT cron.unschedule('cleanup-expired-sessions');
 
@@ -505,7 +505,7 @@ SELECT cron.schedule(
     '0 6 * * *', -- Todo dia às 6:00
     'SELECT system_health_check();'
 );
-```
+\`\`\`
 
 ---
 
@@ -514,7 +514,7 @@ SELECT cron.schedule(
 #### **4.1 Testes de Segurança**
 
 **✅ Checklist de Validação:**
-```sql
+\`\`\`sql
 -- 1. Verificar RLS habilitado
 SELECT tablename, rowsecurity 
 FROM pg_tables 
@@ -537,12 +537,12 @@ WHERE routine_name IN (
     'handle_new_user'
 )
 AND routine_definition LIKE '%SET search_path%';
-```
+\`\`\`
 
 #### **4.2 Testes de Funcionalidade**
 
 **✅ Scripts de Teste:**
-```sql
+\`\`\`sql
 -- Testar cleanup_expired_sessions
 SELECT cleanup_expired_sessions();
 
@@ -556,12 +556,12 @@ SELECT id, updated_at FROM active_sessions ORDER BY updated_at DESC LIMIT 1;
 
 -- Testar system_health_check
 SELECT system_health_check();
-```
+\`\`\`
 
 #### **4.3 Verificação de Avisos**
 
 **✅ Comandos de Verificação:**
-```sql
+\`\`\`sql
 -- Verificar se ainda há avisos no Supabase Dashboard
 -- Esta verificação deve ser feita manualmente no dashboard
 
@@ -570,7 +570,7 @@ SELECT * FROM trigger_log
 WHERE operation IN ('cleanup_expired_sessions', 'handle_new_user')
 ORDER BY created_at DESC 
 LIMIT 10;
-```
+\`\`\`
 
 ---
 
@@ -578,7 +578,7 @@ LIMIT 10;
 
 ### **🚀 Script Principal - Implementação Completa**
 
-```sql
+\`\`\`sql
 -- =====================================================
 -- SCRIPT DE IMPLEMENTAÇÃO: MELHORIAS DE SEGURANÇA
 -- =====================================================
@@ -647,11 +647,11 @@ COMMIT;
 
 -- Verificação final
 SELECT 'Implementação concluída com sucesso!' as status;
-```
+\`\`\`
 
 ### **🔄 Script de Rollback**
 
-```sql
+\`\`\`sql
 -- =====================================================
 -- SCRIPT DE ROLLBACK: REVERTER MUDANÇAS
 -- =====================================================
@@ -683,7 +683,7 @@ DROP POLICY IF EXISTS "trigger_log_admin_read" ON public.trigger_log;
 COMMIT;
 
 SELECT 'Rollback concluído!' as status;
-```
+\`\`\`
 
 ---
 
@@ -723,7 +723,7 @@ SELECT 'Rollback concluído!' as status;
 - `scripts/debug-user-profile.js` - Debugging do trigger
 
 **🔧 Mitigação Específica:**
-```sql
+\`\`\`sql
 -- TESTE OBRIGATÓRIO antes da alteração
 CREATE OR REPLACE FUNCTION handle_new_user_test() 
 RETURNS trigger
@@ -754,7 +754,7 @@ $$;
 -- Testar com dados fictícios ANTES de aplicar
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES (gen_random_uuid(), 'teste@exemplo.com', '{"role": "cliente"}');
-```
+\`\`\`
 
 #### **🔴 2. Function `update_updated_at_column` - RISCO ALTO**
 
@@ -781,7 +781,7 @@ VALUES (gen_random_uuid(), 'teste@exemplo.com', '{"role": "cliente"}');
 - `supabase/sql/create_active_sessions_clean.sql` - Definição alternativa
 
 **🔧 Mitigação Específica:**
-```sql
+\`\`\`sql
 -- CONSOLIDAR em uma única definição segura
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS trigger
@@ -799,7 +799,7 @@ $$;
 UPDATE active_sessions SET ip_address = '127.0.0.1' WHERE id = (SELECT id FROM active_sessions LIMIT 1);
 UPDATE projects SET name = name WHERE id = (SELECT id FROM projects LIMIT 1);
 UPDATE configs SET value = value WHERE id = (SELECT id FROM configs LIMIT 1);
-```
+\`\`\`
 
 ### **🟡 RISCOS MÉDIOS**
 
@@ -1015,9 +1015,9 @@ UPDATE configs SET value = value WHERE id = (SELECT id FROM configs LIMIT 1);
 ### **🎯 Estratégia de Implementação Segura**
 
 #### **1. Ordem de Implementação**
-```
+\`\`\`
 🟢 Baixo Risco → 🟡 Médio Risco → 🔴 Alto Risco → 🔴 Crítico
-```
+\`\`\`
 
 #### **2. Critérios de Parada**
 - **Qualquer erro** em função crítica = PARAR
@@ -1242,4 +1242,4 @@ Com base na análise detalhada de riscos, **nossa recomendação é:**
 
 **🎉 DOCUMENTO ATUALIZADO COM ANÁLISE DE RISCOS!**
 
-Este documento foi atualizado com análise detalhada de riscos e plano de implementação segura. A estratégia recomendada minimiza riscos enquanto melhora significativamente a segurança do sistema. 
+Este documento foi atualizado com análise detalhada de riscos e plano de implementação segura. A estratégia recomendada minimiza riscos enquanto melhora significativamente a segurança do sistema.

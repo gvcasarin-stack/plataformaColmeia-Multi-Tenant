@@ -12,4 +12,4 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       <ProjectPageClient projectId={params.id} />
     </div>
   );
-} 
+}

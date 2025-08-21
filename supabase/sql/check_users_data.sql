@@ -75,4 +75,4 @@ SELECT
     created_at
 FROM users
 ORDER BY created_at DESC
-LIMIT 5; 
+LIMIT 5;

@@ -42,4 +42,4 @@
 - Package Manager: PNPM 10.x  
 - Build Command: `pnpm build`
 - Environment: Production (.env.production)
-- Middleware: 60.3 kB (otimizado) 
+- Middleware: 60.3 kB (otimizado)

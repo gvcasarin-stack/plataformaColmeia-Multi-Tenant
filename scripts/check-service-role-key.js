@@ -91,4 +91,4 @@ if (!serviceRoleKey) {
 }
 
 console.log('');
-console.log('🚀 APÓS CONFIGURAR CORRETAMENTE: Teste a criação de projeto!'); 
+console.log('🚀 APÓS CONFIGURAR CORRETAMENTE: Teste a criação de projeto!');

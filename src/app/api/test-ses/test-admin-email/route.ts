@@ -193,4 +193,4 @@ export async function GET(request: Request) {
       error: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
-} 
+}

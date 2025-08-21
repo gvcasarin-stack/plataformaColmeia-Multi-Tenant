@@ -651,4 +651,4 @@ export const KanbanBoard = forwardRef<
       </div>
     </DragDropContext>
   );
-}); 
+});

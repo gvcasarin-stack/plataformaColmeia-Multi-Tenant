@@ -4,4 +4,4 @@ const { runFirestoreBackup } = require('./executeFirestoreBackup');
 
 // Exportar funções de backup
 exports.runStorageBackup = runStorageBackup;
-exports.runFirestoreBackup = runFirestoreBackup; 
+exports.runFirestoreBackup = runFirestoreBackup;

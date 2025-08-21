@@ -598,4 +598,4 @@ export default function NotificacoesClient() {
       </div>
     </div>
   )
-} 
+}

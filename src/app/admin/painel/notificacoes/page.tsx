@@ -17,4 +17,4 @@ export default function NotificacoesRedirect() {
       <p className="ml-2 text-gray-600">Redirecionando para o novo local...</p>
     </div>
   )
-} 
+}

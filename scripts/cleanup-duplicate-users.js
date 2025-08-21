@@ -129,4 +129,4 @@ async function cleanupDuplicateUsers() {
 }
 
 // Executar limpeza
-cleanupDuplicateUsers().catch(console.error); 
+cleanupDuplicateUsers().catch(console.error);

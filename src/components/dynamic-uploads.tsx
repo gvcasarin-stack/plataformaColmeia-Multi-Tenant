@@ -22,4 +22,4 @@ export const DynamicFileUploadSection = dynamic(
     loading: () => <FileUploadFallback />,
     ssr: false 
   }
-); 
+);

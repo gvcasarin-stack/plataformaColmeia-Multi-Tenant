@@ -115,4 +115,4 @@ export function prefetchNextProbableRoutes(currentPath: string): void {
       console.debug(`Prefetch error for ${route}:`, e);
     }
   });
-} 
+}

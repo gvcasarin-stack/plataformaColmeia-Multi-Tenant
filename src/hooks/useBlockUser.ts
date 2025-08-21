@@ -170,4 +170,4 @@ export function useBlockUser(): UseBlockUserReturn {
     blockUser,
     unblockUser,
   };
-} 
+}

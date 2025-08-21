@@ -32,4 +32,4 @@ console.log('NEXT_PUBLIC_SUPABASE_URL=https://uvdyxurnvatomlxevrmu.supabase.co')
 console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
 console.log('SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
 console.log('');
-console.log('🚀 PROBLEMA RESOLVIDO APÓS CONFIGURAÇÃO!'); 
+console.log('🚀 PROBLEMA RESOLVIDO APÓS CONFIGURAÇÃO!');

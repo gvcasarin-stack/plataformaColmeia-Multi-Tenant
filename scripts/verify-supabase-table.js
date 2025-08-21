@@ -130,4 +130,4 @@ console.log('   ✅ O sistema deve funcionar corretamente');
 console.log('   ✅ Números de projeto serão gerados sequencialmente');
 console.log('');
 
-console.log('🚀 VERIFIQUE AGORA NO SUPABASE!'); 
+console.log('🚀 VERIFIQUE AGORA NO SUPABASE!');

@@ -22,4 +22,4 @@ export default function Check({ size = 24, ...props }: IconProps) {
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   )
-} 
+}

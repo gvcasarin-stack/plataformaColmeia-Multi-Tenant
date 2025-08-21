@@ -72,4 +72,4 @@ COMMENT ON COLUMN financial_transactions.year IS 'Ano da transação';
 COMMENT ON COLUMN fixed_costs.category IS 'Categoria do custo fixo (ex: Escritório, Pessoal, etc.)';
 COMMENT ON COLUMN fixed_costs.month IS 'Mês do custo fixo (1-12)';
 COMMENT ON COLUMN fixed_costs.year IS 'Ano do custo fixo';
-COMMENT ON COLUMN fixed_costs.is_active IS 'Indica se o custo fixo está ativo (soft delete)'; 
+COMMENT ON COLUMN fixed_costs.is_active IS 'Indica se o custo fixo está ativo (soft delete)';

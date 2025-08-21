@@ -208,4 +208,4 @@ export function isImage(file: File): boolean {
  */
 export function isDocument(file: File): boolean {
   return VALID_DOCUMENT_TYPES.includes(file.type);
-} 
+}

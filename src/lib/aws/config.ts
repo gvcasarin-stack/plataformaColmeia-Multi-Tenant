@@ -11,4 +11,4 @@ export const AWS_CONFIG = {
   
   // Usar função para obter email remetente dinamicamente
   getSESSourceEmail: () => process.env.EMAIL_FROM || process.env.SES_SENDER_EMAIL || 'no-reply@colmeiasolar.com',
-}; 
+};

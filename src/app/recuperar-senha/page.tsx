@@ -36,4 +36,4 @@ export default function RecuperarSenhaPage() {
       </div>
     </div>
   );
-} 
+}

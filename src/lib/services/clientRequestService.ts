@@ -408,4 +408,4 @@ export async function getClientRequestById(requestId: string) {
     devLog.error('[ClientRequest] Error getting request:', error);
     throw error;
   }
-} 
+}

@@ -29,19 +29,19 @@ Este documento registra o progresso da migração completa do sistema de cobran�
 ### **1. Erro de Variável de Ambiente (CRÍTICO)**
 
 **Problema Original:**
-```
+\`\`\`
 Error: Missing environment variable: SUPABASE_SERVICE_ROLE_KEY
-```
+\`\`\`
 
 **Causa Raiz:**
 - Serviços de billing tentando usar `createSupabaseServiceRoleClient()` no frontend
 - Service Role Key só disponível no servidor (Vercel)
 
 **Solução Implementada:**
-```typescript
+\`\`\`typescript
 // ✅ ARQUITETURA SEGURA
 Frontend → API Routes → Supabase Service Role Client
-```
+\`\`\`
 
 **Arquivos Criados:**
 - `src/app/api/billing/projects/route.ts` - API para buscar projetos
@@ -52,10 +52,10 @@ Frontend → API Routes → Supabase Service Role Client
 ### **2. Schema Incompatibilidade (CRÍTICO)**
 
 **Problema Original:**
-```
+\`\`\`
 Error: column users.name does not exist
 Error: column users_1.name does not exist
-```
+\`\`\`
 
 **Causa Raiz:**
 - Código tentando acessar `users.name` mas no Supabase é `users.full_name`
@@ -63,7 +63,7 @@ Error: column users_1.name does not exist
 
 **Correções Aplicadas:**
 
-```typescript
+\`\`\`typescript
 // ❌ ANTES (Firebase)
 .select('users.name, users.email')
 .eq('role', 'client')
@@ -73,23 +73,23 @@ Error: column users_1.name does not exist
 .select('users.full_name, users.email') 
 .eq('role', 'cliente')
 .order('full_name')
-```
+\`\`\`
 
 ### **3. Foreign Key Corrections**
 
 **Problema Original:**
-```
+\`\`\`
 Error: relation "users!projects_client_id_fkey" does not exist
-```
+\`\`\`
 
 **Correção:**
-```sql
+\`\`\`sql
 -- ❌ ANTES
 users!projects_client_id_fkey
 
 -- ✅ DEPOIS  
 users!projects_created_by_fkey
-```
+\`\`\`
 
 ---
 
@@ -97,7 +97,7 @@ users!projects_created_by_fkey
 
 ### **Schema do Banco de Dados**
 
-```sql
+\`\`\`sql
 -- Tabela de Usuários
 CREATE TABLE users (
     id UUID PRIMARY KEY REFERENCES auth.users(id),
@@ -127,11 +127,11 @@ CREATE TABLE projects (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
+\`\`\`
 
 ### **API Routes Seguras**
 
-```typescript
+\`\`\`typescript
 // 🔒 SERVIDOR - Service Role Client
 /api/billing/projects   → Busca projetos com informações de usuário
 /api/billing/clients    → Busca clientes por role
@@ -139,11 +139,11 @@ CREATE TABLE projects (
 
 // 🌐 FRONTEND - Browser Client  
 billingService.api.ts   → Consome APIs REST
-```
+\`\`\`
 
 ### **Fluxo de Dados**
 
-```mermaid
+\`\`\`mermaid
 graph TD
     A[Frontend /admin/cobrancas] --> B[billingService.api.ts]
     B --> C[/api/billing/projects]
@@ -151,7 +151,7 @@ graph TD
     C --> E[Supabase Service Role]
     D --> E[Supabase Service Role]
     E --> F[Database Tables]
-```
+\`\`\`
 
 ---
 
@@ -159,7 +159,7 @@ graph TD
 
 ### **1. API de Projetos com Billing**
 
-```typescript
+\`\`\`typescript
 // src/app/api/billing/projects/route.ts
 export async function GET() {
   const supabase = createSupabaseServiceRoleClient();
@@ -184,11 +184,11 @@ export async function GET() {
     pagamento: project.pagamento || 'pendente'
   }));
 }
-```
+\`\`\`
 
 ### **2. Tratamento de Erros Robusto**
 
-```typescript
+\`\`\`typescript
 // Logs detalhados para diagnóstico
 console.log('[API] [Billing] [Projects] Dados brutos:', data);
 
@@ -204,11 +204,11 @@ if (error) {
     client_name: 'Cliente não disponível'
   }));
 }
-```
+\`\`\`
 
 ### **3. Serviço Frontend Seguro**
 
-```typescript
+\`\`\`typescript
 // src/lib/services/billingService.api.ts
 export async function getProjectsWithBilling() {
   const response = await fetch('/api/billing/projects');
@@ -220,7 +220,7 @@ export async function getProjectsWithBilling() {
   
   return result.data;
 }
-```
+\`\`\`
 
 ---
 
@@ -228,7 +228,7 @@ export async function getProjectsWithBilling() {
 
 ### **Indicadores Implementados**
 
-```typescript
+\`\`\`typescript
 interface BillingMetrics {
   totalPendingAmount: number;      // Valor total pendente
   historicalPaidAmount: number;    // Valor total pago
@@ -240,17 +240,17 @@ interface BillingMetrics {
   projectsThisMonth: number;      // Projetos criados este mês
   paidProjectsThisMonth: number;  // Projetos pagos este mês
 }
-```
+\`\`\`
 
 ### **Status de Pagamento**
 
-```typescript
+\`\`\`typescript
 type PaymentStatus = 
   | 'pendente'   // Aguardando pagamento
   | 'parcela1'   // Primeira parcela paga
   | 'parcela2'   // Segunda parcela paga (deprecated)
   | 'pago';      // Totalmente pago
-```
+\`\`\`
 
 ---
 
@@ -259,18 +259,18 @@ type PaymentStatus =
 ### **Como Testar o Sistema**
 
 1. **Acessar Painel de Cobranças:**
-   ```
+   \`\`\`
    https://app.colmeiasolar.com/admin/cobrancas
-   ```
+   \`\`\`
 
 2. **Verificar Logs no Console (F12):**
-   ```javascript
+   \`\`\`javascript
    // Logs esperados:
    [API] [Billing] [Projects] Verificando tabela projects...
    [API] [Billing] [Projects] Projetos básicos encontrados: {count: X}
    [API] [Billing] [Clients] Clientes encontrados com role="cliente": X
    [Cobranças] Projetos recebidos via API: {count: X}
-   ```
+   \`\`\`
 
 3. **Verificar Métricas:**
    - ✅ Valores não devem estar zerados
@@ -279,7 +279,7 @@ type PaymentStatus =
 
 ### **Logs de Diagnóstico**
 
-```typescript
+\`\`\`typescript
 // Verificação de estrutura da tabela
 [API] [Billing] [Clients] Verificando estrutura da tabela users...
 [API] [Billing] [Clients] Primeiros usuários encontrados: {count: 5}
@@ -291,7 +291,7 @@ type PaymentStatus =
 // Verificação de foreign keys
 [API] [Billing] [Projects] Verificando tabela projects...
 [API] [Billing] [Projects] Projetos básicos encontrados: {count: 25}
-```
+\`\`\`
 
 ---
 
@@ -383,16 +383,16 @@ O sistema está **pronto para produção** e operando com zero erros de console 
 
 ### **Problema Identificado**
 Durante verificação em produção, foi detectado erro no painel administrativo:
-```
+\`\`\`
 9088-690b2575b1e7005c.js:1 [ERROR] [ClientService] Erro ao obter contagem de clientes: FirebaseError: Missing or insufficient permissions.
-```
+\`\`\`
 
 ### **Correções Realizadas**
 
 #### **1. Páginas Administrativas Corrigidas**
 
 **src/app/admin/clientes/page.tsx:**
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Usava wrapper que fazia fallback para Firebase
 import { getClients } from '@/lib/services/clientService'
 import { getPendingClientRequests } from '@/lib/services/clientRequestService'
@@ -400,25 +400,25 @@ import { getPendingClientRequests } from '@/lib/services/clientRequestService'
 // ✅ AGORA: Usa Supabase diretamente
 import { getClients } from '@/lib/services/clientService.supabase'
 import { getPendingClientRequests } from '@/lib/services/clientRequestService.supabase'
-```
+\`\`\`
 
 **src/app/admin/painel/page.tsx:**
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Usava wrapper que fazia fallback para Firebase
 import { getClientCount } from '@/lib/services/clientService'
 
 // ✅ AGORA: Usa Supabase diretamente
 import { getClientCount } from '@/lib/services/clientService.supabase'
-```
+\`\`\`
 
 **src/app/admin/cobrancas/page.tsx:**
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Usava Firebase para projetos
 import { getProjects } from '@/lib/services/projectService/'
 
 // ✅ AGORA: Usa Supabase diretamente
 import { getProjectsByUserId } from '@/lib/services/projectService/supabase';
-```
+\`\`\`
 
 #### **2. Arquivos Temporariamente Desabilitados**
 
@@ -435,7 +435,7 @@ import { getProjectsByUserId } from '@/lib/services/projectService/supabase';
 ### **Arquivos Identificados Que Ainda Usam Firebase**
 
 #### **Serviços de Biblioteca (Não Críticos para Admin)**
-```
+\`\`\`
 src/lib/services/clientRequestService.ts ❗
 src/lib/services/clientService.ts ❗
 src/lib/services/commentService/core.ts
@@ -447,18 +447,18 @@ src/lib/services/projectService/core.ts
 src/lib/services/projectService/queries.ts
 src/lib/services/fileService/core.ts
 src/lib/services/authService.ts
-```
+\`\`\`
 
 **❗ Marcados como críticos:** Têm versões Supabase equivalentes já implementadas
 
 #### **Componentes com Referências Firebase (Não Críticas)**
-```
+\`\`\`
 src/components/ui/optimized-image.tsx - (otimização URLs Firebase Storage)
 src/components/ui/notification-item.tsx - (timestamp handling)
 src/components/SignInWithGoogle.tsx - (ícone do Google)
 src/components/editable-column-title.tsx - (comentado)
 src/components/client/sidebar.tsx - (comentário sobre logout)
-```
+\`\`\`
 
 ### **Status Atual do Admin**
 - ✅ **Clientes**: Totalmente migrado para Supabase
@@ -485,31 +485,31 @@ src/components/client/sidebar.tsx - (comentário sobre logout)
 ### **Configuração de Ambiente Crítica**
 
 Para evitar fallback para Firebase em produção:
-```env
+\`\`\`env
 NEXT_PUBLIC_USE_SUPABASE_CLIENT_SERVICE=true
 NEXT_PUBLIC_USE_SUPABASE_AUTH_SERVICE=true
 NEXT_PUBLIC_USE_SUPABASE_PROJECT_SERVICE=true
-```
+\`\`\`
 
 ### **Validação da Correção**
 
 Após as correções, o erro no console deve ter sido resolvido:
-```
+\`\`\`
 // ❌ ANTES:
 [ERROR] [ClientService] Erro ao obter contagem de clientes: FirebaseError: Missing or insufficient permissions.
 
 // ✅ AGORA:
 [SUPABASE] Cliente count obtido com sucesso: X clientes
-```
+\`\`\`
 
 ### **Logs de Verificação**
 Para confirmar que não há mais fallbacks para Firebase:
-```javascript
+\`\`\`javascript
 // No console do navegador (F12), buscar por:
 - "FirebaseError" (não deve aparecer)
 - "[SUPABASE]" (deve aparecer nas operações)
 - "[ERROR]" relacionados a Firebase (não deve aparecer)
-```
+\`\`\`
 
 ---
 
@@ -517,10 +517,10 @@ Para confirmar que não há mais fallbacks para Firebase:
 
 ### **Problema Crítico Identificado**
 Após resolver o erro anterior, surgiu um novo erro crítico:
-```
+\`\`\`
 GET .../system_configs?select=*&id=eq.geral 404 (Not Found)
 [ERROR] [ConfigService] relation "public.system_configs" does not exist
-```
+\`\`\`
 
 ### **Causa Raiz**
 A aplicação tentava acessar uma tabela `system_configs` que **não foi criada** durante a migração do Firebase para Supabase.
@@ -535,7 +535,7 @@ A aplicação tentava acessar uma tabela `system_configs` que **não foi criada*
 
 #### **1. Script SQL para Criar Tabela**
 **Arquivo:** `supabase/sql/create_system_configs_table.sql`
-```sql
+\`\`\`sql
 CREATE TABLE IF NOT EXISTS system_configs (
   id TEXT PRIMARY KEY,
   mensagemChecklist TEXT,
@@ -545,7 +545,7 @@ CREATE TABLE IF NOT EXISTS system_configs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-```
+\`\`\`
 
 #### **2. API Route de Setup Emergencial**
 **Arquivo:** `src/app/api/admin/setup-system-configs/route.ts`
@@ -555,7 +555,7 @@ CREATE TABLE IF NOT EXISTS system_configs (
 
 #### **3. Fallback Robusto no ConfigService**
 **Melhorias em `configService.supabase.ts`:**
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Falha quando tabela não existe
 const { data, error } = await supabase.from('system_configs')...
 if (error) return null;
@@ -570,7 +570,7 @@ if (error) {
   // Outros erros também retornam configuração padrão
   return await criarConfiguracaoPadrao();
 }
-```
+\`\`\`
 
 ### **Configuração Padrão Implementada**
 
@@ -582,14 +582,14 @@ if (error) {
 - Lista de materiais e especificações
 
 **Faixas de Potência e Preços:**
-```javascript
+\`\`\`javascript
 [
   { potenciaMin: 0, potenciaMax: 5, valorBase: 600 },
   { potenciaMin: 5, potenciaMax: 10, valorBase: 700 },
   { potenciaMin: 10, potenciaMax: 20, valorBase: 800 },
   // ... mais faixas até 300+ kWp
 ]
-```
+\`\`\`
 
 **Dados Bancários:** (Vazios, para preenchimento pelo admin)
 
@@ -602,9 +602,9 @@ if (error) {
 ### **Próximas Ações**
 
 1. **Executar API de Setup:**
-   ```bash
+   \`\`\`bash
    POST /api/admin/setup-system-configs
-   ```
+   \`\`\`
 
 2. **Executar Script SQL no Supabase Dashboard:**
    - Copiar e executar `supabase/sql/create_system_configs_table.sql`
@@ -616,7 +616,7 @@ if (error) {
    - Confirmar que cálculos de preço funcionam
 
 ### **Logs Esperados Após Correção**
-```javascript
+\`\`\`javascript
 // ✅ Sucesso:
 [ConfigService] Configuração geral encontrada
 
@@ -626,7 +626,7 @@ if (error) {
 
 // ❌ Não deve aparecer mais:
 [ERROR] [ConfigService] relation "public.system_configs" does not exist
-```
+\`\`\`
 
 ---
 
@@ -639,9 +639,9 @@ if (error) {
 
 ### **Problema Crítico Identificado**
 Após implementar fallbacks, ainda persistia erro crítico:
-```
+\`\`\`
 [ERROR] [ConfigService] Exceção ao salvar configuração: Error: Missing environment variable: SUPABASE_SERVICE_ROLE_KEY
-```
+\`\`\`
 
 ### **Causa Raiz**
 O `configService.supabase.ts` estava tentando usar `createSupabaseServiceRoleClient()` no frontend, o que é uma **violação crítica de segurança**.
@@ -649,7 +649,7 @@ O `configService.supabase.ts` estava tentando usar `createSupabaseServiceRoleCli
 ### **Solução Implementada**
 
 #### **1. Segurança Frontend-Backend**
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Service Role Client no frontend (INSEGURO)
 const supabase = createSupabaseServiceRoleClient();
 
@@ -657,10 +657,10 @@ const supabase = createSupabaseServiceRoleClient();
 logger.warn('[ConfigService] [FRONTEND] Operação de escrita detectada no frontend');
 logger.info('[ConfigService] Para salvar configurações, use a API route /api/admin/config');
 return false;
-```
+\`\`\`
 
 #### **2. Arquitetura Segura Implementada**
-```typescript
+\`\`\`typescript
 /**
  * ARQUITETURA DE CONFIGURAÇÕES SUPABASE
  * 
@@ -672,7 +672,7 @@ return false;
  * - /api/admin/config → Escrita segura
  * - /api/admin/setup-system-configs → Setup de emergência
  */
-```
+\`\`\`
 
 #### **3. Funções de Escrita Bloqueadas**
 - `salvarConfiguracaoGeral()` → Retorna `false` + log orientativo
@@ -681,12 +681,12 @@ return false;
 - `atualizarDadosBancarios()` → Retorna `false` + log orientativo
 
 ### **Build Bem-Sucedido**
-```bash
+\`\`\`bash
 ✓ Compiled successfully
 ✓ Collecting page data
 ✓ Generating static pages (100/100) 
 ✓ Collecting build traces
-```
+\`\`\`
 
 **Avisos do Windows (normais):**
 - ⚠️ Symlink errors no Windows (não afeta funcionalidade)
@@ -702,9 +702,9 @@ return false;
 ### **Próximos Passos**
 
 1. **Criar tabela `system_configs` no Supabase Dashboard:**
-   ```sql
+   \`\`\`sql
    -- Executar o script supabase/sql/create_system_configs_table.sql
-   ```
+   \`\`\`
 
 2. **Implementar APIs de configuração (quando necessário):**
    - `POST /api/admin/config` - Salvar configuração geral
@@ -718,7 +718,7 @@ return false;
    - Testar fluxo completo do painel administrativo
 
 ### **Logs Esperados Após Deploy**
-```javascript
+\`\`\`javascript
 // ✅ Sucesso:
 [ConfigService] Configuração geral encontrada
 
@@ -731,7 +731,7 @@ return false;
 
 // ❌ Não deve aparecer mais:
 [ERROR] [ConfigService] Exceção ao salvar configuração: Error: Missing environment variable: SUPABASE_SERVICE_ROLE_KEY
-```
+\`\`\`
 
 ---
 
@@ -757,7 +757,7 @@ O usuário solicitou inspeção da aba Preferências do admin para verificar se 
 **Problema:** ConfigService estava bloqueando operações de escrita no frontend por segurança.
 
 **Solução Implementada:**
-```typescript
+\`\`\`typescript
 // ✅ ANTES: Bloqueio de segurança
 export async function salvarConfiguracaoGeral(): Promise<boolean> {
   logger.warn('[ConfigService] [FRONTEND] Operação de escrita detectada');
@@ -773,7 +773,7 @@ export async function salvarConfiguracaoGeral(config: ConfiguracaoSistema): Prom
   });
   return response.ok;
 }
-```
+\`\`\`
 
 #### **2. API Route Criada (NOVO)**
 **Arquivo:** `src/app/api/admin/config/route.ts`
@@ -788,7 +788,7 @@ export async function salvarConfiguracaoGeral(config: ConfiguracaoSistema): Prom
 **Arquivo:** `supabase/sql/add_business_configs.sql`
 
 **Configurações Específicas Adicionadas:**
-```sql
+\`\`\`sql
 -- Mensagem do Checklist
 INSERT INTO configs (key, value, description, category) VALUES
 ('checklist_message', 'Checklist de Documentos Necessários...', 'Mensagem padrão do checklist', 'business');
@@ -804,22 +804,22 @@ INSERT INTO configs (key, value, description, category) VALUES
 -- Tabela de Preços
 INSERT INTO configs (key, value, description, category) VALUES
 ('tabela_precos', '{"residencial":2500,"comercial":2200,"industrial":2000}', 'Preços base por tipo', 'pricing');
-```
+\`\`\`
 
 ### **Como Usar na Aba Preferências**
 
 #### **1. Buscar Configurações**
-```typescript
+\`\`\`typescript
 import { getConfiguracaoGeral } from '@/lib/services/configService.supabase';
 
 // Busca automaticamente da tabela configs do Supabase
 const config = await getConfiguracaoGeral();
 console.log(config.mensagemChecklist); // Vem do Supabase
 console.log(config.dadosBancarios);    // Vem do Supabase
-```
+\`\`\`
 
 #### **2. Salvar Configurações**  
-```typescript
+\`\`\`typescript
 import { salvarConfiguracaoGeral } from '@/lib/services/configService.supabase';
 
 // Salva via API route segura no Supabase
@@ -828,11 +828,11 @@ const sucesso = await salvarConfiguracaoGeral({
   dadosBancarios: { banco: "Itaú", conta: "12345" },
   faixasPotencia: [{ potenciaMin: 0, potenciaMax: 5, valorBase: 30000 }]
 });
-```
+\`\`\`
 
 ### **Fluxo Completo de Dados**
 
-```
+\`\`\`
 Frontend (Aba Preferências)
          ↓
 configService.supabase.ts
@@ -842,7 +842,7 @@ configService.supabase.ts
 Service Role Client (Seguro)
          ↓
 Tabela configs (Supabase)
-```
+\`\`\`
 
 ### **Benefícios da Migração**
 
@@ -873,23 +873,23 @@ Tabela configs (Supabase)
 A página `/admin/clientes` estava exibindo "Acesso negado" mesmo para usuários logados.
 
 **Erro encontrado:**
-```
+\`\`\`
 if (!user?.isAdmin) {
   setError('Você não tem permissão para acessar esta página')
   return
 }
-```
+\`\`\`
 
 ### **Causa Raiz**
 O objeto `user` do contexto Supabase tem a estrutura:
-```typescript
+\`\`\`typescript
 user: {
   ...supabaseUser,
   profile: {
     role: 'admin' | 'superadmin' | 'cliente'
   }
 }
-```
+\`\`\`
 
 Mas o código estava verificando `user?.isAdmin` (propriedade inexistente).
 
@@ -898,7 +898,7 @@ Mas o código estava verificando `user?.isAdmin` (propriedade inexistente).
 #### **1. Correção da Verificação de Admin**
 **Arquivo:** `src/app/admin/clientes/page.tsx`
 
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Verificação incorreta
 if (!user?.isAdmin) {
   setError('Você não tem permissão para acessar esta página')
@@ -911,20 +911,20 @@ if (!isAdmin) {
   setError('Você não tem permissão para acessar esta página')
   return
 }
-```
+\`\`\`
 
 #### **2. Atualização dos Logs de Debug**
-```typescript
+\`\`\`typescript
 // ✅ Logs corretos para debugging
 console.log('Fetching client requests...', { 
   isAdmin, 
   role: user?.profile?.role,
   uid: user?.id
 })
-```
+\`\`\`
 
 #### **3. Proteção de Componente**
-```typescript
+\`\`\`typescript
 // ✅ Verificação no render do componente
 if (!user?.profile?.role || (user.profile.role !== 'admin' && user.profile.role !== 'superadmin')) {
   return (
@@ -938,7 +938,7 @@ if (!user?.profile?.role || (user.profile.role !== 'admin' && user.profile.role 
     </div>
   )
 }
-```
+\`\`\`
 
 ### **Resultado**
 - ✅ Página `/admin/clientes` agora funciona corretamente
@@ -948,9 +948,9 @@ if (!user?.profile?.role || (user.profile.role !== 'admin' && user.profile.role 
 
 ### **Padrão Estabelecido**
 Para verificar se um usuário é admin em qualquer página:
-```typescript
+\`\`\`typescript
 const isAdmin = user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
-```
+\`\`\`
 
 Este padrão deve ser aplicado em **todas as páginas administrativas** do sistema. 
 
@@ -960,10 +960,10 @@ Este padrão deve ser aplicado em **todas as páginas administrativas** do siste
 
 ### **Problema Crítico Identificado**
 A página `/admin/clientes` estava falhando com erro de schema:
-```
+\`\`\`
 [ERROR] column users.pendingApproval does not exist
 GET .../rest/v1/users?select=*&pendingApproval=eq.true 400 (Bad Request)
-```
+\`\`\`
 
 ### **Causa Raiz**
 O código estava usando **camelCase** (`pendingApproval`) mas o Supabase usa **snake_case** (`pending_approval`).
@@ -973,16 +973,16 @@ O código estava usando **camelCase** (`pendingApproval`) mas o Supabase usa **s
 #### **1. Correção do Schema no ClientRequestService**
 **Arquivo:** `src/lib/services/clientRequestService.supabase.ts`
 
-```typescript
+\`\`\`typescript
 // ❌ ANTES: CamelCase (incompatível)
 .eq('pendingApproval', true)
 
 // ✅ AGORA: Snake_case (compatível)
 .eq('pending_approval', true)
-```
+\`\`\`
 
 #### **2. Correção de Mapeamento de Campos**
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Campos incorretos
 name: user.name,
 isCompany: user.isCompany,
@@ -992,10 +992,10 @@ razaoSocial: user.razaoSocial,
 name: user.full_name || user.name,
 isCompany: user.is_company || false,
 razaoSocial: user.company_name || undefined,
-```
+\`\`\`
 
 #### **3. Correção na Criação de Usuários**
-```typescript
+\`\`\`typescript
 // ❌ ANTES: Schema Firebase/CamelCase
 {
   name: data.name,
@@ -1012,15 +1012,15 @@ razaoSocial: user.company_name || undefined,
   pending_approval: true,
   company_name: data.isCompany ? data.razaoSocial : null
 }
-```
+\`\`\`
 
 ### **Resultados do Build Final**
-```bash
+\`\`\`bash
 ✓ Compiled successfully
 ✓ Collecting page data
 ✓ Generating static pages (100/100)
 ✓ Collecting build traces
-```
+\`\`\`
 
 **Erro final:** Apenas erros de symlink do Windows (não afetam funcionalidade)
 
@@ -1053,4 +1053,4 @@ razaoSocial: user.company_name || undefined,
 2. ✅ **Verificar funcionamento da página `/admin/clientes`**
 3. ✅ **Testar operações de CRUD na aba Preferências**
 
-**🎉 MIGRAÇÃO SUPABASE 100% FUNCIONAL!** 
+**🎉 MIGRAÇÃO SUPABASE 100% FUNCIONAL!**

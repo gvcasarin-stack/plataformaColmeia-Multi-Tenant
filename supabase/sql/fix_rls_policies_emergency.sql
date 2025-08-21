@@ -66,4 +66,4 @@ SELECT
     with_check
 FROM pg_policies 
 WHERE tablename = 'users' AND schemaname = 'public'
-ORDER BY policyname; 
+ORDER BY policyname;

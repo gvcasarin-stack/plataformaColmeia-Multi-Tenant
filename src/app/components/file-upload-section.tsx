@@ -15,4 +15,4 @@ const createTimelineEvent = (file: File, url: string, timestamp: string, userId:
   fileUrl: url,
   content: 'Documento anexado',
   id: uuidv4()
-}); 
+});

@@ -88,4 +88,4 @@ export function ProjectResponsibleAdmin({ project, currentUser, onUpdate }: Proj
       )}
     </div>
   );
-} 
+}

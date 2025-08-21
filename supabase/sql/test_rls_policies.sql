@@ -46,4 +46,4 @@ FROM public.projects
 WHERE created_by = '0f5fa1f4-16af-4e8c-b178-5b099c256e0c';
 
 -- 7. VERIFICAR SE HÁ FUNÇÃO auth.uid()
-SELECT auth.uid() as current_auth_uid; 
+SELECT auth.uid() as current_auth_uid;

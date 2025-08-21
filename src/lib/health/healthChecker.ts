@@ -562,4 +562,4 @@ export const getSystemAvailability = (hours?: number) => healthChecker.getAvaila
 export const performManualHealthCheck = () => healthChecker.performHealthCheck();
 
 // Exportar tipos
-export type { HealthStatus, SystemHealth, HealthCheckConfig }; 
+export type { HealthStatus, SystemHealth, HealthCheckConfig };

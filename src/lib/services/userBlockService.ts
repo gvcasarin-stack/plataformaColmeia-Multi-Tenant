@@ -229,4 +229,4 @@ export async function canUserPerformAction(
     // Em caso de erro, assumir que é permitido para não impedir acesso
     return { allowed: true };
   }
-} 
+}

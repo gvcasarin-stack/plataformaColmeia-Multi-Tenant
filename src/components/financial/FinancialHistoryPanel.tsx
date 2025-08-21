@@ -1196,4 +1196,4 @@ export default function FinancialHistoryPanel() {
       )}
     </div>
   );
-} 
+}
