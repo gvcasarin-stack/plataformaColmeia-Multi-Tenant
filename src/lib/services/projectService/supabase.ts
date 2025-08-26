@@ -78,7 +78,7 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       lastUpdateBy: data.last_update_by || undefined,
     };
 
-    logger.debug('[getProjectById] Projeto encontrado:', { id: project.id, name: project.name });
+    logger.debug('[getProjectById] Projeto encontrado:', { id: project.id, name: project.nome_cliente_final });
     return project;
 
   } catch (error) {

@@ -223,7 +223,7 @@ async function sendFileNotifications(
       // Continuar mesmo sem todos os dados do projeto, usando o que temos
     }
     
-    const projectName = projectData.name || projectNumber;
+    const projectName = projectData.nome_cliente_final || projectNumber;
     const clientProjectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${projectId}`;
     const adminProjectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/admin/projetos/${projectId}`;
 
@@ -403,7 +403,7 @@ export async function deleteProjectFile(
       try {
         const projectNumber = projectData.number || projectId;
         const isAdmin = user.role === 'admin' || user.role === 'superadmin';
-        const projectName = projectData.name || projectNumber;
+        const projectName = projectData.nome_cliente_final || projectNumber;
         
         // Admin excluiu arquivo -> notificar cliente
         if (isAdmin && projectData.userId) {

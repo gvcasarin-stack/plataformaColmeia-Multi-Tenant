@@ -364,7 +364,7 @@ export async function updateProjectAction(
             await notifyStatusChange({
               projectId: finalData.id,
               projectNumber: finalData.number,
-              projectName: finalData.name,
+              projectName: finalData.nome_cliente_final,
               oldStatus: oldStatus,
               newStatus: finalData.status,
               clientId: finalData.userId,
@@ -412,7 +412,7 @@ export async function updateProjectAction(
               await notifyNewDocument({
                 projectId: finalData.id,
                 projectNumber: finalData.number,
-                projectName: finalData.name,
+                projectName: finalData.nome_cliente_final,
                 documentName: addedFile.name,
                 uploaderId: user.id,
                 uploaderName: user.email || 'Admin',
@@ -430,7 +430,7 @@ export async function updateProjectAction(
             await notifyNewDocument({
               projectId: finalData.id,
               projectNumber: finalData.number,
-              projectName: finalData.name,
+              projectName: finalData.nome_cliente_final,
               documentName: addedFile.name,
               uploaderId: user.id,
               uploaderName: user.email || 'Admin',
@@ -1664,7 +1664,7 @@ export async function getProjectAction(projectId: string): Promise<{
       lastUpdateBy: data.last_update_by || undefined,
     };
 
-    logger.info('[getProjectAction] Projeto encontrado:', { projectId: project.id, projectName: project.name, userId: project.userId });
+    logger.info('[getProjectAction] Projeto encontrado:', { projectId: project.id, projectName: project.nome_cliente_final, userId: project.userId });
     return sanitizeForSerialization({ data: project, message: 'Projeto carregado com sucesso.' });
 
   } catch (error) {

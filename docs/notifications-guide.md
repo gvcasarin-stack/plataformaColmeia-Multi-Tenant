@@ -92,7 +92,7 @@ Ao implementar uma funcionalidade que deve gerar uma notificação:
         if (project.clientOwnerId) { // project.clientOwnerId é o project.userId (dono do projeto)
             notificationRecipientId = project.clientOwnerId; 
             notificationDataLink = `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${project.id}`; // Link para o cliente
-            title = `Admin ${currentUser.name} interagiu com o projeto ${project.name}`;
+            title = `Admin ${currentUser.name} interagiu com o projeto ${project.nome_cliente_final}`;
             message = `Detalhes da ação do admin...`; // Seja específico sobre a ação
         } else {
             // Não há cliente para notificar ou é uma ação que não notifica cliente
@@ -102,7 +102,7 @@ Ao implementar uma funcionalidade que deve gerar uma notificação:
         senderType = 'client';
         notificationRecipientId = 'all_admins';
         notificationDataLink = `${process.env.NEXT_PUBLIC_APP_URL}/admin/projetos/${project.id}`; // Link para o admin
-        title = `Cliente ${currentUser.name} interagiu com o projeto ${project.name}`;
+        title = `Cliente ${currentUser.name} interagiu com o projeto ${project.nome_cliente_final}`;
         message = `Detalhes da ação do cliente...`; // Seja específico sobre a ação
     }
 
@@ -116,7 +116,7 @@ Ao implementar uma funcionalidade que deve gerar uma notificação:
             
             projectId: project.id,
             projectNumber: project.number,
-            projectName: project.name, // Essencial para o e-mail
+            projectName: project.nome_cliente_final, // Essencial para o e-mail
             
             senderId: currentUser.uid,
             senderName: currentUser.name,

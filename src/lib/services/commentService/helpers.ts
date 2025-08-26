@@ -117,7 +117,7 @@ export function prepareCommentNotificationData(
   return {
     projectId: project.id,
     projectNumber: project.number || project.id,
-    projectName: project.name || '',
+    projectName: project.nome_cliente_final || '',
     commentId: comment.id,
     authorId: user.uid,
     authorName: user.name || user.email || 'Usuário',

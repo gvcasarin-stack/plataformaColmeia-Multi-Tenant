@@ -97,7 +97,7 @@ export async function sendEmailNotificationForDocument(
     const result = await notifyNewDocument({
       projectId: projectId,
       projectNumber: project.number,
-      projectName: project.name,
+      projectName: project.nome_cliente_final,
       documentName: fileName,
       uploaderId: uploadedByUid,
       uploaderName: uploaderFullName,

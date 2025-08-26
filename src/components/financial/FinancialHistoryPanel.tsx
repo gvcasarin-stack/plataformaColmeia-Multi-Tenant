@@ -1027,7 +1027,7 @@ export default function FinancialHistoryPanel() {
                               <TableRow key={safeString(project.id) || Math.random()}>
                                 <TableCell>
                                   <div>
-                                    <div className="font-medium">{safeString(project.name)}</div>
+                                    <div className="font-medium">{safeString(project.nome_cliente_final)}</div>
                                     <div className="text-sm text-gray-500">
                                       {safeString(project.empresa_integradora)}
                                       {project.users && (

@@ -878,7 +878,7 @@ export async function createNotificationForProjectClient(
     
     const projectData = projectSnap.data();
     const clientId = projectData.clientId || projectData.userId; // Priorizar clientId se existir
-    const projectName = projectData.name || projectData.nome || projectNumber || 'Projeto não especificado'; // Obter nome do projeto
+    const projectName = projectData.nome_cliente_final || projectNumber || 'Projeto não especificado'; // Obter nome do projeto
     
     if (!clientId) {
       devLog.error('[NotificationHelper] Cliente (clientId ou userId) não encontrado no projeto:', projectId);
@@ -1610,7 +1610,7 @@ export async function notifyDocumentUpload(
     
     const projectData = projectDoc.data();
     const clientId = projectData.clientId || projectData.userId;
-    const projectName = projectData.name || projectData.nome || projectNumber || 'Nome do Projeto não Especificado'; // Obter nome do projeto
+    const projectName = projectData.nome_cliente_final || projectNumber || 'Nome do Projeto não Especificado'; // Obter nome do projeto
     
     // Se não encontrou um clientId, não pode notificar o cliente
     if (!clientId) {

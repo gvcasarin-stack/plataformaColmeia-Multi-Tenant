@@ -556,7 +556,7 @@ export async function sendEmailNotificationForComment(
     const authorRole = author.role || 'user';
     const authorId = author.uid;
 
-    const projectName = project.name || project.number || projectId;
+    const projectName = project.nome_cliente_final || project.number || projectId;
     const commentSnippet = commentText.substring(0, 150) + (commentText.length > 150 ? "..." : "");
     
     let recipients: string[] = [];
@@ -659,7 +659,7 @@ export async function sendEmailNotificationForDocument(
     const uploaderRole = uploader.role || 'user';
     const uploaderId = uploader.uid;
 
-    const projectName = project.name || project.number || projectId;
+    const projectName = project.nome_cliente_final || project.number || projectId;
     
     let recipients: string[] = [];
     let validAdminsDoc: any[] = []; // Para armazenar referência aos admins

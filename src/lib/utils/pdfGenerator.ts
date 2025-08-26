@@ -728,7 +728,7 @@ export function generateInvoiceHTML(
               <tbody>
                 <tr>
                   <td>Nome do Projeto</td>
-                  <td>${project.name || "N/A"}</td>
+                  <td>${project.nome_cliente_final || "N/A"}</td>
                 </tr>
                 <tr>
                   <td>Número do Projeto</td>
@@ -934,7 +934,7 @@ Email: ${userData?.email || ""}
 
 DADOS DO PROJETO
 =====================================
-Nome do Projeto: ${project.name}
+Nome do Projeto: ${project.nome_cliente_final}
 Número do Projeto: ${project.number || ""}
 Cliente Final: ${project.nomeClienteFinal || ""}
 Empresa Integradora: ${project.empresaIntegradora || ""}

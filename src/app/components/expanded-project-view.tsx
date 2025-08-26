@@ -203,7 +203,7 @@ export const ExpandedProjectView = ({
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     userId: project.userId,
-    name: project.name,
+    name: project.nome_cliente_final,
     valorProjeto: project.valorProjeto === undefined ? null : project.valorProjeto,
     pagamento: project.pagamento,
 

@@ -83,7 +83,7 @@ export function ProjectManagementTable({
   const filteredProjects = searchQuery.trim() 
     ? projects.filter(project => 
         project.number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.nome_cliente_final?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project.nomeClienteFinal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project.empresaIntegradora?.toLowerCase().includes(searchQuery.toLowerCase())
       )
