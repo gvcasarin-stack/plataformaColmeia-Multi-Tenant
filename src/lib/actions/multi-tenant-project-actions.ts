@@ -16,7 +16,7 @@ export async function createProjectMultiTenant(
   try {
     devLog.log('[createProjectMultiTenant] Iniciando criação de projeto:', {
       userId: user.id,
-      projectName: projectData.name || 'Sem nome'
+      projectName: projectData.nome_cliente_final || 'Sem nome'
     })
 
     if (!user.id) {
@@ -79,7 +79,7 @@ export async function createProjectMultiTenant(
       created_by: user.id,
       
       // Dados básicos
-      name: projectData.name || 'Projeto sem nome',
+      nome_cliente_final: projectData.nome_cliente_final || 'Projeto sem nome',
       description: projectData.description || '',
       
       // Dados específicos de energia solar
@@ -272,7 +272,7 @@ export async function getProjectsByTenant(
     }
 
     if (filters?.search) {
-      query = query.or(`name.ilike.%${filters.search}%,number.ilike.%${filters.search}%,nome_cliente_final.ilike.%${filters.search}%`)
+      query = query.or(`nome_cliente_final.ilike.%${filters.search}%,number.ilike.%${filters.search}%`)
     }
 
     if (filters?.limit) {

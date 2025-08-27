@@ -191,7 +191,7 @@ export default function ClientDashboard() {
       
       // Preparar dados para a action
       const projectDataForAction = {
-        name: `Projeto ${data.nomeClienteFinal}`,
+        nome_cliente_final: data.nomeClienteFinal,
         number: data.projectNumber, // Será gerado pela action/service se undefined
         empresaIntegradora: data.empresaIntegradora, // Vem do formulário do modal
         nomeClienteFinal: data.nomeClienteFinal,

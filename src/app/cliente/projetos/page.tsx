@@ -236,7 +236,7 @@ export default function ClientProjects() {
       
       // Preparar dados para a action
       const projectDataForAction = {
-        name: `Projeto ${data.nomeClienteFinal}`,
+        nome_cliente_final: data.nomeClienteFinal,
         number: data.projectNumber, // Será gerado pela action/service se undefined
         empresaIntegradora: data.empresaIntegradora || userData?.companyName || userData?.name || "Cliente Individual",
         nomeClienteFinal: data.nomeClienteFinal,
