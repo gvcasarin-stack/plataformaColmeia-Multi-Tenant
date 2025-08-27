@@ -4,11 +4,21 @@
  */
 
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { Project } from '@/types/project';
 import logger from '@/lib/utils/logger';
 
-// Cliente Supabase para operações no browser
-const supabase = createSupabaseBrowserClient();
+// ✅ CORREÇÃO CRÍTICA: Detectar se está no servidor ou browser e usar cliente apropriado
+function getSupabaseClient() {
+  // Verificar se está no ambiente servidor (Node.js)
+  if (typeof window === 'undefined') {
+    // Servidor: usar Service Role Client com permissões completas
+    return createSupabaseServiceRoleClient();
+  } else {
+    // Browser: usar Browser Client com autenticação do usuário
+    return createSupabaseBrowserClient();
+  }
+}
 
 /**
  * Busca um projeto específico por ID
@@ -20,6 +30,7 @@ export const getProjectById = async (projectId: string, userId: string): Promise
   try {
     logger.debug('[getProjectById] Buscando projeto:', { projectId, userId });
 
+    const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -96,6 +107,8 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
   try {
     logger.debug('[getProjectsByUserId] Buscando projetos do usuário:', userId);
 
+    const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
+    
     // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id do usuário primeiro
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -239,6 +252,7 @@ export const getProjectsWithFilters = async (filters: {
   try {
     logger.debug('[getProjectsWithFilters] Buscando projetos com filtros:', filters);
 
+    const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
     let query = supabase
       .from('projects')
       .select('*');
@@ -332,6 +346,8 @@ export const getProject = async (projectId: string): Promise<Project | null> => 
   try {
     logger.debug('[getProject] Buscando projeto (compatibility alias):', projectId);
     
+    const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
+    
     // Para manter compatibilidade, buscar sem verificação de userId
     // Mas ainda filtrando por tenant via RLS
     const { data, error } = await supabase
@@ -409,6 +425,8 @@ export const updateProject = async (
 ): Promise<Project | null> => {
   try {
     logger.debug('[updateProject] Atualizando projeto:', { projectId, userId });
+
+    const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
 
     // Preparar dados para atualização (mapear de Project para formato DB)
     const updatePayload: any = {};
@@ -522,6 +540,8 @@ export const isProjectNumberAlreadyUsed = async (projectNumber: string, tenantId
   try {
     logger.debug('[isProjectNumberAlreadyUsed] Verificando número:', { projectNumber, tenantId });
 
+    const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
+    
     const { data, error } = await supabase
       .from('projects')
       .select('id')
