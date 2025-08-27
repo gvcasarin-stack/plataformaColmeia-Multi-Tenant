@@ -3,7 +3,7 @@ import { getUserDataAdminSupabase } from '@/lib/services/authService.supabase';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { AWS_CONFIG } from "@/lib/aws/config";
 import logger from "@/lib/utils/logger";
-import { getProject } from "./projectService/core";
+import { getProject } from "./projectService/supabase";
 import { getUserById, getAllAdminUsers } from "./userService/core"; // Corrigido
 import { devLog } from "@/lib/utils/productionLogger";
 import { User } from "@/types/user";

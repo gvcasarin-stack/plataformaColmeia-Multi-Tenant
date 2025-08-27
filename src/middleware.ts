@@ -108,23 +108,65 @@ export async function middleware(request: NextRequest) {
     const tenantSlug = hostname.split('.')[0];
     devLog.log(`[Middleware] 🏢 Tenant detectado - MODO DEBUG:`, { tenantSlug, hostname });
 
-    // ✅ CORRIGIDO: Usar tenant_id real do banco de dados
-    devLog.log('[Middleware] ✅ USANDO TENANT_ID REAL DO BANCO');
+    // ✅ MIGRAÇÃO SUPABASE: Lookup dinâmico do tenant no banco
+    devLog.log('[Middleware] ✅ FAZENDO LOOKUP DINÂMICO DO TENANT:', tenantSlug);
     
-    // Configurar headers com tenant_id real
-    const realTenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c'; // ID real do tenant goias-solar
-    requestHeaders.set('x-tenant-id', realTenantId);
-    requestHeaders.set('x-tenant-slug', tenantSlug);
-    requestHeaders.set('x-tenant-name', 'Goias Solar');
-    requestHeaders.set('x-tenant-trial', 'true');
+    try {
+      // Criar cliente Supabase para lookup
+      const supabase = createSupabaseServerClient();
+      
+      // Buscar dados da organização pelo slug
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name, trial_ends_at, is_active')
+        .eq('slug', tenantSlug)
+        .eq('is_active', true)
+        .single();
 
-    response = NextResponse.next({
-      request: { headers: requestHeaders }
-    });
-    response.headers.set('x-tenant-id', realTenantId);
-    response.headers.set('x-tenant-slug', tenantSlug);
-    response.headers.set('x-tenant-name', 'Goias Solar');
-    response.headers.set('x-tenant-trial', 'true');
+      if (orgError || !orgData) {
+        devLog.error('[Middleware] Tenant não encontrado ou inativo:', { tenantSlug, orgError });
+        
+        // Redirecionar para tenant-not-found se tenant inválido
+        const tenantNotFoundUrl = new URL('/tenant-not-found', request.url);
+        tenantNotFoundUrl.searchParams.set('slug', tenantSlug);
+        return NextResponse.redirect(tenantNotFoundUrl);
+      }
+
+      // Verificar se trial ainda está ativo
+      const now = new Date();
+      const trialEndsAt = orgData.trial_ends_at ? new Date(orgData.trial_ends_at) : null;
+      const isTrialActive = trialEndsAt ? now <= trialEndsAt : false;
+
+      devLog.log('[Middleware] Tenant encontrado:', {
+        tenantId: orgData.id,
+        tenantName: orgData.name,
+        isTrialActive,
+        trialEndsAt: orgData.trial_ends_at
+      });
+
+      // Configurar headers com dados dinâmicos do tenant
+      requestHeaders.set('x-tenant-id', orgData.id);
+      requestHeaders.set('x-tenant-slug', tenantSlug);
+      requestHeaders.set('x-tenant-name', orgData.name);
+      requestHeaders.set('x-tenant-trial', isTrialActive.toString());
+
+      response = NextResponse.next({
+        request: { headers: requestHeaders }
+      });
+      response.headers.set('x-tenant-id', orgData.id);
+      response.headers.set('x-tenant-slug', tenantSlug);
+      response.headers.set('x-tenant-name', orgData.name);
+      response.headers.set('x-tenant-trial', isTrialActive.toString());
+
+    } catch (lookupError) {
+      devLog.error('[Middleware] Erro no lookup do tenant:', lookupError);
+      
+      // Em caso de erro de BD, redirecionar para tenant-not-found
+      const tenantNotFoundUrl = new URL('/tenant-not-found', request.url);
+      tenantNotFoundUrl.searchParams.set('slug', tenantSlug);
+      tenantNotFoundUrl.searchParams.set('error', 'database-error');
+      return NextResponse.redirect(tenantNotFoundUrl);
+    }
     
     return response;
 

@@ -321,4 +321,226 @@ export const getProjectsWithFilters = async (filters: {
     logger.error('[getProjectsWithFilters] Erro ao buscar projetos com filtros:', error);
     throw new Error(`Erro ao buscar projetos: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
   }
-}; 
+};
+
+/**
+ * Função para compatibilidade com código existente - alias para getProjectById
+ * @param projectId ID do projeto
+ * @returns Projeto ou null se não encontrado
+ */
+export const getProject = async (projectId: string): Promise<Project | null> => {
+  try {
+    logger.debug('[getProject] Buscando projeto (compatibility alias):', projectId);
+    
+    // Para manter compatibilidade, buscar sem verificação de userId
+    // Mas ainda filtrando por tenant via RLS
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        logger.warn('[getProject] Projeto não encontrado:', projectId);
+        return null;
+      }
+      throw error;
+    }
+
+    if (!data) return null;
+
+    // Usar a mesma lógica de mapeamento do getProjectById
+    const sanitizeDate = (dateField: any): string => {
+      if (!dateField) return new Date().toISOString();
+      if (typeof dateField === 'string') return dateField;
+      if (dateField instanceof Date) return dateField.toISOString();
+      return new Date(dateField).toISOString();
+    };
+
+    const project: Project = {
+      id: data.id,
+      userId: data.created_by,
+      nome_cliente_final: data.nome_cliente_final,
+      number: data.number,
+      empresaIntegradora: data.empresa_integradora || '',
+      nomeClienteFinal: data.nome_cliente_final || '',
+      distribuidora: data.distribuidora || '',
+      potencia: data.potencia || 0,
+      dataEntrega: data.data_entrega || '',
+      status: data.status || 'Não Iniciado',
+      prioridade: data.prioridade || 'Baixa',
+      valorProjeto: data.valor_projeto || null,
+      pagamento: data.pagamento || undefined,
+      createdAt: sanitizeDate(data.created_at),
+      updatedAt: sanitizeDate(data.updated_at),
+      adminResponsibleId: data.admin_responsible_id,
+      adminResponsibleName: data.admin_responsible_name,
+      adminResponsibleEmail: data.admin_responsible_email,
+      adminResponsiblePhone: data.admin_responsible_phone,
+      timelineEvents: data.timeline_events || [],
+      documents: data.documents || [],
+      files: data.files || [],
+      comments: data.comments || [],
+      history: data.history || [],
+      lastUpdateBy: data.last_update_by || undefined,
+    };
+
+    logger.debug('[getProject] Projeto encontrado:', { id: project.id, nome_cliente_final: project.nome_cliente_final });
+    return project;
+
+  } catch (error) {
+    logger.error('[getProject] Erro ao buscar projeto:', error);
+    throw new Error(`Erro ao buscar projeto: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+  }
+};
+
+/**
+ * Atualizar um projeto existente
+ * @param projectId ID do projeto
+ * @param updateData Dados para atualizar
+ * @param userId ID do usuário fazendo a atualização
+ * @returns Projeto atualizado
+ */
+export const updateProject = async (
+  projectId: string, 
+  updateData: Partial<Project>, 
+  userId?: string
+): Promise<Project | null> => {
+  try {
+    logger.debug('[updateProject] Atualizando projeto:', { projectId, userId });
+
+    // Preparar dados para atualização (mapear de Project para formato DB)
+    const updatePayload: any = {};
+    
+    if (updateData.nome_cliente_final !== undefined) {
+      updatePayload.nome_cliente_final = updateData.nome_cliente_final;
+    }
+    if (updateData.empresaIntegradora !== undefined) {
+      updatePayload.empresa_integradora = updateData.empresaIntegradora;
+    }
+    if (updateData.distribuidora !== undefined) {
+      updatePayload.distribuidora = updateData.distribuidora;
+    }
+    if (updateData.potencia !== undefined) {
+      updatePayload.potencia = updateData.potencia;
+    }
+    if (updateData.dataEntrega !== undefined) {
+      updatePayload.data_entrega = updateData.dataEntrega;
+    }
+    if (updateData.status !== undefined) {
+      updatePayload.status = updateData.status;
+    }
+    if (updateData.prioridade !== undefined) {
+      updatePayload.prioridade = updateData.prioridade;
+    }
+    if (updateData.valorProjeto !== undefined) {
+      updatePayload.valor_projeto = updateData.valorProjeto;
+    }
+    if (updateData.pagamento !== undefined) {
+      updatePayload.pagamento = updateData.pagamento;
+    }
+    if (updateData.timelineEvents !== undefined) {
+      updatePayload.timeline_events = updateData.timelineEvents;
+    }
+    if (updateData.documents !== undefined) {
+      updatePayload.documents = updateData.documents;
+    }
+    if (updateData.files !== undefined) {
+      updatePayload.files = updateData.files;
+    }
+    if (updateData.comments !== undefined) {
+      updatePayload.comments = updateData.comments;
+    }
+    if (updateData.history !== undefined) {
+      updatePayload.history = updateData.history;
+    }
+    if (userId && updateData.lastUpdateBy === undefined) {
+      updatePayload.last_update_by = {
+        uid: userId,
+        timestamp: new Date().toISOString()
+      };
+    } else if (updateData.lastUpdateBy !== undefined) {
+      updatePayload.last_update_by = updateData.lastUpdateBy;
+    }
+
+    updatePayload.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('projects')
+      .update(updatePayload)
+      .eq('id', projectId)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('[updateProject] Erro na atualização:', error);
+      throw error;
+    }
+
+    if (!data) {
+      logger.warn('[updateProject] Nenhum dado retornado após atualização');
+      return null;
+    }
+
+    // Retornar projeto atualizado usando getProject
+    return await getProject(projectId);
+
+  } catch (error) {
+    logger.error('[updateProject] Erro ao atualizar projeto:', error);
+    throw new Error(`Erro ao atualizar projeto: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+  }
+};
+
+/**
+ * Buscar todos os projetos para administradores (compatibilidade)
+ * @param tenantId ID do tenant (obrigatório para segurança)
+ * @returns Lista de projetos do tenant
+ */
+export const getProjectsAdmin = async (tenantId: string): Promise<Project[]> => {
+  try {
+    logger.debug('[getProjectsAdmin] Buscando todos os projetos para admin do tenant:', tenantId);
+
+    return await getProjectsWithFilters({ 
+      tenantId, 
+      limit: 1000 
+    });
+
+  } catch (error) {
+    logger.error('[getProjectsAdmin] Erro ao buscar projetos para admin:', error);
+    throw new Error(`Erro ao buscar projetos para admin: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+  }
+};
+
+/**
+ * Verificar se um número de projeto já está em uso
+ * @param projectNumber Número do projeto para verificar
+ * @param tenantId ID do tenant (obrigatório)
+ * @returns True se já estiver em uso, false caso contrário
+ */
+export const isProjectNumberAlreadyUsed = async (projectNumber: string, tenantId: string): Promise<boolean> => {
+  try {
+    logger.debug('[isProjectNumberAlreadyUsed] Verificando número:', { projectNumber, tenantId });
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('number', projectNumber)
+      .eq('tenant_id', tenantId)
+      .limit(1);
+
+    if (error) {
+      logger.error('[isProjectNumberAlreadyUsed] Erro na verificação:', error);
+      throw error;
+    }
+
+    const isUsed = data && data.length > 0;
+    logger.debug('[isProjectNumberAlreadyUsed] Resultado:', { projectNumber, isUsed });
+    
+    return isUsed;
+
+  } catch (error) {
+    logger.error('[isProjectNumberAlreadyUsed] Erro ao verificar número do projeto:', error);
+    throw new Error(`Erro ao verificar número do projeto: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+  }
+};

@@ -518,14 +518,45 @@ src/lib/monitoring/tenant-monitoring.ts
 
 ## 🎯 **RESUMO EXECUTIVO - PRÓXIMOS PASSOS**
 
-### **⚡ AÇÕES IMEDIATAS (Esta Semana)**
-1. **🔴 Stripe Integration** - Implementar monetização
-2. **🟡 Cron Jobs** - Automação de trial e emails
-3. **🟠 Server Actions** - Completar auditoria de segurança
+### **🚨 AÇÕES IMEDIATAS CRÍTICAS (HOJE/AMANHÃ)**
+1. **🔴 MIGRAÇÃO FIREBASE → SUPABASE (CRÍTICO)** - Sistema não funciona
+2. **🟡 CORREÇÃO MIDDLEWARE HARDCODE** - Multi-tenant quebrado
+3. **🟠 UNIFICAÇÃO ARQUITETURA SERVIÇOS** - Remover duplicações
 
-### **📋 CHECKLIST SEMANAL**
+### **⚡ AÇÕES IMEDIATAS (Próxima Semana)**
+4. **🔴 Stripe Integration** - Implementar monetização
+5. **🟡 Cron Jobs** - Automação de trial e emails
+6. **🟠 Server Actions** - Completar auditoria de segurança
+
+### **📋 CHECKLIST DE CORREÇÃO CRÍTICA (DEZEMBRO 2024)**
+
+#### **🚨 FASE EMERGENCIAL (1-2 DIAS) - Sistema Não Funcional:**
 ```bash
-# Semana 1-2: Monetização
+□ REMOVER queries.ts (Firebase morto) completamente
+□ EXPANDIR supabase.ts com todas as funções necessárias
+□ ATUALIZAR index.ts para exportar apenas supabase.ts
+□ REMOVER core.ts (stubs inúteis)
+□ CORRIGIR middleware.ts - remover hardcode tenant_id
+□ TESTAR se projetos aparecem para usuarios
+□ VALIDAR isolamento básico por tenant
+□ DEPLOY emergencial para produção
+```
+
+#### **⚡ FASE DE ESTABILIZAÇÃO (3-5 DIAS):**
+```bash
+□ INTEGRAR tenant-security.ts nos serviços principais
+□ ADICIONAR tenant_id ao AuthContext para componentes
+□ CORRIGIR todas as server actions críticas
+□ IMPLEMENTAR RLS adequado se necessário  
+□ TESTAR isolamento completo entre diferentes tenants
+□ VALIDAR que admin e cliente veem mesmos projetos do tenant
+□ MONITORAR logs de erro em produção
+```
+
+### **📋 CHECKLIST SEMANAL (PÓS-CORREÇÃO)**
+```bash
+# Semana 1-2: Arquitetura Estável
+□ Sistema multi-tenant 100% funcional
 □ Configurar Stripe Account e Webhooks
 □ Implementar UpgradeModal.tsx
 □ Criar server actions de pagamento
@@ -560,7 +591,44 @@ src/lib/monitoring/tenant-monitoring.ts
 
 ## ⚠️ **PROBLEMAS CRÍTICOS IDENTIFICADOS**
 
-### **🔴 CRÍTICO - SEGURANÇA:**
+### **🔴 CRÍTICO - ARQUITETURA QUEBRADA (DEZEMBRO 2024):**
+
+#### **PROBLEMA #1: MIGRAÇÃO FIREBASE → SUPABASE INCOMPLETA**
+**Status**: 🚨 **SISTEMA COMPLETAMENTE NÃO FUNCIONAL**
+
+**Arquivos Problemáticos:**
+- `src/lib/services/projectService/queries.ts` - **USA FIREBASE 100%** 
+- `src/lib/services/projectService/index.ts` - Exporta queries.ts (Firebase morto)
+- `src/lib/services/projectService/core.ts` - Stubs Firebase não funcionais
+
+**Evidências:**
+```typescript
+// queries.ts - LINHAS 6-30
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase'; // ❌ Firebase não configurado
+
+// core.ts - LINHAS 35-49  
+const adminDb = { // ❌ Stubs inúteis
+  collection: () => ({ get: async () => ({ exists: false }) })
+};
+```
+
+**Impacto**: **ZERO projetos retornados** para todos os usuários (cliente + admin)
+
+#### **PROBLEMA #2: MIDDLEWARE HARDCODED PARA DEBUG**
+**Arquivo**: `src/middleware.ts` (linhas 115-119)
+```typescript
+// ❌ Tenant ID hardcoded - quebra isolamento multi-tenant
+const realTenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c';
+```
+
+**Impacto**: Todos os tenants recebem o mesmo ID
+
+#### **PROBLEMA #3: HOOK useProjects USA SERVIÇO QUEBRADO**
+**Arquivo**: `src/lib/hooks/useProjects.ts`
+- Chama `getProjectsForUserAction` → usa queries.ts (Firebase) → **FALHA TOTAL**
+
+### **🔴 CRÍTICO - SEGURANÇA (PREVIAMENTE IDENTIFICADOS):**
 1. **Server Actions Não Multi-Tenant:**
    - Muitas server actions antigas não verificam `tenant_id`
    - Risk de vazamento de dados entre organizações
@@ -661,6 +729,110 @@ src/lib/monitoring/tenant-monitoring.ts
 - `registro.gerenciamentofotovoltaico.com.br` - Formulário de registro
 - `{slug}.gerenciamentofotovoltaico.com.br` - Acesso ao tenant
 - `gerenciamentofotovoltaico.com.br` - Site principal
+
+---
+
+## 🛠️ **PLANO DE IMPLEMENTAÇÃO EMERGENCIAL**
+
+### **FASE 1: MIGRAÇÃO CRITICAL PATH (24-48H)**
+
+#### **1.1 Remover Firebase Completamente**
+```bash
+# Arquivos para DELETAR:
+- src/lib/services/projectService/queries.ts (Firebase morto)
+- src/lib/services/projectService/core.ts (stubs inúteis) 
+
+# Motivo: Firebase não está configurado e quebra tudo
+```
+
+#### **1.2 Expandir supabase.ts com Funções Faltantes**
+```typescript
+// Adicionar em src/lib/services/projectService/supabase.ts:
+
+// Funções que queries.ts tinha mas supabase.ts não tem:
+export const getAllProjectsForAdmin = async (tenantId: string) => { ... }
+export const getProjectsByStatus = async (tenantId: string, status: string) => { ... }  
+export const getProjectsByDateRange = async (tenantId: string, startDate, endDate) => { ... }
+export const searchProjects = async (tenantId: string, searchTerm: string) => { ... }
+export const getProjectStats = async (tenantId: string) => { ... }
+
+// Todas DEVEM incluir filtro tenant_id obrigatório
+```
+
+#### **1.3 Atualizar index.ts**
+```typescript
+// src/lib/services/projectService/index.ts - ANTES:
+export * from './queries'; // ❌ Firebase morto
+export * from './core';    // ❌ Stubs inúteis
+
+// DEPOIS:
+export * from './supabase'; // ✅ Apenas Supabase funcional
+```
+
+#### **1.4 Corrigir Middleware Hardcode**
+```typescript
+// src/middleware.ts - REMOVER linhas 115-119:
+// ❌ const realTenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c';
+
+// ADICIONAR lookup dinâmico real:
+const { data: orgData } = await supabase
+  .from('organizations')
+  .select('id, name, trial_ends_at')
+  .eq('slug', tenantSlug)
+  .eq('is_active', true)
+  .single();
+
+if (orgData) {
+  requestHeaders.set('x-tenant-id', orgData.id);
+  // ... resto dinâmico
+}
+```
+
+### **FASE 2: INTEGRAÇÃO TENANT SECURITY (48-72H)**
+
+#### **2.1 Integrar tenant-security.ts**
+```typescript
+// Usar em TODOS os serviços principais:
+import { getTenantFromUser, canUserAccessResource } from '@/lib/utils/tenant-security';
+
+// Exemplo em getProjectsByUserId:
+const tenantInfo = await getTenantFromUser(userId);
+if (!tenantInfo) throw new Error('Tenant não encontrado');
+
+// Usar tenantInfo.tenant_id em todas as queries
+```
+
+#### **2.2 Adicionar Tenant ao AuthContext**
+```typescript
+// src/lib/contexts/AuthContext.tsx - ADICIONAR:
+interface AuthContextType {
+  user: User | null;
+  tenant: TenantInfo | null; // ✅ NOVO
+  // ... resto
+}
+
+// Hook para componentes:
+const { user, tenant } = useAuth();
+// tenant.id, tenant.name, tenant.trial_ends_at, etc.
+```
+
+### **RESULTADO ESPERADO PÓS-IMPLEMENTAÇÃO:**
+
+#### **✅ ANTES vs DEPOIS:**
+| **ANTES** | **DEPOIS** |  
+|-----------|------------|
+| 🔴 Zero projetos mostrados | ✅ Projetos aparecem para usuarios |
+| 🔴 Firebase quebrado | ✅ Apenas Supabase funcional |  
+| 🔴 Tenant hardcoded | ✅ Tenant dinâmico por slug |
+| 🔴 Sem isolamento | ✅ Isolamento por tenant_id |
+| 🔴 Admin/Cliente não veem dados | ✅ Mesmo tenant vê mesmos dados |
+
+#### **🎯 VALIDAÇÃO DE SUCESSO:**
+1. ✅ Login como cliente → vê projetos do tenant
+2. ✅ Login como admin → vê mesmos projetos do tenant  
+3. ✅ Tenants diferentes → projetos completamente isolados
+4. ✅ Criação de projetos → aparece imediatamente
+5. ✅ Zero erros de Firebase no console
 
 ---
 

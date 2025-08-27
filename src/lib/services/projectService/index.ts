@@ -1,32 +1,38 @@
 /**
  * @file index.ts
- * @description Arquivo barril para o serviço de projetos.
- * Fornece uma API unificada para o serviço e compatibilidade com APIs legadas.
+ * @description Arquivo barril para o serviço de projetos - MIGRADO PARA SUPABASE
+ * ✅ CORREÇÃO CRÍTICA: Exporta apenas funções do Supabase (Firebase removido)
  */
 
-// Exportações seletivas para evitar duplicação
+// ✅ MIGRAÇÃO COMPLETA: Exportações apenas do supabase.ts
 export type { TimelineEventData, ProjectFileData, CommentData, CreateProjectOptions, UpdateProjectOptions, GetProjectsOptions, ProjectSearchResult, ProjectCountCache } from './types';
-export { createProject, getProject, updateProject, deleteProject, addProjectComment, addProjectTimelineEvent, generateUniqueProjectNumber } from './core';
-export { getProjects, getProjectCount, isProjectNumberAlreadyUsed, findProjectByNumber } from './queries';
+
+// ✅ SUPABASE: Exportar todas as funções do supabase.ts
+export { 
+  getProjectById,
+  getProjectsByUserId,
+  getProjectsWithFilters,
+  subscribeToProject,
+  getProject,
+  updateProject,
+  getProjectsAdmin,
+  isProjectNumberAlreadyUsed
+} from './supabase';
+
+// ✅ HELPERS: Manter helpers utilitários
 export { mapTimelineEvent, mapComment, normalizeStatus, sanitizeObject } from './helpers';
 
-// Re-exportação para compatibilidade com código existente
+// ✅ COMPATIBILIDADE: Re-exportar funções principais do supabase
 import { 
-  createProject, 
   getProject, 
   updateProject, 
-  deleteProject,
-  addProjectComment,
-  addProjectTimelineEvent,
-  generateUniqueProjectNumber,
-} from './core';
-
-import {
-  getProjects,
-  getProjectCount,
+  getProjectById,
+  getProjectsByUserId,
+  getProjectsWithFilters,
+  getProjectsAdmin,
   isProjectNumberAlreadyUsed,
-  findProjectByNumber
-} from './queries';
+  subscribeToProject
+} from './supabase';
 
 import {
   normalizeStatus,
@@ -36,28 +42,23 @@ import {
 } from './helpers';
 
 /**
- * O objeto exportado por padrão mantém compatibilidade com o código existente
- * que pode estar importando o serviço de projetos antigo
+ * ✅ MIGRADO PARA SUPABASE: Objeto default atualizado com funções Supabase
+ * Mantém compatibilidade com código existente
  */
 export default {
-  // Funções principais de CRUD
-  createProject,
+  // ✅ Funções principais SUPABASE
   getProject,
   updateProject,
-  deleteProject,
-  getProjects,
+  getProjectById,
+  getProjects: getProjectsWithFilters, // Alias para compatibilidade
+  getProjectsByUserId,
+  getProjectsAdmin,
   
-  // Funções auxiliares
-  generateUniqueProjectNumber,
-  getProjectCount,
+  // ✅ Funções auxiliares SUPABASE  
   isProjectNumberAlreadyUsed,
-  findProjectByNumber,
+  subscribeToProject,
   
-  // Funções de manipulação de dados
-  addProjectComment,
-  addProjectTimelineEvent,
-  
-  // Funções de transformação
+  // ✅ Funções de transformação (mantidas)
   normalizeStatus,
   mapTimelineEvent,
   mapComment,
