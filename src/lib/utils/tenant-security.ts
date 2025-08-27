@@ -53,13 +53,40 @@ export async function getTenantFromUser(userId: string): Promise<TenantInfo | nu
       userId,
       userData,
       error,
+      errorCode: error?.code,
+      errorMessage: error?.message,
       hasTenantId: !!userData?.tenant_id,
       status: userData?.status,
-      role: userData?.role
+      role: userData?.role,
+      organizationsData: userData?.organizations
     });
 
     if (error || !userData) {
-      devLog.error('[getTenantFromUser] Erro ao buscar dados do usuário:', error)
+      devLog.error('[getTenantFromUser] Erro ao buscar dados do usuário na tabela users:', error)
+      
+      // ✅ DEBUG: Verificar se o usuário existe na tabela auth.users
+      try {
+        const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId)
+        devLog.log('[getTenantFromUser] DEBUG - Verificação auth.users:', {
+          userId,
+          authUser,
+          authError,
+          userExists: !!authUser?.user,
+          userEmail: authUser?.user?.email,
+          userMetadata: authUser?.user?.user_metadata
+        })
+        
+        if (authUser?.user) {
+          devLog.error('[getTenantFromUser] PROBLEMA: Usuário existe em auth.users mas não em public.users', {
+            userId,
+            email: authUser.user.email,
+            metadata: authUser.user.user_metadata
+          })
+        }
+      } catch (authCheckError) {
+        devLog.error('[getTenantFromUser] Erro ao verificar auth.users:', authCheckError)
+      }
+      
       return null
     }
 
