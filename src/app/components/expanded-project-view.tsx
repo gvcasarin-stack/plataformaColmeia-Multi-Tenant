@@ -173,7 +173,14 @@ export const ExpandedProjectView = ({
     return 'N/A';
   };
   const { user } = useAuth()
-  const isAdminPanel = user?.role === 'admin' || user?.role === 'superadmin' || user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin'
+  // ✅ CORREÇÃO ROLE: Verificar tanto 'admin' quanto role do usuário corretamente
+  // O banco armazena 'client' mas alguns locais podem ter 'cliente' ou 'admin'
+  const isAdminPanel = (
+    user?.role === 'admin' || 
+    user?.role === 'superadmin' || 
+    user?.profile?.role === 'admin' || 
+    user?.profile?.role === 'superadmin'
+  ) && user?.role !== 'client' && user?.role !== 'cliente'
   
   // ✅ DEBUG: Verificar dados do usuário e role
   devLog.log('🔍 [EXPANDED PROJECT VIEW] Dados do usuário:', {
@@ -184,6 +191,15 @@ export const ExpandedProjectView = ({
     userProfile: user?.profile,
     profileRole: user?.profile?.role,
     isAdminPanel,
+    roleChecks: {
+      isAdmin: user?.role === 'admin',
+      isSuperAdmin: user?.role === 'superadmin',
+      profileIsAdmin: user?.profile?.role === 'admin',
+      profileIsSuperAdmin: user?.profile?.role === 'superadmin',
+      isClient: user?.role === 'client',
+      isCliente: user?.role === 'cliente',
+      finalIsAdminPanel: isAdminPanel
+    },
     allUserData: JSON.stringify(user, null, 2)
   });
 
