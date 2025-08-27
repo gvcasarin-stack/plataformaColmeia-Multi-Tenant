@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { devLog } from '@/lib/utils/productionLogger'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const slug = searchParams.get('slug')
+    const headersList = headers()
+    const tenantId = headersList.get('x-tenant-id')
+    const tenantSlug = headersList.get('x-tenant-slug')
 
-    if (!slug) {
-      return NextResponse.json({
-        error: 'Slug é obrigatório'
-      }, { status: 400 })
+    if (!tenantId || !tenantSlug) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Informações do tenant não encontradas nos headers' 
+        },
+        { status: 400 }
+      )
     }
 
     const supabase = createSupabaseServiceRoleClient()
 
-    // Buscar organização pelo slug
+    // Buscar informações completas da organização
     const { data: organization, error } = await supabase
       .from('organizations')
       .select(`
@@ -25,39 +31,90 @@ export async function GET(request: NextRequest) {
         plan,
         plan_limits,
         settings,
+        contact_email,
         status,
         is_trial,
-        subscription_status,
+        trial_started_at,
         trial_ends_at,
+        subscription_status,
         created_at,
         updated_at
       `)
-      .eq('slug', slug)
-      .eq('status', 'active')
+      .eq('id', tenantId)
       .single()
 
-    if (error || !organization) {
-      devLog.warn('[api/tenant/organization] Organização não encontrada:', { slug, error })
-      return NextResponse.json({
-        error: 'Organização não encontrada'
-      }, { status: 404 })
+    if (error) {
+      devLog.error('[tenant/organization] Erro ao buscar organização:', error)
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Erro ao buscar informações da organização' 
+        },
+        { status: 500 }
+      )
     }
 
-    devLog.log('[api/tenant/organization] Organização encontrada:', {
+    if (!organization) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Organização não encontrada' 
+        },
+        { status: 404 }
+      )
+    }
+
+    // Verificar se a organização está ativa
+    if (organization.status !== 'active') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Organização não está ativa',
+          organization: {
+            id: organization.id,
+            slug: organization.slug,
+            status: organization.status
+          }
+        },
+        { status: 403 }
+      )
+    }
+
+    devLog.log('[tenant/organization] Informações da organização recuperadas:', {
       id: organization.id,
-      name: organization.name,
       slug: organization.slug,
-      plan: organization.plan
+      plan: organization.plan,
+      isTrial: organization.is_trial
     })
 
     return NextResponse.json({
-      organization
+      success: true,
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        plan: organization.plan,
+        plan_limits: organization.plan_limits,
+        settings: organization.settings,
+        contact_email: organization.contact_email,
+        status: organization.status,
+        is_trial: organization.is_trial,
+        trial_started_at: organization.trial_started_at,
+        trial_ends_at: organization.trial_ends_at,
+        subscription_status: organization.subscription_status,
+        created_at: organization.created_at,
+        updated_at: organization.updated_at
+      }
     })
 
   } catch (error) {
-    devLog.error('[api/tenant/organization] Erro inesperado:', error)
-    return NextResponse.json({
-      error: 'Erro interno do servidor'
-    }, { status: 500 })
+    devLog.error('[tenant/organization] Erro inesperado:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: 'Erro interno do servidor' 
+      },
+      { status: 500 }
+    )
   }
 }

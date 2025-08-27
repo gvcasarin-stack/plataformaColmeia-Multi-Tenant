@@ -1,218 +1,199 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
-import { devLog } from '@/lib/utils/productionLogger'
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { devLog } from '@/lib/utils/productionLogger';
 
-// Lista de slugs reservados que não podem ser usados
+// Slugs reservados que não podem ser usados
 const RESERVED_SLUGS = [
-  'www',
-  'api',
-  'admin',
-  'app',
-  'mail',
-  'ftp',
-  'blog',
-  'shop',
-  'store',
-  'support',
-  'help',
-  'docs',
-  'status',
-  'staging',
-  'dev',
-  'test',
-  'demo',
-  'registro',
-  'register',
-  'login',
-  'auth',
-  'dashboard',
-  'painel',
-  'cliente',
-  'client',
-  'user',
-  'users',
-  'account',
-  'billing',
-  'payment',
-  'checkout',
-  'webhook',
-  'webhooks',
-  'callback',
-  'oauth',
-  'sso',
-  'cdn',
-  'assets',
-  'static',
-  'media',
-  'uploads',
-  'files',
-  'images',
-  'videos',
-  'downloads'
-]
+  'admin', 'api', 'www', 'mail', 'ftp', 'localhost', 'app', 'dashboard',
+  'panel', 'control', 'manage', 'system', 'root', 'test', 'dev', 'staging',
+  'prod', 'production', 'beta', 'alpha', 'demo', 'support', 'help', 'docs',
+  'blog', 'news', 'about', 'contact', 'legal', 'privacy', 'terms', 'login',
+  'register', 'signup', 'signin', 'logout', 'auth', 'oauth', 'sso', 'saml',
+  'ldap', 'ad', 'directory', 'user', 'users', 'profile', 'account', 'settings',
+  'config', 'configuration', 'setup', 'install', 'update', 'upgrade', 'patch',
+  'maintenance', 'status', 'health', 'ping', 'heartbeat', 'monitor', 'metrics',
+  'analytics', 'stats', 'reports', 'logs', 'debug', 'trace', 'error', 'errors',
+  'exception', 'exceptions', 'bug', 'bugs', 'issue', 'issues', 'ticket', 'tickets',
+  'feedback', 'suggestion', 'suggestions', 'feature', 'features', 'request', 'requests',
+  'download', 'downloads', 'upload', 'uploads', 'file', 'files', 'document', 'documents',
+  'image', 'images', 'photo', 'photos', 'video', 'videos', 'audio', 'music', 'media',
+  'asset', 'assets', 'resource', 'resources', 'public', 'private', 'shared', 'common',
+  'lib', 'library', 'libraries', 'framework', 'frameworks', 'plugin', 'plugins',
+  'extension', 'extensions', 'addon', 'addons', 'module', 'modules', 'component', 'components',
+  'widget', 'widgets', 'tool', 'tools', 'utility', 'utilities', 'helper', 'helpers',
+  'service', 'services', 'worker', 'workers', 'job', 'jobs', 'task', 'tasks',
+  'queue', 'queues', 'schedule', 'schedules', 'cron', 'batch', 'bulk', 'import', 'export',
+  'backup', 'backups', 'restore', 'migration', 'migrations', 'seed', 'seeds', 'fixture', 'fixtures',
+  'data', 'database', 'db', 'sql', 'query', 'queries', 'table', 'tables', 'index', 'indexes',
+  'cache', 'redis', 'memcache', 'session', 'sessions', 'cookie', 'cookies', 'token', 'tokens',
+  'key', 'keys', 'secret', 'secrets', 'password', 'passwords', 'hash', 'hashes', 'salt', 'salts',
+  'encrypt', 'decrypt', 'cipher', 'ciphers', 'crypto', 'cryptography', 'ssl', 'tls', 'https',
+  'http', 'tcp', 'udp', 'ip', 'dns', 'domain', 'subdomain', 'host', 'hostname', 'server', 'servers',
+  'client', 'clients', 'browser', 'browsers', 'mobile', 'desktop', 'tablet', 'phone', 'device', 'devices',
+  'platform', 'platforms', 'os', 'operating-system', 'windows', 'linux', 'mac', 'macos', 'ios', 'android',
+  'web', 'website', 'site', 'sites', 'page', 'pages', 'url', 'urls', 'link', 'links', 'redirect', 'redirects',
+  'route', 'routes', 'path', 'paths', 'endpoint', 'endpoints', 'webhook', 'webhooks', 'callback', 'callbacks',
+  'event', 'events', 'listener', 'listeners', 'handler', 'handlers', 'controller', 'controllers', 'model', 'models',
+  'view', 'views', 'template', 'templates', 'layout', 'layouts', 'theme', 'themes', 'style', 'styles',
+  'css', 'sass', 'scss', 'less', 'stylus', 'js', 'javascript', 'typescript', 'ts', 'jsx', 'tsx',
+  'html', 'xml', 'json', 'yaml', 'yml', 'toml', 'ini', 'conf', 'config', 'cfg', 'env', 'environment',
+  'prod', 'production', 'dev', 'development', 'test', 'testing', 'stage', 'staging', 'preview', 'beta', 'alpha',
+  'registro', 'register', 'cadastro', 'signup'
+];
 
-interface SlugCheckResponse {
-  available: boolean
-  slug: string
-  suggestions?: string[]
-  error?: string
-  message?: string
+// Função para validar formato do slug
+function isValidSlugFormat(slug: string): boolean {
+  // Regex para validar formato: apenas letras, números e hífens, não pode começar/terminar com hífen
+  const slugRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+  return slugRegex.test(slug) && slug.length >= 3 && slug.length <= 30;
+}
+
+// Função para gerar sugestões de slug
+function generateSlugSuggestions(originalSlug: string): string[] {
+  const suggestions: string[] = [];
+  const baseSlug = originalSlug.replace(/-\d+$/, ''); // Remove números do final se houver
+  
+  // Adicionar números sequenciais
+  for (let i = 1; i <= 5; i++) {
+    suggestions.push(`${baseSlug}-${i}`);
+  }
+  
+  // Adicionar variações com palavras comuns
+  const suffixes = ['empresa', 'solar', 'energia', 'tech', 'solutions', 'group', 'corp'];
+  for (const suffix of suffixes) {
+    const suggestion = `${baseSlug}-${suffix}`;
+    if (suggestion.length <= 30) {
+      suggestions.push(suggestion);
+    }
+  }
+  
+  return suggestions.slice(0, 5); // Retornar no máximo 5 sugestões
+}
+
+// Rate limiting simples baseado em IP
+const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minuto
+const RATE_LIMIT_MAX_REQUESTS = 10; // Máximo 10 requests por minuto
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(ip);
+  
+  if (!userLimit) {
+    rateLimitMap.set(ip, { count: 1, lastRequest: now });
+    return true;
+  }
+  
+  // Reset se passou da janela de tempo
+  if (now - userLimit.lastRequest > RATE_LIMIT_WINDOW) {
+    rateLimitMap.set(ip, { count: 1, lastRequest: now });
+    return true;
+  }
+  
+  // Incrementar contador
+  userLimit.count++;
+  userLimit.lastRequest = now;
+  
+  return userLimit.count <= RATE_LIMIT_MAX_REQUESTS;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const slug = searchParams.get('slug')?.toLowerCase().trim()
+    // Rate limiting
+    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { 
+          available: false, 
+          message: 'Muitas tentativas. Tente novamente em alguns minutos.',
+          error: 'RATE_LIMITED' 
+        },
+        { status: 429 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get('slug')?.toLowerCase().trim();
 
     if (!slug) {
-      return NextResponse.json({
-        available: false,
-        slug: '',
-        error: 'Slug é obrigatório'
-      } as SlugCheckResponse)
+      return NextResponse.json(
+        { 
+          available: false, 
+          message: 'Slug é obrigatório',
+          error: 'MISSING_SLUG' 
+        },
+        { status: 400 }
+      );
     }
 
     // Validar formato do slug
-    const slugRegex = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
-    const isValidFormat = slug.length >= 3 && slug.length <= 30 && slugRegex.test(slug)
-
-    if (!isValidFormat) {
+    if (!isValidSlugFormat(slug)) {
       return NextResponse.json({
         available: false,
-        slug,
-        error: 'Formato inválido',
-        message: 'O slug deve ter entre 3-30 caracteres, usar apenas letras minúsculas, números e hífens, e não pode começar ou terminar com hífen.'
-      } as SlugCheckResponse)
+        message: 'Formato inválido. Use apenas letras, números e hífens (3-30 caracteres)',
+        suggestions: generateSlugSuggestions(slug),
+        error: 'INVALID_FORMAT'
+      });
     }
 
-    // Verificar se é slug reservado
+    // Verificar se é um slug reservado
     if (RESERVED_SLUGS.includes(slug)) {
       return NextResponse.json({
         available: false,
-        slug,
-        error: 'Slug reservado',
-        message: 'Este nome está reservado pelo sistema. Tente outro.',
-        suggestions: generateSuggestions(slug)
-      } as SlugCheckResponse)
+        message: 'Este slug é reservado e não pode ser usado',
+        suggestions: generateSlugSuggestions(slug),
+        error: 'RESERVED_SLUG'
+      });
     }
 
-    // Verificar se já existe no banco
-    const supabase = createSupabaseServiceRoleClient()
+    // Verificar disponibilidade no banco de dados
+    const supabase = createSupabaseServiceRoleClient();
     
     const { data: existingOrg, error: dbError } = await supabase
       .from('organizations')
       .select('slug')
       .eq('slug', slug)
-      .single()
+      .single();
 
-    if (dbError && dbError.code !== 'PGRST116') { // PGRST116 = não encontrado
-      devLog.error('[check-slug] Erro ao verificar slug no banco:', dbError)
-      return NextResponse.json({
-        available: false,
-        slug,
-        error: 'Erro interno',
-        message: 'Erro ao verificar disponibilidade. Tente novamente.'
-      } as SlugCheckResponse)
+    if (dbError && dbError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      devLog.error('[check-slug] Erro ao consultar banco:', dbError);
+      return NextResponse.json(
+        { 
+          available: false, 
+          message: 'Erro interno. Tente novamente.',
+          error: 'DATABASE_ERROR' 
+        },
+        { status: 500 }
+      );
     }
 
+    // Se encontrou uma organização com esse slug, não está disponível
     if (existingOrg) {
       return NextResponse.json({
         available: false,
-        slug,
-        error: 'Slug já existe',
-        message: 'Este nome já está em uso. Tente outro.',
-        suggestions: generateSuggestions(slug)
-      } as SlugCheckResponse)
+        message: 'Este slug já está em uso',
+        suggestions: generateSlugSuggestions(slug),
+        error: 'SLUG_TAKEN'
+      });
     }
 
-    // Slug disponível!
+    // Slug está disponível
+    devLog.log(`[check-slug] Slug disponível: ${slug}`);
     return NextResponse.json({
       available: true,
-      slug,
-      message: 'Nome disponível!'
-    } as SlugCheckResponse)
+      message: 'Slug disponível!',
+      slug: slug
+    });
 
   } catch (error) {
-    devLog.error('[check-slug] Erro inesperado:', error)
-    return NextResponse.json({
-      available: false,
-      slug: '',
-      error: 'Erro interno',
-      message: 'Erro inesperado. Tente novamente.'
-    } as SlugCheckResponse, { status: 500 })
+    devLog.error('[check-slug] Erro inesperado:', error);
+    return NextResponse.json(
+      { 
+        available: false, 
+        message: 'Erro inesperado. Tente novamente.',
+        error: 'UNEXPECTED_ERROR' 
+      },
+      { status: 500 }
+    );
   }
-}
-
-// Função para gerar sugestões de slugs alternativos
-function generateSuggestions(baseSlug: string): string[] {
-  const suggestions: string[] = []
-  
-  // Remover caracteres inválidos e normalizar
-  const cleanSlug = baseSlug
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-+/g, '-')
-
-  if (cleanSlug && cleanSlug !== baseSlug) {
-    suggestions.push(cleanSlug)
-  }
-
-  // Adicionar sufixos numéricos
-  for (let i = 1; i <= 3; i++) {
-    suggestions.push(`${cleanSlug}-${i}`)
-  }
-
-  // Adicionar sufixos descritivos
-  const suffixes = ['solar', 'energia', 'projetos', 'engenharia', 'tech']
-  suffixes.forEach(suffix => {
-    const suggestion = `${cleanSlug}-${suffix}`
-    if (suggestion.length <= 30) {
-      suggestions.push(suggestion)
-    }
-  })
-
-  // Remover duplicatas e limitar a 5 sugestões
-  return [...new Set(suggestions)]
-    .filter(s => s.length >= 3 && s.length <= 30)
-    .slice(0, 5)
-}
-
-// Rate limiting simples baseado em IP
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const windowMs = 60 * 1000 // 1 minuto
-  const maxRequests = 30 // máximo 30 requests por minuto
-
-  const record = rateLimitMap.get(ip)
-  
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs })
-    return true
-  }
-
-  if (record.count >= maxRequests) {
-    return false
-  }
-
-  record.count++
-  return true
-}
-
-// Middleware para rate limiting
-export async function middleware(request: NextRequest) {
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
-  
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json({
-      available: false,
-      slug: '',
-      error: 'Rate limit exceeded',
-      message: 'Muitas tentativas. Aguarde um momento.'
-    } as SlugCheckResponse, { status: 429 })
-  }
-
-  return NextResponse.next()
 }

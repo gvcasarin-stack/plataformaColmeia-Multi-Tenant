@@ -1,13 +1,15 @@
 /**
  * Layout específico para a página de login do administrador
- * 
- * Este layout é minimalista e permite que a página de login ocupe 100% da tela,
- * sem as restrições do layout principal do admin (sem sidebar).
+ * VERSÃO CORRIGIDA - Renderização limpa sem interferências
  */
 export default function AdminLoginLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Debug para confirmar que o layout correto está sendo usado
+  console.log('🔑 [ADMIN-LOGIN-LAYOUT] Layout correto carregado - ACESSO LIVRE SEM AUTENTICAÇÃO');
+  
+  // Renderização completamente limpa
   return <>{children}</>;
-} 
+}

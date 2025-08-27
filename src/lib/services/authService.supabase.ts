@@ -74,7 +74,7 @@ export async function getUserDataSupabase(userId: string): Promise<UserData | nu
     const userData: UserData = {
       id: data.id,
       email: data.email || '',
-      name: data.full_name || data.name || data.email || '',
+      name: data.name || data.full_name || data.email || '',
       role: data.role || 'cliente',
       userType: data.role || 'cliente',
       createdAt: sanitizeDate(data.created_at),
@@ -85,7 +85,7 @@ export async function getUserDataSupabase(userId: string): Promise<UserData | nu
       companyName: data.company_name,
       cnpj: data.cnpj,
       cpf: data.cpf,
-      pendingApproval: data.pending_approval,
+      pendingApproval: data.status === 'pending',
       emailNotifications: data.email_notifications,
       whatsappNotifications: data.whatsapp_notifications,
       emailNotificationStatus: data.email_notification_status,
@@ -97,7 +97,7 @@ export async function getUserDataSupabase(userId: string): Promise<UserData | nu
       empresaIntegradora: data.empresa_integradora,
       document: data.document,
       companyDocument: data.company_document,
-      full_name: data.full_name
+      full_name: data.name || data.full_name
     };
 
     devLog.log(`[getUserDataSupabase] Dados do usuário carregados com sucesso:`, {
@@ -155,7 +155,7 @@ export async function getUserDataAdminSupabase(userId: string): Promise<UserData
     const userData: UserData = {
       id: data.id,
       email: data.email || '',
-      name: data.full_name || data.name || data.email || '',
+      name: data.name || data.full_name || data.email || '',
       role: data.role || 'cliente',
       userType: data.role || 'cliente',
       createdAt: sanitizeDate(data.created_at),
@@ -166,7 +166,7 @@ export async function getUserDataAdminSupabase(userId: string): Promise<UserData
       companyName: data.company_name,
       cnpj: data.cnpj,
       cpf: data.cpf,
-      pendingApproval: data.pending_approval,
+      pendingApproval: data.status === 'pending',
       emailNotifications: data.email_notifications,
       whatsappNotifications: data.whatsapp_notifications,
       emailNotificationStatus: data.email_notification_status,
@@ -178,7 +178,7 @@ export async function getUserDataAdminSupabase(userId: string): Promise<UserData
       empresaIntegradora: data.empresa_integradora,
       document: data.document,
       companyDocument: data.company_document,
-      full_name: data.full_name
+      full_name: data.name || data.full_name
     };
 
     devLog.log(`[getUserDataAdminSupabase] Dados do usuário carregados com sucesso:`, {
@@ -209,13 +209,13 @@ export async function updateUserDataSupabase(userId: string, updates: Partial<Us
       updated_at: new Date().toISOString()
     };
 
-    if (updates.name !== undefined) supabaseUpdates.full_name = updates.name;
+    if (updates.name !== undefined) supabaseUpdates.name = updates.name;
     if (updates.phone !== undefined) supabaseUpdates.phone = updates.phone;
     if (updates.isCompany !== undefined) supabaseUpdates.is_company = updates.isCompany;
     if (updates.companyName !== undefined) supabaseUpdates.company_name = updates.companyName;
     if (updates.cnpj !== undefined) supabaseUpdates.cnpj = updates.cnpj;
     if (updates.cpf !== undefined) supabaseUpdates.cpf = updates.cpf;
-    if (updates.pendingApproval !== undefined) supabaseUpdates.pending_approval = updates.pendingApproval;
+    if (updates.pendingApproval !== undefined) supabaseUpdates.status = updates.pendingApproval ? 'pending' : 'active';
     if (updates.emailNotifications !== undefined) supabaseUpdates.email_notifications = updates.emailNotifications;
     if (updates.whatsappNotifications !== undefined) supabaseUpdates.whatsapp_notifications = updates.whatsappNotifications;
     if (updates.emailNotificationStatus !== undefined) supabaseUpdates.email_notification_status = updates.emailNotificationStatus;

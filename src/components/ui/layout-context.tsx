@@ -50,8 +50,11 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
   useEffect(() => {
     setIsClientSideRendered(true);
     
-    // Prefetch links comuns após o carregamento inicial
-    if (typeof window !== 'undefined') {
+    // Em páginas públicas (login/cadastro), NÃO fazer prefetch de rotas
+    const publicAuthPaths = new Set([
+      '/admin/login', '/cliente/login', '/cliente/cadastro', '/cliente/recuperar-senha',
+    ]);
+    if (typeof window !== 'undefined' && !publicAuthPaths.has(pathname)) {
       prefetchLinksOnPage();
       prefetchNextProbableRoutes(pathname);
     }

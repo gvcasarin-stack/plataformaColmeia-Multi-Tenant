@@ -6,6 +6,8 @@ import { uploadProjectFile } from '@/lib/supabase/server-storage';
 import { generateUniqueFileName } from '@/lib/supabase/storage';
 import { devLog } from "@/lib/utils/productionLogger";
 import { notifyNewDocument } from '@/lib/services/notificationService/helpers';
+// ✅ SEGURANÇA: Importar utilitários de segurança multi-tenant
+import { getTenantFromUser, canUserAccessResource, verifyResourceOwnership } from '@/lib/utils/tenant-security';
 
 /**
  * Server Action para upload de arquivos de projeto
@@ -29,14 +31,24 @@ export async function uploadProjectFileAction(
       };
     }
 
-    // Verificar se o projeto existe e se o usuário tem permissão
+    // ✅ SEGURANÇA: Verificar acesso ao projeto
+    const accessCheck = await canUserAccessResource(user.id, 'project', projectId);
+    if (!accessCheck.allowed) {
+      devLog.error('[uploadProjectFileAction] Acesso negado:', accessCheck.message);
+      return {
+        success: false,
+        error: accessCheck.message || 'Acesso negado ao projeto'
+      };
+    }
+
+    const tenantInfo = accessCheck.tenantInfo!;
     const supabase = createSupabaseServiceRoleClient();
     
     // ✅ CORRIGIDO: Buscar perfil do usuário da tabela users
     devLog.log('🔍 [URGENT DEBUG] Buscando perfil do usuário:', user.id);
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .select('role, full_name, email')
+      .select('role, name, email')
       .eq('id', user.id)
       .single();
     
@@ -55,16 +67,18 @@ export async function uploadProjectFileAction(
     // ✅ FALLBACK para evitar quebrar totalmente
     const finalProfile = userProfile || { 
       role: 'user', 
-      full_name: user.email || 'Usuário', 
+      name: user.email || 'Usuário', 
       email: user.email 
-    };
+    } as any;
     
     devLog.log('🔍 [URGENT DEBUG] Perfil final a ser usado:', finalProfile);
     
+    // ✅ SEGURANÇA: Buscar projeto verificando tenant (redundante mas seguro)
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('id, created_by, name, number')
       .eq('id', projectId)
+      .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
       .single();
 
     if (projectError || !project) {
@@ -174,7 +188,7 @@ export async function uploadProjectFileAction(
       id: crypto.randomUUID(),
       type: 'document',
       timestamp: new Date().toISOString(),
-      user: finalProfile.full_name || finalProfile.email || 'Usuário',
+      user: (finalProfile as any).name || finalProfile.email || 'Usuário',
       userId: user.id,
       content: `Arquivo "${file.name}" foi enviado.`,
       fileName: file.name,
@@ -240,7 +254,7 @@ export async function uploadProjectFileAction(
         // Admin fez upload - buscar dados do cliente dono do projeto
         const { data: clientData, error: clientError } = await supabase
           .from('users')
-          .select('id, full_name, email')
+          .select('id, name, email')
           .eq('id', project.created_by)
           .single();
           
@@ -252,7 +266,7 @@ export async function uploadProjectFileAction(
           
         if (clientData) {
           clientId = clientData.id;
-          clientName = clientData.full_name || clientData.email || 'Cliente';
+          clientName = clientData.name || clientData.email || 'Cliente';
           devLog.log(`🔍 [URGENT DEBUG] Cliente encontrado:`, { clientId, clientName });
         } else {
           devLog.error(`🚨 [URGENT DEBUG] ERRO: Cliente não encontrado!`, clientError);
@@ -268,7 +282,7 @@ export async function uploadProjectFileAction(
         projectNumber: project.number,
         documentName: file.name,
         uploaderId: user.id,
-        uploaderName: finalProfile.full_name || finalProfile.email || 'Usuário',
+        uploaderName: (finalProfile as any).name || finalProfile.email || 'Usuário',
         uploaderRole: finalProfile.role || 'user',
         clientId: clientId,
         clientName: clientName,
@@ -287,7 +301,7 @@ export async function uploadProjectFileAction(
         projectName: project.name,
         projectNumber: project.number,
         documentName: file.name,
-        uploaderName: finalProfile.full_name || finalProfile.email || 'Usuário',
+        uploaderName: (finalProfile as any).name || finalProfile.email || 'Usuário',
         uploaderRole: finalProfile.role || 'user',
         uploaderId: user.id,
         clientId: clientId,  // ✅ ADICIONADO: ID do cliente

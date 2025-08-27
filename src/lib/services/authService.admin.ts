@@ -48,7 +48,7 @@ export async function getUserDataAdmin(userId: string): Promise<UserData | null>
       companyName: userData.company_name,
       cnpj: userData.cnpj,
       cpf: userData.cpf,
-      pendingApproval: userData.pending_approval,
+      pendingApproval: userData.status === 'pending',
       emailNotifications: userData.email_notifications,
       whatsappNotifications: userData.whatsapp_notifications,
       emailNotificationStatus: userData.email_notification_status,

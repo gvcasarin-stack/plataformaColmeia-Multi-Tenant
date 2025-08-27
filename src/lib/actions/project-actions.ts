@@ -1377,6 +1377,7 @@ export async function createProjectClientAction(
     // ✅ SUPABASE - Preparar dados do projeto para inserção
     const projectData = {
       nome_cliente_final: projectDataFromClient.nomeClienteFinal || projectDataFromClient.nome_cliente_final || 'Projeto sem nome',
+      name: `Projeto ${projectDataFromClient.nomeClienteFinal || projectDataFromClient.nome_cliente_final || 'sem nome'}`, // ✅ ADICIONADO: Campo 'name' obrigatório
       number: projectNumber,
       created_by: clientUser.id,
       tenant_id: tenantInfo.tenant_id, // ✅ CRÍTICO: Incluir tenant_id para isolamento

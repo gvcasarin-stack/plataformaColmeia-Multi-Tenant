@@ -26,7 +26,7 @@ export const updateUserData = async (userId: string, updateData: Partial<UserDat
     };
 
     // Mapear campos do UserData para campos do Supabase
-    if (updateData.name !== undefined) supabaseData.full_name = updateData.name;
+    if (updateData.name !== undefined) supabaseData.name = updateData.name;
     if (updateData.email !== undefined) supabaseData.email = updateData.email;
     if (updateData.phone !== undefined) supabaseData.phone = updateData.phone;
     if (updateData.companyName !== undefined) supabaseData.company_name = updateData.companyName;
@@ -65,7 +65,7 @@ export const updateUserData = async (userId: string, updateData: Partial<UserDat
     // Mapear dados do Supabase de volta para UserData
     const userData: UserData = {
       id: data.id,
-      name: data.full_name || '',
+      name: data.name || '',
       email: data.email || '',
       phone: data.phone || '',
       companyName: data.company_name || '',
@@ -73,7 +73,7 @@ export const updateUserData = async (userId: string, updateData: Partial<UserDat
       cpf: data.cpf || '',
       cnpj: data.cnpj || '',
       role: data.role || 'cliente',
-      pendingApproval: data.pending_approval || false,
+      pendingApproval: data.status === 'pending',
       emailNotifications: data.email_notifications !== undefined ? data.email_notifications : true,
       whatsappNotifications: data.whatsapp_notifications !== undefined ? data.whatsapp_notifications : false,
       emailNotificacaoStatus: data.email_notificacao_status !== undefined ? data.email_notificacao_status : true,
@@ -179,7 +179,7 @@ export const getUserBasicData = async (userId: string): Promise<UserData | null>
     // Mapear dados do Supabase para UserData
     const userData: UserData = {
       id: data.id,
-      name: data.full_name || '',
+      name: data.name || '',
       email: data.email || '',
       phone: data.phone || '',
       companyName: data.company_name || '',
@@ -187,7 +187,7 @@ export const getUserBasicData = async (userId: string): Promise<UserData | null>
       cpf: data.cpf || '',
       cnpj: data.cnpj || '',
       role: data.role || 'cliente',
-      pendingApproval: data.pending_approval || false,
+      pendingApproval: data.status === 'pending',
       emailNotifications: data.email_notifications !== undefined ? data.email_notifications : true,
       whatsappNotifications: data.whatsapp_notifications !== undefined ? data.whatsapp_notifications : false,
       emailNotificacaoStatus: data.email_notificacao_status !== undefined ? data.email_notificacao_status : true,

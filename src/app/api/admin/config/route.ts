@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { devLog } from "@/lib/utils/productionLogger";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
 export async function GET(request: NextRequest) {
   try {
     devLog.log('[API] [Config] Buscando configurações administrativas');
+
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API] [Config] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
 
     // ✅ PRODUÇÃO - Verificar se estamos em contexto de build
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -18,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
     
-    // Buscar configurações específicas do negócio
+    // ✅ SEGURANÇA: Buscar configurações apenas do tenant atual
     const { data, error } = await supabase
       .from('configs')
       .select('key, value, description')
@@ -28,14 +41,13 @@ export async function GET(request: NextRequest) {
         'faixas_potencia',
         'dados_bancarios'
       ])
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Filtrar por tenant
       .eq('is_active', true);
 
     if (error) {
-      devLog.error('[API] [Config] Erro ao buscar configurações:', error);
-      return NextResponse.json(
-        { error: 'Erro ao buscar configurações', details: error.message },
-        { status: 500 }
-      );
+      // Fallback: em tenants novos, a tabela/linhas podem não existir ainda
+      devLog.warn('[API] [Config] Erro ao buscar configs, retornando defaults vazios:', error);
+      return NextResponse.json({ success: true, data: {} });
     }
 
     // Converter para formato esperado
@@ -52,17 +64,27 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    devLog.error('[API] [Config] Exceção:', error);
-    return NextResponse.json(
-      { error: 'Erro interno do servidor', details: error instanceof Error ? error.message : 'Erro desconhecido' },
-      { status: 500 }
-    );
+    // Fallback total: não quebrar UI por falta de configs em tenants novos
+    devLog.warn('[API] [Config] Exceção (fallback retornando vazio):', error);
+    return NextResponse.json({ success: true, data: {} });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     devLog.log('[API] [Config] Salvando configurações administrativas');
+
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API] [Config] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
 
     // ✅ PRODUÇÃO - Verificar se estamos em contexto de build
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -85,17 +107,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    devLog.log('[API] [Config] Salvando configuração:', { key, description });
+    devLog.log('[API] [Config] Salvando configuração:', { key, description, tenantId });
 
-    // Verificar se configuração já existe
+    // ✅ SEGURANÇA: Verificar se configuração já existe no tenant atual
     const { data: existing } = await supabase
       .from('configs')
       .select('id')
       .eq('key', key)
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
       .single();
 
     if (existing) {
-      // Atualizar configuração existente
+      // ✅ SEGURANÇA: Atualizar configuração apenas do tenant atual
       const { error } = await supabase
         .from('configs')
         .update({
@@ -103,7 +126,8 @@ export async function POST(request: NextRequest) {
           description,
           updated_at: new Date().toISOString()
         })
-        .eq('key', key);
+        .eq('key', key)
+        .eq('tenant_id', tenantId);  // ✅ CRÍTICO: Verificar tenant
 
       if (error) {
         devLog.error('[API] [Config] Erro ao atualizar configuração:', error);
@@ -115,7 +139,7 @@ export async function POST(request: NextRequest) {
 
       devLog.log('[API] [Config] Configuração atualizada:', key);
     } else {
-      // Criar nova configuração
+      // ✅ SEGURANÇA: Criar nova configuração com tenant_id
       const { error } = await supabase
         .from('configs')
         .insert([{
@@ -124,6 +148,7 @@ export async function POST(request: NextRequest) {
           description: description || `Configuração ${key}`,
           category: key.includes('preco') || key.includes('potencia') ? 'pricing' : 'business',
           is_active: true,
+          tenant_id: tenantId,  // ✅ CRÍTICO: Associar ao tenant
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }]);

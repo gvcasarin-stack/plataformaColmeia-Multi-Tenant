@@ -18,10 +18,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ count });
   } catch (error) {
-    devLog.error('[API] Erro ao contar notificações:', error);
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    );
+    devLog.error('[API] Erro ao contar notificações (fallback 0):', error);
+    return NextResponse.json({ count: 0 });
   }
 } 

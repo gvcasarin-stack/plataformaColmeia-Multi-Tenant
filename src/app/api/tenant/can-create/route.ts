@@ -1,69 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { devLog } from '@/lib/utils/productionLogger'
 
+interface ResourceCheck {
+  can_proceed: boolean
+  current_usage: number
+  limit_value: number
+  usage_percentage: string
+  message: string
+}
+
 export async function GET(request: NextRequest) {
   try {
+    const headersList = headers()
+    const tenantId = headersList.get('x-tenant-id')
+    
     const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') as 'users' | 'projects' | 'clients'
-    const orgId = searchParams.get('orgId')
+    const resourceType = searchParams.get('type')
 
-    if (!type || !orgId) {
-      return NextResponse.json({
-        error: 'Tipo de recurso e Organization ID são obrigatórios'
-      }, { status: 400 })
+    if (!tenantId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Tenant ID não encontrado nos headers' 
+        },
+        { status: 400 }
+      )
     }
 
-    if (!['users', 'projects', 'clients'].includes(type)) {
-      return NextResponse.json({
-        error: 'Tipo de recurso inválido'
-      }, { status: 400 })
+    if (!resourceType) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Tipo de recurso é obrigatório' 
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validar tipos de recursos suportados
+    const validResourceTypes = ['projects', 'users', 'clients', 'storage_gb']
+    if (!validResourceTypes.includes(resourceType)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `Tipo de recurso inválido. Suportados: ${validResourceTypes.join(', ')}` 
+        },
+        { status: 400 }
+      )
     }
 
     const supabase = createSupabaseServiceRoleClient()
 
-    // Usar função do banco para verificar se pode criar recurso
-    const { data: canCreateResult, error } = await supabase
-      .rpc('can_create_resource', { 
-        org_id: orgId, 
-        resource_type: type 
-      })
+    // Usar a função SQL can_create_resource
+    const { data: resourceCheck, error } = await supabase.rpc('can_create_resource', {
+      org_id: tenantId,
+      resource_type: resourceType
+    })
 
     if (error) {
-      devLog.error('[api/tenant/can-create] Erro ao verificar limite:', error)
-      return NextResponse.json({
-        error: 'Erro ao verificar limite'
-      }, { status: 500 })
+      devLog.error('[tenant/can-create] Erro ao verificar limites:', error)
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Erro ao verificar limites do plano' 
+        },
+        { status: 500 }
+      )
     }
 
-    // Também obter informações detalhadas do limite
-    const { data: limitInfo, error: limitError } = await supabase
-      .rpc('check_limit', { 
-        org_id: orgId, 
-        limit_type: type 
-      })
-
-    let limitDetails = null
-    if (!limitError && limitInfo && Array.isArray(limitInfo) && limitInfo.length > 0) {
-      limitDetails = limitInfo[0]
+    if (!resourceCheck) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Organização não encontrada' 
+        },
+        { status: 404 }
+      )
     }
 
-    devLog.log('[api/tenant/can-create] Verificação de limite:', {
-      orgId,
-      type,
-      canCreate: canCreateResult,
-      limitDetails
+    devLog.log('[tenant/can-create] Verificação de limite:', {
+      tenantId,
+      resourceType,
+      canProceed: resourceCheck.can_proceed,
+      currentUsage: resourceCheck.current_usage,
+      limitValue: resourceCheck.limit_value
     })
 
     return NextResponse.json({
-      canCreate: canCreateResult,
-      limitDetails
+      success: true,
+      resource_check: resourceCheck as ResourceCheck,
+      resource_type: resourceType
     })
 
   } catch (error) {
-    devLog.error('[api/tenant/can-create] Erro inesperado:', error)
-    return NextResponse.json({
-      error: 'Erro interno do servidor'
-    }, { status: 500 })
+    devLog.error('[tenant/can-create] Erro inesperado:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: 'Erro interno do servidor' 
+      },
+      { status: 500 }
+    )
   }
 }

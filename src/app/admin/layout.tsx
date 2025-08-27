@@ -33,20 +33,29 @@ const LoadingSpinner = () => (
   </div>
 )
 
-// ✅ SIMPLIFICADO: Layout limpo sem verificações complexas
+// ✅ CORRIGIDO: Layout que permite acesso sem autenticação às rotas de login
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth()
   const pathname = usePathname()
+
+  // ✅ CRÍTICO: Rotas de login NÃO PRECISAM de autenticação
+  if (pathname === '/admin/login') {
+    console.log('🔑 [ADMIN-LAYOUT] Rota de login - ACESSO LIVRE sem autenticação');
+    console.log('🔑 [ADMIN-LAYOUT] Renderizando LOGIN ADMIN direto');
+    return <>{children}</>;
+  }
+
+  // ✅ APENAS rotas protegidas usam autenticação
+  const { user, isLoading } = useAuth()
   const router = useRouter()
 
-  // ✅ SIMPLES: Verificação de admin básica
+  // ✅ Verificação de admin para rotas protegidas
   const isAdmin = useMemo(() => {
     if (!user) return false;
     return user.role === 'admin' || user.role === 'superadmin' || 
            user.profile?.role === 'admin' || user.profile?.role === 'superadmin';
   }, [user]);
   
-  // ✅ SIMPLES: Log de acesso sem verificações complexas
+  // ✅ Log apenas para rotas protegidas
   useEffect(() => {
     if (pathname && user?.id) {
       logAdminPageAccess(pathname, user.id, {
@@ -56,30 +65,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [pathname, user]);
   
-  // ✅ SIMPLES: Redirecionamento básico (apenas quando necessário)
+  // ✅ Redirecionamento apenas para rotas protegidas
   useEffect(() => {
-    // Se não está carregando e não tem usuário admin, redirecionar
-    if (!isLoading && (!user || !isAdmin) && pathname !== '/admin/login') {
+    if (!isLoading && (!user || !isAdmin)) {
+      console.log('🔑 [ADMIN-LAYOUT] Usuário não autenticado, redirecionando para login');
       router.replace('/admin/login');
-  }
+    }
   }, [user, isAdmin, isLoading, pathname, router]);
 
-  // ✅ LOADING: Apenas enquanto carrega autenticação
+  // ✅ Loading apenas para rotas protegidas
   if (isLoading) {
     return <LoadingSpinner />
   }
   
-  // ✅ LOGIN: Página de login sempre renderiza
-  if (pathname === '/admin/login') {
-    return children;
-  }
-
-  // ✅ PROTEÇÃO: Se não é admin, não renderizar (redirecionamento já foi feito)
+  // ✅ Proteção apenas para rotas protegidas
   if (!user || !isAdmin) {
     return null;
   }
 
-  // ✅ RENDERIZAÇÃO: Layout completo para admin autenticado
+  // ✅ Layout completo apenas para admin autenticado em rotas protegidas
   return (
     <ClientRequestProvider>
       <LayoutManager sidebar={<Sidebar />}>

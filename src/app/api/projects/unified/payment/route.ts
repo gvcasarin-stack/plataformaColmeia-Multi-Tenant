@@ -1,20 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from "@/lib/utils/productionLogger";
 
 /**
- * API UNIFICADA PARA PAGAMENTOS
- * Centraliza todas as operações de pagamento em uma única API
+ * API UNIFICADA PARA PAGAMENTOS - MULTI-TENANT SEGURA
+ * ✅ CORRIGIDO: Agora verifica tenant_id para isolamento
  */
 
-const supabase = createSupabaseServiceRoleClient();
-
 /**
- * PUT - Atualizar status de pagamento
+ * PUT - Atualizar status de pagamento (SEGURO)
  */
 export async function PUT(request: NextRequest) {
   try {
     devLog.log('[API Unified Payment] Atualizando status de pagamento');
+
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Unified Payment] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const { projectId, paymentStatus, updatedBy } = body;
@@ -39,18 +50,21 @@ export async function PUT(request: NextRequest) {
     devLog.log('[API Unified Payment] Atualizando projeto:', {
       projectId,
       paymentStatus,
-      updatedBy
+      updatedBy,
+      tenantId
     });
 
-    // ✅ REGRA: Atualizar APENAS o campo pagamento
+    const supabase = createSupabaseServiceRoleClient();
+
+    // ✅ SEGURANÇA: Atualizar apenas projetos do tenant atual
     const { data, error } = await supabase
       .from('projects')
       .update({
         pagamento: paymentStatus,
         updated_at: new Date().toISOString()
-        // ✅ CORREÇÃO: Removido updated_by (campo não existe na tabela)
       })
       .eq('id', projectId)
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
       .select()
       .single();
 
@@ -95,10 +109,22 @@ export async function PUT(request: NextRequest) {
 }
 
 /**
- * GET - Buscar status de pagamento de um projeto
+ * GET - Buscar status de pagamento de um projeto (SEGURO)
  */
 export async function GET(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Unified Payment] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
 
@@ -109,10 +135,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const supabase = createSupabaseServiceRoleClient();
+
+    // ✅ SEGURANÇA: Buscar apenas projetos do tenant atual
     const { data, error } = await supabase
       .from('projects')
       .select('id, pagamento, valor_projeto, price, updated_at')
       .eq('id', projectId)
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
       .single();
 
     if (error) {

@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     // Verificar se o usuário a ser desbloqueado existe
     const { data: targetUser, error: targetUserError } = await supabase
       .from('users')
-      .select('id, email, full_name, role, is_blocked')
+      .select('id, email, name, role, is_blocked')
       .eq('id', userId)
       .single();
     

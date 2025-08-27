@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Buscar todos os usuários primeiro (sem filtro de role)
     const { data: allUsers, error: allUsersError } = await supabase
       .from('users')
-      .select('id, email, full_name, role, created_at')
+      .select('id, email, name, role, created_at')
       .limit(5);
 
     if (allUsersError) {
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('role', 'cliente')
-      .order('full_name', { ascending: true });
+      .eq('role', 'client')
+      .order('name', { ascending: true });
 
     if (error) {
       devLog.error('[API] [Billing] [Clients] Erro ao buscar clientes:', error);
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         .from('users')
         .select('*')
         .eq('role', 'client')
-        .order('full_name', { ascending: true });
+        .order('name', { ascending: true });
         
       if (clientError) {
         devLog.error('[API] [Billing] [Clients] Erro também com role="client":', clientError);

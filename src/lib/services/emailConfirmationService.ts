@@ -60,7 +60,10 @@ class EmailConfirmationService {
           userId: result.data?.userId,
           email: result.data?.email,
           action: 'confirm_email_success',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          metadata: {
+            alreadyConfirmed: result.data?.alreadyConfirmed || false
+          }
         });
 
         return result;

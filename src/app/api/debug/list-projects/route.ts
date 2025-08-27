@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     // Buscar alguns usuários também
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, email, full_name, role')
+      .select('id, email, name, role')
       .limit(10);
     
     if (usersError) {

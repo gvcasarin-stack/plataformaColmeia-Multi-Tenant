@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from "@/lib/utils/productionLogger";
 
@@ -19,6 +20,16 @@ export async function GET(request: NextRequest) {
     }
     
     const supabase = createSupabaseServiceRoleClient();
+    const hdrs = headers();
+    const tenantId = hdrs.get('x-tenant-id');
+    if (!tenantId) {
+      devLog.warn('[API Financial Dashboard] Sem x-tenant-id; retornando estrutura vazia');
+      return NextResponse.json({
+        metrics: { totalRevenue: 0, totalExpenses: 0, netProfit: 0, fixedCosts: 0, projectRevenue: 0, projectEstimatedRevenue: 0, transactionRevenue: 0, variableExpenses: 0 },
+        projects: [], transactions: [], fixedCosts: [], transactionsByCategory: {}, fixedCostsByCategory: {},
+        period: { month, year }
+      });
+    }
     devLog.log('[API Financial Dashboard] Cliente Supabase criado');
     
     const { searchParams } = new URL(request.url);
@@ -42,11 +53,12 @@ export async function GET(request: NextRequest) {
         created_at,
         users (
           id,
-          full_name,
+          name,
           email,
           role
         )
       `)
+      .eq('tenant_id', tenantId)
       .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`)
       .lt('created_at', `${month === 12 ? year + 1 : year}-${(month === 12 ? 1 : month + 1).toString().padStart(2, '0')}-01`);
     

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { devLog } from "@/lib/utils/productionLogger";
@@ -12,6 +12,7 @@ function ConfirmEmailContent() {
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState<string>("");
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
     let confirmationCompleted = false;
@@ -26,11 +27,26 @@ function ConfirmEmailContent() {
       setMessage("Seu email foi confirmado com sucesso! Você pode fazer login agora.");
       
       setTimeout(() => {
-        router.push("/cliente/login?message=Email confirmado com sucesso! Você pode fazer login agora.");
+        // Se a API retornou tenantSlug via query (opcional), usar para redirecionar ao subdomínio
+        const params = new URLSearchParams(window.location.search);
+        const fallback = "/cliente/login?message=Email confirmado com sucesso! Você pode fazer login agora.";
+        const tenant = params.get('tenant') || '';
+        if (tenant) {
+          const host = window.location.hostname;
+          const root = 'gerenciamentofotovoltaico.com.br';
+          const target = `https://${tenant}.${root}/cliente/login?message=Email confirmado com sucesso! Você pode fazer login agora.`;
+          window.location.href = target;
+          return;
+        }
+        router.push(fallback);
       }, 3000);
     };
 
     const handleEmailConfirmation = async () => {
+      if (hasRunRef.current) {
+        return; // evitar segunda execução causada por mudanças de URL/param
+      }
+      hasRunRef.current = true;
       devLog.log("[EmailConfirmation] 🚀 Iniciando confirmação SaaS-grade...");
       
       try {
@@ -59,6 +75,7 @@ function ConfirmEmailContent() {
         // Verificar se há código de confirmação
         const code = searchParams.get("code");
         const tokenHash = searchParams.get("token_hash");
+        const typeParam = searchParams.get("type");
         
         devLog.log("[EmailConfirmation] Tokens encontrados:", { 
           hasCode: !!code, 
@@ -78,13 +95,22 @@ function ConfirmEmailContent() {
         devLog.log("[EmailConfirmation] 🔐 Chamando service SaaS de confirmação...");
         
         try {
+          const typeToUse = typeParam || (tokenHash ? 'signup' : 'email');
           const result = await emailConfirmationService.confirmEmail({
-            token_hash: tokenHash,
-            code: code,
-            type: 'email'
+            token_hash: tokenHash || undefined,
+            code: code || undefined,
+            type: typeToUse as any
           });
 
           devLog.log("[EmailConfirmation] ✅ Confirmação SaaS-grade bem-sucedida!");
+          // Propagar tenantSlug via query para o redirect usar
+          // Redirecionar com slug diretamente no momento do redirect, sem alterar a URL agora
+          if (result?.data?.tenantSlug) {
+            // Acrescentar tenant como parâmetro temporário apenas para o setTimeout abaixo
+            const url = new URL(window.location.href);
+            url.searchParams.set('tenant', result.data.tenantSlug);
+            window.history.replaceState({}, '', url.toString());
+          }
           completeConfirmation("SaaS-Service");
 
         } catch (error) {

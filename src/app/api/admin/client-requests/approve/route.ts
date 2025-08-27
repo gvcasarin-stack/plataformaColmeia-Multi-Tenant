@@ -28,14 +28,15 @@ export async function POST(request: NextRequest) {
     
     const supabase = createSupabaseServiceRoleClient();
     
-    // 1. Atualizar pending_approval para false
+    // 1. Aprovar: definir status='active'
     const { error: updateError } = await supabase
       .from('users')
       .update({ 
-        pending_approval: false,
+        status: 'active',
         updated_at: new Date().toISOString()
       })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .eq('role', 'client');
     
     if (updateError) {
       devLog.error('[API] [Admin] [ClientRequests] [Approve] Erro ao atualizar usuário:', updateError);

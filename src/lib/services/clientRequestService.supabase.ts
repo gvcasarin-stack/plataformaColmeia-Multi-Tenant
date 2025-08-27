@@ -99,7 +99,7 @@ export async function createClientRequest(data: Omit<ClientRequest, 'id' | 'stat
         id: authUserId,
         email: data.email,
         full_name: data.name, // ✅ CORREÇÃO: Usar full_name
-        role: 'cliente', // ✅ CORREÇÃO: Usar 'cliente' como padrão
+        role: 'client', // ✅ CORREÇÃO: Usar 'client' como padrão
         phone: data.phone,
         is_company: data.isCompany, // ✅ CORREÇÃO: Snake_case
         company_name: data.isCompany ? data.razaoSocial : null, // ✅ CORREÇÃO: Mapear company_name
@@ -259,19 +259,16 @@ export async function getPendingClientRequests(): Promise<ClientRequest[]> {
     clientRequestsCache.refreshing = true;
     
     try {
-      const supabase = createSupabaseBrowserClient();
-      
-      // ✅ CORREÇÃO: Buscar usuários com pending_approval = true (snake_case)
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('pending_approval', true)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        logger.error('[ClientRequestService] [SUPABASE] Erro ao buscar solicitações:', error);
-        throw new Error('Erro ao buscar solicitações de clientes');
+      // Buscar via API interna multi-tenant (evita 400 de REST e garante x-tenant-id)
+      const res = await fetch('/api/admin/client-requests', { method: 'GET' });
+      if (!res.ok) {
+        logger.warn('[ClientRequestService] [API] HTTP não OK, retornando vazio:', res.status);
+        clientRequestsCache.data = [] as any;
+        clientRequestsCache.timestamp = now;
+        return [];
       }
+      const payload = await res.json();
+      const data = payload?.data || [];
       
       // ✅ CORREÇÃO REACT #130: Sanitizar campos de data do Supabase
       const sanitizeDate = (dateField: any): string => {
@@ -282,18 +279,18 @@ export async function getPendingClientRequests(): Promise<ClientRequest[]> {
       };
 
       // ✅ PRODUÇÃO - Mapear para formato ClientRequest (compatibilidade)
-      const clientRequests: ClientRequest[] = (data || []).map(user => ({
+      const clientRequests: ClientRequest[] = (data || []).map((user: any) => ({
         id: user.id,
         userId: user.id,
         email: user.email,
-        name: user.full_name || user.name, // ✅ CORREÇÃO: Usar full_name se disponível
+        name: user.name || user.email, // Canonizar para name
         phone: user.phone || '',
         status: 'pending' as const,
-        isCompany: user.is_company || false, // ✅ CORREÇÃO: Snake_case
-        razaoSocial: user.company_name || undefined, // ✅ CORREÇÃO: Mapear company_name
-        nomeCompleto: user.full_name || undefined,
-        cnpj: user.cnpj || undefined,
-        cpf: user.cpf || undefined,
+        isCompany: false,
+        razaoSocial: undefined,
+        nomeCompleto: undefined,
+        cnpj: undefined,
+        cpf: undefined,
         createdAt: sanitizeDate(user.created_at),
         updatedAt: sanitizeDate(user.updated_at),
         rejectionReason: undefined

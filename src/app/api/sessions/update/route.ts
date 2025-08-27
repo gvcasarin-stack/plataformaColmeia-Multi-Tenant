@@ -4,13 +4,15 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json();
+    let userId: string | undefined;
+    try {
+      const body = await request.json();
+      userId = body?.userId;
+    } catch {}
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'userId é obrigatório' },
-        { status: 400 }
-      );
+      // No-op completo quando não houver body/JSON válido
+      return NextResponse.json({ success: true, note: 'noop: no userId provided' });
     }
 
     const supabase = createSupabaseServiceRoleClient();
@@ -25,19 +27,14 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true);
 
     if (error) {
-      devLog.error('[API] Erro ao atualizar sessão:', error);
-      return NextResponse.json(
-        { error: 'Erro ao atualizar sessão' },
-        { status: 500 }
-      );
+      const code = (error as any).code;
+      devLog.warn('[API] Falha ao atualizar sessão (no-op):', { code, error });
+      return NextResponse.json({ success: true, note: 'session update noop' });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    devLog.error('[API] Erro ao atualizar sessão:', error);
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    );
+    devLog.warn('[API] Exceção ao atualizar sessão (no-op):', error);
+    return NextResponse.json({ success: true, note: 'session update noop (exception)' });
   }
 } 

@@ -352,6 +352,21 @@ export function RegisterForm() {
       devLog.log("[RegisterForm] handleSubmit: ANTES de chamar signUpWithPassword. Dados do formulário:", formData);
 
       // Preparar dados para options.data, limpando e tratando valores
+      // Descobrir o slug do tenant a partir do hostname atual
+      let tenantSlug: string | null = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const host = window.location.hostname || '';
+          const root = 'gerenciamentofotovoltaico.com.br';
+          const isMain = host === root || host === `www.${root}`;
+          const isRegistro = host === `registro.${root}`;
+          const isSub = host.endsWith(`.${root}`) && !isMain && !isRegistro;
+          if (isSub) {
+            tenantSlug = host.split('.')[0];
+          }
+        } catch {}
+      }
+
       const metadata = {
         full_name: formData.name.trim(), // fullNameForSupabase já foi validado, mas trim aqui por segurança
         phone: formData.phone.replace(/\D/g, "") || null,
@@ -359,7 +374,8 @@ export function RegisterForm() {
         companyName: formData.isCompany ? (formData.companyName?.trim() || null) : null,
         cnpj: formData.isCompany ? (formData.cnpj?.replace(/\D/g, "") || null) : null,
         cpf: formData.isIndividual ? (formData.cpf?.replace(/\D/g, "") || null) : null,
-        role: 'cliente' // Definindo a role diretamente aqui, conforme esperado pelo trigger
+        role: 'cliente', // Definindo a role diretamente aqui, conforme esperado pelo trigger
+        tenant_slug: tenantSlug
       };
 
       devLog.log("[RegisterForm] handleSubmit: Dados para options.data (user_metadata):", metadata);

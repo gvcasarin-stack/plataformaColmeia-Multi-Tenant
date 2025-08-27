@@ -4,48 +4,42 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import toast from 'react-hot-toast';
-import { getAuthErrorMessage, VALIDATION_MESSAGES, AUTH_SUCCESS_MESSAGES } from '@/lib/utils/auth-errors';
-import { devLog } from "@/lib/utils/productionLogger";
-import { logAdminPageAccess } from '@/lib/utils/adminRoutesLogger';
 
 /**
- * Página principal de login administrativo
- * 
- * Esta é a página principal acessada via /admin e /(admin)/login que serve como
- * ponto de entrada para administradores. Durante a unificação dos
- * diretórios admin, esta página suporta acesso direto e redirecionado.
- * 
- * Ver documentação: docs/code-cleanup.md - Seção 6: Unificação dos Diretórios Admin
+ * Página de login administrativo - VERSÃO CORRIGIDA
+ * Esta é a página que deve aparecer em /admin/login
  */
 export default function AdminLoginPage() {
-  // Clear localStorage and sessionStorage to prevent caching issues
+  // Debug crítico para confirmar renderização
+  console.log('🔑 [ADMIN-LOGIN] COMPONENTE CORRETO RENDERIZADO - Colmeia Projetos / Área Administrativa');
+  
+  // Forçar renderização com alert para debug
   if (typeof window !== 'undefined') {
-    // Only keep critical items that shouldn't be cleared
-    const theme = localStorage.getItem('theme');
-    
-    // Clear all storage
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Restore critical items
-    if (theme) localStorage.setItem('theme', theme);
+    console.log('🔑 PÁGINA ADMIN CARREGADA - DEVERIA SER LARANJA');
   }
   
-  // Logger para monitorar o uso desta página durante a migração
-  useEffect(() => {
-    logAdminPageAccess('/admin/login');
-  }, []);
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { user, signInWithPassword, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
 
-  // If user is already logged in and is an admin, redirect to admin dashboard
+  // Logger para monitorar acesso
   useEffect(() => {
-    if (!authIsLoading && user) {
-      devLog.log('[AdminLogin] User authenticated, redirecting to /admin/painel. User data:', user);
+    console.log('🔑 [ADMIN-LOGIN] useEffect executado - página carregada');
+  }, []);
+
+  // Redirecionamento apenas se usuário tiver papel de admin/superadmin
+  useEffect(() => {
+    const isAdmin = !!user && (
+      (user as any).role === 'admin' ||
+      (user as any).role === 'superadmin' ||
+      (user as any).profile?.role === 'admin' ||
+      (user as any).profile?.role === 'superadmin'
+    );
+
+    if (!authIsLoading && isAdmin) {
+      console.log('🔑 [ADMIN-LOGIN] Usuário admin autenticado, redirecionando para /admin/painel...');
       router.push('/admin/painel');
     }
   }, [user, authIsLoading, router]);
@@ -53,103 +47,70 @@ export default function AdminLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação básica de campos
+    console.log('🔑 [ADMIN-LOGIN] Tentativa de login iniciada');
+    
     if (!email || !password) {
-      const validation = VALIDATION_MESSAGES.REQUIRED_FIELDS;
-      toast.error(validation.message, {
+      toast.error('Preencha todos os campos', {
         duration: 4000,
         position: 'top-center',
       });
       return;
     }
 
-    // Validação de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      const validation = VALIDATION_MESSAGES.INVALID_EMAIL;
-      toast.error(validation.message, {
-        duration: 4000,
-        position: 'top-center',
-      });
-      return;
-    }
-    
     try {
       setLoading(true);
       
-      // Loading toast centralizado
-      const loadingToastId = toast.loading('Verificando credenciais de administrador...', {
+      const loadingToastId = toast.loading('Verificando credenciais...', {
         position: 'top-center',
       });
       
-      devLog.log('[AdminLogin] Attempting Supabase login...');
+      console.log('🔑 [ADMIN-LOGIN] Chamando signInWithPassword...');
       const { error } = await signInWithPassword({ email, password });
       
-      // Remove loading toast
       toast.dismiss(loadingToastId);
       
       if (error) {
-        devLog.error('❌ [AdminLogin] Supabase login error:', error);
-        
-        // Use our improved error handling
-        const errorInfo = getAuthErrorMessage(error);
-        
-        // Show user-friendly error message centralizado
-        toast.error(errorInfo.message, {
+        console.error('🔑 [ADMIN-LOGIN] Erro no login:', error);
+        toast.error('Erro no login. Verifique suas credenciais.', {
           duration: 6000,
           position: 'top-center',
         });
-
-        // Also log to console for debugging
-        devLog.error(`🔍 [AdminLogin] Error details:`, {
-          title: errorInfo.title,
-          message: errorInfo.message,
-          type: errorInfo.type,
-          originalError: error
-        });
-        
-        setLoading(false);
       } else {
-        devLog.log('[AdminLogin] Supabase login successful. User state will update and useEffect will redirect.');
-        
-        // Success message centralizado
-        toast.success('Login realizado com sucesso! Redirecionando...', {
-          duration: 2000,
+        console.log('🔑 [ADMIN-LOGIN] Login bem-sucedido!');
+        toast.success('Login realizado com sucesso!', {
+          duration: 3000,
           position: 'top-center',
         });
       }
-    } catch (error: any) {
-      // Remove loading toast if still present
-      toast.dismiss();
       
-      devLog.error('❌ [AdminLogin] Unexpected error:', error);
-      
-      // Use our improved error handling for unexpected errors
-      const errorInfo = getAuthErrorMessage(error);
-      
-      toast.error(errorInfo.message, {
-        duration: 6000,
+    } catch (error) {
+      console.error('🔑 [ADMIN-LOGIN] Erro inesperado:', error);
+      toast.error('Erro inesperado. Tente novamente.', {
+        duration: 4000,
         position: 'top-center',
       });
-      
+    } finally {
       setLoading(false);
     }
   };
 
-  if (authIsLoading || (!authIsLoading && user)) {
+  // Loading state
+  if (authIsLoading) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-600">Carregando painel administrativo...</p>
+          <p className="text-gray-600">Carregando...</p>
         </div>
       </div>
     );
   }
 
+  // Main render - LAYOUT CORRETO DO ADMIN
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center p-0 m-0 bg-white dark:bg-gray-900">
       <div className="w-full max-w-md px-4">
+        {/* Header com ícone e títulos corretos */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-md border-2 border-orange-500 flex items-center justify-center bg-white dark:bg-gray-800 shadow-sm">
             <svg viewBox="0 0 24 24" className="w-10 h-10 text-orange-500">
@@ -164,6 +125,7 @@ export default function AdminLoginPage() {
           <p className="mt-2 text-[#666666] dark:text-gray-300">Área Administrativa</p>
         </div>
         
+        {/* Formulário de login */}
         <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold mb-4 dark:text-white">Login do Administrador</h2>
           
@@ -179,7 +141,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="seu@email.com"
-                disabled={loading || authIsLoading}
+                disabled={loading}
                 required
               />
             </div>
@@ -195,7 +157,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 placeholder="••••••••"
-                disabled={loading || authIsLoading}
+                disabled={loading}
                 required
                 autoComplete="current-password"
               />
@@ -203,10 +165,10 @@ export default function AdminLoginPage() {
             
             <button
               type="submit"
-              disabled={loading || authIsLoading}
+              disabled={loading}
               className="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {(loading || authIsLoading) ? (
+              {loading ? (
                 <span className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -220,15 +182,13 @@ export default function AdminLoginPage() {
             </button>
           </form>
           
-          <div className="mt-4 text-center space-y-2">
-            <div>
-              <a href="/recuperar-senha" className="text-sm text-orange-600 hover:text-orange-700 transition-colors">
-                Esqueceu sua senha?
-              </a>
-            </div>
+          <div className="mt-4 text-center">
+            <a href="/recuperar-senha" className="text-sm text-orange-600 hover:text-orange-700 transition-colors">
+              Esqueceu sua senha?
+            </a>
           </div>
         </div>
       </div>
     </div>
   );
-} 
+}

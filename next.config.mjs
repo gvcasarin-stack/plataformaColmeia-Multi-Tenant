@@ -46,6 +46,15 @@ const nextConfig = {
   // Rewrites para rotas antigas para novas
   async rewrites() {
     return [
+      // Servir ícones/manifests padronizados
+      {
+        source: '/favicon.ico',
+        destination: '/lightning-icon.svg',
+      },
+      {
+        source: '/site.webmanifest',
+        destination: '/manifest.json',
+      },
       // Redirecionar rotas sem prefixo para rotas com prefixo admin
       {
         source: '/painel',

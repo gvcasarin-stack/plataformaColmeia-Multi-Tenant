@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/components/ui/use-toast'
 import { registerOrganization, type RegistrationData } from '@/lib/actions/registration-actions'
 import { devLog } from '@/lib/utils/productionLogger'
+import { registrationLogger } from '@/lib/utils/registrationLogger'
 import { Check, X, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 interface FormErrors {
@@ -51,43 +52,41 @@ export function RegistrationForm() {
     adminName: '',
     adminEmail: '',
     adminPassword: '',
-    plan: 'basico',
-    acceptedTerms: false,
-    acceptedPrivacy: false
+    plan: 'basico'
   })
   
   const [errors, setErrors] = useState<FormErrors>({})
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
+  
+  // Estado de validação do slug
   const [slugValidation, setSlugValidation] = useState<SlugValidation>({
     isChecking: false,
     isAvailable: null,
     message: '',
     suggestions: []
   })
-  
-  const [passwordRequirementsMet, setPasswordRequirementsMet] = useState<boolean[]>(
-    new Array(passwordRequirements.length).fill(false)
-  )
 
-  // Gerar slug automaticamente baseado no nome da empresa
-  const generateSlugFromCompanyName = (companyName: string) => {
+  // Função para gerar slug automaticamente
+  const generateSlug = (companyName: string): string => {
     return companyName
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remove acentos
       .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres especiais
-      .replace(/\s+/g, '-') // Substitui espaços por hífens
+      .replace(/\s+/g, '-') // Substitui espaços por hífen
       .replace(/-+/g, '-') // Remove hífens duplicados
-      .replace(/^-|-$/g, '') // Remove hífens no início e fim
-      .slice(0, 30) // Limita a 30 caracteres
+      .replace(/^-|-$/g, '') // Remove hífens do início e fim
+      .substring(0, 30) // Limita a 30 caracteres
   }
 
-  // Validar slug em tempo real
+  // Validação de slug em tempo real
   const validateSlug = async (slug: string) => {
     if (!slug || slug.length < 3) {
       setSlugValidation({
         isChecking: false,
         isAvailable: null,
-        message: '',
+        message: 'Slug deve ter pelo menos 3 caracteres',
         suggestions: []
       })
       return
@@ -98,25 +97,25 @@ export function RegistrationForm() {
     try {
       const response = await fetch(`/api/check-slug?slug=${encodeURIComponent(slug)}`)
       const data = await response.json()
-      
+
       setSlugValidation({
         isChecking: false,
         isAvailable: data.available,
-        message: data.message || (data.available ? 'Nome disponível!' : 'Nome não disponível'),
+        message: data.available ? 'Slug disponível!' : data.message || 'Slug não disponível',
         suggestions: data.suggestions || []
       })
     } catch (error) {
-      devLog.error('[RegistrationForm] Erro ao validar slug:', error)
+      devLog.error('Erro ao validar slug:', error)
       setSlugValidation({
         isChecking: false,
-        isAvailable: null,
+        isAvailable: false,
         message: 'Erro ao verificar disponibilidade',
         suggestions: []
       })
     }
   }
 
-  // Debounce para validação de slug
+  // Debounce para validação do slug
   useEffect(() => {
     const timer = setTimeout(() => {
       if (formData.slug) {
@@ -127,79 +126,70 @@ export function RegistrationForm() {
     return () => clearTimeout(timer)
   }, [formData.slug])
 
-  // Validar requisitos de senha
+  // Atualizar slug automaticamente quando o nome da empresa muda
   useEffect(() => {
-    const newRequirementsMet = passwordRequirements.map(req => 
-      req.regex.test(formData.adminPassword)
-    )
-    setPasswordRequirementsMet(newRequirementsMet)
-  }, [formData.adminPassword])
+    if (formData.companyName && !formData.slug) {
+      const newSlug = generateSlug(formData.companyName)
+      setFormData(prev => ({ ...prev, slug: newSlug }))
+    }
+  }, [formData.companyName, formData.slug])
 
-  // Atualizar campo do formulário
-  const updateField = (field: keyof RegistrationData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  // Validação da senha
+  const getPasswordStrength = (password: string) => {
+    const requirements = passwordRequirements.map(req => ({
+      ...req,
+      met: req.regex.test(password)
+    }))
     
-    // Limpar erro do campo
-    if (errors[field as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
-    }
-    
-    // Auto-gerar slug quando nome da empresa muda
-    if (field === 'companyName' && typeof value === 'string') {
-      const autoSlug = generateSlugFromCompanyName(value)
-      setFormData(prev => ({ ...prev, slug: autoSlug }))
-    }
+    const score = requirements.filter(req => req.met).length
+    return { requirements, score }
   }
 
-  // Validar formulário
+  const passwordStrength = getPasswordStrength(formData.adminPassword)
+
+  // Validação do formulário
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
 
-    // Validar nome da empresa
-    if (!formData.companyName.trim()) {
-      newErrors.companyName = 'Nome da empresa é obrigatório'
-    } else if (formData.companyName.length < 2) {
-      newErrors.companyName = 'Nome deve ter pelo menos 2 caracteres'
+    // Validação por etapa
+    if (currentStep >= 1) {
+      if (!formData.companyName.trim()) {
+        newErrors.companyName = 'Nome da empresa é obrigatório'
+      }
+      
+      if (!formData.slug.trim()) {
+        newErrors.slug = 'Slug é obrigatório'
+      } else if (!slugValidation.isAvailable) {
+        newErrors.slug = 'Slug não está disponível'
+      }
     }
 
-    // Validar slug
-    if (!formData.slug.trim()) {
-      newErrors.slug = 'Nome da empresa (slug) é obrigatório'
-    } else if (formData.slug.length < 3) {
-      newErrors.slug = 'Slug deve ter pelo menos 3 caracteres'
-    } else if (slugValidation.isAvailable === false) {
-      newErrors.slug = 'Este nome não está disponível'
+    if (currentStep >= 2) {
+      if (!formData.adminName.trim()) {
+        newErrors.adminName = 'Nome do administrador é obrigatório'
+      }
+      
+      if (!formData.adminEmail.trim()) {
+        newErrors.adminEmail = 'Email é obrigatório'
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) {
+        newErrors.adminEmail = 'Email inválido'
+      }
+      
+      if (!formData.adminPassword) {
+        newErrors.adminPassword = 'Senha é obrigatória'
+      } else if (passwordStrength.score < 5) {
+        newErrors.adminPassword = 'Senha não atende aos requisitos'
+      }
     }
 
-    // Validar nome do admin
-    if (!formData.adminName.trim()) {
-      newErrors.adminName = 'Nome do administrador é obrigatório'
-    } else if (formData.adminName.length < 2) {
-      newErrors.adminName = 'Nome deve ter pelo menos 2 caracteres'
-    }
-
-    // Validar email
-    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
-    if (!formData.adminEmail.trim()) {
-      newErrors.adminEmail = 'Email é obrigatório'
-    } else if (!emailRegex.test(formData.adminEmail)) {
-      newErrors.adminEmail = 'Email inválido'
-    }
-
-    // Validar senha
-    if (!formData.adminPassword) {
-      newErrors.adminPassword = 'Senha é obrigatória'
-    } else if (!passwordRequirementsMet.every(met => met)) {
-      newErrors.adminPassword = 'Senha não atende aos requisitos'
-    }
-
-    // Validar termos
-    if (!formData.acceptedTerms) {
-      newErrors.acceptedTerms = 'Você deve aceitar os termos de uso'
-    }
-
-    if (!formData.acceptedPrivacy) {
-      newErrors.acceptedPrivacy = 'Você deve aceitar a política de privacidade'
+    if (currentStep >= 3) {
+      if (!acceptedTerms) {
+        newErrors.acceptedTerms = 'Você deve aceitar os termos de uso'
+      }
+      
+      if (!acceptedPrivacy) {
+        newErrors.acceptedPrivacy = 'Você deve aceitar a política de privacidade'
+      }
     }
 
     setErrors(newErrors)
@@ -208,86 +198,74 @@ export function RegistrationForm() {
 
   // Próximo passo
   const nextStep = () => {
-    if (currentStep === 1) {
-      // Validar dados da empresa
-      const companyErrors: FormErrors = {}
-      
-      if (!formData.companyName.trim()) {
-        companyErrors.companyName = 'Nome da empresa é obrigatório'
-      }
-      
-      if (!formData.slug.trim()) {
-        companyErrors.slug = 'Nome da empresa (slug) é obrigatório'
-      } else if (slugValidation.isAvailable === false) {
-        companyErrors.slug = 'Este nome não está disponível'
-      }
-
-      if (Object.keys(companyErrors).length > 0) {
-        setErrors(companyErrors)
-        return
-      }
-    }
-
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1)
+    if (validateForm()) {
+      setCurrentStep(prev => Math.min(prev + 1, 3))
     }
   }
 
   // Passo anterior
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
+    setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
-  // Submeter formulário
+  // Submissão do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {
-      toast({
-        title: "Erro no formulário",
-        description: "Por favor, corrija os erros antes de continuar.",
-        variant: "destructive",
-      })
       return
     }
 
     setIsSubmitting(true)
+    
+    // Log visível no console do navegador
+    console.log('🚀 INICIANDO REGISTRO DE ORGANIZAÇÃO', {
+      companyName: formData.companyName,
+      slug: formData.slug,
+      plan: formData.plan,
+      timestamp: new Date().toISOString()
+    })
+    
+    registrationLogger.log('FORM_SUBMIT', 'Usuário iniciou submissão do formulário', {
+      companyName: formData.companyName,
+      slug: formData.slug,
+      plan: formData.plan
+    })
 
     try {
-      devLog.log('[RegistrationForm] Iniciando registro:', {
-        companyName: formData.companyName,
-        slug: formData.slug,
-        plan: formData.plan
-      })
-
       const result = await registerOrganization(formData)
 
       if (result.success) {
+        console.log('✅ REGISTRO CONCLUÍDO COM SUCESSO!', result)
+        registrationLogger.log('FORM_SUCCESS', 'Registro concluído com sucesso', result)
+        
         toast({
-          title: "Conta criada com sucesso!",
-          description: "Redirecionando para sua área administrativa...",
+          title: "Sucesso!",
+          description: result.message,
         })
 
-        // Aguardar um pouco para mostrar o toast
-        setTimeout(() => {
-          if (result.redirectUrl) {
-            window.location.href = result.redirectUrl
-          }
-        }, 2000)
+        // Redirecionar para o tenant criado
+        if (result.redirectUrl) {
+          window.location.href = result.redirectUrl
+        }
       } else {
+        console.error('❌ ERRO NO REGISTRO:', result)
+        registrationLogger.error('FORM_ERROR', 'Erro retornado pela função de registro', result)
+        
         toast({
-          title: "Erro ao criar conta",
-          description: result.message || "Tente novamente em alguns instantes.",
+          title: "Erro",
+          description: result.message || 'Erro ao criar organização',
           variant: "destructive",
         })
       }
     } catch (error) {
-      devLog.error('[RegistrationForm] Erro inesperado:', error)
+      console.error('❌ ERRO INESPERADO NO REGISTRO:', error)
+      registrationLogger.error('FORM_EXCEPTION', 'Erro inesperado na submissão do formulário', error)
+      devLog.error('Erro no registro:', error)
+      
       toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        title: "Erro",
+        description: 'Erro inesperado. Tente novamente.',
         variant: "destructive",
       })
     } finally {
@@ -295,430 +273,382 @@ export function RegistrationForm() {
     }
   }
 
-  return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        {/* Header com progresso */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-white">
-              Criar Conta
-            </h1>
-            <div className="text-blue-100 text-sm">
-              Passo {currentStep} de 3
+  // Renderização do formulário por etapas
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="companyName" className="text-sm font-medium text-gray-700">Nome da Empresa *</Label>
+              <Input
+                id="companyName"
+                value={formData.companyName}
+                onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                placeholder="Ex: Solar Tech Energia"
+                className={`mt-1 h-12 ${errors.companyName ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+              />
+              {errors.companyName && (
+                <p className="text-sm text-red-500 mt-1">{errors.companyName}</p>
+              )}
             </div>
-          </div>
-          
-          {/* Barra de progresso */}
-          <div className="w-full bg-blue-500 rounded-full h-2">
-            <div 
-              className="bg-white h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / 3) * 100}%` }}
-            />
-          </div>
-        </div>
 
-        <form onSubmit={handleSubmit} className="p-8">
-          {/* Passo 1: Dados da Empresa */}
-          {currentStep === 1 && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  Dados da Empresa
-                </h2>
-                <p className="text-gray-600">
-                  Vamos começar com as informações básicas da sua empresa
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="companyName">Nome da Empresa *</Label>
-                <Input
-                  id="companyName"
-                  type="text"
-                  value={formData.companyName}
-                  onChange={(e) => updateField('companyName', e.target.value)}
-                  className={errors.companyName ? 'border-red-500' : ''}
-                  placeholder="Ex: Solar Tech Energia"
-                  maxLength={100}
-                />
-                {errors.companyName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="slug">Nome da Empresa (URL) *</Label>
-                <div className="relative">
-                  <Input
-                    id="slug"
-                    type="text"
-                    value={formData.slug}
-                    onChange={(e) => updateField('slug', e.target.value.toLowerCase())}
-                    className={errors.slug ? 'border-red-500' : slugValidation.isAvailable === true ? 'border-green-500' : ''}
-                    placeholder="solar-tech-energia"
-                    maxLength={30}
-                  />
-                  
-                  {/* Indicador de validação */}
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    {slugValidation.isChecking && (
-                      <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
-                    )}
-                    {!slugValidation.isChecking && slugValidation.isAvailable === true && (
-                      <Check className="w-4 h-4 text-green-500" />
-                    )}
-                    {!slugValidation.isChecking && slugValidation.isAvailable === false && (
-                      <X className="w-4 h-4 text-red-500" />
-                    )}
-                  </div>
+            <div>
+              <Label htmlFor="slug" className="text-sm font-medium text-gray-700">Nome da Empresa (URL) *</Label>
+              <Input
+                id="slug"
+                value={formData.slug}
+                onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                placeholder="solar-tech-energia"
+                className={`mt-1 h-12 ${errors.slug ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Sua empresa será acessível em: <strong>{formData.slug || 'teste'}.gerenciamentofotovoltaico.com.br</strong>
+              </p>
+              
+              {/* Status do slug */}
+              {slugValidation.isChecking && (
+                <div className="flex items-center mt-2 text-sm text-gray-500">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Verificando disponibilidade...
                 </div>
-                
-                <div className="text-sm text-gray-600 mt-1">
-                  Sua empresa será acessível em: <strong>{formData.slug || 'sua-empresa'}.gerenciamentofotovoltaico.com.br</strong>
+              )}
+              
+              {slugValidation.isAvailable === true && (
+                <div className="flex items-center mt-2 text-sm text-green-600">
+                  <Check className="w-4 h-4 mr-2" />
+                  Nome disponível!
                 </div>
-                
-                {slugValidation.message && (
-                  <p className={`text-sm mt-1 ${slugValidation.isAvailable ? 'text-green-600' : 'text-red-500'}`}>
+              )}
+              
+              {slugValidation.isAvailable === false && (
+                <div className="mt-2">
+                  <div className="flex items-center text-sm text-red-500">
+                    <X className="w-4 h-4 mr-2" />
                     {slugValidation.message}
-                  </p>
-                )}
-                
-                {slugValidation.suggestions.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600 mb-1">Sugestões:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {slugValidation.suggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => updateField('slug', suggestion)}
-                          className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
                   </div>
-                )}
-                
-                {errors.slug && (
-                  <p className="text-red-500 text-sm mt-1">{errors.slug}</p>
-                )}
-              </div>
-
-              {/* Escolha do plano */}
-              <div>
-                <Label>Escolha seu Plano *</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  {/* Plano Básico */}
-                  <div 
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      formData.plan === 'basico' 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => updateField('plan', 'basico')}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className={`w-4 h-4 rounded-full border-2 mt-1 ${
-                        formData.plan === 'basico' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
-                      }`}>
-                        {formData.plan === 'basico' && (
-                          <div className="w-2 h-2 bg-white rounded-full m-0.5" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">Básico</h3>
-                        <p className="text-2xl font-bold text-blue-600 my-1">R$ 299<span className="text-sm font-normal text-gray-600">/mês</span></p>
-                        <ul className="text-sm text-gray-600 space-y-1">
-                          <li>• 30 projetos</li>
-                          <li>• 3GB de armazenamento</li>
-                          <li>• 10 usuários</li>
-                          <li>• 100 clientes</li>
-                          <li>• Suporte por email</li>
-                        </ul>
+                  {slugValidation.suggestions.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600">Sugestões:</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {slugValidation.suggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, slug: suggestion }))}
+                            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Plano Profissional */}
-                  <div 
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all relative ${
-                      formData.plan === 'profissional' 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => updateField('plan', 'profissional')}
-                  >
-                    <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-                      POPULAR
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className={`w-4 h-4 rounded-full border-2 mt-1 ${
-                        formData.plan === 'profissional' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
-                      }`}>
-                        {formData.plan === 'profissional' && (
-                          <div className="w-2 h-2 bg-white rounded-full m-0.5" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">Profissional</h3>
-                        <p className="text-2xl font-bold text-blue-600 my-1">R$ 399<span className="text-sm font-normal text-gray-600">/mês</span></p>
-                        <ul className="text-sm text-gray-600 space-y-1">
-                          <li>• 100 projetos</li>
-                          <li>• 10GB de armazenamento</li>
-                          <li>• 50 usuários</li>
-                          <li>• 1.000 clientes</li>
-                          <li>• Suporte prioritário</li>
-                          <li>• Relatórios avançados</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </div>
+              )}
+              
+              {errors.slug && (
+                <p className="text-sm text-red-500 mt-1">{errors.slug}</p>
+              )}
+            </div>
 
-              <div className="flex justify-end">
-                <Button 
-                  type="button" 
-                  onClick={nextStep}
-                  disabled={!formData.companyName || !formData.slug || slugValidation.isAvailable !== true}
+            {/* Seleção de planos no primeiro passo */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Escolha seu Plano *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div 
+                  className={`border-2 rounded-lg p-6 cursor-pointer transition-all duration-200 ${
+                    formData.plan === 'basico' 
+                      ? 'border-blue-500 bg-blue-50 shadow-md' 
+                      : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                  }`}
+                  onClick={() => setFormData(prev => ({ ...prev, plan: 'basico' }))}
                 >
-                  Continuar
-                </Button>
+                  <div className="flex items-center mb-3">
+                    <input
+                      type="radio"
+                      id="plan-basico"
+                      name="plan"
+                      value="basico"
+                      checked={formData.plan === 'basico'}
+                      onChange={() => setFormData(prev => ({ ...prev, plan: 'basico' }))}
+                      className="mr-3 w-4 h-4 text-blue-600"
+                    />
+                    <label htmlFor="plan-basico" className="font-semibold text-lg cursor-pointer">Básico</label>
+                  </div>
+                  <div className="mb-4">
+                    <span className="text-2xl font-bold text-blue-600">R$ 299</span>
+                    <span className="text-gray-600">/mês</span>
+                  </div>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• 30 projetos</li>
+                    <li>• 3GB de armazenamento</li>
+                    <li>• 10 usuários</li>
+                    <li>• 100 clientes</li>
+                    <li>• Suporte por email</li>
+                  </ul>
+                </div>
+
+                <div 
+                  className={`border-2 rounded-lg p-6 cursor-pointer transition-all duration-200 relative ${
+                    formData.plan === 'profissional' 
+                      ? 'border-blue-500 bg-blue-50 shadow-md' 
+                      : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                  }`}
+                  onClick={() => setFormData(prev => ({ ...prev, plan: 'profissional' }))}
+                >
+                  {/* Badge Popular */}
+                  <div className="absolute -top-3 right-4">
+                    <span className="bg-orange-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      POPULAR
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center mb-3">
+                    <input
+                      type="radio"
+                      id="plan-profissional"
+                      name="plan"
+                      value="profissional"
+                      checked={formData.plan === 'profissional'}
+                      onChange={() => setFormData(prev => ({ ...prev, plan: 'profissional' }))}
+                      className="mr-3 w-4 h-4 text-blue-600"
+                    />
+                    <label htmlFor="plan-profissional" className="font-semibold text-lg cursor-pointer">Profissional</label>
+                  </div>
+                  <div className="mb-4">
+                    <span className="text-2xl font-bold text-blue-600">R$ 399</span>
+                    <span className="text-gray-600">/mês</span>
+                  </div>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• 100 projetos</li>
+                    <li>• 10GB de armazenamento</li>
+                    <li>• 50 usuários</li>
+                    <li>• 1.000 clientes</li>
+                    <li>• Suporte prioritário</li>
+                    <li>• Relatórios avançados</li>
+                  </ul>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        )
 
-          {/* Passo 2: Dados do Administrador */}
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  Dados do Administrador
-                </h2>
-                <p className="text-gray-600">
-                  Agora vamos criar sua conta de administrador
-                </p>
-              </div>
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="adminName" className="text-sm font-medium text-gray-700">Nome Completo *</Label>
+              <Input
+                id="adminName"
+                value={formData.adminName}
+                onChange={(e) => setFormData(prev => ({ ...prev, adminName: e.target.value }))}
+                placeholder="João Silva"
+                className={`mt-1 h-12 ${errors.adminName ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+              />
+              {errors.adminName && (
+                <p className="text-sm text-red-500 mt-1">{errors.adminName}</p>
+              )}
+            </div>
 
-              <div>
-                <Label htmlFor="adminName">Nome Completo *</Label>
+            <div>
+              <Label htmlFor="adminEmail" className="text-sm font-medium text-gray-700">Email *</Label>
+              <Input
+                id="adminEmail"
+                type="email"
+                value={formData.adminEmail}
+                onChange={(e) => setFormData(prev => ({ ...prev, adminEmail: e.target.value }))}
+                placeholder="joao@empresa.com"
+                className={`mt-1 h-12 ${errors.adminEmail ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+              />
+              {errors.adminEmail && (
+                <p className="text-sm text-red-500 mt-1">{errors.adminEmail}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="adminPassword" className="text-sm font-medium text-gray-700">Senha *</Label>
+              <div className="relative">
                 <Input
-                  id="adminName"
-                  type="text"
-                  value={formData.adminName}
-                  onChange={(e) => updateField('adminName', e.target.value)}
-                  className={errors.adminName ? 'border-red-500' : ''}
-                  placeholder="João Silva"
-                  maxLength={100}
+                  id="adminPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.adminPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, adminPassword: e.target.value }))}
+                  placeholder="Digite uma senha forte"
+                  className={`mt-1 h-12 ${errors.adminPassword ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
                 />
-                {errors.adminName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.adminName}</p>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-
-              <div>
-                <Label htmlFor="adminEmail">Email *</Label>
-                <Input
-                  id="adminEmail"
-                  type="email"
-                  value={formData.adminEmail}
-                  onChange={(e) => updateField('adminEmail', e.target.value)}
-                  className={errors.adminEmail ? 'border-red-500' : ''}
-                  placeholder="joao@empresa.com"
-                />
-                {errors.adminEmail && (
-                  <p className="text-red-500 text-sm mt-1">{errors.adminEmail}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="adminPassword">Senha *</Label>
-                <div className="relative">
-                  <Input
-                    id="adminPassword"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.adminPassword}
-                    onChange={(e) => updateField('adminPassword', e.target.value)}
-                    className={errors.adminPassword ? 'border-red-500' : ''}
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                
-                {/* Requisitos de senha */}
+              
+              {/* Requisitos da senha */}
+              {formData.adminPassword && (
                 <div className="mt-2 space-y-1">
-                  {passwordRequirements.map((req, index) => (
-                    <div key={index} className="flex items-center space-x-2 text-sm">
-                      {passwordRequirementsMet[index] ? (
-                        <Check className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <X className="w-4 h-4 text-red-500" />
-                      )}
-                      <span className={passwordRequirementsMet[index] ? 'text-green-600' : 'text-red-600'}>
-                        {req.message}
-                      </span>
+                  {passwordStrength.requirements.map((req, index) => (
+                    <div key={index} className={`flex items-center text-sm ${req.met ? 'text-green-600' : 'text-red-500'}`}>
+                      <X className="w-3 h-3 mr-2" />
+                      {req.message}
                     </div>
                   ))}
                 </div>
-                
-                {errors.adminPassword && (
-                  <p className="text-red-500 text-sm mt-1">{errors.adminPassword}</p>
-                )}
+              )}
+              
+              {errors.adminPassword && (
+                <p className="text-sm text-red-500 mt-1">{errors.adminPassword}</p>
+              )}
+            </div>
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            {/* Revisão dos dados */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800">Confirme seus dados</h3>
+              
+              {/* Dados da empresa */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-700 mb-2">Informações da Empresa</h4>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Nome:</span> {formData.companyName}</p>
+                  <p><span className="font-medium">Subdomínio:</span> {formData.slug}.gerenciamentofotovoltaico.com.br</p>
+                  <p><span className="font-medium">Plano:</span> {formData.plan === 'basico' ? 'Básico (R$ 299/mês)' : 'Profissional (R$ 399/mês)'}</p>
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={prevStep}
-                >
-                  Voltar
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={nextStep}
-                  disabled={!formData.adminName || !formData.adminEmail || !passwordRequirementsMet.every(met => met)}
-                >
-                  Continuar
-                </Button>
+              {/* Dados do administrador */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-700 mb-2">Administrador</h4>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Nome:</span> {formData.adminName}</p>
+                  <p><span className="font-medium">Email:</span> {formData.adminEmail}</p>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Passo 3: Confirmação e Termos */}
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  Confirmação
-                </h2>
-                <p className="text-gray-600">
-                  Revise os dados e aceite os termos para finalizar
-                </p>
+            {/* Termos e condições */}
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                />
+                <label htmlFor="terms" className="text-sm text-gray-600 leading-5">
+                  Aceito os <a href="/legal/termos-de-uso" target="_blank" className="text-blue-600 hover:underline">termos de uso</a> *
+                </label>
               </div>
+              {errors.acceptedTerms && (
+                <p className="text-sm text-red-500">{errors.acceptedTerms}</p>
+              )}
 
-              {/* Resumo dos dados */}
-              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                <h3 className="font-semibold text-gray-900">Resumo da Conta</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Empresa:</span>
-                    <p className="font-medium">{formData.companyName}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">URL:</span>
-                    <p className="font-medium">{formData.slug}.gerenciamentofotovoltaico.com.br</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Administrador:</span>
-                    <p className="font-medium">{formData.adminName}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Email:</span>
-                    <p className="font-medium">{formData.adminEmail}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Plano:</span>
-                    <p className="font-medium capitalize">{formData.plan}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Trial:</span>
-                    <p className="font-medium text-green-600">7 dias grátis</p>
-                  </div>
-                </div>
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="privacy"
+                  checked={acceptedPrivacy}
+                  onCheckedChange={(checked) => setAcceptedPrivacy(checked as boolean)}
+                />
+                <label htmlFor="privacy" className="text-sm text-gray-600 leading-5">
+                  Aceito a <a href="/legal/politica-de-privacidade" target="_blank" className="text-blue-600 hover:underline">política de privacidade</a> *
+                </label>
               </div>
-
-              {/* Termos e condições */}
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="acceptedTerms"
-                    checked={formData.acceptedTerms}
-                    onCheckedChange={(checked) => updateField('acceptedTerms', !!checked)}
-                  />
-                  <label htmlFor="acceptedTerms" className="text-sm text-gray-700 leading-5">
-                    Eu li e aceito os{' '}
-                    <a href="#" className="text-blue-600 hover:underline">
-                      Termos de Uso
-                    </a>{' '}
-                    do Sistema de Gerenciamento Fotovoltaico
-                  </label>
-                </div>
-                {errors.acceptedTerms && (
-                  <p className="text-red-500 text-sm ml-6">{errors.acceptedTerms}</p>
-                )}
-
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="acceptedPrivacy"
-                    checked={formData.acceptedPrivacy}
-                    onCheckedChange={(checked) => updateField('acceptedPrivacy', !!checked)}
-                  />
-                  <label htmlFor="acceptedPrivacy" className="text-sm text-gray-700 leading-5">
-                    Eu li e aceito a{' '}
-                    <a href="#" className="text-blue-600 hover:underline">
-                      Política de Privacidade
-                    </a>{' '}
-                    do Sistema de Gerenciamento Fotovoltaico
-                  </label>
-                </div>
-                {errors.acceptedPrivacy && (
-                  <p className="text-red-500 text-sm ml-6">{errors.acceptedPrivacy}</p>
-                )}
-              </div>
-
-              {/* Informações do trial */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
-                    <Check className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-blue-900 mb-1">Trial Gratuito de 7 Dias</h4>
-                    <p className="text-sm text-blue-700">
-                      Você terá acesso completo ao plano {formData.plan === 'basico' ? 'Básico' : 'Profissional'} por 7 dias, 
-                      sem necessidade de cartão de crédito. Após o período, você pode fazer upgrade para continuar usando.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={prevStep}
-                >
-                  Voltar
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={!formData.acceptedTerms || !formData.acceptedPrivacy || isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Criando conta...
-                    </>
-                  ) : (
-                    'Criar Conta'
-                  )}
-                </Button>
-              </div>
+              {errors.acceptedPrivacy && (
+                <p className="text-sm text-red-500">{errors.acceptedPrivacy}</p>
+              )}
             </div>
-          )}
-        </form>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-0">
+      {/* Header azul com progresso */}
+      <div className="bg-blue-600 text-white p-4 rounded-t-lg mb-0">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-semibold">Criar Conta</h2>
+          <p className="text-blue-100 text-sm">Passo {currentStep} de 3</p>
+        </div>
+        
+        {/* Barra de progresso */}
+        <div className="w-full bg-blue-500 rounded-full h-2">
+          <div 
+            className="bg-white h-2 rounded-full transition-all duration-300" 
+            style={{ width: `${(currentStep / 3) * 100}%` }}
+          />
+        </div>
       </div>
-    </div>
+
+      {/* Conteúdo da etapa */}
+      <div className="px-6 pb-6">
+        {/* Título da seção */}
+        <div className="mb-6 pt-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {currentStep === 1 && 'Dados da Empresa'}
+            {currentStep === 2 && 'Dados do Administrador'}
+            {currentStep === 3 && 'Confirmação'}
+          </h3>
+          <p className="text-gray-600 text-sm mt-1">
+            {currentStep === 1 && 'Vamos começar com as informações básicas da sua empresa'}
+            {currentStep === 2 && 'Agora vamos criar sua conta de administrador'}
+            {currentStep === 3 && 'Revise os dados e confirme o cadastro'}
+          </p>
+        </div>
+
+        {/* Conteúdo da etapa */}
+        {renderStep()}
+
+        {/* Botões de ação */}
+        <div className="flex justify-between pt-6">
+          {currentStep > 1 && (
+            <Button 
+              type="button" 
+              onClick={prevStep}
+              variant="outline"
+              className="px-8 py-2 text-gray-700 border-gray-300 hover:bg-gray-50"
+            >
+              Voltar
+            </Button>
+          )}
+          
+          <div className={currentStep === 1 ? 'ml-auto' : ''}>
+            {currentStep < 3 ? (
+              <Button 
+                type="button" 
+                onClick={nextStep}
+                disabled={currentStep === 1 && (!formData.companyName || !formData.slug || !slugValidation.isAvailable)}
+                className="bg-gray-800 hover:bg-gray-900 text-white px-8 py-2 rounded-md font-medium"
+              >
+                Continuar
+              </Button>
+            ) : (
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !acceptedTerms || !acceptedPrivacy}
+                className="bg-gray-800 hover:bg-gray-900 text-white px-8 py-2 rounded-md font-medium min-w-32"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  'Criar Conta'
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </form>
   )
 }

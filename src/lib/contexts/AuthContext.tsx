@@ -68,10 +68,9 @@ const hasSessionTimedOut = (): boolean => {
 // Tipagem para os dados do usuário que queremos expor, incluindo o perfil da tabela public.users
 export interface UserProfile {
   id: string;
-  full_name?: string;
+  name?: string;
   email?: string;
-  role?: 'cliente' | 'admin' | 'superadmin'; // Adicione outros papéis se necessário
-  // Adicione outros campos do seu perfil aqui
+  role?: 'cliente' | 'admin' | 'superadmin';
 }
 
 export interface AuthUser extends SupabaseUser {
@@ -238,29 +237,38 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       const profile = await fetchUserProfileWithRecovery(
         // Operação principal: buscar do banco
         async () => {
-          logger.debug('Fetching profile from database', { userId }, 'Auth');
+          logger.debug('Fetching profile from API', { userId }, 'Auth');
           
-          const { data, error } = await supabaseInstance
-            .from('users')
-            .select('id, full_name, email, role')
-            .eq('id', userId)
-            .single();
+          // Usar nossa API em vez de consulta direta ao Supabase
+          const response = await fetch(`/api/user/profile?userId=${encodeURIComponent(userId)}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-          if (error) {
-            logger.error('Database query failed', { userId, error: error.message }, 'Auth');
-            throw new Error(`Database error: ${error.message}`);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            logger.error('API profile request failed', { 
+              userId, 
+              status: response.status, 
+              error: errorData.message || 'Unknown error' 
+            }, 'Auth');
+            throw new Error(`API error: ${errorData.message || 'Failed to fetch profile'}`);
           }
 
+          const data = await response.json();
+
           if (!data) {
-            logger.warn('User profile not found in database', { userId }, 'Auth');
+            logger.warn('User profile not found via API', { userId }, 'Auth');
             throw new Error('Profile not found');
           }
 
           const userProfile = data as UserProfile;
-          logger.auth.profileFetch(userId, true, 'database', { profile: userProfile });
+          logger.auth.profileFetch(userId, true, 'api', { profile: userProfile });
           
-          // ✅ PHASE 1: Cachear resultado do banco
-          profileCache.setProfile(userId, userProfile, 'database');
+          // ✅ PHASE 1: Cachear resultado da API
+          profileCache.setProfile(userId, userProfile, 'api');
           
           return userProfile;
         },
@@ -268,9 +276,9 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         session?.user && session.user.id === userId ? {
           id: userId,
           email: session.user.email || '',
-          full_name: session.user.user_metadata?.full_name || 
-                    session.user.user_metadata?.name || 
-                    session.user.email?.split('@')[0] || 'Usuário',
+          name: session.user.user_metadata?.name || 
+                session.user.user_metadata?.full_name || 
+                session.user.email?.split('@')[0] || 'Usuário',
           role: session.user.user_metadata?.role || 'cliente'
         } : null,
         userId
@@ -278,7 +286,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
       if (profile) {
         // ✅ PHASE 1: Cachear resultado final (seja do banco ou fallback)
-        const source = profile.full_name?.includes('@') ? 'session' : 'database';
+        const source = (profile.name || '').includes('@') ? 'session' : 'database';
         profileCache.setProfile(userId, profile, source);
         logger.auth.profileFetch(userId, true, source, { profile });
         return profile;
@@ -697,11 +705,15 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     let signUpParams: SignUpWithPasswordCredentials;
 
     if ('email' in credentials && credentials.email) {
+      const emailRedirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/confirmar-email`
+        : undefined;
       signUpParams = {
         email: credentials.email,
         password: credentials.password,
         options: {
           data: credentials.options?.data, // Manter apenas os dados do usuário
+          emailRedirectTo
         }
       };
       logger.debug('Configured for email signup', { email: credentials.email }, 'Auth');
@@ -734,6 +746,23 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     }
 
     if (signUpData.user) {
+      // Pré-cadastro no banco com status 'pending'
+      try {
+        const payload = {
+          id: signUpData.user.id,
+          email: signUpData.user.email,
+          name: signUpData.user.user_metadata?.name || signUpData.user.user_metadata?.full_name || signUpData.user.email?.split('@')[0],
+          tenant_slug: signUpParams.options?.data && (signUpParams.options.data as any).tenant_slug,
+          role: (signUpParams.options?.data as any)?.role || 'cliente'
+        };
+        await fetch('/api/users/pre-register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e: any) {
+        logger.warn('Pre-register request failed (non-blocking)', { error: e?.message }, 'Auth');
+      }
       // ✅ CORREÇÃO: Para fluxo SaaS seguro, não manter sessão ativa após cadastro
       // O usuário deve confirmar e-mail e fazer login ativo posteriormente
       logger.info('Sign-up successful, clearing session for email confirmation flow', { userId: signUpData.user.id }, 'Auth');

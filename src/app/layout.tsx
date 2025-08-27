@@ -62,7 +62,9 @@ export default function RootLayout({
       <head>
         {/* Forçar o navegador a usar nosso ícone (quadrado com raio amarelo) */}
         <link rel="icon" href="/lightning-icon.svg" type="image/svg+xml" />
+        {/* Evitar 404 de /favicon.ico em subdomínios: usar o mesmo ícone padrão */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="shortcut icon" href="/lightning-icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/lightning-icon.svg" />
         
         {/* Garantir que a Apple não aplique seu estilo */}

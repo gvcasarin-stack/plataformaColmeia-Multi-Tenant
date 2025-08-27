@@ -1,19 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
 
 export async function GET(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Financial Transactions] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
     
-    devLog.log('[API Financial Transactions] Buscando transações:', { month, year });
+    devLog.log('[API Financial Transactions] Buscando transações:', { month, year, tenantId });
     
+    // ✅ SEGURANÇA: Filtrar transações por tenant
     let query = supabase
       .from('financial_transactions')
       .select('*')
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Filtrar por tenant
       .order('date', { ascending: false });
     
     if (month && year) {
@@ -38,6 +53,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Financial Transactions] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const body = await request.json();
     
@@ -83,13 +110,14 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
     
-    // Remover campos month e year que não existem na tabela
+    // ✅ SEGURANÇA: Incluir tenant_id na transação
     const transactionData = {
       type,
       category,
       description,
       amount: parseFloat(amount),
-      date
+      date,
+      tenant_id: tenantId  // ✅ CRÍTICO: Associar transação ao tenant
     };
     
     devLog.log('[API Financial Transactions] Dados para inserção:', transactionData);
@@ -126,6 +154,18 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Financial Transactions] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const body = await request.json();
     
@@ -140,6 +180,7 @@ export async function PUT(request: NextRequest) {
       );
     }
     
+    // ✅ SEGURANÇA: Atualizar apenas transações do tenant atual
     const { data, error } = await supabase
       .from('financial_transactions')
       .update({
@@ -148,6 +189,7 @@ export async function PUT(request: NextRequest) {
         category
       })
       .eq('id', id)
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
       .select()
       .single();
     
@@ -167,6 +209,18 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Financial Transactions] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -177,10 +231,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
     
+    // ✅ SEGURANÇA: Deletar apenas transações do tenant atual
     const { error } = await supabase
       .from('financial_transactions')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('tenant_id', tenantId);  // ✅ CRÍTICO: Verificar tenant
     
     if (error) {
       devLog.error('[API Financial Transactions] Erro ao deletar:', error);

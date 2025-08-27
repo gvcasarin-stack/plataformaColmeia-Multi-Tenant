@@ -105,7 +105,7 @@ export async function getClientCount(): Promise<number> {
     const { count, error } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .eq('role', 'cliente'); // Usar role padrão do Supabase
+      .eq('role', 'client'); // Usar role padrão do Supabase
     
     if (error) {
       logger.error('[ClientService] [SUPABASE] Erro ao obter contagem de clientes:', error);
@@ -162,8 +162,8 @@ export async function getClients(): Promise<any[]> {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('role', 'cliente') // Usar role padrão do Supabase
-      .eq('pending_approval', false) // Apenas clientes aprovados
+      .eq('role', 'client') // Usar role padrão do Supabase
+      .eq('status', 'active') // Apenas clientes aprovados/ativos
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -303,7 +303,7 @@ export async function getPaginatedClients(
     let query = supabase
       .from('users')
       .select('*')
-      .eq('role', 'cliente') // ✅ Usar role padrão do Supabase
+      .eq('role', 'client') // ✅ Usar role padrão do Supabase
       .order('created_at', { ascending: false })
       .limit(pageSize + 1); // +1 para verificar se há próxima página
     

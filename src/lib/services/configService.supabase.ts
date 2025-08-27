@@ -44,59 +44,27 @@ export async function getConfiguracaoGeral(): Promise<ConfiguracaoSistema | null
   try {
     logger.info('[ConfigService] Buscando configurações na tabela configs');
 
-    const supabase = createSupabaseBrowserClient();
-    
-    // Buscar configurações específicas
-    const { data, error } = await supabase
-      .from('configs')
-      .select('key, value')
-      .in('key', [
-        'checklist_message',
-        'tabela_precos', 
-        'faixas_potencia',
-        'dados_bancarios'
-      ])
-      .eq('is_active', true);
-
-    if (error) {
-      // ✅ PRODUÇÃO - Tratar caso tabela não existe
-      if (error.code === '42P01') {
-        logger.warn('[ConfigService] [SUPABASE] Tabela configs não existe, retornando configuração padrão');
-        return await criarConfiguracaoPadrao();
-      }
-      
-      logger.error('[ConfigService] Erro ao buscar configurações:', error);
-      // ✅ PRODUÇÃO - Retornar configuração padrão em caso de erro
+    // ✅ PRODUÇÃO: usar API interna que já aplica x-tenant-id e Service Role
+    const response = await fetch('/api/admin/config', { method: 'GET' });
+    if (!response.ok) {
+      logger.error('[ConfigService] Erro HTTP ao buscar /api/admin/config:', response.status);
       return await criarConfiguracaoPadrao();
     }
 
-    // Converter dados para formato esperado
+    const json = await response.json();
+    if (!json?.success || !json?.data) {
+      logger.warn('[ConfigService] Resposta sem dados de configuração, usando padrão');
+      return await criarConfiguracaoPadrao();
+    }
+
+    const apiData = json.data as Record<string, any>;
     const config: ConfiguracaoSistema = { id: 'geral' };
-    
-    data?.forEach(item => {
-      switch (item.key) {
-        case 'checklist_message':
-          config.mensagemChecklist = item.value;
-          break;
-        case 'tabela_precos':
-          config.tabelaPrecos = item.value;
-          break;
-        case 'faixas_potencia':
-          config.faixasPotencia = item.value;
-          break;
-        case 'dados_bancarios':
-          config.dadosBancarios = item.value;
-          break;
-      }
-    });
+    if (apiData.checklist_message !== undefined) config.mensagemChecklist = apiData.checklist_message;
+    if (apiData.tabela_precos !== undefined) config.tabelaPrecos = apiData.tabela_precos;
+    if (apiData.faixas_potencia !== undefined) config.faixasPotencia = apiData.faixas_potencia;
+    if (apiData.dados_bancarios !== undefined) config.dadosBancarios = apiData.dados_bancarios;
 
-    // Se não encontrou nenhuma configuração, retornar padrão
-    if (!data || data.length === 0) {
-      logger.info('[ConfigService] Nenhuma configuração encontrada, retornando padrão');
-      return await criarConfiguracaoPadrao();
-    }
-
-    logger.info('[ConfigService] Configurações encontradas na tabela configs');
+    logger.info('[ConfigService] Configurações obtidas via API com sucesso');
     return config;
 
   } catch (error) {

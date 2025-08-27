@@ -28,15 +28,16 @@ export async function POST(request: NextRequest) {
     
     const supabase = createSupabaseServiceRoleClient();
     
-    // 1. Atualizar pending_approval para false e adicionar motivo da rejeição
+    // 1. Rejeitar: definir status='rejected' e motivo
     const { error: updateError } = await supabase
       .from('users')
       .update({ 
-        pending_approval: false,
+        status: 'rejected',
         rejection_reason: reason || 'Solicitação rejeitada',
         updated_at: new Date().toISOString()
       })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .eq('role', 'client');
     
     if (updateError) {
       devLog.error('[API] [Admin] [ClientRequests] [Reject] Erro ao atualizar usuário:', updateError);

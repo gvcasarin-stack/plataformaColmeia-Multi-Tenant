@@ -15,7 +15,7 @@ export async function GET(
     const supabase = createSupabaseServiceRoleClient();
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, full_name, phone, is_company, company_name, cnpj, cpf')
+      .select('id, email, name, phone, status, role')
       .eq('id', userId)
       .single();
 

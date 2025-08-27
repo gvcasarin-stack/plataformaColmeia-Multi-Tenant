@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
       ...body,
       tenant_id: tenantId,  // ✅ CRÍTICO: Sempre inserir tenant_id
       pagamento: 'pendente', // Valor inicial obrigatório
+      name: body.name || `Projeto ${body.nome_cliente_final || body.nomeClienteFinal || 'sem nome'}`, // ✅ ADICIONADO: Campo 'name' obrigatório
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };

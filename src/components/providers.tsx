@@ -46,10 +46,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return (
+  // Em páginas públicas, não inicializar providers que disparam chamadas de sessão/notifications
+  const content = (
     <AuthProvider>
-      <InactivityProvider>
-        <NotificationProvider>
+      {isPublicPage ? (
+        <>
           <LayoutProvider>
             <LoadingProvider 
               defaultTimeout={45000} 
@@ -91,8 +92,56 @@ export function Providers({ children }: { children: React.ReactNode }) {
               </ThemeProvider>
             </LoadingProvider>
           </LayoutProvider>
-        </NotificationProvider>
-      </InactivityProvider>
+        </>
+      ) : (
+        <InactivityProvider>
+          <NotificationProvider>
+            <LayoutProvider>
+              <LoadingProvider 
+                defaultTimeout={45000} 
+                defaultTimeoutMessage="Esta operação está demorando mais que o esperado"
+                defaultTimeoutSubMessage="Você pode tentar novamente ou voltar à página inicial"
+              >
+                <ThemeProvider
+                  attribute="class"
+                  defaultTheme="light"
+                  enableSystem={false}
+                  forcedTheme={isPublicPage ? "light" : undefined}
+                >
+                  {children}
+                  <Toaster />
+                  <HotToaster
+                    position="top-right"
+                    toastOptions={{
+                      duration: 5000,
+                      style: {
+                        background: '#FFF',
+                        color: '#333',
+                      },
+                      success: {
+                        style: {
+                          background: '#ECFDF5',
+                          border: '1px solid #D1FAE5',
+                          color: '#047857',
+                        },
+                      },
+                      error: {
+                        style: {
+                          background: '#FEF2F2',
+                          border: '1px solid #FEE2E2',
+                          color: '#B91C1C',
+                        },
+                      },
+                    }}
+                  />
+                </ThemeProvider>
+              </LoadingProvider>
+            </LayoutProvider>
+          </NotificationProvider>
+        </InactivityProvider>
+      )}
     </AuthProvider>
-  )
-} 
+  );
+
+  return content
+}
