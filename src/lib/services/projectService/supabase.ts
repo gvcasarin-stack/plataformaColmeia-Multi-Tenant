@@ -96,10 +96,23 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
   try {
     logger.debug('[getProjectsByUserId] Buscando projetos do usuário:', userId);
 
+    // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id do usuário primeiro
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData?.tenant_id) {
+      logger.error('[getProjectsByUserId] Erro ao obter tenant do usuário:', userError);
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('projects')
       .select('*')
       .eq('created_by', userId)
+      .eq('tenant_id', userData.tenant_id) // ✅ CRÍTICO: Filtrar por tenant
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -218,6 +231,7 @@ export const subscribeToProject = (
  */
 export const getProjectsWithFilters = async (filters: {
   userId?: string;
+  tenantId?: string;
   status?: string;
   limit?: number;
   offset?: number;
@@ -231,6 +245,11 @@ export const getProjectsWithFilters = async (filters: {
 
     if (filters.userId) {
       query = query.eq('created_by', filters.userId);
+    }
+
+    // ✅ SEGURANÇA MULTI-TENANT: Filtrar por tenant se fornecido
+    if (filters.tenantId) {
+      query = query.eq('tenant_id', filters.tenantId);
     }
 
     if (filters.status) {

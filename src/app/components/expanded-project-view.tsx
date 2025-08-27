@@ -636,7 +636,7 @@ export const ExpandedProjectView = ({
             <span className="bg-white/25 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">{editedProject.status}</span>
             <div className="flex items-center text-xs text-blue-100">
               {/* Ícone de relógio removido anteriormente, manter sem por enquanto */}
-              <span>{`Atualizado ${new Date(editedProject.updatedAt instanceof Timestamp ? editedProject.updatedAt.toDate() : editedProject.updatedAt).toLocaleTimeString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}</span>
+              <span>{`Atualizado ${new Date(editedProject.updatedAt instanceof Date ? editedProject.updatedAt : editedProject.updatedAt).toLocaleTimeString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}</span>
             </div>
       </div>
 

@@ -1722,13 +1722,13 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
     const supabase = createSupabaseServiceRoleClient();
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role')
+      .select('role, tenant_id')
       .eq('id', userId)
       .single();
 
-    if (userError) {
-      logger.error('[getProjectsForUserAction] Error fetching user role:', userError);
-      return { error: 'Erro ao verificar permissões do usuário.' };
+    if (userError || !userData?.tenant_id) {
+      logger.error('[getProjectsForUserAction] Error fetching user data:', userError);
+      return { error: 'Erro ao verificar permissões do usuário ou organização não encontrada.' };
     }
 
     const isAdmin = userData?.role === 'admin' || userData?.role === 'superadmin';
@@ -1737,11 +1737,11 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
     let projectList: Project[];
 
     if (isAdmin) {
-      // ✅ CORRIGIDO - Para admins, buscar TODOS os projetos
-      logger.debug('[getProjectsForUserAction] User is admin, fetching all projects');
-      projectList = await getProjectsWithFilters({ limit: 1000 }); // Buscar todos os projetos
+      // ✅ SEGURANÇA MULTI-TENANT: Para admins, buscar projetos do MESMO TENANT
+      logger.debug('[getProjectsForUserAction] User is admin, fetching tenant projects');
+      projectList = await getProjectsWithFilters({ tenantId: userData.tenant_id, limit: 1000 });
     } else {
-      // ✅ CORRIGIDO - Para clientes, buscar apenas projetos do usuário
+      // ✅ SEGURANÇA MULTI-TENANT: Para clientes, buscar projetos do usuário no MESMO TENANT
       logger.debug('[getProjectsForUserAction] User is client, fetching user projects only');
       projectList = await getProjectsByUserId(userId);
     }
