@@ -222,7 +222,7 @@ export const getProjects = async (options: GetProjectsOptions = {}): Promise<Pro
         const project: Project = {
           id: doc.id,
           userId: docData.userId || '', 
-          name: docData.name || '', 
+          nome_cliente_final: docData.nome_cliente_final || docData.name || '', 
           number: docData.numero_projeto || docData.number || docData.projectNumber || 'N/A',
           empresaIntegradora: docData.empresa_integradora || docData.empresaIntegradora || 'N/A',
           nomeClienteFinal: docData.nome_cliente_final || docData.nomeClienteFinal || 'N/A',

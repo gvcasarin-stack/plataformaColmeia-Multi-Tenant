@@ -331,7 +331,7 @@ async function sendUpdateNotifications(
         project.userId && project.userId !== user.uid) {
       await createNotificationDirectly({
         projectId: project.id,
-        projectName: project.name || '',
+        projectName: project.nome_cliente_final || '',
         projectNumber: project.number || '',
         message: `Um comentário foi atualizado no seu projeto: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`,
         notificationType: 'comment_update',
@@ -346,7 +346,7 @@ async function sendUpdateNotifications(
     else if (user.role !== 'admin' && user.role !== 'superadmin') {
       await createNotificationDirectly({
         projectId: project.id,
-        projectName: project.name || '',
+        projectName: project.nome_cliente_final || '',
         projectNumber: project.number || '',
         message: `Um cliente atualizou um comentário no projeto: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`,
         notificationType: 'comment_update',
@@ -433,7 +433,7 @@ export async function deleteComment(params: DeleteCommentParams): Promise<Commen
           // Admin excluindo comentário do cliente -> Notificar cliente
           await createNotificationDirectly({
             projectId,
-            projectName: project.name || '',
+            projectName: project.nome_cliente_final || '',
             projectNumber: project.number || '',
             message: 'Um administrador removeu seu comentário no projeto',
             notificationType: 'comment_deleted',
@@ -446,7 +446,7 @@ export async function deleteComment(params: DeleteCommentParams): Promise<Commen
           // Cliente excluindo seu próprio comentário -> Notificar admins
           await createNotificationDirectly({
             projectId,
-            projectName: project.name || '',
+            projectName: project.nome_cliente_final || '',
             projectNumber: project.number || '',
             message: 'Um cliente removeu seu comentário no projeto',
             notificationType: 'comment_deleted',

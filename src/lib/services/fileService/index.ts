@@ -64,12 +64,12 @@ export async function sendEmailNotificationForDocument(
     // Buscar dados do uploader
     const { data: uploaderData } = await supabase
       .from('users')
-      .select('role, full_name, email')
+      .select('role, name, email')
       .eq('id', uploadedByUid)
       .single();
       
     const uploaderRole = uploaderData?.role || 'user';
-    const uploaderFullName = uploaderData?.full_name || uploadedByName;
+    const uploaderFullName = uploaderData?.name || uploadedByName;
     
     // Determinar clientId baseado no role do uploader
     let clientId: string | undefined;
@@ -82,10 +82,10 @@ export async function sendEmailNotificationForDocument(
       if (clientId) {
         const { data: clientData } = await supabase
           .from('users')
-          .select('full_name, email')
+          .select('name, email')
           .eq('id', clientId)
           .single();
-        clientName = clientData?.full_name || clientData?.email || 'Cliente';
+        clientName = clientData?.name || clientData?.email || 'Cliente';
       }
     } else {
       // Cliente enviou → usar o próprio uploader como cliente
@@ -97,7 +97,7 @@ export async function sendEmailNotificationForDocument(
     const result = await notifyNewDocument({
       projectId: projectId,
       projectNumber: project.number,
-      projectName: project.name,
+      projectName: project.nome_cliente_final,
       documentName: fileName,
       uploaderId: uploadedByUid,
       uploaderName: uploaderFullName,
