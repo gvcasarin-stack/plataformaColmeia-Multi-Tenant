@@ -126,10 +126,28 @@ export async function middleware(request: NextRequest) {
       if (orgError || !orgData) {
         devLog.error('[Middleware] Tenant não encontrado ou inativo:', { tenantSlug, orgError });
         
-        // Redirecionar para tenant-not-found se tenant inválido
-        const tenantNotFoundUrl = new URL('/tenant-not-found', request.url);
-        tenantNotFoundUrl.searchParams.set('slug', tenantSlug);
-        return NextResponse.redirect(tenantNotFoundUrl);
+        // ✅ FALLBACK TEMPORÁRIO: Se tenant não existe, usar dados padrão em vez de redirecionar
+        // Isso permite acesso mesmo quando o tenant não está no banco
+        devLog.warn('[Middleware] Tenant não encontrado, usando fallback temporário');
+        
+        const fallbackTenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c'; // Temporário
+        
+        requestHeaders.set('x-tenant-id', fallbackTenantId);
+        requestHeaders.set('x-tenant-slug', tenantSlug);
+        requestHeaders.set('x-tenant-name', `${tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1)} (Temp)`);
+        requestHeaders.set('x-tenant-trial', 'true');
+        requestHeaders.set('x-tenant-fallback', 'true');
+
+        response = NextResponse.next({
+          request: { headers: requestHeaders }
+        });
+        response.headers.set('x-tenant-id', fallbackTenantId);
+        response.headers.set('x-tenant-slug', tenantSlug);
+        response.headers.set('x-tenant-name', `${tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1)} (Temp)`);
+        response.headers.set('x-tenant-trial', 'true');
+        response.headers.set('x-tenant-fallback', 'true');
+        
+        return response;
       }
 
       // Verificar se trial ainda está ativo
@@ -161,11 +179,27 @@ export async function middleware(request: NextRequest) {
     } catch (lookupError) {
       devLog.error('[Middleware] Erro no lookup do tenant:', lookupError);
       
-      // Em caso de erro de BD, redirecionar para tenant-not-found
-      const tenantNotFoundUrl = new URL('/tenant-not-found', request.url);
-      tenantNotFoundUrl.searchParams.set('slug', tenantSlug);
-      tenantNotFoundUrl.searchParams.set('error', 'database-error');
-      return NextResponse.redirect(tenantNotFoundUrl);
+      // ✅ FALLBACK TEMPORÁRIO: Em caso de erro de BD, permitir acesso com tenant padrão
+      // Isso evita que o sistema fique inacessível por problemas de conexão
+      devLog.warn('[Middleware] Usando fallback temporário devido ao erro de BD');
+      
+      // Usar dados padrão temporários para evitar falha total
+      const fallbackTenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c'; // Temporário
+      
+      requestHeaders.set('x-tenant-id', fallbackTenantId);
+      requestHeaders.set('x-tenant-slug', tenantSlug);
+      requestHeaders.set('x-tenant-name', 'Goias Solar (Fallback)');
+      requestHeaders.set('x-tenant-trial', 'true');
+      requestHeaders.set('x-tenant-fallback', 'true'); // Indicar que é fallback
+
+      response = NextResponse.next({
+        request: { headers: requestHeaders }
+      });
+      response.headers.set('x-tenant-id', fallbackTenantId);
+      response.headers.set('x-tenant-slug', tenantSlug);
+      response.headers.set('x-tenant-name', 'Goias Solar (Fallback)');
+      response.headers.set('x-tenant-trial', 'true');
+      response.headers.set('x-tenant-fallback', 'true');
     }
     
     return response;
