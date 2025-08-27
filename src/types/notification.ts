@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+// Removido import do Firebase Timestamp - usando Date nativo do JavaScript
 
 /**
  * Tipos de notificação suportados pelo sistema
@@ -66,8 +66,8 @@ export interface NotificacaoPadrao {
   type: NotificationType;
   title: string;
   message: string;
-  createdAt: Timestamp;
-  updatedAt?: Timestamp;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
   read: boolean;
   userId: string;
   projectId?: string;
@@ -92,7 +92,7 @@ export interface Notification {
   message: string;
   userId: string;
   read: boolean;
-  createdAt: Timestamp | string;
+  createdAt: Date | string;
   projectId?: string;
   projectNumber?: string;
   data?: Record<string, any>;
@@ -121,7 +121,7 @@ export interface PaymentNotification extends NotificacaoPadrao {
     amount: number;
     status: 'pending' | 'paid' | 'partial_paid' | 'overdue';
     installment?: 1 | 2;
-    dueDate?: Timestamp;
+    dueDate?: Date | string;
     method?: string;
     invoiceId?: string;
   };
@@ -183,7 +183,7 @@ export interface DocumentUploadNotification extends NotificacaoPadrao {
 export interface ReminderNotification extends NotificacaoPadrao {
   type: 'reminder';
   data: {
-    dueDate: Timestamp;
+    dueDate: Date | string;
     priority: 'low' | 'medium' | 'high';
     category: string;
   };

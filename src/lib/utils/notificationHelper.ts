@@ -26,6 +26,12 @@
 
 // ⚠️ TODO: MIGRAR PARA SUPABASE
 // Firebase imports removidos
+
+// Mock do Firebase Timestamp para compatibilidade durante migração
+const Timestamp = {
+  now: () => new Date().toISOString(),
+  fromDate: (date: Date) => date.toISOString()
+};
 import { 
   NotificacaoPadrao, 
   NotificationType,
@@ -466,18 +472,16 @@ export function adaptLegacyNotification(oldNotification: any): NotificacaoPadrao
   // Mapeia o tipo legado para o novo formato
   const newType = mapLegacyType(type as LegacyNotificationType);
   
-  // Tratamento de datas
-  let normalizedCreatedAt;
+  // Tratamento de datas - normalizar para string ISO
+  let normalizedCreatedAt: string;
   if (!createdAt) {
-    normalizedCreatedAt = Timestamp.now();
+    normalizedCreatedAt = new Date().toISOString();
   } else if (typeof createdAt === 'string') {
-    normalizedCreatedAt = Timestamp.fromDate(new Date(createdAt));
+    normalizedCreatedAt = createdAt;
   } else if (createdAt instanceof Date) {
-    normalizedCreatedAt = Timestamp.fromDate(createdAt);
-  } else if (typeof createdAt.toDate === 'function') {
-    normalizedCreatedAt = createdAt; // Já é um Timestamp do Firestore
+    normalizedCreatedAt = createdAt.toISOString();
   } else {
-    normalizedCreatedAt = Timestamp.now();
+    normalizedCreatedAt = new Date().toISOString();
   }
   
   // Cria a notificação padronizada
@@ -526,9 +530,9 @@ function mapLegacyType(oldType: LegacyNotificationType): NotificationType {
  * Adapta uma notificação padronizada para o formato legado (para compatibilidade reversa)
  */
 export function adaptToLegacyFormat(notification: NotificacaoPadrao): Notification {
-  // Converte o Timestamp para string se for necessário para compatibilidade com código legado
-  const createdAtString = notification.createdAt instanceof Timestamp 
-    ? notification.createdAt.toDate().toISOString() 
+  // Converte data para string para compatibilidade com código legado
+  const createdAtString = notification.createdAt instanceof Date
+    ? notification.createdAt.toISOString() 
     : typeof notification.createdAt === 'string'
       ? notification.createdAt
       : new Date().toISOString();
