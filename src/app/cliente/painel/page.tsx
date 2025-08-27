@@ -222,7 +222,7 @@ export default function ClientDashboard() {
 
       if (result.data) {
         devLog.log(`[${submitId}] Projeto criado via action: `, result.data);
-        // addProject(result.data); // Atualizar a lista de projetos localmente via useProjects hook
+        addProject(result.data); // Atualizar a lista de projetos localmente via useProjects hook
         
         toast({
           title: "Projeto criado com sucesso!",

@@ -270,6 +270,7 @@ export default function ClientProjects() {
       if (result.data) {
         devLog.log(`[${submitId}] Projeto criado via action: `, result.data);
         diagnosticLog += `[DIAGNÓSTICO] Projeto criado com sucesso: ID ${result.data.id}, Número ${result.data.number}\n`;
+        addProject(result.data); // Atualizar a lista de projetos localmente via useProjects hook
         toast({ title: "Sucesso", description: "Projeto criado com sucesso!", variant: "default", });
         // router.push(`/cliente/projetos/${result.data.id}`); // Redirecionar para a página do projeto
          window.location.href = `/cliente/projetos/${result.data.id}`; // Usar window.location.href para full reload
