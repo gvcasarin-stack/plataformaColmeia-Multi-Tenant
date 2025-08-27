@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from "@/lib/utils/productionLogger";
 
 /**
- * API UNIFICADA PARA PROJETOS
+ * API UNIFICADA PARA PROJETOS - MULTI-TENANT SEGURA
  * Centraliza todas as operações de projetos em uma única API
- * Usa apenas Supabase como fonte única da verdade
+ * ✅ CORRIGIDO: Agora filtra por tenant_id para isolamento
  */
 
-const supabase = createSupabaseServiceRoleClient();
-
 /**
- * GET - Buscar todos os projetos com informações de billing
+ * GET - Buscar projetos do tenant atual (SEGURO)
  */
 export async function GET(request: NextRequest) {
   try {
-    devLog.log('[API Unified] Buscando todos os projetos');
+    devLog.log('[API Unified] Buscando projetos do tenant');
+
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Unified] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
 
     // Verificar se estamos em contexto de build
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -27,26 +38,30 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Buscar projetos com join de usuários
+    const supabase = createSupabaseServiceRoleClient();
+
+    // ✅ SEGURANÇA: Buscar apenas projetos do tenant atual
     const { data, error } = await supabase
       .from('projects')
       .select(`
         *,
         users!projects_created_by_fkey(
           id,
-          full_name,
-          email
+          email,
+          full_name
         )
       `)
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Filtrar por tenant
       .order('created_at', { ascending: false });
 
     if (error) {
       devLog.error('[API Unified] Erro ao buscar projetos:', error);
       
-      // Fallback: buscar sem join
+      // Fallback: buscar sem join mas ainda filtrando por tenant
       const { data: projectsOnly, error: fallbackError } = await supabase
         .from('projects')
         .select('*')
+        .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Fallback também deve filtrar por tenant
         .order('created_at', { ascending: false });
 
       if (fallbackError) {
@@ -122,21 +137,36 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - Criar novo projeto
+ * POST - Criar novo projeto (SEGURO)
  */
 export async function POST(request: NextRequest) {
   try {
     devLog.log('[API Unified] Criando novo projeto');
 
+    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Unified] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     
-    // ✅ REGRA: Projeto novo sempre começa com pagamento pendente
+    // ✅ SEGURANÇA: Forçar tenant_id no projeto
     const projectData = {
       ...body,
+      tenant_id: tenantId,  // ✅ CRÍTICO: Sempre inserir tenant_id
       pagamento: 'pendente', // Valor inicial obrigatório
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
+    const supabase = createSupabaseServiceRoleClient();
 
     const { data, error } = await supabase
       .from('projects')

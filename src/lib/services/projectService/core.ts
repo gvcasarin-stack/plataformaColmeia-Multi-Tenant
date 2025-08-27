@@ -301,8 +301,8 @@ export const createProject = async (
         const createdByName = options.createdByName || 'Cliente';
         await createNotificationDirectly({
           type: 'new_project',
-          title: `Novo Projeto Criado: ${newProject.number || newProject.name}`,
-          message: `Um novo projeto foi criado por ${createdByName}. Nome: ${newProject.name}, Número: ${newProject.number}.`,
+          title: `Novo Projeto Criado: ${newProject.number || newProject.nome_cliente_final}`,
+          message: `Um novo projeto foi criado por ${createdByName}. Nome: ${newProject.nome_cliente_final}, Número: ${newProject.number}.`,
           notifyAllAdmins: true,
           link: `/admin/projetos/${newProject.id}`,
           projectId: newProject.id,
@@ -448,8 +448,8 @@ export const updateProject = async (
       try {
         await createNotificationDirectly({
           type: 'project_updated',
-          title: `Projeto Atualizado: ${updateData.name || projectId}`,
-          message: `O projeto ${updateData.name || projectId} foi atualizado.`,
+          title: `Projeto Atualizado: ${updateData.nome_cliente_final || projectId}`,
+          message: `O projeto ${updateData.nome_cliente_final || projectId} foi atualizado.`,
           userId: updateData.userId, 
           link: `/cliente/projetos/${projectId}`,
           projectId: projectId,
@@ -811,7 +811,7 @@ export const getProjectsAdmin = async (
       const project: Project = {
         id: item.id,
         userId: item.created_by || '',
-        name: item.name || '',
+        nome_cliente_final: item.nome_cliente_final || '',
         number: item.number || '',
         empresaIntegradora: item.empresa_integradora || '',
         nomeClienteFinal: item.nome_cliente_final || '',

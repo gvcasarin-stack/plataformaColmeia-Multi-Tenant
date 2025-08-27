@@ -63,7 +63,7 @@ export interface ProjectFile {
  */
 export interface BaseProject {
   id: string;
-  name: string;
+  nome_cliente_final: string;
   number: string;
   description?: string;
   userId: string;
@@ -90,7 +90,7 @@ export interface BaseProject {
 export interface Project {
   id: string;
   userId: string;
-  name: string;
+  nome_cliente_final: string;
   number: string;
   empresaIntegradora: string;
   nomeClienteFinal: string;

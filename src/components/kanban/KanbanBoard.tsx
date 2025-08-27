@@ -161,7 +161,7 @@ export const KanbanBoard = forwardRef<
     const query = searchQuery.toLowerCase();
     return localProjects.filter(project => {
       return (
-        project.name?.toLowerCase().includes(query) ||
+        project.nome_cliente_final?.toLowerCase().includes(query) ||
         project.number?.toString().includes(query) ||
         project.nomeClienteFinal?.toLowerCase().includes(query) ||
         project.empresaIntegradora?.toLowerCase().includes(query)
@@ -375,7 +375,7 @@ export const KanbanBoard = forwardRef<
       if (columnId === "nao-iniciados" && isMatch) {
         devLog.log(`[Kanban] Found "Não Iniciado" project:`, {
           id: project.id,
-          name: project.name,
+          nome_cliente_final: project.nome_cliente_final,
           status: project.status,
           normalizedStatus: normalizedProjectStatus
         });

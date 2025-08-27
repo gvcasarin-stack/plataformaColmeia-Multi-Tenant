@@ -51,7 +51,6 @@ interface ClientFormData {
   listaMateriais?: string;
   disjuntorPadraoEntrada?: string;
   empresaIntegradora?: string;
-  name: string;
   description?: string;
   dataEntrega: string;
   valorProjeto?: number;
@@ -75,7 +74,6 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
       listaMateriais: "",
       disjuntorPadraoEntrada: "",
       empresaIntegradora: "",
-      name: "",
       description: "",
       dataEntrega: new Date().toISOString().split('T')[0],
       valorProjeto: 0,
@@ -101,9 +99,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
           }
           // Campo nomeClienteFinal permanece vazio para o usuário preencher manualmente
           // com o nome do cliente final (cliente do cliente)
-          if (data?.name && !watch('name')){
-            setValue('name', `Projeto ${data.name}`);
-          }
+          // Nome do cliente final deve ser preenchido manualmente pelo usuário
         } catch (error) {
           devLog.error("Error fetching user data:", error);
         }

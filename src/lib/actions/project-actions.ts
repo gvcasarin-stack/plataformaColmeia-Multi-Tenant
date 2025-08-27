@@ -20,6 +20,9 @@ import {
   getProjectsWithFilters
 } from '@/lib/services/projectService/supabase';
 
+// ✅ SEGURANÇA: Importar utilitários de segurança multi-tenant
+import { getTenantFromUser, canUserAccessResource, verifyResourceOwnership } from '@/lib/utils/tenant-security';
+
 // ❌ FIREBASE - REMOVIDO: Importações do Firebase core.ts
 // import {
 //   createProject as createProjectCore,
@@ -163,6 +166,15 @@ export async function updateProjectAction(
       return { error: 'Project ID is required' };
     }
 
+    // ✅ SEGURANÇA: Verificar acesso ao projeto
+    const accessCheck = await canUserAccessResource(user.id, 'project', project.id);
+    if (!accessCheck.allowed) {
+      devLog.error('[updateProjectAction] Acesso negado:', accessCheck.message);
+      return { error: accessCheck.message || 'Acesso negado' };
+    }
+
+    const tenantInfo = accessCheck.tenantInfo!;
+
     // ❌ FIREBASE - COMENTADO: Initialize admin SDK
     // getOrCreateFirebaseAdminApp();
     // const adminDb = getFirestore();
@@ -239,11 +251,12 @@ export async function updateProjectAction(
       // ✅ SUPABASE - IMPLEMENTAÇÃO: Atualizar projeto no Supabase
       const supabase = createSupabaseServiceRoleClient();
       
-      // Primeiro, buscar dados atuais para comparação
+      // ✅ SEGURANÇA: Buscar dados atuais verificando tenant
       const { data: currentProject, error: fetchError } = await supabase
         .from('projects')
         .select('*')
         .eq('id', project.id)
+        .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
         .single();
 
       if (fetchError || !currentProject) {
@@ -257,7 +270,7 @@ export async function updateProjectAction(
 
       // Preparar dados para atualização no Supabase
       const supabaseUpdateData: any = {
-        name: updateData.name,
+        nome_cliente_final: updateData.nome_cliente_final,
         description: updateData.description,
         status: updateData.status,
         prioridade: updateData.prioridade,
@@ -304,11 +317,12 @@ export async function updateProjectAction(
         fieldsToUpdate: Object.keys(supabaseUpdateData)
       });
 
-      // Executar atualização no Supabase
+      // ✅ SEGURANÇA: Executar atualização verificando tenant
       const { data: updatedProject, error: updateError } = await supabase
         .from('projects')
         .update(supabaseUpdateData)
         .eq('id', project.id)
+        .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
         .select()
         .single();
 
@@ -324,7 +338,7 @@ export async function updateProjectAction(
       finalData = {
         id: updatedProject.id,
         userId: updatedProject.created_by,
-        name: updatedProject.name,
+        nome_cliente_final: updatedProject.nome_cliente_final,
         number: updatedProject.number,
         empresaIntegradora: updatedProject.empresa_integradora,
         nomeClienteFinal: updatedProject.nome_cliente_final,
@@ -364,7 +378,7 @@ export async function updateProjectAction(
             await notifyStatusChange({
               projectId: finalData.id,
               projectNumber: finalData.number,
-              projectName: finalData.name,
+              projectName: finalData.nome_cliente_final,
               oldStatus: oldStatus,
               newStatus: finalData.status,
               clientId: finalData.userId,
@@ -412,7 +426,7 @@ export async function updateProjectAction(
               await notifyNewDocument({
                 projectId: finalData.id,
                 projectNumber: finalData.number,
-                projectName: finalData.name,
+                projectName: finalData.nome_cliente_final,
                 documentName: addedFile.name,
                 uploaderId: user.id,
                 uploaderName: user.email || 'Admin',
@@ -430,7 +444,7 @@ export async function updateProjectAction(
             await notifyNewDocument({
               projectId: finalData.id,
               projectNumber: finalData.number,
-              projectName: finalData.name,
+              projectName: finalData.nome_cliente_final,
               documentName: addedFile.name,
               uploaderId: user.id,
               uploaderName: user.email || 'Admin',
@@ -601,7 +615,7 @@ export async function addCommentAction(
     // ✅ DEBUG: Log detalhado dos dados do projeto (OTIMIZADO)
     devLog.log('[addCommentAction] DEBUG - Project data analysis (OTIMIZADO):', {
       projectId,
-      projectName: basicProject.name,
+      projectName: basicProject.nome_cliente_final,
       projectNumber: basicProject.number,
       projectClientOwnerId: projectClientOwnerId,
       authorId: user.id,
@@ -628,7 +642,7 @@ export async function addCommentAction(
         devLog.log('[addCommentAction] Admin commented - notifying client', { 
           authorName, 
           projectClientOwnerId, 
-          projectName: basicProject.name 
+          projectName: basicProject.nome_cliente_final 
         });
         
         // ✅ DEBUG: Log da query antes de executar
@@ -643,7 +657,7 @@ export async function addCommentAction(
           // Buscar dados do cliente para pegar o nome correto
           const { data: clientData, error: clientQueryError } = await supabase
             .from('users')
-            .select('full_name, email')
+            .select('name, email')
             .eq('id', projectClientOwnerId)
             .single();
 
@@ -669,7 +683,7 @@ export async function addCommentAction(
           devLog.log('[addCommentAction] DEBUG - Comment data being sent:', {
             projectId,
             projectNumber: basicProject.number,
-            projectName: basicProject.name,
+            projectName: basicProject.nome_cliente_final,
             commentText: comment.text,
             commentTextType: typeof comment.text,
             commentObject: comment,
@@ -686,7 +700,7 @@ export async function addCommentAction(
           const notificationResult = await notifyNewComment({
             projectId,
             projectNumber: basicProject.number,
-            projectName: basicProject.name,
+            projectName: basicProject.nome_cliente_final,
             commentText: comment.text,
             authorId: user.id,
             authorName,
@@ -710,7 +724,7 @@ export async function addCommentAction(
         // ✅ Cliente comentou → Notificar todos os admins
         devLog.log('[addCommentAction] Client commented - notifying all admins', { 
           authorName, 
-          projectName: basicProject.name 
+          projectName: basicProject.nome_cliente_final 
         });
         
         try {
@@ -720,7 +734,7 @@ export async function addCommentAction(
           devLog.log('[addCommentAction] DEBUG - Admin notification data:', {
             projectId,
             projectNumber: basicProject.number,
-            projectName: basicProject.name,
+            projectName: basicProject.nome_cliente_final,
             commentText: comment.text,
             commentTextType: typeof comment.text,
             commentObject: comment,
@@ -732,7 +746,7 @@ export async function addCommentAction(
           const notificationResult = await notifyNewComment({
             projectId,
             projectNumber: basicProject.number,
-            projectName: basicProject.name,
+            projectName: basicProject.nome_cliente_final,
             commentText: comment.text,
             authorId: user.id,
             authorName,
@@ -771,7 +785,7 @@ export async function addCommentAction(
     return { 
       data: {
         id: projectId,
-        name: basicProject.name || 'Projeto',
+        nome_cliente_final: basicProject.nome_cliente_final || 'Projeto',
         number: basicProject.number || 'N/A',
         commentAdded: true,
         timestamp: new Date().toISOString()
@@ -952,24 +966,18 @@ export async function deleteFileAction(
   try {
     devLog.log('[deleteFileAction] Starting delete file:', { projectId, filePath, fileUrl, userId: user.id });
     
-    // ✅ DEBUG COMPLETO: Vamos ver TUDO que está chegando
-    devLog.log('[deleteFileAction] COMPLETE USER OBJECT RECEIVED:', {
-      userObject: user,
-      hasUser: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      userRole: user?.role,
-      userKeys: user ? Object.keys(user) : 'no user',
-      // Verificar se profile existe
-      hasProfile: !!(user as any)?.profile,
-      profileObject: (user as any)?.profile,
-      profileRole: (user as any)?.profile?.role,
-      profileKeys: (user as any)?.profile ? Object.keys((user as any).profile) : 'no profile',
-      // Verificar se profileRole existe diretamente
-      directProfileRole: (user as any)?.profileRole,
-      // Serializar tudo para ver estrutura completa
-      fullUserSerialized: JSON.stringify(user, null, 2)
-    });
+    if (!user?.id) {
+      return { error: 'Usuário não autenticado' };
+    }
+
+    // ✅ SEGURANÇA: Verificar acesso ao projeto
+    const accessCheck = await canUserAccessResource(user.id, 'project', projectId);
+    if (!accessCheck.allowed) {
+      devLog.error('[deleteFileAction] Acesso negado:', accessCheck.message);
+      return { error: accessCheck.message || 'Acesso negado ao projeto' };
+    }
+
+    const tenantInfo = accessCheck.tenantInfo!;
 
     if (!projectId || !filePath || !fileUrl) {
       return { error: 'Project ID, File Path, and File URL are required' };
@@ -1095,7 +1103,7 @@ export async function deleteFileAction(
     const finalProjectData: Project = {
       id: updatedProject.id,
       userId: updatedProject.created_by,
-      name: updatedProject.name,
+      nome_cliente_final: updatedProject.nome_cliente_final,
       number: updatedProject.number,
       empresaIntegradora: updatedProject.empresa_integradora,
       nomeClienteFinal: updatedProject.nome_cliente_final,
@@ -1177,6 +1185,23 @@ export async function createProjectClientAction(
     } catch (supabaseError) {
       logger.error('[createProjectClientAction] Erro ao inicializar Supabase Service Role Client:', supabaseError);
       return { error: 'Erro interno: falha na inicialização do sistema.' };
+    }
+
+    // ✅ SEGURANÇA MULTI-TENANT - Obter tenant_id do usuário
+    let tenantInfo;
+    try {
+      tenantInfo = await getTenantFromUser(clientUser.id);
+      if (!tenantInfo || !tenantInfo.tenant_id) {
+        logger.error('[createProjectClientAction] Tenant não encontrado para o usuário:', clientUser.id);
+        return { error: 'Erro: Organização não encontrada para o usuário. Entre em contato com o suporte.' };
+      }
+      logger.info('[createProjectClientAction] Tenant identificado:', { 
+        tenant_id: tenantInfo.tenant_id, 
+        organization: tenantInfo.organization.name 
+      });
+    } catch (tenantError) {
+      logger.error('[createProjectClientAction] Erro ao buscar tenant do usuário:', tenantError);
+      return { error: 'Erro interno: falha na identificação da organização.' };
     }
 
     // ✅ SUPABASE - Gerar número único do projeto (versão ultra-robusta)
@@ -1351,11 +1376,11 @@ export async function createProjectClientAction(
 
     // ✅ SUPABASE - Preparar dados do projeto para inserção
     const projectData = {
-      name: projectDataFromClient.name || 'Projeto sem nome',
+      nome_cliente_final: projectDataFromClient.nomeClienteFinal || projectDataFromClient.nome_cliente_final || 'Projeto sem nome',
       number: projectNumber,
       created_by: clientUser.id,
+      tenant_id: tenantInfo.tenant_id, // ✅ CRÍTICO: Incluir tenant_id para isolamento
       empresa_integradora: projectDataFromClient.empresaIntegradora || '',
-      nome_cliente_final: projectDataFromClient.nomeClienteFinal || '',
       distribuidora: projectDataFromClient.distribuidora || '',
       potencia: typeof projectDataFromClient.potencia === 'string' 
         ? parseFloat(projectDataFromClient.potencia) || 0 
@@ -1425,7 +1450,7 @@ export async function createProjectClientAction(
     const projectResult: Project = {
       id: newProject.id,
       userId: newProject.created_by, // Mapear created_by para userId
-      name: newProject.name,
+      nome_cliente_final: newProject.nome_cliente_final,
       number: newProject.number,
       empresaIntegradora: newProject.empresa_integradora,
       nomeClienteFinal: newProject.nome_cliente_final,
@@ -1462,7 +1487,7 @@ export async function createProjectClientAction(
       await notifyNewProject({
         projectId: projectResult.id,
         projectNumber: projectResult.number,
-        projectName: projectResult.name,
+        projectName: projectResult.nome_cliente_final,
         clientName: clientNameToDisplay,
         clientId: clientUser.id,
         potencia: projectResult.potencia,
@@ -1490,7 +1515,7 @@ export async function createProjectClientAction(
 
     return sanitizeForSerialization({
       data: projectResult,
-      message: `Projeto '${projectResult.name}' criado com sucesso com o número ${projectResult.number}.`
+      message: `Projeto '${projectResult.nome_cliente_final}' criado com sucesso com o número ${projectResult.number}.`
     });
 
   } catch (error) {
@@ -1636,7 +1661,7 @@ export async function getProjectAction(projectId: string): Promise<{
     const project: Project = {
       id: data.id,
       userId: data.created_by,
-      name: data.name,
+      nome_cliente_final: data.nome_cliente_final,
       number: data.number,
       empresaIntegradora: data.empresa_integradora || '',
       nomeClienteFinal: data.nome_cliente_final || '',
@@ -1664,7 +1689,7 @@ export async function getProjectAction(projectId: string): Promise<{
       lastUpdateBy: data.last_update_by || undefined,
     };
 
-    logger.info('[getProjectAction] Projeto encontrado:', { projectId: project.id, projectName: project.name, userId: project.userId });
+    logger.info('[getProjectAction] Projeto encontrado:', { projectId: project.id, projectName: project.nome_cliente_final, userId: project.userId });
     return sanitizeForSerialization({ data: project, message: 'Projeto carregado com sucesso.' });
 
   } catch (error) {

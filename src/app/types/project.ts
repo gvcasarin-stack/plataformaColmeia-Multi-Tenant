@@ -27,7 +27,7 @@ export interface TimelineEvent {
 
 export interface Project {
   id: string;
-  name: string;
+  nome_cliente_final: string;
   number?: string;
   /* 
    * Pode ser opcional na interface, mas nunca deve ser undefined durante a criação.

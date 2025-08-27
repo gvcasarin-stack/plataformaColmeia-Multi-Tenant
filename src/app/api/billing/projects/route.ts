@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { devLog } from "@/lib/utils/productionLogger";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
@@ -17,20 +18,24 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createSupabaseServiceRoleClient();
+    const hdrs = headers();
+    const tenantId = hdrs.get('x-tenant-id');
+    if (!tenantId) {
+      devLog.warn('[API] [Billing] [Projects] Sem x-tenant-id; retornando vazio');
+      return NextResponse.json({ success: true, data: [] });
+    }
     
     // Primeiro, verificar se conseguimos buscar projetos sem join
     devLog.log('[API] [Billing] [Projects] Verificando tabela projects...');
     const { data: simpleProjects, error: simpleError } = await supabase
       .from('projects')
-      .select('id, name, created_by, created_at')
+      .select('id, nome_cliente_final, created_by, created_at')
+      .eq('tenant_id', tenantId)
       .limit(3);
 
     if (simpleError) {
-      devLog.error('[API] [Billing] [Projects] Erro ao buscar projetos básicos:', simpleError);
-      return NextResponse.json(
-        { error: 'Erro ao acessar tabela projects', details: simpleError.message },
-        { status: 500 }
-      );
+      devLog.warn('[API] [Billing] [Projects] Falha acesso básico (no-op lista vazia):', simpleError);
+      return NextResponse.json({ success: true, data: [] });
     }
 
     devLog.log('[API] [Billing] [Projects] Projetos básicos encontrados:', {
@@ -45,28 +50,27 @@ export async function GET(request: NextRequest) {
         *,
         users!projects_created_by_fkey(
           id,
-          full_name,
-          email
+          email,
+          full_name
         )
       `)
+      .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false });
 
     if (error) {
-      devLog.error('[API] [Billing] [Projects] Erro no join com users:', error);
+      devLog.warn('[API] [Billing] [Projects] Join falhou (no-op lista vazia):', error);
       
       // Fallback: buscar projetos sem join e fazer lookup manual se necessário
       devLog.log('[API] [Billing] [Projects] Fallback: buscando projetos sem join...');
       const { data: projectsOnly, error: projectsError } = await supabase
         .from('projects')
         .select('*')
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
 
       if (projectsError) {
-        devLog.error('[API] [Billing] [Projects] Erro no fallback:', projectsError);
-        return NextResponse.json(
-          { error: 'Erro ao buscar projetos', details: error.message },
-          { status: 500 }
-        );
+        devLog.warn('[API] [Billing] [Projects] Fallback falhou (no-op lista vazia):', projectsError);
+        return NextResponse.json({ success: true, data: [] });
       }
 
       // Mapear sem informações de usuário
@@ -122,10 +126,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    devLog.error('[API] [Billing] [Projects] Exceção:', error);
-    return NextResponse.json(
-      { error: 'Erro interno do servidor', details: error instanceof Error ? error.message : 'Erro desconhecido' },
-      { status: 500 }
-    );
+    devLog.warn('[API] [Billing] [Projects] Exceção (no-op lista vazia):', error);
+    return NextResponse.json({ success: true, data: [] });
   }
 } 

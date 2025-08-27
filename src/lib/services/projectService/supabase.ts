@@ -52,7 +52,7 @@ export const getProjectById = async (projectId: string, userId: string): Promise
     const project: Project = {
       id: data.id,
       userId: data.created_by,
-      name: data.name,
+      nome_cliente_final: data.nome_cliente_final,
       number: data.number,
       empresaIntegradora: data.empresa_integradora || '',
       nomeClienteFinal: data.nome_cliente_final || '',
@@ -78,7 +78,7 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       lastUpdateBy: data.last_update_by || undefined,
     };
 
-    logger.debug('[getProjectById] Projeto encontrado:', { id: project.id, name: project.name });
+    logger.debug('[getProjectById] Projeto encontrado:', { id: project.id, nome_cliente_final: project.nome_cliente_final });
     return project;
 
   } catch (error) {
@@ -123,7 +123,7 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
     const projects: Project[] = data.map(item => ({
       id: item.id,
       userId: item.created_by,
-      name: item.name,
+      nome_cliente_final: item.nome_cliente_final,
       number: item.number,
       empresaIntegradora: item.empresa_integradora || '',
       nomeClienteFinal: item.nome_cliente_final || '',
@@ -269,7 +269,7 @@ export const getProjectsWithFilters = async (filters: {
     const projects: Project[] = data.map(item => ({
       id: item.id,
       userId: item.created_by,
-      name: item.name,
+      nome_cliente_final: item.nome_cliente_final,
       number: item.number,
       empresaIntegradora: item.empresa_integradora || '',
       nomeClienteFinal: item.nome_cliente_final || '',
