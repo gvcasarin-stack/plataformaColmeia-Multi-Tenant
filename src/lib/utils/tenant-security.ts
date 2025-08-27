@@ -48,18 +48,29 @@ export async function getTenantFromUser(userId: string): Promise<TenantInfo | nu
       .eq('id', userId)
       .single()
 
+    // ✅ DEBUG: Adicionar logs detalhados para debug
+    devLog.log('[getTenantFromUser] DEBUG - Query result:', {
+      userId,
+      userData,
+      error,
+      hasTenantId: !!userData?.tenant_id,
+      status: userData?.status,
+      role: userData?.role
+    });
+
     if (error || !userData) {
       devLog.error('[getTenantFromUser] Erro ao buscar dados do usuário:', error)
       return null
     }
 
     if (!userData.tenant_id) {
-      devLog.error('[getTenantFromUser] Usuário sem tenant_id')
+      devLog.error('[getTenantFromUser] Usuário sem tenant_id:', { userId, userData })
       return null
     }
 
-    if (userData.status !== 'active') {
-      devLog.error('[getTenantFromUser] Usuário não está ativo')
+    // ✅ CORREÇÃO: Permitir usuários com status null/undefined (podem ser novos)
+    if (userData.status && userData.status !== 'active') {
+      devLog.error('[getTenantFromUser] Usuário não está ativo:', { userId, status: userData.status })
       return null
     }
 
