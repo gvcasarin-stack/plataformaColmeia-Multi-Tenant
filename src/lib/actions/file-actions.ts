@@ -278,7 +278,7 @@ export async function uploadProjectFileAction(
       // 🔍 DEBUG DETALHADO: Log de todos os parâmetros
       devLog.log('🔍 [DEBUG notifyNewDocument] Parâmetros que serão enviados:', {
         projectId: project.id,
-        projectName: project.name,
+        projectName: project.nome_cliente_final,
         projectNumber: project.number,
         documentName: file.name,
         uploaderId: user.id,
@@ -298,7 +298,7 @@ export async function uploadProjectFileAction(
       
       const notificationResult = await notifyNewDocument({
         projectId: project.id,
-        projectName: project.name,
+        projectName: project.nome_cliente_final,
         projectNumber: project.number,
         documentName: file.name,
         uploaderName: (finalProfile as any).name || finalProfile.email || 'Usuário',

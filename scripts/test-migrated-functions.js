@@ -193,7 +193,7 @@ async function generateReport() {
     if (recentProject && recentProject.length > 0) {
       const project = recentProject[0];
       console.log('\n🆕 PROJETO MAIS RECENTE:');
-      console.log(`   - Nome: ${project.name}`);
+      console.log(`   - Nome: ${project.nome_cliente_final}`);
       console.log(`   - Número: ${project.number}`);
       console.log(`   - Status: ${project.status}`);
       console.log(`   - Criado: ${new Date(project.created_at).toLocaleString('pt-BR')}`);
