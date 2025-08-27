@@ -3,7 +3,7 @@ import { User } from '@/types/user';
 // import { ProjectStatus, ProjectPriority } from './kanban';
 import { TimelineEvent } from "./timeline";
 import { Comment } from "./comment";
-import { Timestamp } from "firebase/firestore";
+// Firebase Timestamp removido - usando Date nativo
 
 /**
  * Tipos para o status do projeto
@@ -104,8 +104,8 @@ export interface Project {
   valorProjeto: number | null;
   pagamento?: string;
 
-  createdAt: string | Timestamp;
-  updatedAt: string | Timestamp;
+  createdAt: string | Date;
+  updatedAt: string | Date;
   adminResponsibleId?: string;
   adminResponsibleName?: string;
   adminResponsibleEmail?: string;

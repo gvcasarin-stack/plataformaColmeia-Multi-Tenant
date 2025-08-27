@@ -1,5 +1,5 @@
 import { useProjects } from '@/lib/hooks/useProjects'
-import { Timestamp } from 'firebase/firestore'
+// Firebase Timestamp removido - usando Date nativo
 import { Project } from '@/types/project'
 
 export function ProjectsOverview() {
@@ -15,7 +15,7 @@ export function ProjectsOverview() {
       if (!p.createdAt) return false;
       const projectDate = new Date(
         typeof p.createdAt !== 'string' 
-          ? (p.createdAt as Timestamp).seconds * 1000 
+          ? (p.createdAt as any).seconds * 1000 // Legacy timestamp 
           : p.createdAt
       );
       const now = new Date();
@@ -28,7 +28,7 @@ export function ProjectsOverview() {
       if (!p.createdAt) return false;
       const projectDate = new Date(
         typeof p.createdAt !== 'string' 
-          ? (p.createdAt as Timestamp).seconds * 1000 
+          ? (p.createdAt as any).seconds * 1000 // Legacy timestamp 
           : p.createdAt
       );
       const now = new Date();

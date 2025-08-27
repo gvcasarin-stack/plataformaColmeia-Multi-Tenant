@@ -17,15 +17,15 @@ import { Project } from '@/types/project';
 import { useProjects } from '@/lib/hooks/useProjects';
 import { UpdatedProject } from '@/types/project';
 import { devLog } from "@/lib/utils/productionLogger";
-import { Timestamp } from 'firebase/firestore';
+// Firebase Timestamp removido - usando Date nativo
 
 // ✅ CORREÇÃO REACT #130: Função utilitária para converter timestamps para string ISO
 const toDateString = (value: unknown): string => {
   if (value instanceof Date) return value.toISOString();
   
-  // Para Timestamps do Firestore
+  // Para objetos de timestamp legados (não usado mais)
   if (value && typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
-    return new Date((value as Timestamp).seconds * 1000).toISOString();
+    return new Date((value as any).seconds * 1000).toISOString();
   }
   
   // Para strings ISO

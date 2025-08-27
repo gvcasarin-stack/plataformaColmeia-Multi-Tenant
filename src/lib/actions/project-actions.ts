@@ -37,7 +37,8 @@ import { getTenantFromUser, canUserAccessResource, verifyResourceOwnership } fro
 // } from '@/lib/services/projectService/core';
 
 // Manter esta importação para isProjectNumberAlreadyUsed de queries.ts se for diferente e usada.
-import { isProjectNumberAlreadyUsed as isProjectNumberAlreadyUsedQueries, findProjectByNumber as findProjectByNumberQueries } from '@/lib/services/projectService/queries';
+// ✅ FIREBASE REMOVIDO - comentado import que causa erro Timestamp
+// import { isProjectNumberAlreadyUsed as isProjectNumberAlreadyUsedQueries, findProjectByNumber as findProjectByNumberQueries } from '@/lib/services/projectService/queries';
 
 // Remover ou manter este import global dependendo se ainda é usado.
 // Por agora, vamos comentar para ver se algo quebra, forçando o uso das importações diretas.
