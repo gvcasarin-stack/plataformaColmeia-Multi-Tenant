@@ -80,7 +80,6 @@ export async function createProjectMultiTenant(
       
       // Dados básicos
       nome_cliente_final: projectData.nome_cliente_final || 'Projeto sem nome',
-      name: `Projeto ${projectData.nome_cliente_final || projectData.nomeClienteFinal || 'sem nome'}`, // ✅ ADICIONADO: Campo 'name' obrigatório
       description: projectData.description || '',
       
       // Dados específicos de energia solar
