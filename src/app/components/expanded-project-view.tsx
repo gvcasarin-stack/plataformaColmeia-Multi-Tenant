@@ -621,7 +621,7 @@ export const ExpandedProjectView = ({
     let userDisplayName: string;
     if (user) {
       // Priorizar o nome do perfil, senão o email, senão "Usuário"
-      userDisplayName = user.profile?.full_name || user.email || 'Usuário';
+      userDisplayName = user.profile?.name || user.email || 'Usuário';
     } else {
       // Só usar "Sistema" quando realmente NÃO tem usuário logado
       userDisplayName = 'Sistema';
@@ -631,7 +631,7 @@ export const ExpandedProjectView = ({
     devLog.log('[DEBUG createTimelineEvent] RESULTADO FINAL:', {
       hasUser: !!user,
       userEmail: user?.email,
-      userFullName: user?.profile?.full_name,
+      userFullName: user?.profile?.name,
       finalDisplayName: userDisplayName
     });
 

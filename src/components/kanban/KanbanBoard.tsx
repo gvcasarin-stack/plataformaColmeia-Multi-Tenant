@@ -404,8 +404,8 @@ export const KanbanBoard = forwardRef<
     if (oldStatus === newStatus) return;
 
     // Usar o user que já foi obtido no nível superior do componente
-    // Priorizar user.profile.full_name, depois user.email, e por fim "Sistema"
-    const userName = user?.profile?.full_name || user?.email || 'Sistema';
+    // Priorizar user.profile.name, depois user.email, e por fim "Sistema"
+    const userName = user?.profile?.name || user?.email || 'Sistema';
     const userId = user?.id || 'system';
     const userRole = user?.role || 'admin';
 
