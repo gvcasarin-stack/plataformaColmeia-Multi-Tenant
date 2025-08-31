@@ -39,7 +39,7 @@ import { calculateProjectCost } from "@/lib/utils/projectUtils"
 import { resetAllForms } from '@/lib/utils/reset'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 // ❌ FIREBASE - REMOVIDO: import { Timestamp } from 'firebase/firestore'
-import { deleteCommentAction, deleteFileAction } from '@/lib/actions/project-actions'
+import { deleteCommentAction, deleteFileAction, assumeProjectResponsibilityAction } from '@/lib/actions/project-actions'
 import { useTransition } from 'react'
 
 // Import custom icon components
@@ -545,27 +545,52 @@ export const ExpandedProjectView = ({
 
   const handleAssumeResponsibility = async () => {
     if (!user || !project) return;
-    const newAdminResponsible = {
+    
+    // 🚨 CORREÇÃO: Usar nova server action que não valida tenant
+    console.log('🚨 [EXPANDED-VIEW] Usando nova server action assumeProjectResponsibilityAction');
+    
+    try {
+      const result = await assumeProjectResponsibilityAction(project.id, {
+        id: user.id,
+        name: user.profile?.full_name || user.profile?.name,
+        email: user.email,
+        phone: user.profile?.phone || '',
+        role: user.role || 'admin'
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Atualizar estado local
+      const newAdminResponsible = {
         adminResponsibleId: user.id,
         adminResponsibleName: user.profile?.full_name || user.email || 'Admin',
         adminResponsibleEmail: user.email,
-        adminResponsiblePhone: ''
-    };
-    const eventContent = `${user.profile?.full_name || user.email} assumiu a responsabilidade pelo projeto.`;
-    const responsibilityEvent = createTimelineEvent('responsibility', { content: eventContent });
-    const updatedProjectData: UpdatedProject = {
-      id: project.id, ...newAdminResponsible,
-      timelineEvents: [responsibilityEvent, ...timelineEvents]
-    };
-    try {
-      await onUpdate(updatedProjectData);
+        adminResponsiblePhone: user.profile?.phone || ''
+      };
+
       setEditedProject(prev => ({ ...prev, ...newAdminResponsible }));
-      setTimelineEvents(updatedProjectData.timelineEvents);
-      toast({ title: "Responsabilidade assumida", description: `Você agora é o responsável pelo projeto ${project.number}.`, });
+      
+      // Adicionar evento de timeline ao estado local
+      if (result.data?.timelineEvents) {
+        setTimelineEvents(result.data.timelineEvents);
+      }
+
+      toast({ 
+        title: "Responsabilidade assumida", 
+        description: `Você agora é o responsável pelo projeto ${project.number}.`,
+      });
+
     } catch (error) {
+      console.log('🚨 [EXPANDED-VIEW] Erro:', error);
       devLog.error("Erro ao assumir responsabilidade:", error);
-      toast({ title: "Erro", description: "Não foi possível assumir a responsabilidade.", variant: "destructive" });
-  }
+      toast({ 
+        title: "Erro", 
+        description: error instanceof Error ? error.message : "Não foi possível assumir a responsabilidade.", 
+        variant: "destructive" 
+      });
+    }
   };
 
   const createTimelineEvent = (type: TimelineEvent['type'] | 'responsibility', data: {
