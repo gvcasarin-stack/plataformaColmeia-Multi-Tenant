@@ -138,7 +138,7 @@ export function useProjects() {
         uid: user.id, 
         email: user.email, 
         role: user.role,
-        name: user.profile?.full_name || user.email
+        name: user.profile?.name || user.email
       };
       // 🚨 CORREÇÃO: Usar nova server action que não valida tenant
       const result = await editProjectAction(processedProjectData, {
@@ -190,7 +190,7 @@ export function useProjects() {
       
       const clientUserInfo = {
         id: user.id, // Corrigido: usando 'id' conforme esperado pela action
-        name: user.profile?.full_name || user.email,
+        name: user.profile?.name || user.email,
         email: user.email
       };
       

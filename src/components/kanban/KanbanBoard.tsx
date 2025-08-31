@@ -399,9 +399,46 @@ export const KanbanBoard = forwardRef<
 
     const newStatus = columns[destination.droppableId as ColumnId].status;
     const oldStatus = project.status;
+    
+    // ✅ DEBUG: Log detalhado para debugging do constraint
+    devLog.log('[KANBAN DEBUG] Status change details:', {
+      draggableId,
+      sourceColumn: source.droppableId,
+      destinationColumn: destination.droppableId,
+      oldStatus,
+      newStatus,
+      project: {
+        id: project.id,
+        currentStatus: project.status
+      }
+    });
 
     // Verifica se houve mudança real de status
     if (oldStatus === newStatus) return;
+
+    // ✅ VALIDAÇÃO: Verificar se o status é válido antes de prosseguir
+    const validStatuses: ProjectStatus[] = [
+      'Não Iniciado',
+      'Em Desenvolvimento', 
+      'Aguardando Assinaturas',
+      'Em Homologação',
+      'Projeto Aprovado',
+      'Aguardando Solicitar Vistoria',
+      'Projeto Pausado',
+      'Em Vistoria',
+      'Finalizado',
+      'Cancelado'
+    ];
+
+    if (!validStatuses.includes(newStatus)) {
+      devLog.error('[KANBAN ERROR] Status inválido detectado:', newStatus);
+      toast({
+        title: "Erro de Status",
+        description: `Status "${newStatus}" não é válido. Verifique a configuração das colunas.`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Usar o user que já foi obtido no nível superior do componente
     // Priorizar user.profile.name, depois user.email, e por fim "Sistema"
@@ -473,13 +510,30 @@ export const KanbanBoard = forwardRef<
         })
         .catch(error => {
           devLog.error(`[Kanban] Error updating project:`, error);
+          
+          // Log detalhado do erro para debug
+          devLog.error('[KANBAN ERROR DETAILS]:', {
+            errorMessage: error.message || error,
+            projectId: project.id,
+            attemptedStatus: newStatus,
+            originalStatus: oldStatus,
+            errorStack: error.stack
+          });
+          
           // Reverter para o estado anterior em caso de erro
           setLocalProjects(localProjects.map(p => 
             p.id === project.id ? project : p
           ));
+          
+          // Mensagem de erro específica para constraint violation
+          let errorMessage = "Não foi possível atualizar o status do projeto.";
+          if (error.message && error.message.includes('projects_status_valid')) {
+            errorMessage = `Status "${newStatus}" não é válido no sistema. Contate o suporte técnico.`;
+          }
+          
           toast({
             title: "Erro ao atualizar projeto",
-            description: "Não foi possível atualizar o status do projeto.",
+            description: errorMessage,
             variant: "destructive"
           });
         });
