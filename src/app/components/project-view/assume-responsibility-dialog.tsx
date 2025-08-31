@@ -18,7 +18,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Project, UpdatedProject, TimelineEvent } from "@/types/project"
 import { devLog } from "@/lib/utils/productionLogger";
 import { useRouter } from "next/navigation"
-import { updateProjectAction } from "@/lib/actions/project-actions"
+import { assumeProjectResponsibilityAction } from "@/lib/actions/project-actions"
 
 interface AssumeResponsibilityDialogProps {
   open: boolean
@@ -64,34 +64,13 @@ export function AssumeResponsibilityDialog({
         userName: currentUser.name
       });
 
-      // ✅ Criar evento de timeline para assumir responsabilidade
-      const responsibilityEvent: TimelineEvent = {
-        id: crypto.randomUUID(),
-        type: 'responsibility',
-        timestamp: new Date().toISOString(),
-        user: currentUser.name || currentUser.email || 'Admin',
-        userId: currentUser.uid,
-        content: `${currentUser.name || currentUser.email} assumiu a responsabilidade pelo projeto.`
-      };
-
-      // ✅ Dados do admin a serem salvos - usando os campos corretos do Supabase
-      const updateData: UpdatedProject = {
-        id: project.id,
-        adminResponsibleId: currentUser.uid,
-        adminResponsibleName: currentUser.name || currentUser.email || 'Admin',
-        adminResponsibleEmail: currentUser.email,
-        adminResponsiblePhone: currentUser.phone || "",
-        // ✅ Adicionar evento de timeline
-        timelineEvents: [responsibilityEvent, ...(project.timelineEvents || [])]
-      };
-      
-      devLog.log('[AssumeResponsibilityDialog] Dados de atualização preparados:', updateData);
-
-      // ✅ Atualizar usando Server Action do Supabase
-      const result = await updateProjectAction(updateData, {
+      // ✅ Usar nova Server Action que não valida tenant
+      const result = await assumeProjectResponsibilityAction(project.id, {
         id: currentUser.uid,
+        name: currentUser.name,
         email: currentUser.email,
-        role: currentUser.role
+        phone: currentUser.phone,
+        role: currentUser.role || 'admin'
       });
 
       if (result.error) {

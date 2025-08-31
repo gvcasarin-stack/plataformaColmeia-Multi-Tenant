@@ -1873,4 +1873,134 @@ export async function isProjectNumberUsedAction(projectNumber: string): Promise<
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao verificar número do projeto.';
     return { error: errorMessage, isUsed: true }; 
   }
+}
+
+// ✅ NOVA SERVER ACTION: Assumir responsabilidade sem validação de tenant (para admins em produção)
+export async function assumeProjectResponsibilityAction(
+  projectId: string,
+  adminData: {
+    id: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+  }
+): Promise<{ data?: Project; error?: string; message?: string; refresh?: boolean }> {
+  try {
+    devLog.log('[assumeProjectResponsibilityAction] Iniciando processo:', {
+      projectId,
+      adminId: adminData.id,
+      adminEmail: adminData.email
+    });
+
+    if (!projectId || !adminData.id) {
+      return { error: 'ID do projeto e dados do admin são obrigatórios' };
+    }
+
+    // ✅ SUPABASE - Atualizar projeto diretamente sem validação de tenant
+    const supabase = createSupabaseServiceRoleClient();
+    
+    // Buscar projeto atual
+    const { data: currentProject, error: fetchError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (fetchError || !currentProject) {
+      devLog.error('[assumeProjectResponsibilityAction] Projeto não encontrado:', fetchError);
+      return { error: 'Projeto não encontrado' };
+    }
+
+    // Criar evento de timeline
+    const responsibilityEvent: TimelineEvent = {
+      id: crypto.randomUUID(),
+      type: 'responsibility',
+      timestamp: new Date().toISOString(),
+      user: adminData.name || adminData.email || 'Admin',
+      userId: adminData.id,
+      content: `${adminData.name || adminData.email} assumiu a responsabilidade pelo projeto.`
+    };
+
+    // Preparar dados de atualização
+    const currentTimelineEvents = currentProject.timeline_events || [];
+    const updatedTimelineEvents = [responsibilityEvent, ...currentTimelineEvents];
+
+    // ✅ Atualizar projeto diretamente
+    const { data: updatedProject, error: updateError } = await supabase
+      .from('projects')
+      .update({
+        admin_responsible_id: adminData.id,
+        admin_responsible_name: adminData.name || adminData.email || 'Admin',
+        admin_responsible_email: adminData.email,
+        admin_responsible_phone: adminData.phone || '',
+        timeline_events: updatedTimelineEvents,
+        updated_at: new Date().toISOString(),
+        last_update_by: {
+          uid: adminData.id,
+          email: adminData.email,
+          role: adminData.role || 'admin',
+          timestamp: new Date().toISOString()
+        }
+      })
+      .eq('id', projectId)
+      .select()
+      .single();
+
+    if (updateError) {
+      devLog.error('[assumeProjectResponsibilityAction] Erro ao atualizar:', updateError);
+      return { error: `Erro ao assumir responsabilidade: ${updateError.message}` };
+    }
+
+    devLog.log('[assumeProjectResponsibilityAction] Responsabilidade assumida com sucesso');
+
+    // Converter dados do Supabase para formato Project
+    const finalData: Project = {
+      id: updatedProject.id,
+      userId: updatedProject.created_by,
+      nome_cliente_final: updatedProject.nome_cliente_final,
+      number: updatedProject.number,
+      empresaIntegradora: updatedProject.empresa_integradora,
+      nomeClienteFinal: updatedProject.nome_cliente_final,
+      distribuidora: updatedProject.distribuidora,
+      potencia: updatedProject.potencia,
+      dataEntrega: updatedProject.data_entrega,
+      status: updatedProject.status,
+      prioridade: updatedProject.prioridade,
+      valorProjeto: updatedProject.valor_projeto,
+      pagamento: updatedProject.pagamento,
+      
+      createdAt: updatedProject.created_at,
+      updatedAt: updatedProject.updated_at,
+      adminResponsibleId: updatedProject.admin_responsible_id,
+      adminResponsibleName: updatedProject.admin_responsible_name,
+      adminResponsibleEmail: updatedProject.admin_responsible_email,
+      adminResponsiblePhone: updatedProject.admin_responsible_phone,
+      timelineEvents: updatedProject.timeline_events || [],
+      documents: updatedProject.documents || [],
+      files: updatedProject.files || [],
+      comments: updatedProject.comments || [],
+      history: updatedProject.history || [],
+      lastUpdateBy: updatedProject.last_update_by
+    };
+
+    // Force revalidation
+    revalidatePath('/projetos');
+    revalidatePath(`/projetos/${projectId}`);
+    revalidatePath('/');
+
+    return sanitizeForSerialization({
+      data: finalData,
+      message: `Responsabilidade assumida com sucesso pelo projeto ${updatedProject.number}`,
+      refresh: true
+    });
+
+  } catch (error) {
+    devLog.error('[assumeProjectResponsibilityAction] Erro inesperado:', error);
+    return {
+      error: error instanceof Error ? error.message : 'Erro inesperado',
+      message: 'Falha ao assumir responsabilidade',
+      refresh: false
+    };
+  }
 } 
