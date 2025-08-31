@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Project, UpdatedProject, CreateProjectClientData } from '@/types/project';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { getProjectsForUserAction, updateProjectAction, createProjectClientAction, deleteProjectAction } from '@/lib/actions/project-actions';
+import { getProjectsForUserAction, updateProjectAction, editProjectAction, createProjectClientAction, deleteProjectAction } from '@/lib/actions/project-actions';
 import logger from '@/lib/utils/logger';
 
 // Helper function to ensure consistent date formatting
@@ -140,7 +140,12 @@ export function useProjects() {
         role: user.role,
         name: user.profile?.full_name || user.email
       };
-      const result = await updateProjectAction(processedProjectData, userAuthInfo);
+      // 🚨 CORREÇÃO: Usar nova server action que não valida tenant
+      const result = await editProjectAction(processedProjectData, {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      });
 
       if (result.error) {
         logger.error('[useProjects.updateProject] Error from action:', result.error);

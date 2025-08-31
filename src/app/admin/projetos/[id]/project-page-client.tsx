@@ -4,7 +4,7 @@
 import { ExpandedProjectView } from "@/app/components/expanded-project-view";
 import { Project, UpdatedProject } from "@/types/project";
 import { useRouter } from "next/navigation";
-import { updateProjectAction, getProjectAction } from "@/lib/actions/project-actions";
+import { updateProjectAction, getProjectAction, editProjectAction } from "@/lib/actions/project-actions";
 import { useCallback, useTransition, useEffect, useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { devLog } from "@/lib/utils/productionLogger";
@@ -159,22 +159,23 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
       throw new Error('Projeto ou usuário inválido para atualização.');
     }
 
-    devLog.log('[AdminProjectPage] Attempting to call updateProjectAction with data:', updatedProjectData);
+    devLog.log('[AdminProjectPage] Attempting to call editProjectAction with data:', updatedProjectData);
     
     startTransition(async () => {
       try {
-        devLog.log(`[AdminProjectPage] updateProjectAction will be called by user: { uid: ${user.id}, email: ${user.email}, role: ${user.role} }`);
+        devLog.log(`[AdminProjectPage] editProjectAction will be called by user: { uid: ${user.id}, email: ${user.email}, role: ${user.role} }`);
 
-        const result = await updateProjectAction(
+        // 🚨 CORREÇÃO: Usar nova server action que não valida tenant
+        const result = await editProjectAction(
           updatedProjectData,
           {
-            uid: user.id,
+            id: user.id,
             email: user.email || '',
             role: user.role || 'admin'
           }
         );
 
-        devLog.log('[AdminProjectPage] Result from updateProjectAction:', result);
+        devLog.log('[AdminProjectPage] Result from editProjectAction:', result);
 
         if (result.error) {
           devLog.error('[AdminProjectPage] Error from updateProjectAction:', result.error);

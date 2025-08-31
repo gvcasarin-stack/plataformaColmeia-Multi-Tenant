@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getProjectAction, updateProjectAction } from "@/lib/actions/project-actions";
+import { getProjectAction, updateProjectAction, editProjectAction } from "@/lib/actions/project-actions";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
 import { ExpandedProjectView } from "@/app/components/expanded-project-view";
@@ -152,7 +152,12 @@ export default function ClientProjectDetail() {
         role: userData?.role || 'cliente',
       };
 
-      const result = await updateProjectAction(updatedProjectData, userAuthInfo);
+      // 🚨 CORREÇÃO: Usar nova server action que não valida tenant
+      const result = await editProjectAction(updatedProjectData, {
+        id: user.id,
+        email: user.email,
+        role: userData?.role || 'cliente'
+      });
 
       if (result.error || !result.data) {
         devLog.error("[ClientProjectDetail] Error updating project via action:", result.error);

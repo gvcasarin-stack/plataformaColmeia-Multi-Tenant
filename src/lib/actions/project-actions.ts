@@ -2053,4 +2053,165 @@ export async function assumeProjectResponsibilityAction(
       refresh: false
     };
   }
+}
+
+// ✅ NOVA SERVER ACTION: Editar projeto sem validação de tenant (para admins em produção)
+export async function editProjectAction(
+  updatedProject: UpdatedProject,
+  adminData: {
+    id: string;
+    email?: string;
+    role?: string;
+  }
+): Promise<{ data?: Project; error?: string; message?: string; refresh?: boolean }> {
+  try {
+    console.log('[SERVER] editProjectAction - INÍCIO:', {
+      projectId: updatedProject.id,
+      adminData,
+      updatedFields: Object.keys(updatedProject),
+      timestamp: new Date().toISOString()
+    });
+
+    if (!updatedProject.id || !adminData.id) {
+      const error = 'ID do projeto e dados do admin são obrigatórios';
+      console.log('[SERVER] editProjectAction - ERRO VALIDAÇÃO:', error);
+      return { error };
+    }
+
+    // ✅ SUPABASE - Atualizar projeto diretamente sem validação de tenant
+    const supabase = createSupabaseServiceRoleClient();
+    console.log('[SERVER] editProjectAction - Supabase client criado');
+
+    // Buscar projeto atual
+    console.log('[SERVER] editProjectAction - Buscando projeto:', updatedProject.id);
+    const { data: currentProject, error: fetchError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', updatedProject.id)
+      .single();
+
+    console.log('[SERVER] editProjectAction - Resultado busca projeto:', {
+      found: !!currentProject,
+      error: fetchError,
+      errorCode: fetchError?.code,
+      errorMessage: fetchError?.message
+    });
+
+    if (fetchError || !currentProject) {
+      const errorMsg = `Projeto não encontrado: ${fetchError?.message || 'Unknown error'}`;
+      console.log('[SERVER] editProjectAction - ERRO:', errorMsg);
+      return { error: errorMsg };
+    }
+
+    // Preparar dados de atualização usando mapeamento correto
+    const updateData: any = {};
+    
+    // Mapear campos do frontend para o banco de dados
+    if (updatedProject.number !== undefined) updateData.number = updatedProject.number;
+    if (updatedProject.empresaIntegradora !== undefined) updateData.empresa_integradora = updatedProject.empresaIntegradora;
+    if (updatedProject.nomeClienteFinal !== undefined) updateData.nome_cliente_final = updatedProject.nomeClienteFinal;
+    if (updatedProject.distribuidora !== undefined) updateData.distribuidora = updatedProject.distribuidora;
+    if (updatedProject.potencia !== undefined) updateData.potencia = updatedProject.potencia;
+    if (updatedProject.dataEntrega !== undefined) updateData.data_entrega = updatedProject.dataEntrega;
+    if (updatedProject.status !== undefined) updateData.status = updatedProject.status;
+    if (updatedProject.prioridade !== undefined) updateData.prioridade = updatedProject.prioridade;
+    if (updatedProject.valorProjeto !== undefined) updateData.valor_projeto = updatedProject.valorProjeto;
+    if (updatedProject.pagamento !== undefined) updateData.pagamento = updatedProject.pagamento;
+    if (updatedProject.timelineEvents !== undefined) updateData.timeline_events = updatedProject.timelineEvents;
+    if (updatedProject.documents !== undefined) updateData.documents = updatedProject.documents;
+    if (updatedProject.files !== undefined) updateData.files = updatedProject.files;
+    if (updatedProject.comments !== undefined) updateData.comments = updatedProject.comments;
+    if (updatedProject.history !== undefined) updateData.history = updatedProject.history;
+    
+    // Campos adicionais
+    updateData.updated_at = new Date().toISOString();
+    updateData.last_update_by = {
+      uid: adminData.id,
+      email: adminData.email,
+      role: adminData.role || 'admin',
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('[SERVER] editProjectAction - Dados de update preparados:', Object.keys(updateData));
+
+    // ✅ Atualizar projeto diretamente
+    const { data: updatedProjectData, error: updateError } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', updatedProject.id)
+      .select()
+      .single();
+
+    console.log('[SERVER] editProjectAction - Resultado update:', {
+      success: !!updatedProjectData,
+      error: updateError,
+      errorCode: updateError?.code,
+      errorMessage: updateError?.message
+    });
+
+    if (updateError) {
+      const errorMsg = `Erro ao editar projeto: ${updateError.message}`;
+      console.log('[SERVER] editProjectAction - ERRO UPDATE:', errorMsg);
+      return { error: errorMsg };
+    }
+
+    console.log('[SERVER] editProjectAction - SUCESSO!');
+
+    // Converter dados do Supabase para formato Project
+    const finalData: Project = {
+      id: updatedProjectData.id,
+      userId: updatedProjectData.created_by,
+      nome_cliente_final: updatedProjectData.nome_cliente_final,
+      number: updatedProjectData.number,
+      empresaIntegradora: updatedProjectData.empresa_integradora,
+      nomeClienteFinal: updatedProjectData.nome_cliente_final,
+      distribuidora: updatedProjectData.distribuidora,
+      potencia: updatedProjectData.potencia,
+      dataEntrega: updatedProjectData.data_entrega,
+      status: updatedProjectData.status,
+      prioridade: updatedProjectData.prioridade,
+      valorProjeto: updatedProjectData.valor_projeto,
+      pagamento: updatedProjectData.pagamento,
+      
+      createdAt: updatedProjectData.created_at,
+      updatedAt: updatedProjectData.updated_at,
+      adminResponsibleId: updatedProjectData.admin_responsible_id,
+      adminResponsibleName: updatedProjectData.admin_responsible_name,
+      adminResponsibleEmail: updatedProjectData.admin_responsible_email,
+      adminResponsiblePhone: updatedProjectData.admin_responsible_phone,
+      timelineEvents: updatedProjectData.timeline_events || [],
+      documents: updatedProjectData.documents || [],
+      files: updatedProjectData.files || [],
+      comments: updatedProjectData.comments || [],
+      history: updatedProjectData.history || [],
+      lastUpdateBy: updatedProjectData.last_update_by
+    };
+
+    // Force revalidation
+    revalidatePath('/projetos');
+    revalidatePath(`/projetos/${updatedProject.id}`);
+    revalidatePath('/admin/projetos');
+    revalidatePath(`/admin/projetos/${updatedProject.id}`);
+
+    return sanitizeForSerialization({
+      data: finalData,
+      message: `Projeto ${updatedProjectData.number} editado com sucesso`,
+      refresh: true
+    });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro inesperado';
+    console.log('[SERVER] editProjectAction - EXCEPTION:', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error,
+      constructor: error?.constructor?.name
+    });
+    
+    return {
+      error: errorMessage,
+      message: 'Falha ao editar projeto',
+      refresh: false
+    };
+  }
 } 
