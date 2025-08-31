@@ -15,9 +15,10 @@ import {
 // import { doc, updateDoc } from "firebase/firestore"
 // import { db } from "@/lib/firebase"
 import { toast } from "@/components/ui/use-toast"
-import { Project } from "@/types/project"
+import { Project, UpdatedProject, TimelineEvent } from "@/types/project"
 import { devLog } from "@/lib/utils/productionLogger";
 import { useRouter } from "next/navigation"
+import { updateProjectAction } from "@/lib/actions/project-actions"
 
 interface AssumeResponsibilityDialogProps {
   open: boolean
@@ -42,60 +43,85 @@ export function AssumeResponsibilityDialog({
   const router = useRouter()
 
   const handleAssumeResponsibility = async () => {
-    toast({
-      title: "Funcionalidade Temporariamente Indisponível",
-      description: "A funcionalidade de assumir responsabilidade será migrada para Supabase em breve.",
-      variant: "default"
-    });
-    onOpenChange(false);
-    return;
-    
-    // ✅ SUPABASE - TODO: Implementar usando Server Actions
-    // Código original comentado para evitar erros de API do Firebase
-    
-    // if (!currentUser?.uid || !project.id) {
-    //   toast({
-    //     title: "Erro",
-    //     description: "Informações do usuário ou projeto incompletas.",
-    //     variant: "destructive"
-    //   })
-    //   onOpenChange(false)
-    //   return
-    // }
+    // ✅ SUPABASE - IMPLEMENTAÇÃO: Funcionalidade reativada com Supabase
+    if (!currentUser?.uid || !project.id) {
+      toast({
+        title: "Erro",
+        description: "Informações do usuário ou projeto incompletas.",
+        variant: "destructive"
+      })
+      onOpenChange(false)
+      return
+    }
 
-    // setIsLoading(true)
+    setIsLoading(true)
     
-    // try {
-    //   // Dados do admin a serem salvos
-    //   const adminData = {
-    //     adminResponsibleId: currentUser.uid,
-    //     adminResponsibleName: currentUser.name || currentUser.email,
-    //     adminResponsibleEmail: currentUser.email,
-    //     adminResponsiblePhone: currentUser.phone || ""
-    //   }
-    //   
-    //   // Atualizar usando Server Action
-    //   // await updateProjectAction(...)
-    //   
-    //   // Mostrar mensagem de sucesso
-    //   toast({
-    //     title: "Sucesso",
-    //     description: "Você agora é o administrador responsável por este projeto.",
-    //   })
-    //   
-    //   // Fechar o diálogo
-    //   onOpenChange(false)
-    //   
-    // } catch (error) {
-    //   devLog.error("Erro ao assumir responsabilidade pelo projeto:", error)
-    //   toast({
-    //     title: "Erro",
-    //     description: "Ocorreu um erro ao assumir responsabilidade. Tente novamente.",
-    //     variant: "destructive"
-    //   })
-    // } finally {
-    //   setIsLoading(false)
-    // }
+    try {
+      devLog.log('[AssumeResponsibilityDialog] Iniciando processo de assumir responsabilidade:', {
+        projectId: project.id,
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
+        userName: currentUser.name
+      });
+
+      // ✅ Criar evento de timeline para assumir responsabilidade
+      const responsibilityEvent: TimelineEvent = {
+        id: crypto.randomUUID(),
+        type: 'responsibility',
+        timestamp: new Date().toISOString(),
+        user: currentUser.name || currentUser.email || 'Admin',
+        userId: currentUser.uid,
+        content: `${currentUser.name || currentUser.email} assumiu a responsabilidade pelo projeto.`
+      };
+
+      // ✅ Dados do admin a serem salvos - usando os campos corretos do Supabase
+      const updateData: UpdatedProject = {
+        id: project.id,
+        adminResponsibleId: currentUser.uid,
+        adminResponsibleName: currentUser.name || currentUser.email || 'Admin',
+        adminResponsibleEmail: currentUser.email,
+        adminResponsiblePhone: currentUser.phone || "",
+        // ✅ Adicionar evento de timeline
+        timelineEvents: [responsibilityEvent, ...(project.timelineEvents || [])]
+      };
+      
+      devLog.log('[AssumeResponsibilityDialog] Dados de atualização preparados:', updateData);
+
+      // ✅ Atualizar usando Server Action do Supabase
+      const result = await updateProjectAction(updateData, {
+        id: currentUser.uid,
+        email: currentUser.email,
+        role: currentUser.role
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      devLog.log('[AssumeResponsibilityDialog] Responsabilidade assumida com sucesso:', result);
+
+      // ✅ Mostrar mensagem de sucesso
+      toast({
+        title: "Sucesso",
+        description: `Você agora é o administrador responsável pelo projeto ${project.number || project.nome_cliente_final}.`,
+      })
+      
+      // ✅ Fechar o diálogo
+      onOpenChange(false)
+      
+      // ✅ Refresh da página para mostrar mudanças
+      router.refresh()
+      
+    } catch (error) {
+      devLog.error("Erro ao assumir responsabilidade pelo projeto:", error)
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao assumir responsabilidade. Tente novamente.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -104,7 +130,7 @@ export function AssumeResponsibilityDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Assumir Responsabilidade</AlertDialogTitle>
           <AlertDialogDescription>
-            Você está prestes a se tornar o administrador responsável pelo projeto <span className="font-medium">"Projeto {project.nomeClienteFinal || 'Cliente Final'}"</span>.
+            Você está prestes a se tornar o administrador responsável pelo projeto <span className="font-medium">"{project.number} - {project.nomeClienteFinal || project.nome_cliente_final || 'Cliente Final'}"</span>.
             <br /><br />
             <span className="text-blue-600">
               Ao assumir esta responsabilidade, você será o ponto de contato principal para este projeto
