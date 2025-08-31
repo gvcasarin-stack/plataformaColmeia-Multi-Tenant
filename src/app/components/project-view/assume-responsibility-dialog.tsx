@@ -43,6 +43,10 @@ export function AssumeResponsibilityDialog({
   const router = useRouter()
 
   const handleAssumeResponsibility = async () => {
+    // 🚨 TESTE: Verificar se nova implementação está sendo usada
+    console.log('🚨 [FRONTEND] NOVA IMPLEMENTAÇÃO ASSUMIR RESPONSABILIDADE SENDO EXECUTADA!');
+    console.log('🚨 [FRONTEND] assumeProjectResponsibilityAction disponível:', typeof assumeProjectResponsibilityAction);
+    
     // ✅ SUPABASE - IMPLEMENTAÇÃO: Funcionalidade reativada com Supabase
     if (!currentUser?.uid || !project.id) {
       toast({

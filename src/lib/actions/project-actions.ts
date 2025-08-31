@@ -1887,6 +1887,14 @@ export async function assumeProjectResponsibilityAction(
   }
 ): Promise<{ data?: Project; error?: string; message?: string; refresh?: boolean }> {
   try {
+    // ✅ LOGS SERVIDOR: Dados de entrada
+    console.log('[SERVER] assumeProjectResponsibilityAction - INÍCIO:', {
+      projectId,
+      adminData,
+      timestamp: new Date().toISOString(),
+      nodejs_version: process.version
+    });
+    
     devLog.log('[assumeProjectResponsibilityAction] Iniciando processo:', {
       projectId,
       adminId: adminData.id,
@@ -1894,22 +1902,41 @@ export async function assumeProjectResponsibilityAction(
     });
 
     if (!projectId || !adminData.id) {
-      return { error: 'ID do projeto e dados do admin são obrigatórios' };
+      const error = 'ID do projeto e dados do admin são obrigatórios';
+      console.log('[SERVER] assumeProjectResponsibilityAction - ERRO VALIDAÇÃO:', error);
+      return { error };
     }
 
     // ✅ SUPABASE - Atualizar projeto diretamente sem validação de tenant
     const supabase = createSupabaseServiceRoleClient();
+    console.log('[SERVER] assumeProjectResponsibilityAction - Supabase client criado');
     
     // Buscar projeto atual
+    console.log('[SERVER] assumeProjectResponsibilityAction - Buscando projeto:', projectId);
     const { data: currentProject, error: fetchError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
       .single();
 
+    console.log('[SERVER] assumeProjectResponsibilityAction - Resultado busca projeto:', {
+      found: !!currentProject,
+      error: fetchError,
+      errorCode: fetchError?.code,
+      errorMessage: fetchError?.message,
+      projectData: currentProject ? {
+        id: currentProject.id,
+        number: currentProject.number,
+        tenant_id: currentProject.tenant_id,
+        created_by: currentProject.created_by
+      } : null
+    });
+
     if (fetchError || !currentProject) {
+      const errorMsg = `Projeto não encontrado: ${fetchError?.message || 'Unknown error'}`;
+      console.log('[SERVER] assumeProjectResponsibilityAction - ERRO:', errorMsg);
       devLog.error('[assumeProjectResponsibilityAction] Projeto não encontrado:', fetchError);
-      return { error: 'Projeto não encontrado' };
+      return { error: errorMsg };
     }
 
     // Criar evento de timeline
@@ -1947,11 +1974,26 @@ export async function assumeProjectResponsibilityAction(
       .select()
       .single();
 
+    console.log('[SERVER] assumeProjectResponsibilityAction - Resultado update:', {
+      success: !!updatedProject,
+      error: updateError,
+      errorCode: updateError?.code,
+      errorMessage: updateError?.message,
+      updatedFields: updatedProject ? {
+        admin_responsible_id: updatedProject.admin_responsible_id,
+        admin_responsible_name: updatedProject.admin_responsible_name,
+        admin_responsible_email: updatedProject.admin_responsible_email
+      } : null
+    });
+
     if (updateError) {
+      const errorMsg = `Erro ao assumir responsabilidade: ${updateError.message}`;
+      console.log('[SERVER] assumeProjectResponsibilityAction - ERRO UPDATE:', errorMsg);
       devLog.error('[assumeProjectResponsibilityAction] Erro ao atualizar:', updateError);
-      return { error: `Erro ao assumir responsabilidade: ${updateError.message}` };
+      return { error: errorMsg };
     }
 
+    console.log('[SERVER] assumeProjectResponsibilityAction - SUCESSO!');
     devLog.log('[assumeProjectResponsibilityAction] Responsabilidade assumida com sucesso');
 
     // Converter dados do Supabase para formato Project
@@ -1996,9 +2038,17 @@ export async function assumeProjectResponsibilityAction(
     });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro inesperado';
+    console.log('[SERVER] assumeProjectResponsibilityAction - EXCEPTION:', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error,
+      constructor: error?.constructor?.name
+    });
+    
     devLog.error('[assumeProjectResponsibilityAction] Erro inesperado:', error);
     return {
-      error: error instanceof Error ? error.message : 'Erro inesperado',
+      error: errorMessage,
       message: 'Falha ao assumir responsabilidade',
       refresh: false
     };
