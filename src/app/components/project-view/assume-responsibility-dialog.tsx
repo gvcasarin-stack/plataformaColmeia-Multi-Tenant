@@ -15,7 +15,7 @@ import {
 // import { doc, updateDoc } from "firebase/firestore"
 // import { db } from "@/lib/firebase"
 import { toast } from "@/components/ui/use-toast"
-import { Project, UpdatedProject, TimelineEvent } from "@/types/project"
+import { Project } from "@/types/project"
 import { devLog } from "@/lib/utils/productionLogger";
 import { useRouter } from "next/navigation"
 import { assumeProjectResponsibilityAction } from "@/lib/actions/project-actions"
@@ -65,6 +65,17 @@ export function AssumeResponsibilityDialog({
       });
 
       // ✅ Usar nova Server Action que não valida tenant
+      devLog.log('[AssumeResponsibilityDialog] Chamando assumeProjectResponsibilityAction:', {
+        projectId: project.id,
+        adminData: {
+          id: currentUser.uid,
+          name: currentUser.name,
+          email: currentUser.email,
+          phone: currentUser.phone,
+          role: currentUser.role || 'admin'
+        }
+      });
+
       const result = await assumeProjectResponsibilityAction(project.id, {
         id: currentUser.uid,
         name: currentUser.name,
@@ -72,6 +83,8 @@ export function AssumeResponsibilityDialog({
         phone: currentUser.phone,
         role: currentUser.role || 'admin'
       });
+
+      devLog.log('[AssumeResponsibilityDialog] Resultado da server action:', result);
 
       if (result.error) {
         throw new Error(result.error);
@@ -93,9 +106,19 @@ export function AssumeResponsibilityDialog({
       
     } catch (error) {
       devLog.error("Erro ao assumir responsabilidade pelo projeto:", error)
+      
+      // ✅ DEBUG: Log detalhado do erro
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      devLog.error('[AssumeResponsibilityDialog] Erro detalhado:', {
+        errorMessage,
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao assumir responsabilidade. Tente novamente.",
+        description: `Erro: ${errorMessage}`,
         variant: "destructive"
       })
     } finally {
