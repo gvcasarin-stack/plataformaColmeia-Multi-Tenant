@@ -408,8 +408,8 @@ export default function AdminPainelPage() {
     else if (hour < 18) greeting = "Boa tarde"
     else greeting = "Boa noite"
     
-    // Adicionar o nome do usuário usando o campo 'name' do banco de dados
-    const userName = user?.name || user?.email?.split('@')[0] || "Admin"
+    // Adicionar o nome do usuário usando user.profile.name
+    const userName = user?.profile?.name || user?.email?.split('@')[0] || "Admin"
     return `${greeting}, ${userName}`
   }
 

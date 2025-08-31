@@ -257,14 +257,14 @@ export function Sidebar({ collapsed: collapsedProp, onToggle: onToggleProp }: Si
           )}>
             <div className="flex items-center gap-2.5">
               <div className="h-9 w-9 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center flex-shrink-0 text-white shadow-sm">
-                {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+                {user?.profile?.name ? user.profile.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className={cn(
                 "overflow-hidden transition-all duration-300",
                 collapsed ? "w-0" : "w-auto"
               )}>
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {user?.name || user?.email}
+                  {user?.profile?.name || user?.email}
                 </p>
                 <p className="text-xs text-orange-600/70 dark:text-orange-400/70">
                   Conectado
