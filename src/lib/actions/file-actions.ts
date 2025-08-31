@@ -188,7 +188,7 @@ export async function uploadProjectFileAction(
       id: crypto.randomUUID(),
       type: 'document',
       timestamp: new Date().toISOString(),
-      user: (finalProfile as any).name || finalProfile.email || 'Usuário',
+      user: finalProfile.name || finalProfile.email || 'Usuário',
       userId: user.id,
       content: `Arquivo "${file.name}" foi enviado.`,
       fileName: file.name,

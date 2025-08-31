@@ -461,7 +461,7 @@ export const ExpandedProjectView = ({
       const userForAction = {
         id: user.id,
         email: user.email!,
-        name: user.profile?.full_name || user.email!,
+        name: user.profile?.name || user.email!,
         role: user.profile?.role || user.role || 'client'
       };
       
@@ -552,7 +552,7 @@ export const ExpandedProjectView = ({
     try {
       const result = await assumeProjectResponsibilityAction(project.id, {
         id: user.id,
-        name: user.profile?.full_name || user.profile?.name,
+        name: user.profile?.name || user.email,
         email: user.email,
         phone: user.profile?.phone || '',
         role: user.role || 'admin'
@@ -565,7 +565,7 @@ export const ExpandedProjectView = ({
       // Atualizar estado local
       const newAdminResponsible = {
         adminResponsibleId: user.id,
-        adminResponsibleName: user.profile?.full_name || user.email || 'Admin',
+        adminResponsibleName: user.profile?.name || user.email || 'Admin',
         adminResponsibleEmail: user.email,
         adminResponsiblePhone: user.profile?.phone || ''
       };
@@ -610,7 +610,7 @@ export const ExpandedProjectView = ({
       email: user?.email,
       profile: user?.profile,
       profileKeys: user?.profile ? Object.keys(user.profile) : 'no profile',
-      fullName: user?.profile?.full_name,
+      fullName: user?.profile?.name,
       role: user?.profile?.role,
       userRole: user?.role,
       // Vamos ver se há outros campos que possam ter o nome
