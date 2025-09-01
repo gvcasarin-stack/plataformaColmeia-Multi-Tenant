@@ -1014,7 +1014,11 @@ export default function AdminBillingPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex items-center gap-1 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400"
+                              className={`flex items-center gap-1 transition-all duration-200 ${
+                                getSelectedCount(clientKey) === 0 
+                                  ? "bg-green-50 text-green-500 border-green-200 hover:bg-green-100 hover:text-green-600 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50 dark:hover:bg-green-900/30"
+                                  : "bg-green-500 text-white border-green-500 hover:bg-green-600 hover:border-green-600 dark:bg-green-600 dark:border-green-600 dark:hover:bg-green-700"
+                              }`}
                               onClick={() => handleDownloadSelectedInvoice(clientKey, clientProjects)}
                               disabled={isGeneratingInvoice || getSelectedCount(clientKey) === 0}
                             >
@@ -1040,11 +1044,6 @@ export default function AdminBillingPage() {
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 dark:bg-gray-700/50 dark:hover:bg-gray-700/50">
-                            {isSelectionMode[clientKey] && (
-                              <TableHead className="font-semibold text-gray-700 dark:text-gray-300 w-[50px]">
-                                Seleção
-                              </TableHead>
-                            )}
                             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 w-[100px]">
                               Número
                             </TableHead>
@@ -1072,15 +1071,6 @@ export default function AdminBillingPage() {
                         <TableBody>
                           {clientProjects.map((project) => (
                             <TableRow key={project.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/40">
-                              {isSelectionMode[clientKey] && (
-                                <TableCell>
-                                  <Checkbox
-                                    checked={selectedProjects[clientKey]?.has(project.id) || false}
-                                    onCheckedChange={() => toggleProjectSelection(clientKey, project.id)}
-                                    className="data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
-                                  />
-                                </TableCell>
-                              )}
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                                 {safeString(project.number)}
                               </TableCell>
@@ -1119,6 +1109,13 @@ export default function AdminBillingPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
+                                  {isSelectionMode[clientKey] && (
+                                    <Checkbox
+                                      checked={selectedProjects[clientKey]?.has(project.id) || false}
+                                      onCheckedChange={() => toggleProjectSelection(clientKey, project.id)}
+                                      className="data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
+                                    />
+                                  )}
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
