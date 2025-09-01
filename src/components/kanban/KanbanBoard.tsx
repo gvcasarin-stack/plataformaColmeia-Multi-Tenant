@@ -183,26 +183,14 @@ export const KanbanBoard = forwardRef<
   };
 
   // Definir as colunas com títulos personalizados, se disponíveis
-  // ✅ CORREÇÃO: Mapeamento de status conservador para evitar constraint violation
-  const statusSafeMap: Record<string, ProjectStatus> = {
-    "nao-iniciados": "Não Iniciado",
-    "em-desenvolvimento": "Em Desenvolvimento", 
-    "aguardando-assinaturas": "Em Homologação", // Mapear para um status que sabemos que existe
-    "em-homologacao": "Em Homologação",
-    "projeto-aprovado": "Finalizado", // Mapear para um status mais genérico
-    "aguardando-solicitar-vistoria": "Em Desenvolvimento", // Mapear para um status seguro
-    "projeto-pausado": "Não Iniciado", // Mapear para um status seguro
-    "em-vistoria": "Em Desenvolvimento", // Mapear para um status seguro
-    "finalizado": "Finalizado",
-    "cancelado": "Não Iniciado" // Mapear para um status seguro
-  };
+  // Definir as colunas com títulos personalizados, se disponíveis
 
   const columns = useMemo<Record<ColumnId, Column>>(() => {
     const baseColumns: Record<ColumnId, Column> = {
   "nao-iniciados": {
         id: "nao-iniciados",
     title: "Não Iniciado",
-        status: statusSafeMap["nao-iniciados"],
+        status: "Não Iniciado" as ProjectStatus,
         iconType: "x",
         color: "bg-blue-500",
         style: { border: 'border-l-blue-400', bg: 'from-blue-50/80 to-blue-50/30' }
@@ -210,7 +198,7 @@ export const KanbanBoard = forwardRef<
   "em-desenvolvimento": {
         id: "em-desenvolvimento",
     title: "Em Desenvolvimento",
-        status: statusSafeMap["em-desenvolvimento"],
+        status: "Em Desenvolvimento" as ProjectStatus,
         iconType: "x",
         color: "bg-yellow-500",
         style: { border: 'border-l-yellow-400', bg: 'from-yellow-50/80 to-yellow-50/30' }
@@ -218,7 +206,7 @@ export const KanbanBoard = forwardRef<
   "aguardando-assinaturas": {
         id: "aguardando-assinaturas",
         title: "Aguardando Assinaturas",
-        status: statusSafeMap["aguardando-assinaturas"], // Usa "Em Homologação" 
+        status: "Aguardando Assinaturas" as ProjectStatus, 
         iconType: "x",
         color: "bg-orange-500",
         style: { border: 'border-l-orange-400', bg: 'from-orange-50/80 to-orange-50/30' }
@@ -226,7 +214,7 @@ export const KanbanBoard = forwardRef<
   "em-homologacao": {
         id: "em-homologacao",
         title: "Em Homologação",
-        status: statusSafeMap["em-homologacao"],
+        status: "Em Homologação" as ProjectStatus,
         iconType: "x",
         color: "bg-purple-500",
         style: { border: 'border-l-purple-400', bg: 'from-purple-50/80 to-purple-50/30' }
@@ -234,7 +222,7 @@ export const KanbanBoard = forwardRef<
   "projeto-aprovado": {
         id: "projeto-aprovado",
     title: "Projeto Aprovado",
-        status: statusSafeMap["projeto-aprovado"], // Usa "Finalizado"
+        status: "Projeto Aprovado" as ProjectStatus,
         iconType: "x",
         color: "bg-green-500",
         style: { border: 'border-l-green-400', bg: 'from-green-50/80 to-green-50/30' }
@@ -242,7 +230,7 @@ export const KanbanBoard = forwardRef<
       "aguardando-solicitar-vistoria": {
         id: "aguardando-solicitar-vistoria",
         title: "Aguardando Solicitar Vistoria",
-        status: statusSafeMap["aguardando-solicitar-vistoria"], // Usa "Em Desenvolvimento"
+        status: "Aguardando Solicitar Vistoria" as ProjectStatus,
         iconType: "x",
         color: "bg-amber-500",
         style: { border: 'border-l-amber-400', bg: 'from-amber-50/80 to-amber-50/30' }
@@ -250,7 +238,7 @@ export const KanbanBoard = forwardRef<
   "projeto-pausado": {
         id: "projeto-pausado",
     title: "Projeto Pausado",
-        status: statusSafeMap["projeto-pausado"], // Usa "Não Iniciado"
+        status: "Projeto Pausado" as ProjectStatus,
         iconType: "x",
         color: "bg-yellow-500",
         style: { border: 'border-l-yellow-400', bg: 'from-yellow-50/80 to-yellow-50/30' }
@@ -258,7 +246,7 @@ export const KanbanBoard = forwardRef<
   "em-vistoria": {
         id: "em-vistoria",
     title: "Em Vistoria",
-        status: statusSafeMap["em-vistoria"], // Usa "Em Desenvolvimento"
+        status: "Em Vistoria" as ProjectStatus,
         iconType: "x",
         color: "bg-cyan-500",
         style: { border: 'border-l-cyan-400', bg: 'from-cyan-50/80 to-cyan-50/30' }
@@ -266,7 +254,7 @@ export const KanbanBoard = forwardRef<
   "finalizado": {
         id: "finalizado",
     title: "Finalizado",
-        status: statusSafeMap["finalizado"],
+        status: "Finalizado" as ProjectStatus,
         iconType: "x",
         color: "bg-emerald-500",
         style: { border: 'border-l-emerald-400', bg: 'from-emerald-50/80 to-emerald-50/30' }
@@ -274,7 +262,7 @@ export const KanbanBoard = forwardRef<
   "cancelado": {
         id: "cancelado",
     title: "Cancelado",
-        status: statusSafeMap["cancelado"], // Usa "Não Iniciado"
+        status: "Cancelado" as ProjectStatus,
         iconType: "x",
         color: "bg-red-500",
         style: { border: 'border-l-red-400', bg: 'from-red-50/80 to-red-50/30' }
@@ -430,12 +418,18 @@ export const KanbanBoard = forwardRef<
     // Verifica se houve mudança real de status
     if (oldStatus === newStatus) return;
 
-    // ✅ VALIDAÇÃO: Usar apenas os status seguros que mapeamos
+    // ✅ VALIDAÇÃO: Todos os 10 status são válidos no banco
     const validStatuses: ProjectStatus[] = [
       'Não Iniciado',
       'Em Desenvolvimento', 
+      'Aguardando Assinaturas',
       'Em Homologação',
-      'Finalizado'
+      'Projeto Aprovado',
+      'Aguardando Solicitar Vistoria',
+      'Projeto Pausado',
+      'Em Vistoria',
+      'Finalizado',
+      'Cancelado'
     ];
 
     if (!validStatuses.includes(newStatus)) {

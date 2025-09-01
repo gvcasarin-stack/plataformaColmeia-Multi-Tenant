@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   DollarSign, 
   Building2, 
@@ -199,6 +200,44 @@ export default function AdminBillingPage() {
     projectsThisMonth: 0,
     paidProjectsThisMonth: 0
   });
+
+  // Estados para seleção de projetos
+  const [isSelectionMode, setIsSelectionMode] = useState<Record<string, boolean>>({});
+  const [selectedProjects, setSelectedProjects] = useState<Record<string, Set<string>>>({});
+
+  // Funções para gerenciar seleção de projetos
+  const toggleProjectSelection = (clientKey: string, projectId: string) => {
+    setSelectedProjects(prev => {
+      const clientSelections = prev[clientKey] || new Set();
+      const newSelections = new Set(clientSelections);
+      
+      if (newSelections.has(projectId)) {
+        newSelections.delete(projectId);
+      } else {
+        newSelections.add(projectId);
+      }
+      
+      return {
+        ...prev,
+        [clientKey]: newSelections
+      };
+    });
+  };
+
+  const getSelectedCount = (clientKey: string): number => {
+    return selectedProjects[clientKey]?.size || 0;
+  };
+
+  const cancelSelection = (clientKey: string) => {
+    setIsSelectionMode(prev => ({
+      ...prev,
+      [clientKey]: false
+    }));
+    setSelectedProjects(prev => ({
+      ...prev,
+      [clientKey]: new Set()
+    }));
+  };
   
   useEffect(() => {
     if (projects.length === 0) return;
@@ -600,9 +639,29 @@ export default function AdminBillingPage() {
     }
   };
 
-  const handleDownloadCompleteBillingInvoice = async (clientId: string, projects: ProjectWithBilling[]) => {
+  const handleActivateSelectionMode = (clientId: string) => {
+    setIsSelectionMode(prev => ({
+      ...prev,
+      [clientId]: true
+    }));
+  };
+
+  const handleDownloadSelectedInvoice = async (clientId: string, allProjects: ProjectWithBilling[]) => {
     try {
       setIsGeneratingInvoice(true);
+      
+      // Filtrar apenas os projetos selecionados
+      const selectedProjectIds = selectedProjects[clientId] || new Set();
+      const projects = allProjects.filter(project => selectedProjectIds.has(project.id));
+      
+      if (projects.length === 0) {
+        toast({
+          title: 'Nenhum projeto selecionado',
+          description: 'Selecione pelo menos um projeto para gerar a fatura.',
+          variant: 'destructive',
+        });
+        return;
+      }
       
       const clientName = getClientName(clientId);
 
@@ -686,13 +745,16 @@ export default function AdminBillingPage() {
         dadosBancarios2
       );
       
-      await downloadHTMLAsPDF(invoiceHTML, `fatura-completa-${clientName}.pdf`);
+      await downloadHTMLAsPDF(invoiceHTML, `fatura-selecionada-${clientName}.pdf`);
       
       toast({
-        title: 'Fatura completa gerada',
-        description: 'A fatura consolidada foi baixada com sucesso.',
+        title: 'Fatura selecionada gerada',
+        description: 'A fatura com os projetos selecionados foi baixada com sucesso.',
         variant: 'default',
       });
+      
+      // Sair do modo seleção após gerar a fatura
+      cancelSelection(clientId);
       
     } catch (error) {
       devLog.error('[handleDownloadCompleteBillingInvoice] Error:', error);
@@ -936,16 +998,40 @@ export default function AdminBillingPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
-                          onClick={() => handleDownloadCompleteBillingInvoice(clientKey, clientProjects)}
-                          disabled={isGeneratingInvoice}
-                        >
-                          <Icons.Download className="h-4 w-4" />
-                          Baixar fatura completa
-                        </Button>
+                        {!isSelectionMode[clientKey] ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                            onClick={() => handleActivateSelectionMode(clientKey)}
+                            disabled={isGeneratingInvoice}
+                          >
+                            <Icons.Download className="h-4 w-4" />
+                            Baixar fatura completa
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400"
+                              onClick={() => handleDownloadSelectedInvoice(clientKey, clientProjects)}
+                              disabled={isGeneratingInvoice || getSelectedCount(clientKey) === 0}
+                            >
+                              <Icons.Download className="h-4 w-4" />
+                              Gerar Fatura Selecionada ({getSelectedCount(clientKey)})
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                              onClick={() => cancelSelection(clientKey)}
+                              disabled={isGeneratingInvoice}
+                            >
+                              Cancelar
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -954,6 +1040,11 @@ export default function AdminBillingPage() {
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 dark:bg-gray-700/50 dark:hover:bg-gray-700/50">
+                            {isSelectionMode[clientKey] && (
+                              <TableHead className="font-semibold text-gray-700 dark:text-gray-300 w-[50px]">
+                                Seleção
+                              </TableHead>
+                            )}
                             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 w-[100px]">
                               Número
                             </TableHead>
@@ -981,6 +1072,15 @@ export default function AdminBillingPage() {
                         <TableBody>
                           {clientProjects.map((project) => (
                             <TableRow key={project.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/40">
+                              {isSelectionMode[clientKey] && (
+                                <TableCell>
+                                  <Checkbox
+                                    checked={selectedProjects[clientKey]?.has(project.id) || false}
+                                    onCheckedChange={() => toggleProjectSelection(clientKey, project.id)}
+                                    className="data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
+                                  />
+                                </TableCell>
+                              )}
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                                 {safeString(project.number)}
                               </TableCell>
