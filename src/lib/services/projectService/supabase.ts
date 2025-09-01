@@ -198,6 +198,7 @@ export const subscribeToProject = (
 ): (() => void) => {
   logger.debug('[subscribeToProject] Iniciando escuta em tempo real:', { projectId, userId });
 
+  const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
   const channel = supabase
     .channel(`project-${projectId}`)
     .on(
