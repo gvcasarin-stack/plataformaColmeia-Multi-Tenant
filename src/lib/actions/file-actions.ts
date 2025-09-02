@@ -148,6 +148,15 @@ export async function uploadProjectFileAction(
     const isOwner = project.created_by === user.id;
     const isAdmin = finalProfile.role === 'admin' || finalProfile.role === 'superadmin';
     
+    console.log('🚨 [CRITICAL DEBUG] Verificação de permissões:', {
+      userId: user.id,
+      projectCreatedBy: project.created_by,
+      userRole: finalProfile.role,
+      isOwner,
+      isAdmin,
+      hasPermission: isOwner || isAdmin
+    });
+    
     // 🔍 DEBUG: Log da verificação de permissões
     devLog.log('🔍 [FILE UPLOAD DEBUG] Verificação de permissões:', {
       projectId,
@@ -161,24 +170,47 @@ export async function uploadProjectFileAction(
     });
     
     if (!isOwner && !isAdmin) {
+      console.log('🚨 [CRITICAL ERROR] PERMISSÃO NEGADA:', {
+        userId: user.id,
+        projectCreatedBy: project.created_by,
+        userRole: finalProfile.role,
+        isOwner,
+        isAdmin
+      });
       return {
         success: false,
         error: 'Sem permissão para fazer upload neste projeto'
       };
     }
+    
+    console.log('🚨 [CRITICAL DEBUG] Permissão autorizada, continuando...');
 
     // Extrair arquivo do FormData
+    console.log('🚨 [CRITICAL DEBUG] Extraindo arquivo do FormData...');
     const file = formData.get('file') as File;
     if (!file) {
+      console.log('🚨 [CRITICAL ERROR] ARQUIVO NÃO FORNECIDO');
       return {
         success: false,
         error: 'Nenhum arquivo fornecido'
       };
     }
+    
+    console.log('🚨 [CRITICAL DEBUG] Arquivo extraído:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
 
     // Validar arquivo
+    console.log('🚨 [CRITICAL DEBUG] Validando arquivo...');
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
+      console.log('🚨 [CRITICAL ERROR] ARQUIVO MUITO GRANDE:', {
+        fileSize: file.size,
+        maxSize,
+        fileName: file.name
+      });
       return {
         success: false,
         error: 'Arquivo muito grande (máximo 10MB)'
@@ -187,11 +219,18 @@ export async function uploadProjectFileAction(
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) {
+      console.log('🚨 [CRITICAL ERROR] TIPO DE ARQUIVO NÃO PERMITIDO:', {
+        fileType: file.type,
+        allowedTypes,
+        fileName: file.name
+      });
       return {
         success: false,
         error: 'Tipo de arquivo não permitido'
       };
     }
+    
+    console.log('🚨 [CRITICAL DEBUG] Arquivo validado com sucesso!');
 
     // Gerar nome único
     const uniqueFileName = generateUniqueFileName(file.name);
@@ -199,20 +238,41 @@ export async function uploadProjectFileAction(
     devLog.log(`[uploadProjectFileAction] Uploading file: ${uniqueFileName} for project: ${projectId}`);
 
     // Fazer upload usando server storage
+    console.log('🚨 [CRITICAL DEBUG] Iniciando upload do arquivo:', {
+      projectId,
+      fileName: uniqueFileName,
+      fileType: file.type,
+      fileSize: file.size
+    });
+    
     const uploadResult = await uploadProjectFile(
       projectId,
       file,
       uniqueFileName,
       file.type
     );
+    
+    console.log('🚨 [CRITICAL DEBUG] Resultado do upload:', {
+      success: uploadResult.success,
+      error: uploadResult.error,
+      data: uploadResult.data
+    });
 
     if (!uploadResult.success) {
+      console.log('🚨 [CRITICAL ERROR] UPLOAD FALHOU COMPLETAMENTE:', {
+        uploadError: uploadResult.error,
+        projectId,
+        fileName: uniqueFileName,
+        fileType: file.type
+      });
       devLog.error(`[uploadProjectFileAction] Upload failed:`, uploadResult.error);
       return {
         success: false,
         error: uploadResult.error || 'Erro no upload'
       };
     }
+    
+    console.log('🚨 [CRITICAL DEBUG] Upload bem-sucedido! Continuando...');
 
     // Atualizar projeto com novo arquivo
     const newFile = {
@@ -253,6 +313,13 @@ export async function uploadProjectFileAction(
     };
 
     // Atualizar projeto
+    console.log('🚨 [CRITICAL DEBUG] Atualizando projeto no banco:', {
+      projectId,
+      newFileName: newFile.name,
+      currentFilesCount: currentFiles.length,
+      currentTimelineCount: currentTimeline.length
+    });
+    
     const { error: updateError } = await supabase
       .from('projects')
       .update({
@@ -267,14 +334,29 @@ export async function uploadProjectFileAction(
         }
       })
       .eq('id', projectId);
+      
+    console.log('🚨 [CRITICAL DEBUG] Resultado da atualização do projeto:', {
+      updateError: updateError?.message,
+      hasError: !!updateError,
+      projectId
+    });
 
     if (updateError) {
+      console.log('🚨 [CRITICAL ERROR] FALHOU AO ATUALIZAR PROJETO:', {
+        updateError: updateError.message,
+        code: updateError.code,
+        details: updateError.details,
+        projectId,
+        userId: user.id
+      });
       devLog.error(`[uploadProjectFileAction] Failed to update project:`, updateError);
       return {
         success: false,
         error: 'Erro ao atualizar projeto'
       };
     }
+    
+    console.log('🚨 [CRITICAL DEBUG] Projeto atualizado com sucesso!');
 
     // ✅ CORREÇÃO: Só revalidar em runtime, não durante build/static generation
     try {
@@ -373,6 +455,8 @@ export async function uploadProjectFileAction(
       // Não falha o upload se houver erro de notificação
     }
 
+    console.log('🚨 [CRITICAL DEBUG] UPLOAD COMPLETO - SUCESSO TOTAL!');
+    
     return {
       success: true,
       data: {

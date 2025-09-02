@@ -634,6 +634,15 @@ export async function addCommentAction(
     const currentComments = basicProject.comments || [];
     const currentTimelineEvents = basicProject.timeline_events || [];
     
+    console.log('🚨 [CRITICAL DEBUG] Iniciando adição de comentário:', { 
+      projectId, 
+      content: comment.text,
+      userId: user.id,
+      userRole: user.role,
+      currentCommentsCount: currentComments.length,
+      tenantId: userInfo.tenant_id
+    });
+    
     const { error: updateError } = await supabase
       .from('projects')
       .update({
@@ -652,9 +661,23 @@ export async function addCommentAction(
       .eq('tenant_id', userInfo.tenant_id);
 
     if (updateError) {
+      console.log('🚨 [CRITICAL DEBUG] Resultado da operação:', { 
+        success: false, 
+        error: updateError.message || updateError,
+        projectId,
+        userId: user.id 
+      });
       devLog.error('[addCommentAction] Update failed:', updateError);
       return { error: `Failed to add comment: ${updateError.message}` };
     }
+
+    console.log('🚨 [CRITICAL DEBUG] Resultado da operação:', { 
+      success: true, 
+      error: null,
+      projectId,
+      userId: user.id,
+      newCommentsCount: currentComments.length + 1
+    });
 
     devLog.log('[addCommentAction] Comment added successfully to Supabase');
     
