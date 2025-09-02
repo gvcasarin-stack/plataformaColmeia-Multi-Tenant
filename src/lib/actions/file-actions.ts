@@ -32,7 +32,22 @@ export async function uploadProjectFileAction(
     }
 
     // ✅ SEGURANÇA: Verificar acesso ao projeto
+    devLog.log('🔍 [uploadProjectFileAction] Verificando acesso ao projeto:', {
+      userId: user.id,
+      projectId,
+      userEmail: user.email
+    });
+    
     const accessCheck = await canUserAccessResource(user.id, 'project', projectId);
+    
+    devLog.log('🔍 [uploadProjectFileAction] Resultado da verificação de acesso:', {
+      allowed: accessCheck.allowed,
+      message: accessCheck.message,
+      hasTenantInfo: !!accessCheck.tenantInfo,
+      tenantId: accessCheck.tenantInfo?.tenant_id,
+      organizationName: accessCheck.tenantInfo?.organization?.name
+    });
+    
     if (!accessCheck.allowed) {
       devLog.error('[uploadProjectFileAction] Acesso negado:', accessCheck.message);
       return {

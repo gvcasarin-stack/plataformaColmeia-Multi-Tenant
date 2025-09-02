@@ -533,6 +533,21 @@ export async function addCommentAction(
 
     logger.info(`[addCommentAction] User: ${user.name} (${user.role}) is adding comment to project ${projectId}`);
 
+    // ✅ SEGURANÇA MULTI-TENANT: Verificar acesso ao projeto
+    const accessCheck = await canUserAccessResource(user.id, 'project', projectId);
+    if (!accessCheck.allowed) {
+      logger.error('[addCommentAction] Acesso negado:', accessCheck.message);
+      return { 
+        error: accessCheck.message || 'Acesso negado ao projeto' 
+      };
+    }
+
+    const tenantInfo = accessCheck.tenantInfo!;
+    logger.info('[addCommentAction] Acesso autorizado para tenant:', {
+      tenant_id: tenantInfo.tenant_id,
+      organization: tenantInfo.organization.name
+    });
+
     // ❌ FIREBASE - COMENTADO: const adminApp = getOrCreateFirebaseAdminApp();
     // ❌ FIREBASE - COMENTADO: const adminDb = getFirestore(adminApp);
     // ❌ FIREBASE - COMENTADO: const projectRef = adminDb.collection('projects').doc(projectId);
@@ -567,10 +582,12 @@ export async function addCommentAction(
     // Logs removidos por questões de segurança em produção
     
     // 🚀 OTIMIZAÇÃO: Buscar APENAS os campos necessários (não o projeto inteiro)
+    // ✅ SEGURANÇA: Filtrar por tenant_id para garantir isolamento multi-tenant
     const { data: basicProject, error: fetchError } = await supabase
       .from('projects')
       .select('id, name, number, created_by, comments, timeline_events')
       .eq('id', projectId)
+      .eq('tenant_id', tenantInfo.tenant_id)
       .single();
 
     if (fetchError || !basicProject) {
@@ -598,7 +615,8 @@ export async function addCommentAction(
           timestamp: new Date().toISOString()
         }
       })
-      .eq('id', projectId);
+      .eq('id', projectId)
+      .eq('tenant_id', tenantInfo.tenant_id);
 
     if (updateError) {
       devLog.error('[addCommentAction] Update failed:', updateError);
