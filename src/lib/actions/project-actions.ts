@@ -257,7 +257,7 @@ export async function updateProjectAction(
         .from('projects')
         .select('*')
         .eq('id', project.id)
-        .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
+        .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
         .single();
 
       if (fetchError || !currentProject) {
@@ -323,7 +323,7 @@ export async function updateProjectAction(
         .from('projects')
         .update(supabaseUpdateData)
         .eq('id', project.id)
-        .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
+        .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
         .select()
         .single();
 
@@ -522,6 +522,18 @@ export async function addCommentAction(
   refresh?: boolean;
 }> {
   
+  // 🚨 [DEBUG CRÍTICO] Capturar usuário que chega na função
+  console.log('🚨 [DEBUG SESSION] addCommentAction - Dados do usuário recebido:', {
+    userId: user?.id,
+    userEmail: user?.email,
+    userName: user?.name,
+    userRole: user?.role,
+    timestamp: new Date().toISOString(),
+    projectId: projectId,
+    expectedUserId: '70b7eacc-a3d5-480d-8058-f850671ba34f',
+    userIdMatch: user?.id === '70b7eacc-a3d5-480d-8058-f850671ba34f' ? '✅ MATCH' : '❌ DIFFERENT'
+  });
+
   // Logs removidos por questões de segurança em produção
   try {
     if (!projectId || !comment.text) {
@@ -533,19 +545,41 @@ export async function addCommentAction(
 
     logger.info(`[addCommentAction] User: ${user.name} (${user.role}) is adding comment to project ${projectId}`);
 
-    // ✅ SEGURANÇA MULTI-TENANT: Verificar acesso ao projeto
-    const accessCheck = await canUserAccessResource(user.id, 'project', projectId);
-    if (!accessCheck.allowed) {
-      logger.error('[addCommentAction] Acesso negado:', accessCheck.message);
-      return { 
-        error: accessCheck.message || 'Acesso negado ao projeto' 
-      };
+    // ✅ SEGURANÇA MULTI-TENANT: Verificação direta e simples
+    const supabase = createSupabaseServiceRoleClient();
+    
+    // Obter tenant do usuário
+    const { data: userInfo, error: userError } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userInfo?.tenant_id) {
+      logger.error('[addCommentAction] Usuário não encontrado:', userError?.message);
+      return { error: 'Usuário não encontrado' };
     }
 
-    const tenantInfo = accessCheck.tenantInfo!;
-    logger.info('[addCommentAction] Acesso autorizado para tenant:', {
-      tenant_id: tenantInfo.tenant_id,
-      organization: tenantInfo.organization.name
+    // Verificar se projeto pertence ao mesmo tenant
+    const { data: projectExists, error: projectError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('tenant_id', userInfo.tenant_id)
+      .single();
+
+    if (projectError || !projectExists) {
+      logger.error('[addCommentAction] Projeto não encontrado no tenant do usuário:', {
+        projectId,
+        userTenantId: userInfo.tenant_id,
+        error: projectError?.message
+      });
+      return { error: 'Projeto não encontrado' };
+    }
+
+    logger.info('[addCommentAction] Acesso autorizado:', {
+      projectId,
+      userTenantId: userInfo.tenant_id
     });
 
     // ❌ FIREBASE - COMENTADO: const adminApp = getOrCreateFirebaseAdminApp();
@@ -577,7 +611,6 @@ export async function addCommentAction(
     };
 
     // ✅ SUPABASE - IMPLEMENTAÇÃO: Adicionar comentário no Supabase
-    const supabase = createSupabaseServiceRoleClient();
     
     // Logs removidos por questões de segurança em produção
     
@@ -587,7 +620,7 @@ export async function addCommentAction(
       .from('projects')
       .select('id, name, number, created_by, comments, timeline_events')
       .eq('id', projectId)
-      .eq('tenant_id', tenantInfo.tenant_id)
+      .eq('tenant_id', userInfo.tenant_id)
       .single();
 
     if (fetchError || !basicProject) {
@@ -616,7 +649,7 @@ export async function addCommentAction(
         }
       })
       .eq('id', projectId)
-      .eq('tenant_id', tenantInfo.tenant_id);
+      .eq('tenant_id', userInfo.tenant_id);
 
     if (updateError) {
       devLog.error('[addCommentAction] Update failed:', updateError);
@@ -1362,7 +1395,7 @@ export async function createProjectClientAction(
         .from('configs')
         .select('value')
         .eq('key', 'checklist_message')
-        .eq('tenant_id', tenantInfo.tenant_id)
+        .eq('tenant_id', userInfo.tenant_id)
         .single();
 
       if (!configError && configData) {

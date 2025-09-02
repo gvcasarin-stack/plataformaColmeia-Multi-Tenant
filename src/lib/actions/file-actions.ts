@@ -23,6 +23,18 @@ export async function uploadProjectFileAction(
   message?: string;
 }> {
   try {
+    // 🚨 [DEBUG CRÍTICO] Capturar usuário que chega na função
+    console.log('🚨 [DEBUG SESSION] uploadProjectFileAction - Dados do usuário recebido:', {
+      userId: user?.id,
+      userEmail: user?.email,
+      userName: user?.name,
+      userRole: user?.role,
+      timestamp: new Date().toISOString(),
+      projectId: projectId,
+      expectedUserId: '70b7eacc-a3d5-480d-8058-f850671ba34f',
+      userIdMatch: user?.id === '70b7eacc-a3d5-480d-8058-f850671ba34f' ? '✅ MATCH' : '❌ DIFFERENT'
+    });
+
     // Verificar autenticação
     if (!user || !user.id) {
       return {
@@ -31,33 +43,52 @@ export async function uploadProjectFileAction(
       };
     }
 
-    // ✅ SEGURANÇA: Verificar acesso ao projeto
+    // ✅ SEGURANÇA: Verificação direta e simples sem dependências complexas
     devLog.log('🔍 [uploadProjectFileAction] Verificando acesso ao projeto:', {
       userId: user.id,
       projectId,
       userEmail: user.email
     });
     
-    const accessCheck = await canUserAccessResource(user.id, 'project', projectId);
-    
-    devLog.log('🔍 [uploadProjectFileAction] Resultado da verificação de acesso:', {
-      allowed: accessCheck.allowed,
-      message: accessCheck.message,
-      hasTenantInfo: !!accessCheck.tenantInfo,
-      tenantId: accessCheck.tenantInfo?.tenant_id,
-      organizationName: accessCheck.tenantInfo?.organization?.name
-    });
-    
-    if (!accessCheck.allowed) {
-      devLog.error('[uploadProjectFileAction] Acesso negado:', accessCheck.message);
+    // Obter tenant do usuário diretamente
+    const { data: userInfo, error: userError } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userInfo?.tenant_id) {
+      devLog.error('[uploadProjectFileAction] Usuário não encontrado:', userError?.message);
       return {
         success: false,
-        error: accessCheck.message || 'Acesso negado ao projeto'
+        error: 'Usuário não encontrado'
       };
     }
 
-    const tenantInfo = accessCheck.tenantInfo!;
-    const supabase = createSupabaseServiceRoleClient();
+    // Verificar se projeto pertence ao mesmo tenant (verificação direta)
+    const { data: projectExists, error: projectError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('tenant_id', userInfo.tenant_id)
+      .single();
+
+    if (projectError || !projectExists) {
+      devLog.error('[uploadProjectFileAction] Projeto não encontrado no tenant do usuário:', {
+        projectId,
+        userTenantId: userInfo.tenant_id,
+        error: projectError?.message
+      });
+      return {
+        success: false,
+        error: 'Projeto não encontrado'
+      };
+    }
+
+    devLog.log('🔍 [uploadProjectFileAction] Acesso autorizado:', {
+      projectId,
+      userTenantId: userInfo.tenant_id
+    });
     
     // ✅ CORRIGIDO: Buscar perfil do usuário da tabela users
     devLog.log('🔍 [URGENT DEBUG] Buscando perfil do usuário:', user.id);
@@ -93,7 +124,7 @@ export async function uploadProjectFileAction(
       .from('projects')
       .select('id, created_by, name, number')
       .eq('id', projectId)
-      .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
+      .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
       .single();
 
     if (projectError || !project) {
