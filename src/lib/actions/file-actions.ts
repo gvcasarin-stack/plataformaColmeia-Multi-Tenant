@@ -88,7 +88,7 @@ export async function uploadProjectFileAction(
       };
     }
 
-    devLog.log('🔍 [uploadProjectFileAction] Acesso autorizado:', {
+    console.log('🚨 [CRITICAL DEBUG] Acesso autorizado, continuando...', {
       projectId,
       userTenantId: userInfo.tenant_id
     });
@@ -101,7 +101,7 @@ export async function uploadProjectFileAction(
       .eq('id', user.id)
       .single();
     
-    devLog.log('🔍 [URGENT DEBUG] Resultado da busca do perfil:', {
+    console.log('🚨 [CRITICAL DEBUG] Resultado da busca do perfil:', {
       userProfile,
       profileError: profileError?.message,
       hasProfile: !!userProfile
@@ -377,6 +377,8 @@ export async function uploadProjectFileAction(
     };
 
   } catch (error) {
+    console.log('🚨 [CRITICAL ERROR] uploadProjectFileAction FALHOU:', error);
+    console.log('🚨 [CRITICAL ERROR] Stack trace:', error?.stack);
     devLog.error(`[uploadProjectFileAction] Error:`, error);
     return {
       success: false,
