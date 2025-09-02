@@ -616,18 +616,36 @@ export async function addCommentAction(
     
     // 🚀 OTIMIZAÇÃO: Buscar APENAS os campos necessários (não o projeto inteiro)
     // ✅ SEGURANÇA: Filtrar por tenant_id para garantir isolamento multi-tenant
+    console.log('🚨 [CRITICAL DEBUG] Buscando projeto para comentário:', {
+      projectId,
+      tenantId: userInfo.tenant_id
+    });
+    
     const { data: basicProject, error: fetchError } = await supabase
       .from('projects')
-      .select('id, name, number, created_by, comments, timeline_events')
+      .select('id, nome_cliente_final, number, created_by, comments, timeline_events')
       .eq('id', projectId)
       .eq('tenant_id', userInfo.tenant_id)
       .single();
+      
+    console.log('🚨 [CRITICAL DEBUG] Resultado busca projeto comentário:', {
+      project: basicProject,
+      fetchError: fetchError?.message,
+      hasProject: !!basicProject
+    });
 
     if (fetchError || !basicProject) {
-      // Logs removidos por questões de segurança em produção
+      console.log('🚨 [CRITICAL ERROR] PROJETO NÃO ENCONTRADO PARA COMENTÁRIO:', {
+        fetchError: fetchError?.message,
+        code: fetchError?.code,
+        projectId,
+        tenantId: userInfo.tenant_id
+      });
       devLog.error('[addCommentAction] Project not found:', fetchError);
       return { error: 'Project not found' };
     }
+    
+    console.log('🚨 [CRITICAL DEBUG] Projeto encontrado para comentário! Continuando...');
 
     // Logs removidos por questões de segurança em produção
     
