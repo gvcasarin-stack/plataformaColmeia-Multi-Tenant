@@ -145,13 +145,35 @@ export async function canUserAccessResource(
 
   // Se resourceId fornecido, verificar se pertence ao tenant
   if (resourceId) {
+    devLog.log('🔍 [canUserAccessResource] CRITICAL DEBUG - Verificando propriedade:', {
+      tenantId: tenantInfo.tenant_id,
+      resourceType,
+      resourceId,
+      organizationName: tenantInfo.organization.name
+    });
+    
     const belongsToTenant = await verifyResourceOwnership(
       tenantInfo.tenant_id,
       resourceType,
       resourceId
     )
 
+    devLog.log('🔍 [canUserAccessResource] CRITICAL DEBUG - Resultado da verificação:', {
+      belongsToTenant,
+      tenantId: tenantInfo.tenant_id,
+      resourceId,
+      resourceType
+    });
+
     if (!belongsToTenant) {
+      devLog.error('🚨 [canUserAccessResource] OWNERSHIP FALHOU - Detalhes:', {
+        tenantId: tenantInfo.tenant_id,
+        resourceType,
+        resourceId,
+        organizationName: tenantInfo.organization.name,
+        message: 'Recurso não encontrado ou não pertence à sua organização'
+      });
+      
       return {
         allowed: false,
         tenantInfo,
@@ -195,6 +217,14 @@ export async function verifyResourceOwnership(
         return false
     }
 
+    devLog.log('🔍 [verifyResourceOwnership] CRITICAL DEBUG - Query:', {
+      tableName,
+      tenantColumn,
+      resourceId,
+      tenantId,
+      resourceType
+    });
+
     const { data, error } = await supabase
       .from(tableName)
       .select('id')
@@ -202,12 +232,27 @@ export async function verifyResourceOwnership(
       .eq(tenantColumn, tenantId)
       .single()
 
+    devLog.log('🔍 [verifyResourceOwnership] CRITICAL DEBUG - Query Result:', {
+      data,
+      error: error?.message,
+      errorCode: error?.code,
+      hasData: !!data,
+      resourceType,
+      resourceId,
+      tenantId
+    });
+
     if (error || !data) {
-      devLog.warn('[verifyResourceOwnership] Recurso não encontrado ou não pertence ao tenant:', {
+      devLog.error('🚨 [verifyResourceOwnership] FALHOU - Detalhes completos:', {
         resourceType,
         resourceId,
         tenantId,
-        error: error?.message
+        tableName,
+        tenantColumn,
+        error: error?.message,
+        errorCode: error?.code,
+        errorDetails: error?.details,
+        query: `SELECT id FROM ${tableName} WHERE id = '${resourceId}' AND ${tenantColumn} = '${tenantId}'`
       })
       return false
     }
