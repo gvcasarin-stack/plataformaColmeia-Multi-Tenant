@@ -16,18 +16,22 @@ export interface SystemConfig {
 /**
  * Busca uma configuração específica por chave
  */
-export async function getConfig(key: string): Promise<any | null> {
+export async function getConfig(key: string, tenantId?: string): Promise<any | null> {
   try {
-    logger.info('[ConfigService] Buscando configuração:', key);
+    logger.info('[ConfigService] Buscando configuração:', { key, tenantId });
     
     const supabase = createSupabaseServiceRoleClient();
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('configs')
       .select('value')
-      .eq('key', key)
-      .eq('is_active', true)
-      .single();
+      .eq('key', key);
+      
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+    
+    const { data, error } = await query.single();
 
     if (error) {
       logger.error('[ConfigService] Erro ao buscar configuração:', error);
@@ -45,18 +49,22 @@ export async function getConfig(key: string): Promise<any | null> {
 /**
  * Busca todas as configurações de uma categoria
  */
-export async function getConfigsByCategory(category: string): Promise<SystemConfig[]> {
+export async function getConfigsByCategory(category: string, tenantId?: string): Promise<SystemConfig[]> {
   try {
-    logger.info('[ConfigService] Buscando configurações da categoria:', category);
+    logger.info('[ConfigService] Buscando configurações da categoria:', { category, tenantId });
     
     const supabase = createSupabaseServiceRoleClient();
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('configs')
       .select('*')
-      .eq('category', category)
-      .eq('is_active', true)
-      .order('key');
+      .eq('category', category);
+      
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+    
+    const { data, error } = await query.order('key');
 
     if (error) {
       logger.error('[ConfigService] Erro ao buscar configurações:', error);
@@ -74,16 +82,21 @@ export async function getConfigsByCategory(category: string): Promise<SystemConf
 /**
  * Busca todas as configurações ativas
  */
-export async function getAllConfigs(): Promise<SystemConfig[]> {
+export async function getAllConfigs(tenantId?: string): Promise<SystemConfig[]> {
   try {
-    logger.info('[ConfigService] Buscando todas as configurações');
+    logger.info('[ConfigService] Buscando todas as configurações:', { tenantId });
     
     const supabase = createSupabaseServiceRoleClient();
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('configs')
-      .select('*')
-      .eq('is_active', true)
+      .select('*');
+      
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+    
+    const { data, error } = await query
       .order('category', { ascending: true })
       .order('key', { ascending: true });
 
@@ -125,7 +138,8 @@ export async function updateConfig(
     const { error } = await supabase
       .from('configs')
       .update(updateData)
-      .eq('key', key);
+      .eq('key', key)
+      .eq('tenant_id', updatedBy || 'system'); // TODO: Melhorar para receber tenantId
 
     if (error) {
       logger.error('[ConfigService] Erro ao atualizar configuração:', error);
@@ -189,12 +203,10 @@ export async function deleteConfig(key: string): Promise<{ success: boolean; err
     
     const supabase = createSupabaseServiceRoleClient();
     
+    // TODO: Implementar soft delete ou remoção real
     const { error } = await supabase
       .from('configs')
-      .update({ 
-        is_active: false,
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('key', key);
 
     if (error) {

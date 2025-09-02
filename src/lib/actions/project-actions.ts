@@ -1338,19 +1338,26 @@ export async function createProjectClientAction(
     // ✅ SUPABASE - Buscar mensagem de checklist das configurações
     let checklistMessage = null;
     try {
+      logger.info('[createProjectClientAction] Buscando checklist_message para tenant:', tenantId);
+      
       const { data: configData, error: configError } = await supabase
         .from('configs')
         .select('value')
         .eq('key', 'checklist_message')
-        .eq('is_active', true)
+        .eq('tenant_id', tenantId)
         .single();
 
-             if (!configError && configData) {
-         checklistMessage = configData.value;
-         logger.info('[createProjectClientAction] Mensagem de checklist carregada das configurações');
-       } else {
-         logger.warn('[createProjectClientAction] Mensagem de checklist não encontrada nas configurações');
-       }
+      if (!configError && configData) {
+        checklistMessage = configData.value;
+        logger.info('[createProjectClientAction] Mensagem de checklist carregada das configurações:', {
+          messageLength: checklistMessage ? checklistMessage.toString().length : 0
+        });
+      } else {
+        logger.warn('[createProjectClientAction] Mensagem de checklist não encontrada:', { 
+          error: configError?.message,
+          tenantId: tenantId
+        });
+      }
      } catch (configError) {
        logger.error('[createProjectClientAction] Erro ao buscar mensagem de checklist:', { configError });
     }
@@ -1371,8 +1378,12 @@ export async function createProjectClientAction(
         title: 'Checklist de Documentos Necessários para o Projeto',
         fullMessage: checklistMessage
       };
-             initialTimelineEvents.push(checklistEvent);
-       logger.info('[createProjectClientAction] Evento de checklist adicionado à timeline inicial');
+      initialTimelineEvents.push(checklistEvent);
+      logger.info('[createProjectClientAction] Evento de checklist adicionado à timeline inicial:', {
+        eventType: checklistEvent.type,
+        eventTitle: checklistEvent.title,
+        hasMessage: !!checklistEvent.content
+      });
      }
 
     // ✅ SUPABASE - Preparar dados do projeto para inserção
@@ -1414,7 +1425,8 @@ export async function createProjectClientAction(
       disjuntor_padrao_entrada: projectData.disjuntor_padrao_entrada,
       nome_cliente_final: projectData.nome_cliente_final,
       distribuidora: projectData.distribuidora,
-      potencia: projectData.potencia
+      potencia: projectData.potencia,
+      timeline_events_count: initialTimelineEvents.length
     });
 
     // ✅ SUPABASE - Inserir projeto na tabela

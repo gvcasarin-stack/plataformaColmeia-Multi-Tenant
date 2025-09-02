@@ -3,6 +3,7 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { devLog } from '@/lib/utils/productionLogger'
 import { registrationLogger } from '@/lib/utils/registrationLogger'
+import { setupNewTenantConfigs } from '@/lib/services/tenantConfigSetup'
 
 export interface RegistrationData {
   companyName: string
@@ -252,49 +253,38 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
 
     registrationLogger.log('USER_TABLE', 'Usuário inserido na tabela com sucesso')
 
-    // 4.1. Criar configs padrão para a organização
+    // 4.1. Criar configs padrão para a organização usando serviço robusto
     try {
-      registrationLogger.log('CONFIG_CREATE', 'Criando configs padrão para a organização')
+      registrationLogger.log('CONFIG_CREATE', 'Iniciando setup de configs padrão para novo tenant', {
+        organizationId,
+        companyName: data.companyName,
+        userId
+      });
       
-      const defaultConfigs = [
-        {
-          tenant_id: organizationId,
-          category: 'geral',
-          key: 'company_name',
-          value: { name: data.companyName },
-          description: 'Nome da empresa',
-          created_by: userId
-        },
-        {
-          tenant_id: organizationId,
-          category: 'geral',
-          key: 'default_project_status',
-          value: 'Não Iniciado',
-          description: 'Status padrão para novos projetos',
-          created_by: userId
-        },
-        {
-          tenant_id: organizationId,
-          category: 'email',
-          key: 'from_name',
-          value: { name: data.companyName },
-          description: 'Nome do remetente nos emails',
-          created_by: userId
-        }
-      ]
+      const setupResult = await setupNewTenantConfigs(
+        organizationId,
+        data.companyName,
+        userId
+      );
 
-      const { error: configCreateError } = await supabase
-        .from('configs')
-        .insert(defaultConfigs)
-
-      if (configCreateError) {
-        registrationLogger.error('CONFIG_CREATE', 'Erro ao criar configs', configCreateError)
-        // Não falhar o registro por causa das configs
+      if (setupResult.success) {
+        registrationLogger.log('CONFIG_CREATE', 'Setup de configs concluído com sucesso', {
+          configsCreated: setupResult.configsCreated
+        });
+        devLog.log('[registerOrganization] Configurações criadas:', { 
+          configsCreated: setupResult.configsCreated,
+          organizationId 
+        });
       } else {
-        registrationLogger.log('CONFIG_CREATE', 'Configs criadas com sucesso')
+        registrationLogger.error('CONFIG_CREATE', 'Falha no setup de configs', { 
+          error: setupResult.error 
+        });
+        devLog.warn('[registerOrganization] Falha ao criar configs (não crítico):', setupResult.error);
+        // Não falhar o registro por causa das configs
       }
     } catch (configError) {
-      registrationLogger.error('CONFIG_CREATE', 'Erro inesperado ao criar configs', configError)
+      registrationLogger.error('CONFIG_CREATE', 'Exceção inesperada no setup de configs', configError);
+      devLog.warn('[registerOrganization] Exceção no setup de configs (não crítico):', configError);
       // Não falhar o registro por causa das configs
     }
 

@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
         'faixas_potencia',
         'dados_bancarios'
       ])
-      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Filtrar por tenant
-      .eq('is_active', true);
+      .eq('tenant_id', tenantId);  // ✅ CRÍTICO: Filtrar por tenant
 
     if (error) {
       // Fallback: em tenants novos, a tabela/linhas podem não existir ainda
