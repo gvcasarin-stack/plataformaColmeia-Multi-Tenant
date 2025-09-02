@@ -69,18 +69,18 @@ export async function uploadProjectFileAction(
     }
 
     // Verificar se projeto pertence ao mesmo tenant (verificação direta)
-    const { data: projectExists, error: projectError } = await supabase
+    const { data: projectExists, error: projectExistsError } = await supabase
       .from('projects')
       .select('id')
       .eq('id', projectId)
       .eq('tenant_id', userInfo.tenant_id)
       .single();
 
-    if (projectError || !projectExists) {
+    if (projectExistsError || !projectExists) {
       devLog.error('[uploadProjectFileAction] Projeto não encontrado no tenant do usuário:', {
         projectId,
         userTenantId: userInfo.tenant_id,
-        error: projectError?.message
+        error: projectExistsError?.message
       });
       return {
         success: false,
