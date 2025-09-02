@@ -50,6 +50,9 @@ export async function uploadProjectFileAction(
       userEmail: user.email
     });
     
+    // ✅ CORREÇÃO CRÍTICA: Criar cliente Supabase
+    const supabase = createSupabaseServiceRoleClient();
+    
     // Obter tenant do usuário diretamente
     const { data: userInfo, error: userError } = await supabase
       .from('users')
