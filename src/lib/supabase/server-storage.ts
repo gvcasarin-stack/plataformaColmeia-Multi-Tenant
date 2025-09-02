@@ -74,6 +74,48 @@ class ServerStorageManager {
   /**
    * Upload de arquivo
    */
+  /**
+   * Verificar se bucket existe e criar se necessário
+   */
+  async ensureBucketExists(bucketName: string): Promise<boolean> {
+    try {
+      console.log(`🚨 [CRITICAL DEBUG] Verificando se bucket '${bucketName}' existe...`);
+      
+      // Listar buckets para verificar se existe
+      const { data: buckets, error: listError } = await this.supabase.storage.listBuckets();
+      
+      if (listError) {
+        console.log(`🚨 [CRITICAL ERROR] Erro ao listar buckets:`, listError);
+        return false;
+      }
+      
+      const bucketExists = buckets?.some(b => b.name === bucketName);
+      console.log(`🚨 [CRITICAL DEBUG] Bucket '${bucketName}' existe: ${bucketExists}`);
+      
+      if (!bucketExists) {
+        console.log(`🚨 [CRITICAL DEBUG] Criando bucket '${bucketName}'...`);
+        
+        const { error: createError } = await this.supabase.storage.createBucket(bucketName, {
+          public: false, // Arquivos privados por padrão
+          allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
+          fileSizeLimit: 10485760 // 10MB
+        });
+        
+        if (createError) {
+          console.log(`🚨 [CRITICAL ERROR] Erro ao criar bucket:`, createError);
+          return false;
+        }
+        
+        console.log(`🚨 [CRITICAL DEBUG] Bucket '${bucketName}' criado com sucesso!`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.log(`🚨 [CRITICAL ERROR] Erro inesperado ao verificar/criar bucket:`, error);
+      return false;
+    }
+  }
+
   async uploadFile(options: {
     bucket: string;
     path: string;
@@ -88,6 +130,17 @@ class ServerStorageManager {
     try {
       const { bucket, path, file, contentType, metadata } = options;
 
+      console.log(`🚨 [CRITICAL DEBUG] Iniciando upload para ${bucket}/${path}`);
+      
+      // ✅ CORREÇÃO CRÍTICA: Verificar/criar bucket antes do upload
+      const bucketReady = await this.ensureBucketExists(bucket);
+      if (!bucketReady) {
+        return {
+          success: false,
+          error: `Falha ao preparar bucket '${bucket}'`
+        };
+      }
+      
       logger.info(`[ServerStorage] Uploading file to ${bucket}/${path}`);
 
       const uploadOptions: any = {
@@ -107,13 +160,22 @@ class ServerStorageManager {
         .from(bucket)
         .upload(path, file, uploadOptions);
 
+      console.log(`🚨 [CRITICAL DEBUG] Resultado do upload no storage:`, {
+        success: !error,
+        error: error?.message,
+        data: data?.path
+      });
+
       if (error) {
+        console.log(`🚨 [CRITICAL ERROR] Upload falhou no storage:`, error);
         logger.error(`[ServerStorage] Upload failed:`, error);
         return {
           success: false,
           error: `Upload failed: ${error.message}`
         };
       }
+      
+      console.log(`🚨 [CRITICAL DEBUG] Upload concluído com sucesso no storage!`);
 
       // Obter URL pública
       let publicUrl;
