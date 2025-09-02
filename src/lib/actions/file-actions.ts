@@ -123,12 +123,19 @@ export async function uploadProjectFileAction(
     devLog.log('🔍 [URGENT DEBUG] Perfil final a ser usado:', finalProfile);
     
     // ✅ SEGURANÇA: Buscar projeto verificando tenant (redundante mas seguro)
+    console.log('🚨 [CRITICAL DEBUG] Buscando projeto na base:', projectId);
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, created_by, name, number')
+      .select('id, created_by, nome_cliente_final, number')
       .eq('id', projectId)
       .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
       .single();
+
+    console.log('🚨 [CRITICAL DEBUG] Resultado da busca do projeto:', {
+      project,
+      projectError: projectError?.message,
+      hasProject: !!project
+    });
 
     if (projectError || !project) {
       return {
