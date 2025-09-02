@@ -1338,24 +1338,35 @@ export async function createProjectClientAction(
     // ✅ SUPABASE - Buscar mensagem de checklist das configurações
     let checklistMessage = null;
     try {
-      logger.info('[createProjectClientAction] Buscando checklist_message para tenant:', tenantId);
+      logger.info('[createProjectClientAction] Buscando checklist_message para tenant:', tenantInfo.tenant_id);
       
       const { data: configData, error: configError } = await supabase
         .from('configs')
         .select('value')
         .eq('key', 'checklist_message')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantInfo.tenant_id)
         .single();
 
       if (!configError && configData) {
-        checklistMessage = configData.value;
+        // ✅ Processar valor que pode estar em formato JSON string
+        try {
+          checklistMessage = typeof configData.value === 'string' 
+            ? JSON.parse(configData.value) 
+            : configData.value;
+        } catch {
+          // Se não for JSON válido, usar diretamente
+          checklistMessage = configData.value;
+        }
+        
         logger.info('[createProjectClientAction] Mensagem de checklist carregada das configurações:', {
-          messageLength: checklistMessage ? checklistMessage.toString().length : 0
+          messageLength: checklistMessage ? checklistMessage.toString().length : 0,
+          valueType: typeof configData.value,
+          rawValue: configData.value
         });
       } else {
         logger.warn('[createProjectClientAction] Mensagem de checklist não encontrada:', { 
           error: configError?.message,
-          tenantId: tenantId
+          tenantId: tenantInfo.tenant_id
         });
       }
      } catch (configError) {
