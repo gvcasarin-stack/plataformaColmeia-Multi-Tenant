@@ -1,6 +1,6 @@
 // ✅ SUPABASE - Core de notificações migrado para Supabase
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
-import { getUserById, getAllAdminUsers } from '@/lib/services/userService/core';
+import { getUserById, getAllAdminUsers, getAllAdminUsersByTenant } from '@/lib/services/userService/core';
 
 import { CreateNotificationParams, NotificationResult, BatchNotificationResult } from './types';
 import logger from '@/lib/utils/logger';
@@ -114,15 +114,59 @@ export async function createNotificationForAllAdmins(
     
     const supabase = createSupabaseServiceRoleClient();
     
-    // Buscar todos os administradores
-    const { data: adminUsers, error: adminError } = await supabase
-      .from('users')
-      .select('id')
-      .in('role', ['admin', 'superadmin']);
+    // Primeiro, obter o tenant_id do projeto ou do remetente
+    let tenantId: string | null = null;
+    
+    if (notificationData.projectId) {
+      // Se tem projeto, pegar o tenant_id do projeto
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('tenant_id')
+        .eq('id', notificationData.projectId)
+        .single();
+        
+      if (!projectError && projectData) {
+        tenantId = projectData.tenant_id;
+        logger.info('[createNotificationForAllAdmins] Tenant obtido do projeto:', tenantId);
+      }
+    }
+    
+    if (!tenantId && notificationData.senderId && notificationData.senderId !== 'system') {
+      // Se não tem tenant do projeto, pegar do remetente
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('tenant_id')
+        .eq('id', notificationData.senderId)
+        .single();
+        
+      if (!userError && userData) {
+        tenantId = userData.tenant_id;
+        logger.info('[createNotificationForAllAdmins] Tenant obtido do remetente:', tenantId);
+      }
+    }
+    
+    // Buscar administradores - filtrar por tenant se disponível
+    let adminUsers: any[] = [];
+    
+    if (tenantId) {
+      // USAR NOVA FUNÇÃO COM FILTRO POR TENANT
+      const adminUsersWithTenant = await getAllAdminUsersByTenant(tenantId);
+      adminUsers = adminUsersWithTenant.map(u => ({ id: u.uid }));
+      logger.info(`[createNotificationForAllAdmins] ${adminUsers.length} admins encontrados para tenant ${tenantId}`);
+    } else {
+      // Fallback: buscar todos os admins (comportamento antigo - deve ser evitado)
+      logger.warn('[createNotificationForAllAdmins] AVISO: Sem tenant_id, buscando TODOS os admins do sistema');
+      const { data: allAdmins, error: adminError } = await supabase
+        .from('users')
+        .select('id')
+        .in('role', ['admin', 'superadmin']);
 
-    if (adminError) {
-      logger.error('[createNotificationForAllAdmins] Erro ao buscar admins:', adminError);
-      return [];
+      if (adminError) {
+        logger.error('[createNotificationForAllAdmins] Erro ao buscar admins:', adminError);
+        return [];
+      }
+      
+      adminUsers = allAdmins || [];
     }
 
     if (!adminUsers || adminUsers.length === 0) {

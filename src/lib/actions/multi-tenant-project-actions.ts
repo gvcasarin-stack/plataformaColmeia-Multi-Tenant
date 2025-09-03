@@ -5,6 +5,8 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { devLog } from '@/lib/utils/productionLogger'
 import { Project, CreateProjectClientData } from '@/types/project'
 import { User } from '@/types/user'
+import { notifyNewProject } from '@/lib/services/notificationService'
+import { getAllAdminUsersByTenant } from '@/lib/services/userService/core'
 
 /**
  * Server Action para criar projeto com isolamento multi-tenant
@@ -163,24 +165,37 @@ export async function createProjectMultiTenant(
       // Não falhar a criação por causa da timeline
     }
 
-    // 6. Criar notificação para admins da organização
+    // 6. Criar notificação e enviar email para admins da organização
     try {
-      await supabase.rpc('create_notification', {
-        org_id: tenantId,
-        target_user_id: user.id, // Pode ser melhorado para notificar outros admins
-        notification_title: 'Novo Projeto Criado',
-        notification_message: `O projeto "${newProject.name}" foi criado com sucesso.`,
-        notification_type: 'success',
-        notification_category: 'project',
-        notification_data: { 
-          project_id: newProject.id,
-          project_number: newProject.number,
-          created_by: user.name || user.email
-        },
-        created_by_id: user.id
+      // Buscar todos os admins do mesmo tenant
+      const adminUsers = await getAllAdminUsersByTenant(tenantId)
+      
+      devLog.log('[createProjectMultiTenant] Notificando admins:', {
+        tenantId,
+        adminCount: adminUsers.length,
+        projectName: newProject.nome_cliente_final || newProject.name
       })
+
+      // Enviar notificação e email usando a função integrada
+      if (adminUsers.length > 0) {
+        await notifyNewProject({
+          projectId: newProject.id,
+          projectNumber: newProject.number,
+          projectName: newProject.nome_cliente_final || newProject.name || 'Novo Projeto',
+          clientName: user.name || user.email || 'Cliente',
+          clientId: user.id,
+          potencia: projectToCreate.potencia,
+          distribuidora: projectToCreate.distribuidora,
+          senderId: user.id,
+          senderName: user.name || user.email
+        })
+        
+        devLog.log('[createProjectMultiTenant] Notificações e emails enviados com sucesso')
+      } else {
+        devLog.warn('[createProjectMultiTenant] Nenhum admin encontrado para notificar')
+      }
     } catch (notificationError) {
-      devLog.warn('[createProjectMultiTenant] Erro ao criar notificação:', notificationError)
+      devLog.warn('[createProjectMultiTenant] Erro ao criar notificação/email:', notificationError)
       // Não falhar a criação por causa da notificação
     }
 

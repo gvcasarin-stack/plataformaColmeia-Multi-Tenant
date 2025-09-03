@@ -4,7 +4,7 @@ import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { AWS_CONFIG } from "@/lib/aws/config";
 import logger from "@/lib/utils/logger";
 import { getProject } from "./projectService/supabase";
-import { getUserById, getAllAdminUsers } from "./userService/core"; // Corrigido
+import { getUserById, getAllAdminUsers, getAllAdminUsersByTenant } from "./userService/core"; // Atualizado com função por tenant
 import { devLog } from "@/lib/utils/productionLogger";
 import { User } from "@/types/user";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
@@ -868,8 +868,27 @@ export async function notifyAdminAboutComment(
   devLog.log(`[EmailService] Notificando administradores sobre novo comentário no projeto ${projectNumber} (Cliente: ${clientName}) por ${commentAuthorName}`);
 
   try {
-    // Usar função para obter admins com UIDs para cooldown
-    const adminUsers = await getAllAdminUsers();
+    // Obter tenant_id do projeto se disponível
+    let adminUsers: any[] = [];
+    
+    if (projectId) {
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('tenant_id')
+        .eq('id', projectId)
+        .single();
+        
+      if (!projectError && projectData?.tenant_id) {
+        adminUsers = await getAllAdminUsersByTenant(projectData.tenant_id);
+        logger.info(`[notifyAdminAboutComment] Usando ${adminUsers.length} admins do tenant ${projectData.tenant_id}`);
+      }
+    }
+    
+    // Fallback para todos os admins se não conseguir tenant_id
+    if (adminUsers.length === 0) {
+      logger.warn('[notifyAdminAboutComment] Sem tenant_id, usando todos os admins (comportamento legado)');
+      adminUsers = await getAllAdminUsers();
+    }
     
     if (!adminUsers || adminUsers.length === 0) {
       devLog.warn('[EmailService] Nenhum administrador encontrado para notificação de comentário.');
@@ -934,8 +953,27 @@ export async function notifyAdminAboutNewProject(
   devLog.log(`[EmailService] Notificando administradores sobre novo projeto ${projectNumber} (Cliente: ${clientName})`);
 
   try {
-    // Usar função para obter admins com UIDs para cooldown
-    const adminUsers = await getAllAdminUsers();
+    // Obter tenant_id do projeto se disponível
+    let adminUsers: any[] = [];
+    
+    if (projectId) {
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('tenant_id')
+        .eq('id', projectId)
+        .single();
+        
+      if (!projectError && projectData?.tenant_id) {
+        adminUsers = await getAllAdminUsersByTenant(projectData.tenant_id);
+        logger.info(`[notifyAdminAboutNewProject] Usando ${adminUsers.length} admins do tenant ${projectData.tenant_id}`);
+      }
+    }
+    
+    // Fallback para todos os admins se não conseguir tenant_id
+    if (adminUsers.length === 0) {
+      logger.warn('[notifyAdminAboutNewProject] Sem tenant_id, usando todos os admins (comportamento legado)');
+      adminUsers = await getAllAdminUsers();
+    }
 
     if (!adminUsers || adminUsers.length === 0) {
       devLog.warn('[EmailService] Nenhum administrador encontrado para notificação de novo projeto.');
@@ -1041,8 +1079,27 @@ export async function notifyAdminAboutDocument(
   devLog.log(`[EmailService] Notificando administradores sobre novo documento "${documentName}" no projeto ${projectNumber} (Cliente: ${clientName})`);
 
   try {
-    // Usar função para obter admins com UIDs para cooldown
-    const adminUsers = await getAllAdminUsers();
+    // Obter tenant_id do projeto se disponível
+    let adminUsers: any[] = [];
+    
+    if (projectId) {
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('tenant_id')
+        .eq('id', projectId)
+        .single();
+        
+      if (!projectError && projectData?.tenant_id) {
+        adminUsers = await getAllAdminUsersByTenant(projectData.tenant_id);
+        logger.info(`[notifyAdminAboutDocument] Usando ${adminUsers.length} admins do tenant ${projectData.tenant_id}`);
+      }
+    }
+    
+    // Fallback para todos os admins se não conseguir tenant_id
+    if (adminUsers.length === 0) {
+      logger.warn('[notifyAdminAboutDocument] Sem tenant_id, usando todos os admins (comportamento legado)');
+      adminUsers = await getAllAdminUsers();
+    }
 
     if (!adminUsers || adminUsers.length === 0) {
       devLog.warn('[EmailService] Nenhum administrador encontrado para notificação de novo documento.');

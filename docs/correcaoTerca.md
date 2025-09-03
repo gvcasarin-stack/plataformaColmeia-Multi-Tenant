@@ -39,10 +39,10 @@
 
 ### **ETAPA 3: TESTE E VALIDAÇÃO** ✅
 
-- [ ] **3.1. Teste do checklist existente**
-  - [ ] Criar projeto como cliente no tenant Goiás Solar
-  - [ ] Verificar se mensagem aparece na timeline
-  - [ ] Validar conteúdo e formatação da mensagem
+- [x] **3.1. Teste do checklist existente**
+  - [x] Criar projeto como cliente no tenant Goiás Solar
+  - [x] Verificar se mensagem aparece na timeline
+  - [x] Validar conteúdo e formatação da mensagem
 
 - [ ] **3.2. Teste de novos tenants**
   - [ ] Registrar nova empresa de teste

@@ -747,10 +747,10 @@ export async function addCommentAction(
         });
         
         try {
-          // Buscar dados do cliente para pegar o nome correto
+          // Buscar dados do cliente para pegar o nome correto (suporta ambos os campos)
           const { data: clientData, error: clientQueryError } = await supabase
             .from('users')
-            .select('name, email')
+            .select('name, full_name, email')
             .eq('id', projectClientOwnerId)
             .single();
 
@@ -758,7 +758,7 @@ export async function addCommentAction(
             clientData,
             clientQueryError,
             hasClientData: !!clientData,
-            clientName: clientData?.full_name,
+            clientName: clientData?.full_name || clientData?.name,
             clientEmail: clientData?.email
           });
 
@@ -784,7 +784,7 @@ export async function addCommentAction(
             authorName,
             authorRole: user.role || 'admin',
             clientId: projectClientOwnerId,
-            clientName: clientData.full_name || clientData.email || 'Cliente'
+            clientName: clientData.full_name || clientData.name || clientData.email || 'Cliente'
           });
           
           // Logs removidos por questões de segurança em produção
@@ -799,7 +799,7 @@ export async function addCommentAction(
             authorName,
             authorRole: user.role || 'admin',
             clientId: projectClientOwnerId,
-            clientName: clientData.full_name || clientData.email || 'Cliente'
+            clientName: clientData.full_name || clientData.name || clientData.email || 'Cliente'
           });
 
           devLog.log('[addCommentAction] DEBUG - Notification result:', {

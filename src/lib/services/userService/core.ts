@@ -94,6 +94,57 @@ export async function getAllAdminUsers(): Promise<User[]> {
   }
 }
 
+/**
+ * Busca todos os usuários administradores de uma organização específica (tenant).
+ * @param tenantId O ID da organização (tenant).
+ * @returns Uma Promise que resolve para um array de usuários administradores do tenant.
+ */
+export async function getAllAdminUsersByTenant(tenantId: string): Promise<User[]> {
+  try {
+    if (!tenantId) {
+      logger.warn('[UserService/getAllAdminUsersByTenant] Tentativa de buscar admins sem tenant_id.');
+      return [];
+    }
+
+    const supabase = createSupabaseServiceRoleClient();
+    const { data: adminUsers, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('tenant_id', tenantId) // FILTRO CRÍTICO: Apenas admins do mesmo tenant
+      .in('role', ['admin', 'superadmin']);
+
+    if (error) {
+      logger.error(`[UserService/getAllAdminUsersByTenant] Erro ao buscar admins do tenant ${tenantId}:`, error);
+      throw error;
+    }
+    
+    if (!adminUsers || adminUsers.length === 0) {
+      logger.info(`[UserService/getAllAdminUsersByTenant] Nenhum admin encontrado para tenant ${tenantId}.`);
+      return [];
+    }
+    
+    logger.info(`[UserService/getAllAdminUsersByTenant] Encontrados ${adminUsers.length} admins para tenant ${tenantId}.`);
+    
+    const mappedUsers = adminUsers.map(userData => ({
+      uid: userData.id,
+      email: userData.email || '',
+      name: userData.name || userData.full_name || '', // Suporta ambos os campos
+      role: userData.role || 'user',
+      photoURL: userData.photo_url,
+      displayName: userData.display_name || userData.name || userData.full_name,
+      emailVerified: userData.email_verified || false,
+      tenant_id: userData.tenant_id, // Incluir tenant_id no retorno
+      created_at: userData.created_at,
+      updated_at: userData.updated_at,
+    } as User));
+
+    return mappedUsers;
+  } catch (error) {
+    logger.error(`[UserService/getAllAdminUsersByTenant] Erro ao buscar admins do tenant ${tenantId}:`, error);
+    return [];
+  }
+}
+
 // Poderia haver outras funções de serviço de usuário aqui, como:
 // export async function updateUserProfile(userId: string, profileData: Partial<User>): Promise<boolean> { ... }
 // export async function createUserAccount(userData: NewUserParams): Promise<User | null> { ... }
