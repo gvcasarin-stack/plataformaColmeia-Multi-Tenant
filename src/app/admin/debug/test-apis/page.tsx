@@ -43,16 +43,39 @@ export default function TestAllAdminApisPage() {
     setResults(null);
 
     try {
-      const response = await fetch('/api/debug/test-all-admin-apis');
-      const data = await response.json();
-      
-      setResults(data);
+      const response = await fetch('/api/debug/test-all-admin-apis', {
+        timeout: 60000, // 1 minuto
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
       
       if (!response.ok) {
-        setError(`Alguns testes falharam (Status: ${response.status})`);
+        setError(`Erro HTTP ${response.status}: ${response.statusText}`);
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        setError(`Resposta não é JSON. Content-Type: ${contentType}. Conteúdo: ${text.substring(0, 200)}...`);
+        return;
+      }
+      
+      const data = await response.json();
+      setResults(data);
+      
+      if (data.summary && data.summary.criticalErrors && data.summary.criticalErrors.length > 0) {
+        setError(`Alguns testes falharam: ${data.summary.criticalErrors[0]}`);
       }
     } catch (err: any) {
-      setError(`Erro ao executar testes: ${err.message}`);
+      if (err.name === 'AbortError') {
+        setError('Timeout: Os testes demoraram mais de 1 minuto');
+      } else if (err instanceof SyntaxError) {
+        setError(`Erro de parsing JSON: ${err.message}. A API pode estar retornando HTML em vez de JSON.`);
+      } else {
+        setError(`Erro ao executar testes: ${err.message}`);
+      }
     } finally {
       setIsLoading(false);
     }

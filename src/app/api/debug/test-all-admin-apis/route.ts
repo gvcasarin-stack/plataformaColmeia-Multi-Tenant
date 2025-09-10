@@ -172,6 +172,10 @@ export async function GET(request: NextRequest) {
       try {
         const startTime = Date.now();
         
+        // Timeout de 10 segundos por API
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
         const response = await fetch(`${baseUrl}${api.url}`, {
           method: api.method,
           headers: {
@@ -180,9 +184,11 @@ export async function GET(request: NextRequest) {
             'x-tenant-id': results.middleware.headers['x-tenant-id']!,
             'x-tenant-slug': results.middleware.headers['x-tenant-slug']!,
             'x-tenant-name': results.middleware.headers['x-tenant-name']!,
-          }
+          },
+          signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         testResult.responseTime = Date.now() - startTime;
         testResult.statusCode = response.status;
         
@@ -194,20 +200,36 @@ export async function GET(request: NextRequest) {
           testResult.error = `HTTP ${response.status}`;
           results.adminApis.failing++;
           
-          // Tentar pegar detalhes do erro
+          // Tentar pegar detalhes do erro com fallback seguro
           try {
-            const errorData = await response.text();
-            if (errorData && errorData.length < 200) {
-              testResult.error += `: ${errorData}`;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const errorData = await response.json();
+              testResult.error += `: ${JSON.stringify(errorData).substring(0, 150)}`;
+            } else {
+              const errorText = await response.text();
+              if (errorText && errorText.length < 100 && !errorText.includes('<html')) {
+                testResult.error += `: ${errorText}`;
+              } else {
+                testResult.error += ': Server error (HTML response)';
+              }
             }
           } catch (e) {
-            // Ignorar erro ao ler resposta
+            testResult.error += ': Unable to parse error response';
           }
         }
 
       } catch (fetchError: any) {
         testResult.status = 'error';
-        testResult.error = `Fetch failed: ${fetchError.message}`;
+        
+        if (fetchError.name === 'AbortError') {
+          testResult.error = 'Request timeout (>10s)';
+        } else if (fetchError.message.includes('fetch')) {
+          testResult.error = `Network error: ${fetchError.message}`;
+        } else {
+          testResult.error = `Fetch failed: ${fetchError.message}`;
+        }
+        
         results.adminApis.failing++;
       }
 
