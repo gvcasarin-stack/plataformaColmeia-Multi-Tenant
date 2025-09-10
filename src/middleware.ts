@@ -1,7 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { isBuildTime, createBuildTimeResponse } from '@/lib/utils/buildUtils';
 import { devLog } from '@/lib/utils/productionLogger';
 
@@ -140,7 +139,7 @@ async function middlewareCore(request: NextRequest) {
     try {
       // Timeout de 3 segundos para o lookup
       const lookupPromise = (async () => {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = createSupabaseServerClient();
         
         devLog.log('[Middleware] Iniciando lookup do tenant no banco:', { tenantSlug });
         
