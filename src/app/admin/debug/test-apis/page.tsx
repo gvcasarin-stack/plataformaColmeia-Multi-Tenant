@@ -1,191 +1,243 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/lib/hooks/useAuth';
 
-interface ApiResult {
-  api: string;
-  status: number;
-  success: boolean;
+interface ApiTest {
+  name: string;
+  url: string;
+  method: string;
+  tab: string;
+  status: 'success' | 'error' | 'skipped';
+  statusCode: number;
   error: string | null;
-  data: any;
+  responseTime: number;
 }
 
-interface DiagnosticResult {
+interface TestResults {
+  timestamp: string;
+  hostname: string;
+  middleware: {
+    headers: Record<string, string | null>;
+    working: boolean;
+  };
+  adminApis: {
+    tested: number;
+    working: number;
+    failing: number;
+    details: ApiTest[];
+  };
   summary: {
-    total: number;
-    successful: number;
-    failed: number;
-    successRate: number;
-  };
-  results: ApiResult[];
-  diagnosticInfo: {
-    userId: string;
-    tenantId: string;
-    timestamp: string;
-    hostname: string;
+    allWorking: boolean;
+    criticalErrors: string[];
   };
 }
 
-export default function AdminApiTestPage() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<DiagnosticResult | null>(null);
+export default function TestAllAdminApisPage() {
+  const [results, setResults] = useState<TestResults | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const runDiagnostic = async () => {
-    if (!user?.id) {
-      setError('Usuário não autenticado');
-      return;
-    }
-
-    setLoading(true);
+  const runTests = async () => {
+    setIsLoading(true);
     setError(null);
-    setResult(null);
+    setResults(null);
 
     try {
-      const response = await fetch(`/api/debug/test-admin-apis?userId=${user.id}`);
+      const response = await fetch('/api/debug/test-all-admin-apis');
+      const data = await response.json();
+      
+      setResults(data);
       
       if (!response.ok) {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        setError(`Alguns testes falharam (Status: ${response.status})`);
       }
-
-      const data = await response.json();
-      setResult(data);
     } catch (err: any) {
-      setError(err.message);
+      setError(`Erro ao executar testes: ${err.message}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const getStatusColor = (success: boolean) => {
-    return success ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success': return 'text-green-600 bg-green-50';
+      case 'error': return 'text-red-600 bg-red-50';
+      case 'skipped': return 'text-yellow-600 bg-yellow-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
   };
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Diagnóstico das APIs Admin
-        </h1>
-        <p className="text-gray-600">
-          Teste todas as APIs principais do painel administrativo para identificar problemas.
-        </p>
-      </div>
+  const getTabColor = (tab: string) => {
+    const colors: Record<string, string> = {
+      'painel': 'bg-blue-100 text-blue-800',
+      'projetos': 'bg-purple-100 text-purple-800',
+      'equipe': 'bg-green-100 text-green-800',
+      'financeiro': 'bg-yellow-100 text-yellow-800',
+      'notificacoes': 'bg-red-100 text-red-800',
+      'sistema': 'bg-gray-100 text-gray-800'
+    };
+    return colors[tab] || 'bg-gray-100 text-gray-800';
+  };
 
-      {user?.id && (
-        <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>Usuário logado:</strong> {user.email} (ID: {user.id})
-          </p>
-          {user.profile?.role && (
-            <p className="text-sm text-blue-800">
-              <strong>Role:</strong> {user.profile.role}
-            </p>
+  // Agrupar APIs por aba
+  const apisByTab = results?.adminApis.details.reduce((acc, api) => {
+    if (!acc[api.tab]) acc[api.tab] = [];
+    acc[api.tab].push(api);
+    return acc;
+  }, {} as Record<string, ApiTest[]>) || {};
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                🧪 Teste Completo - Todas as APIs Admin
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Testa todas as APIs que as abas do admin utilizam
+              </p>
+            </div>
+            
+            <button
+              onClick={runTests}
+              disabled={isLoading}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                isLoading
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              {isLoading ? '🔄 Testando...' : '▶️ Executar Testes'}
+            </button>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              <strong>Erro:</strong> {error}
+            </div>
+          )}
+
+          {results && (
+            <div className="space-y-6">
+              {/* Resumo Geral */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-sm text-blue-600 font-medium">Total Testado</div>
+                  <div className="text-2xl font-bold text-blue-900">{results.adminApis.tested}</div>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-green-600 font-medium">Funcionando</div>
+                  <div className="text-2xl font-bold text-green-900">{results.adminApis.working}</div>
+                </div>
+                
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="text-sm text-red-600 font-medium">Com Erro</div>
+                  <div className="text-2xl font-bold text-red-900">{results.adminApis.failing}</div>
+                </div>
+                
+                <div className={`p-4 rounded-lg ${results.summary.allWorking ? 'bg-green-50' : 'bg-red-50'}`}>
+                  <div className={`text-sm font-medium ${results.summary.allWorking ? 'text-green-600' : 'text-red-600'}`}>
+                    Status Geral
+                  </div>
+                  <div className={`text-2xl font-bold ${results.summary.allWorking ? 'text-green-900' : 'text-red-900'}`}>
+                    {results.summary.allWorking ? '✅ OK' : '❌ ERRO'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Headers do Middleware */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3">🔧 Headers do Middleware</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {Object.entries(results.middleware.headers).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-gray-600">{key}:</span>
+                      <span className={value ? 'text-green-600 font-mono' : 'text-red-600'}>
+                        {value || 'null'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Erros Críticos */}
+              {results.summary.criticalErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                  <h3 className="font-semibold text-red-800 mb-3">🚨 Problemas Encontrados</h3>
+                  <ul className="space-y-1">
+                    {results.summary.criticalErrors.map((error, index) => (
+                      <li key={index} className="text-red-700">• {error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Resultados por Aba */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">📊 Resultados por Aba</h3>
+                
+                {Object.entries(apisByTab).map(([tab, apis]) => {
+                  const errorCount = apis.filter(api => api.status === 'error').length;
+                  const successCount = apis.filter(api => api.status === 'success').length;
+                  
+                  return (
+                    <div key={tab} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${getTabColor(tab)}`}>
+                            {tab.toUpperCase()}
+                          </span>
+                          <span className="text-gray-600">
+                            {successCount} OK, {errorCount} erros
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {apis.map((api, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(api.status)}`}>
+                                  {api.status.toUpperCase()}
+                                </span>
+                                <span className="font-medium">{api.name}</span>
+                                <span className="text-gray-500 text-sm">{api.method} {api.url}</span>
+                              </div>
+                              {api.error && (
+                                <div className="text-red-600 text-sm mt-1">
+                                  {api.error}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="text-right text-sm text-gray-500">
+                              {api.statusCode > 0 && (
+                                <div>Status: {api.statusCode}</div>
+                              )}
+                              {api.responseTime > 0 && (
+                                <div>{api.responseTime}ms</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Timestamp */}
+              <div className="text-xs text-gray-500 text-center">
+                Testado em: {new Date(results.timestamp).toLocaleString('pt-BR')}
+              </div>
+            </div>
           )}
         </div>
-      )}
-
-      <div className="mb-6">
-        <button
-          onClick={runDiagnostic}
-          disabled={loading || !user?.id}
-          className="px-6 py-3 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Executando Diagnóstico...' : 'Executar Diagnóstico das APIs'}
-        </button>
       </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Erro</h3>
-          <p className="text-red-700">{error}</p>
-        </div>
-      )}
-
-      {result && (
-        <div className="space-y-6">
-          {/* Resumo */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Resumo do Diagnóstico</h2>
-            <div className="grid grid-cols-4 gap-4 text-center">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900">{result.summary.total}</div>
-                <div className="text-sm text-gray-600">Total de APIs</div>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{result.summary.successful}</div>
-                <div className="text-sm text-green-600">Bem-sucedidas</div>
-              </div>
-              <div className="p-4 bg-red-50 rounded-lg">
-                <div className="text-2xl font-bold text-red-600">{result.summary.failed}</div>
-                <div className="text-sm text-red-600">Falharam</div>
-              </div>
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{result.summary.successRate}%</div>
-                <div className="text-sm text-blue-600">Taxa de Sucesso</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Informações do Diagnóstico */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Informações do Diagnóstico</h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <strong>User ID:</strong> {result.diagnosticInfo.userId}
-              </div>
-              <div>
-                <strong>Tenant ID:</strong> {result.diagnosticInfo.tenantId || 'Não encontrado'}
-              </div>
-              <div>
-                <strong>Hostname:</strong> {result.diagnosticInfo.hostname}
-              </div>
-              <div>
-                <strong>Timestamp:</strong> {new Date(result.diagnosticInfo.timestamp).toLocaleString()}
-              </div>
-            </div>
-          </div>
-
-          {/* Resultados Detalhados */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Resultados Detalhados</h2>
-            <div className="space-y-4">
-              {result.results.map((apiResult, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-medium text-gray-900">{apiResult.api}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(apiResult.success)}`}>
-                      {apiResult.success ? '✅ Sucesso' : '❌ Falha'} ({apiResult.status})
-                    </span>
-                  </div>
-                  
-                  {apiResult.error && (
-                    <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded">
-                      <strong className="text-red-800">Erro:</strong>
-                      <span className="text-red-700 ml-2">{apiResult.error}</span>
-                    </div>
-                  )}
-                  
-                  {apiResult.data && (
-                    <div className="mt-2">
-                      <details className="cursor-pointer">
-                        <summary className="text-sm font-medium text-gray-700 mb-2">
-                          Ver dados retornados
-                        </summary>
-                        <pre className="text-xs bg-gray-50 p-3 rounded border overflow-auto max-h-40">
-                          {JSON.stringify(apiResult.data, null, 2)}
-                        </pre>
-                      </details>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
