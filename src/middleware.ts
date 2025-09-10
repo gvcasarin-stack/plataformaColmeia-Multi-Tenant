@@ -1,10 +1,30 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { isBuildTime, createBuildTimeResponse } from '@/lib/utils/buildUtils';
 import { devLog } from '@/lib/utils/productionLogger';
 
 export async function middleware(request: NextRequest) {
+  // ✅ WRAPPER DE SEGURANÇA: Nunca deixar o middleware crashar completamente
+  try {
+    return await middlewareCore(request);
+  } catch (criticalError: any) {
+    console.error('[Middleware] ERRO CRÍTICO CAPTURADO:', criticalError);
+    
+    // Em caso de erro crítico, sempre permitir que a requisição continue
+    const { pathname } = request.nextUrl;
+    let response = NextResponse.next();
+    
+    // Adicionar header indicando erro crítico
+    response.headers.set('x-middleware-critical-error', 'true');
+    response.headers.set('x-middleware-error', criticalError.message.substring(0, 100));
+    
+    return response;
+  }
+}
+
+async function middlewareCore(request: NextRequest) {
   // ✅ CORRIGIDO: Evitar problemas durante build - v2.1
   if (isBuildTime() && request.nextUrl.pathname.startsWith('/api/')) {
     return createBuildTimeResponse(request.nextUrl.pathname);
@@ -108,52 +128,89 @@ export async function middleware(request: NextRequest) {
     const tenantSlug = hostname.split('.')[0];
     devLog.log(`[Middleware] 🏢 Tenant detectado - MODO DEBUG:`, { tenantSlug, hostname });
 
-    // ✅ MIGRAÇÃO SUPABASE: Lookup dinâmico do tenant no banco
+    // ✅ CORREÇÃO: Para APIs de debug, fazer lookup mas não falhar se der erro
+    const isDebugApi = pathname.startsWith('/api/debug/');
+    if (isDebugApi) {
+      devLog.log('[Middleware] API de debug detectada - lookup com fallback:', pathname);
+    }
+
+    // ✅ MIGRAÇÃO SUPABASE: Lookup dinâmico do tenant no banco com fallback seguro
     devLog.log('[Middleware] ✅ FAZENDO LOOKUP DINÂMICO DO TENANT:', tenantSlug);
     
     try {
-      // Criar cliente Supabase para lookup
-      const supabase = createSupabaseServerClient();
+      // Timeout de 3 segundos para o lookup
+      const lookupPromise = (async () => {
+        const supabase = createSupabaseServiceRoleClient();
+        
+        devLog.log('[Middleware] Iniciando lookup do tenant no banco:', { tenantSlug });
+        
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('id, name, trial_end_date, is_trial, status')
+          .eq('slug', tenantSlug)
+          .eq('status', 'active')
+          .single();
+        
+        return { orgData, orgError };
+      })();
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout do lookup de tenant')), 3000);
+      });
+
+      const { orgData, orgError } = await Promise.race([lookupPromise, timeoutPromise]) as any;
       
-      // Buscar dados da organização pelo slug
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('id, name, trial_ends_at, is_active')
-        .eq('slug', tenantSlug)
-        .eq('is_active', true)
-        .single();
+      devLog.log('[Middleware] Resultado do lookup:', { 
+        tenantSlug, 
+        found: !!orgData, 
+        error: orgError?.message,
+        errorCode: orgError?.code 
+      });
 
       if (orgError || !orgData) {
         devLog.error('[Middleware] Tenant não encontrado ou inativo:', { tenantSlug, orgError });
         
-        // ✅ FALLBACK TEMPORÁRIO: Se tenant não existe, usar dados padrão em vez de redirecionar
-        // Isso permite acesso mesmo quando o tenant não está no banco
-        devLog.warn('[Middleware] Tenant não encontrado, usando fallback temporário');
+        // ✅ CORREÇÃO: Para APIs de debug, permitir continuação com headers mínimos
+        if (isDebugApi) {
+          devLog.warn('[Middleware] API de debug - tenant não encontrado mas permitindo continuação');
+          requestHeaders.set('x-tenant-slug', tenantSlug);
+          requestHeaders.set('x-middleware-error', 'tenant-not-found');
+          response = NextResponse.next({
+            request: { headers: requestHeaders }
+          });
+          return response;
+        }
         
-        const fallbackTenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c'; // Temporário
+        // 🚨 SEGURANÇA: Para outras chamadas de API, retornar erro 404
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json(
+            { error: 'Tenant not found', tenant: tenantSlug },
+            { status: 404 }
+          );
+        }
         
-        requestHeaders.set('x-tenant-id', fallbackTenantId);
-        requestHeaders.set('x-tenant-slug', tenantSlug);
-        requestHeaders.set('x-tenant-name', `${tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1)} (Temp)`);
-        requestHeaders.set('x-tenant-trial', 'true');
-        requestHeaders.set('x-tenant-fallback', 'true');
-
-        response = NextResponse.next({
-          request: { headers: requestHeaders }
-        });
-        response.headers.set('x-tenant-id', fallbackTenantId);
-        response.headers.set('x-tenant-slug', tenantSlug);
-        response.headers.set('x-tenant-name', `${tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1)} (Temp)`);
-        response.headers.set('x-tenant-trial', 'true');
-        response.headers.set('x-tenant-fallback', 'true');
-        
-        return response;
+        devLog.warn('[Middleware] Redirecionando página para tenant-not-found');
+        return NextResponse.redirect(new URL('/tenant-not-found', request.url));
       }
 
-      // Verificar se trial ainda está ativo
+      // ✅ CORREÇÃO: Verificar se trial ainda está ativo com tratamento de erro
       const now = new Date();
-      const trialEndsAt = orgData.trial_ends_at ? new Date(orgData.trial_ends_at) : null;
-      const isTrialActive = trialEndsAt ? now <= trialEndsAt : false;
+      let trialEndsAt = null;
+      let isTrialActive = false;
+      
+      try {
+        trialEndsAt = orgData.trial_end_date ? new Date(orgData.trial_end_date) : null;
+        isTrialActive = trialEndsAt ? now <= trialEndsAt : false;
+        devLog.log('[Middleware] Trial status calculado:', { 
+          trial_end_date: orgData.trial_end_date,
+          trialEndsAt: trialEndsAt?.toISOString(),
+          isTrialActive,
+          now: now.toISOString()
+        });
+      } catch (dateError: any) {
+        devLog.error('[Middleware] Erro ao processar data do trial:', dateError);
+        isTrialActive = true; // Default para trial ativo em caso de erro
+      }
 
       devLog.log('[Middleware] Tenant encontrado:', {
         tenantId: orgData.id,
@@ -176,42 +233,48 @@ export async function middleware(request: NextRequest) {
       response.headers.set('x-tenant-name', orgData.name);
       response.headers.set('x-tenant-trial', isTrialActive.toString());
 
-    } catch (lookupError) {
-      devLog.error('[Middleware] Erro no lookup do tenant:', lookupError);
-      
-      // ✅ FALLBACK TEMPORÁRIO: Em caso de erro de BD, permitir acesso com tenant padrão
-      // Isso evita que o sistema fique inacessível por problemas de conexão
-      devLog.warn('[Middleware] Usando fallback temporário devido ao erro de BD');
-      
-      // Usar dados padrão temporários para evitar falha total
-      const fallbackTenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c'; // Temporário
-      
-      requestHeaders.set('x-tenant-id', fallbackTenantId);
-      requestHeaders.set('x-tenant-slug', tenantSlug);
-      requestHeaders.set('x-tenant-name', 'Goias Solar (Fallback)');
-      requestHeaders.set('x-tenant-trial', 'true');
-      requestHeaders.set('x-tenant-fallback', 'true'); // Indicar que é fallback
-
-      response = NextResponse.next({
-        request: { headers: requestHeaders }
+    } catch (lookupError: any) {
+      devLog.error('[Middleware] ERRO CRÍTICO no lookup do tenant:', {
+        tenantSlug,
+        error: lookupError.message,
+        stack: lookupError.stack,
+        pathname
       });
-      response.headers.set('x-tenant-id', fallbackTenantId);
-      response.headers.set('x-tenant-slug', tenantSlug);
-      response.headers.set('x-tenant-name', 'Goias Solar (Fallback)');
-      response.headers.set('x-tenant-trial', 'true');
-      response.headers.set('x-tenant-fallback', 'true');
+      
+      // ✅ CORREÇÃO CRÍTICA: NUNCA falhar completamente o middleware
+      // Sempre permitir que a requisição continue, mesmo com erro
+      
+      if (pathname.startsWith('/api/')) {
+        // Para APIs, configurar headers mínimos e deixar a API lidar com o erro
+        devLog.warn('[Middleware] Erro no lookup - configurando headers mínimos para API:', pathname);
+        
+        requestHeaders.set('x-tenant-slug', tenantSlug);
+        requestHeaders.set('x-middleware-error', 'tenant-lookup-failed');
+        requestHeaders.set('x-middleware-error-details', lookupError.message.substring(0, 100));
+        
+        response = NextResponse.next({
+          request: { headers: requestHeaders }
+        });
+        
+        // Adicionar headers de resposta também
+        response.headers.set('x-tenant-slug', tenantSlug);
+        response.headers.set('x-middleware-error', 'tenant-lookup-failed');
+        
+        return response;
+      }
+      
+      // Para páginas, redirecionar para página de erro
+      devLog.warn('[Middleware] Erro de BD - redirecionando para tenant-not-found');
+      try {
+        return NextResponse.redirect(new URL('/tenant-not-found', request.url));
+      } catch (redirectError) {
+        // Se nem o redirect funcionar, deixar passar
+        devLog.error('[Middleware] Erro no redirect - permitindo passagem:', redirectError);
+        return response;
+      }
     }
-    
-    return response;
 
-    /*
-    // CÓDIGO DESABILITADO TEMPORARIAMENTE PARA DEBUG
-    try {
-      // [código da validação comentado]
-    } catch (error: any) {
-      // [código do erro comentado] 
-    }
-    */
+    
   }
 
   // 7. Se é site principal ou localhost, permitir acesso livre
