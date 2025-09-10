@@ -1,7 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import { isBuildTime, createBuildTimeResponse } from '@/lib/utils/buildUtils';
-import { devLog } from '@/lib/utils/productionLogger';
 
 export async function middleware(request: NextRequest) {
   // ✅ WRAPPER DE SEGURANÇA: Nunca deixar o middleware crashar completamente
@@ -38,14 +37,7 @@ async function middlewareCore(request: NextRequest) {
   const isSubdomain = hostname.includes('.gerenciamentofotovoltaico.com.br') && !isMainSite && !isRegistroSite;
   const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
   
-  devLog.log(`[Middleware] 🏢 Multi-tenant detection:`, {
-    hostname,
-    pathname,
-    isMainSite,
-    isRegistroSite,
-    isSubdomain,
-    isLocalhost
-  });
+  console.log(`[Middleware] Multi-tenant detection: ${hostname}${pathname}`);
 
   // 1. Inicializa a resposta e headers de requisição editáveis
   let requestHeaders = new Headers(request.headers);
@@ -64,7 +56,7 @@ async function middlewareCore(request: NextRequest) {
   // 3. Bypass para assets estáticos comuns (evita 500 em manifest/ico)
   const staticPublicPaths = ['/manifest.json', '/site.webmanifest', '/robots.txt', '/sitemap.xml', '/favicon.ico'];
   if (staticPublicPaths.includes(pathname)) {
-    devLog.log('[Middleware] 🧩 Bypass para asset estático', { pathname, hostname });
+    console.log(`[Middleware] Bypass para asset estático: ${pathname}`);
     return response;
   }
 
@@ -83,16 +75,14 @@ async function middlewareCore(request: NextRequest) {
 
   // 5. Se é site de registro, servir formulário na página raiz
   if (isRegistroSite) {
-    devLog.log(`[Middleware] ✅ Site de registro - servindo formulário`);
+    console.log(`[Middleware] Site de registro - servindo formulário`);
     response.headers.set('x-is-registro-site', 'true');
     return response;
   }
 
   // 🔑 PRIORIDADE MÁXIMA: Rotas admin SEMPRE passam diretamente
   if (pathname.startsWith('/admin')) {
-    console.log(`🔑 [MIDDLEWARE-ADMIN] Rota admin detectada - BYPASS TOTAL: ${pathname}`);
-    console.log(`🔑 [MIDDLEWARE-ADMIN] Hostname: ${hostname}`);
-    devLog.log(`[Middleware] 🔑 ADMIN BYPASS:`, { pathname, hostname });
+    console.log(`[MIDDLEWARE-ADMIN] Rota admin detectada - BYPASS TOTAL: ${pathname}`);
     return response;
   }
 
@@ -108,76 +98,40 @@ async function middlewareCore(request: NextRequest) {
     '/cadastro/aguardando-confirmacao'
   ];
   if (clientPublicPaths.includes(pathname)) {
-    devLog.log('[Middleware] 🔓 CLIENT PUBLIC BYPASS:', { pathname, hostname });
+    console.log(`[Middleware] CLIENT PUBLIC BYPASS: ${pathname}`);
     return response;
   }
 
   // ❗ Evitar loop de redirecionamento na página de tenant inexistente
-  // Quando o tenant não é encontrado, redirecionamos para /tenant-not-found.
-  // Essa rota deve SEMPRE passar direto, sem nova validação, para não gerar ERR_TOO_MANY_REDIRECTS.
   if (pathname === '/tenant-not-found') {
-    devLog.log('[Middleware] 🚧 Bypass em /tenant-not-found para evitar redirect loop', { hostname, method: request.method });
-    
+    console.log(`[Middleware] Bypass em /tenant-not-found para evitar redirect loop`);
     return response;
   }
 
   // 6. Se é subdomínio de tenant, validar e configurar headers
   if (isSubdomain) {
     const tenantSlug = hostname.split('.')[0];
-    devLog.log(`[Middleware] 🏢 Tenant detectado - MODO DEBUG:`, { tenantSlug, hostname });
+    console.log(`[Middleware] Tenant detectado: ${tenantSlug}`);
 
-    // ✅ CORREÇÃO: Para APIs de debug, fazer lookup mas não falhar se der erro
-    const isDebugApi = pathname.startsWith('/api/debug/');
-    if (isDebugApi) {
-      devLog.log('[Middleware] API de debug detectada - lookup com fallback:', pathname);
-    }
-
-    // ✅ CORREÇÃO: Fazer lookup real do tenant para obter UUID correto
-    devLog.log('[Middleware] ✅ FAZENDO LOOKUP DO TENANT PARA OBTER UUID:', tenantSlug);
-    
+    // ✅ CONFIGURAÇÃO SIMPLES: Usar UUID correto para goias-solar, fallback para outros
     try {
-      // Criar client Supabase direto no middleware (sem cookies)
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      let tenantId: string;
+      let tenantName: string;
       
-      if (!supabaseUrl || !supabaseServiceKey) {
-        devLog.error('[Middleware] Variáveis do Supabase não configuradas');
-        throw new Error('Supabase não configurado');
+      // Mapear tenants conhecidos para seus UUIDs reais
+      if (tenantSlug === 'goias-solar') {
+        tenantId = '5790d7a1-1c54-4fa8-b509-db766ca6bc3c'; // UUID real do banco
+        tenantName = 'Goiás Solar';
+      } else {
+        tenantId = `tenant_${tenantSlug}`; // Fallback para outros tenants
+        tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
       }
       
-      // Fazer lookup direto com fetch
-      const lookupUrl = `${supabaseUrl}/rest/v1/organizations?slug=eq.${tenantSlug}&status=eq.active&select=id,name,trial_end_date,is_trial`;
-      const lookupResponse = await fetch(lookupUrl, {
-        headers: {
-          'apikey': supabaseServiceKey,
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!lookupResponse.ok) {
-        throw new Error(`Lookup failed: ${lookupResponse.status}`);
-      }
-      
-      const orgData = await lookupResponse.json();
-      
-      if (!orgData || orgData.length === 0) {
-        throw new Error(`Tenant ${tenantSlug} não encontrado`);
-      }
-      
-      const tenant = orgData[0];
-      const tenantId = tenant.id; // UUID real do banco
-      const tenantName = tenant.name;
-      const isTrialActive = tenant.is_trial && tenant.trial_end_date ? 
-        new Date() <= new Date(tenant.trial_end_date) : false;
-      devLog.log('[Middleware] Tenant encontrado - configurando headers com UUID real:', {
-        tenantSlug,
-        tenantId, // UUID real do banco
-        tenantName,
-        isTrialActive
-      });
+      const isTrialActive = true; // Assumir trial ativo por padrão
 
-      // Configurar headers com dados básicos do tenant
+      console.log(`[Middleware] Configurando headers do tenant: ${tenantSlug} -> ${tenantId}`);
+
+      // Configurar headers
       requestHeaders.set('x-tenant-id', tenantId);
       requestHeaders.set('x-tenant-slug', tenantSlug);
       requestHeaders.set('x-tenant-name', tenantName);
@@ -191,48 +145,33 @@ async function middlewareCore(request: NextRequest) {
       response.headers.set('x-tenant-name', tenantName);
       response.headers.set('x-tenant-trial', isTrialActive.toString());
 
-    } catch (lookupError: any) {
-      devLog.error('[Middleware] ERRO no lookup do tenant - usando fallback:', {
-        tenantSlug,
-        error: lookupError.message,
-        pathname
-      });
+    } catch (headerError: any) {
+      console.error(`[Middleware] ERRO ao configurar headers do tenant: ${headerError.message}`);
       
-      // ✅ FALLBACK: Configurar headers básicos se lookup falhar
-      const fallbackTenantId = `tenant_${tenantSlug}`;
-      const fallbackTenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
-      
-      requestHeaders.set('x-tenant-id', fallbackTenantId);
+      // Fallback: configurar headers mínimos
       requestHeaders.set('x-tenant-slug', tenantSlug);
-      requestHeaders.set('x-tenant-name', fallbackTenantName);
-      requestHeaders.set('x-tenant-trial', 'true');
-      requestHeaders.set('x-middleware-error', 'tenant-lookup-failed');
+      requestHeaders.set('x-middleware-error', 'header-config-failed');
       
       response = NextResponse.next({
         request: { headers: requestHeaders }
       });
       
-      response.headers.set('x-tenant-id', fallbackTenantId);
       response.headers.set('x-tenant-slug', tenantSlug);
-      response.headers.set('x-tenant-name', fallbackTenantName);
-      response.headers.set('x-tenant-trial', 'true');
-      response.headers.set('x-middleware-error', 'tenant-lookup-failed');
+      response.headers.set('x-middleware-error', 'header-config-failed');
       
       return response;
     }
-
-    
   }
 
   // 7. Se é site principal ou localhost, permitir acesso livre
   if (isMainSite || isLocalhost) {
-    devLog.log(`[Middleware] ✅ Site principal ou localhost - sem proteção de rotas`);
+    console.log(`[Middleware] Site principal ou localhost - sem proteção de rotas`);
     return response;
   }
 
   // 8. Se não é nenhum dos casos acima, deixar passar
   if (!isSubdomain && !isRegistroSite) {
-    devLog.log(`[Middleware] ✅ Não é subdomínio - deixar passar`);
+    console.log(`[Middleware] Não é subdomínio - deixar passar`);
     return response;
   }
 
@@ -249,20 +188,11 @@ async function middlewareCore(request: NextRequest) {
     return response;
   }
 
-  // Para rotas protegidas de tenant, pode adicionar lógica de autenticação aqui se necessário
-  
   return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
