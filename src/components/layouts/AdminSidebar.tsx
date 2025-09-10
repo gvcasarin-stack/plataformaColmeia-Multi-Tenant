@@ -131,6 +131,12 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
       color: "bg-purple-50 text-purple-700 border-purple-200/50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50"
     },
     {
+      href: "/admin/assinaturas",
+      label: "Assinaturas",
+      icon: LucideIcons.CreditCard,
+      color: "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50"
+    },
+    {
       href: "/admin/preferencias",
       label: "Preferências",
       icon: LucideIcons.Settings,
@@ -165,7 +171,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
             )}>
               {!collapsed && (
                 <div className="ml-3">
-                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">Colmeia</h2>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">SGF</h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Área Administrativa</p>
                 </div>
               )}

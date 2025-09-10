@@ -14,6 +14,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { toast } from "@/components/ui/use-toast"
 import { devLog } from "@/lib/utils/productionLogger";
 import React from 'react'
+import { TrialExpiredBlocker } from '@/components/security/TrialExpiredBlocker'
 
 // Lazy load KanbanBoard component
 const KanbanBoard = dynamic(() => import("@/components/kanban").then(mod => ({ default: mod.KanbanBoard })),
@@ -43,8 +44,60 @@ export default function ProjetosPage() {
   const { projects, updateProject } = useProjects()
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
+  const [organization, setOrganization] = useState<any>(null)
+  const [isTrialExpired, setIsTrialExpired] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [modalClosed, setModalClosed] = useState(false)
+  const [closeCount, setCloseCount] = useState(0)
 
   const viewKanbanRef = React.useRef<{ reloadColumnTitles: () => Promise<boolean> }>(null)
+
+  // Verificar status do trial ao carregar a página
+  useEffect(() => {
+    const checkTrialStatus = async () => {
+      if (!user?.id) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const { createTenantHeaders } = await import('@/lib/utils/tenant-helper')
+        const headers = await createTenantHeaders(user.id)
+        
+        const response = await fetch('/api/tenant/organization', {
+          method: 'GET',
+          headers,
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success) {
+            const orgData = result.data
+            setOrganization(orgData)
+            
+            // Verificar se trial expirou (usando campo padronizado)
+            const now = new Date()
+            const trialEnd = new Date(orgData.trial_end_date)
+            const isExpired = orgData.is_trial && now > trialEnd
+            
+            setIsTrialExpired(isExpired && orgData.subscription_status !== 'active')
+            
+            devLog.log('[ProjetosPage] Status do trial:', {
+              isTrialExpired: isExpired,
+              subscriptionStatus: orgData.subscription_status,
+              trialEndsAt: orgData.trial_end_date
+            })
+          }
+        }
+      } catch (error) {
+        devLog.error('[ProjetosPage] Erro ao verificar trial:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkTrialStatus()
+  }, [user?.id])
 
   // Debug logging for projects
   useEffect(() => {
@@ -93,6 +146,22 @@ export default function ProjetosPage() {
   }
 
 
+
+  // Se trial expirado, mostrar bloqueio
+  if (isTrialExpired) {
+    return (
+      <TrialExpiredBlocker 
+        message="A gestão de projetos está bloqueada"
+        blockedFeature="a gestão de projetos"
+        showProjectStats={true}
+        onClose={() => {
+          // Permitir fechar mas redirecionar para assinaturas
+          devLog.log('[ProjetosPage] Modal fechado, redirecionando para assinaturas');
+          router.push('/admin/assinaturas');
+        }}
+      />
+    )
+  }
 
   return (
     <div className="space-y-6">

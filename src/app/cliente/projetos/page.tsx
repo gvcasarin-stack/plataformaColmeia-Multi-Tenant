@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/table";
 import { devLog } from "@/lib/utils/productionLogger";
 import { Card, CardContent } from "@/components/ui/card";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { createTenantHeaders } from "@/lib/utils/tenant-helper";
 
 // Adicionar tipo à interface Window
 declare global {
@@ -68,6 +70,7 @@ export default function ClientProjects() {
   const [userData, setUserData] = useState<any>(null);
   const { user } = useAuth();
   const { projects: allProjects, loading: projectsLoading } = useProjects();
+  const isMobile = useIsMobile();
   
   // Adicionar estado para o modal de diagnóstico
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState<boolean>(false);
@@ -217,6 +220,35 @@ export default function ClientProjects() {
       return;
     }
     
+    // ✅ PROTEÇÃO ADICIONAL: Verificar se usuário criou projeto recentemente
+    if (user?.id) {
+      const recentProjectKey = `recent_project_${user.id}`;
+      const lastProjectTime = sessionStorage.getItem(recentProjectKey);
+      
+      if (lastProjectTime) {
+        const timeDiff = Date.now() - parseInt(lastProjectTime);
+        if (timeDiff < 10000) { // 10 segundos
+          devLog.log(`[${submitId}] Usuário criou projeto recentemente, bloqueando duplicação`);
+          
+          diagnosticLog += `[DIAGNÓSTICO] Projeto criado recentemente, bloqueando duplicação\n`;
+          diagnosticLog += `- Último projeto criado há ${timeDiff/1000} segundos\n\n`;
+          
+          toast({
+            title: "Ação bloqueada",
+            description: "Você criou um projeto recentemente. Aguarde alguns segundos.",
+            variant: "destructive",
+          });
+          
+          setDiagnosticInfo(diagnosticLog);
+          setIsDiagnosticModalOpen(true);
+          return;
+        }
+      }
+      
+      // Registrar tentativa atual
+      sessionStorage.setItem(recentProjectKey, Date.now().toString());
+    }
+    
     try {
       // Marcar início da submissão
       isSubmitting.current = true;
@@ -231,8 +263,89 @@ export default function ClientProjects() {
       // Get current date in ISO format
       const currentDate = new Date().toISOString();
       
-      // Calcular o valor do projeto com base na potência usando a função calculateProjectCost
-      const valorCalculado = calculateProjectCost(data.power);
+      // ✅ CORREÇÃO MULTI-TENANT: Calcular valor via API que consulta configurações do tenant
+      let valorCalculado = 0;
+      let calculationSource = 'unknown';
+      
+      console.log(`🚀 [${submitId}] INICIANDO CÁLCULO DE VALOR:`, {
+        potencia: data.power,
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+      
+      try {
+        // Obter headers com tenant_id
+        const headers = await createTenantHeaders(user.id);
+        
+        console.log(`📋 [${submitId}] HEADERS PREPARADOS:`, { 
+          headers, 
+          userId: user.id,
+          potencia: data.power 
+        });
+        
+        const calcResponse = await fetch('/api/projects/calculate-cost', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ potencia: data.power })
+        });
+        
+        console.log(`📡 [${submitId}] RESPOSTA DA API:`, {
+          ok: calcResponse.ok,
+          status: calcResponse.status,
+          statusText: calcResponse.statusText
+        });
+        
+        if (calcResponse.ok) {
+          const calcResult = await calcResponse.json();
+          valorCalculado = calcResult.valorCalculado || 0;
+          calculationSource = calcResult.source || 'api_success';
+          
+          console.log(`✅ [${submitId}] SUCESSO - VALOR DA API:`, { 
+            potencia: data.power, 
+            valorCalculado, 
+            source: calcResult.source,
+            faixasUsadas: calcResult.faixasUsadas,
+            tenantId: calcResult.tenantId,
+            apiResponse: calcResult
+          });
+        } else {
+          const responseText = await calcResponse.text();
+          console.error(`❌ [${submitId}] ERRO NA API:`, {
+            status: calcResponse.status,
+            statusText: calcResponse.statusText,
+            responseText: responseText
+          });
+          
+          // Fallback para valor padrão se a API falhar
+          valorCalculado = calculateProjectCost(data.power);
+          calculationSource = 'fallback_api_error';
+          
+          console.log(`🔄 [${submitId}] USANDO FALLBACK LOCAL:`, {
+            potencia: data.power,
+            valorCalculadoFallback: valorCalculado,
+            source: calculationSource
+          });
+        }
+      } catch (calcError) {
+        console.error(`💥 [${submitId}] EXCEÇÃO NO CÁLCULO:`, calcError);
+        
+        // Fallback para valor padrão se houver exceção
+        valorCalculado = calculateProjectCost(data.power);
+        calculationSource = 'fallback_exception';
+        
+        console.log(`🔄 [${submitId}] FALLBACK APÓS EXCEÇÃO:`, {
+          potencia: data.power,
+          valorCalculado,
+          source: calculationSource,
+          error: calcError
+        });
+      }
+      
+      console.log(`🎯 [${submitId}] VALOR FINAL DEFINIDO:`, {
+        valorCalculado,
+        calculationSource,
+        potencia: data.power
+      });
       
       // Preparar dados para a action
       const projectDataForAction = {
@@ -270,6 +383,12 @@ export default function ClientProjects() {
       if (result.data) {
         devLog.log(`[${submitId}] Projeto criado via action: `, result.data);
         diagnosticLog += `[DIAGNÓSTICO] Projeto criado com sucesso: ID ${result.data.id}, Número ${result.data.number}\n`;
+        
+        // ✅ PROTEÇÃO: Limpar flags de criação apenas APÓS sucesso
+        if (typeof window !== 'undefined') {
+          window._isCreatingProject = false;
+        }
+        
         addProject(result.data); // Atualizar a lista de projetos localmente via useProjects hook
         toast({ title: "Sucesso", description: "Projeto criado com sucesso!", variant: "default", });
         // router.push(`/cliente/projetos/${result.data.id}`); // Redirecionar para a página do projeto
@@ -308,23 +427,24 @@ export default function ClientProjects() {
   return (
     <div className="space-y-8 p-6">
       {/* Header with Gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-10 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-6 sm:p-10 text-white shadow-xl">
         <div className="relative z-10">
-          <h1 className="text-4xl font-bold mb-2">Meus Projetos</h1>
-          <p className="mt-2 text-blue-100 text-lg">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-2">Meus Projetos</h1>
+          <p className="mt-2 text-blue-100 text-sm sm:text-lg">
             Acompanhe o status e progresso dos seus projetos
           </p>
           
           {!isPendingApproval && (
             <Button 
-              className="mt-4 bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium transition-all hover:shadow-lg"
+              className="mt-4 bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium transition-all hover:shadow-lg text-sm sm:text-base"
               onClick={() => {
                 devLog.log('Projects header button clicked');
                 setIsCreateModalOpen(true);
               }}
             >
               <Icons.PlusCircle className="h-4 w-4 mr-2" />
-              Novo Projeto
+              <span className="hidden sm:inline">Novo Projeto</span>
+              <span className="sm:hidden">Novo</span>
             </Button>
           )}
         </div>
@@ -352,18 +472,18 @@ export default function ClientProjects() {
         </div>
       )}
 
-      {/* Icons.Filters */}
-      <div className="flex flex-wrap items-center gap-3 pb-2 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
-        <div className="flex items-center text-gray-700 dark:text-gray-300 mr-2 font-medium">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pb-2 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+        <div className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
           <Icons.Filter className="h-4 w-4 mr-2" />
-          <span>Filtrar por status:</span>
+          <span className="text-sm sm:text-base">Filtrar por status:</span>
         </div>
-        <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button 
             variant={filter === "all" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("all")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Todos
           </Button>
@@ -371,7 +491,7 @@ export default function ClientProjects() {
             variant={filter === "Não Iniciado" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Não Iniciado")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Não Iniciados
           </Button>
@@ -379,7 +499,7 @@ export default function ClientProjects() {
             variant={filter === "Em Desenvolvimento" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Em Desenvolvimento")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Em Desenvolvimento
           </Button>
@@ -387,7 +507,7 @@ export default function ClientProjects() {
             variant={filter === "Aguardando" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Aguardando")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Aguardando
           </Button>
@@ -395,7 +515,7 @@ export default function ClientProjects() {
             variant={filter === "Homologação" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Homologação")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Homologação
           </Button>
@@ -403,7 +523,7 @@ export default function ClientProjects() {
             variant={filter === "Projeto Aprovado" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Projeto Aprovado")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Aprovado
           </Button>
@@ -411,7 +531,7 @@ export default function ClientProjects() {
             variant={filter === "Aguardando Vistoria" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Aguardando Vistoria")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Aguardando Vistoria
           </Button>
@@ -419,7 +539,7 @@ export default function ClientProjects() {
             variant={filter === "Projeto Pausado" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Projeto Pausado")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Pausado
           </Button>
@@ -427,7 +547,7 @@ export default function ClientProjects() {
             variant={filter === "Em Vistoria" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Em Vistoria")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Em Vistoria
           </Button>
@@ -435,7 +555,7 @@ export default function ClientProjects() {
             variant={filter === "Finalizado" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Finalizado")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Finalizado
           </Button>
@@ -443,7 +563,7 @@ export default function ClientProjects() {
             variant={filter === "Cancelado" ? "default" : "outline"} 
             size="sm" 
             onClick={() => setFilter("Cancelado")}
-            className="rounded-full shadow-sm"
+            className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Cancelado
           </Button>
@@ -461,80 +581,148 @@ export default function ClientProjects() {
           </div>
         </div>
       ) : filteredProjects.length > 0 ? (
-        <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-md overflow-hidden bg-white dark:bg-gray-800">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 dark:bg-gray-700/50 dark:hover:bg-gray-700/50">
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Número</TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Empresa Integradora</TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Cliente Final</TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Distribuidora</TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Potência</TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Status</TableHead>
-                <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300 pr-6">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProjects.map((project, index) => {
-                const statusConfig = getStatusConfig(project.status);
-                const StatusIcon = statusConfig.icon;
+        // Layout responsivo: Cards em mobile, tabela em desktop
+        isMobile ? (
+          // Layout de cards para mobile
+          <div className="space-y-4">
+            {filteredProjects.map((project, index) => {
+              const statusConfig = getStatusConfig(project.status);
+              const StatusIcon = statusConfig.icon;
 
-                return (
-                  <TableRow
-                    key={`${project.id}-${index}`}
-                    className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 cursor-pointer group border-b border-gray-100 dark:border-gray-700/50"
-                  >
-                    <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                      {project.number}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <Icons.Building2 className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+              return (
+                <Card key={`${project.id}-${index}`} className="border border-gray-200/60 dark:border-gray-700/60 shadow-md bg-white dark:bg-gray-800 hover:shadow-lg transition-all">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col space-y-3">
+                      {/* Header do card */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center shadow-sm">
+                            <Icons.Lightbulb className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{project.number}</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Projeto</p>
+                          </div>
                         </div>
-                        <span className="text-gray-700 dark:text-gray-300">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <Icons.User className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                        <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm`}>
+                          <StatusIcon className="w-3 h-3" />
+                          <span className="text-xs font-medium">{project.status}</span>
                         </div>
-                        <span className="text-gray-700 dark:text-gray-300">{project.nomeClienteFinal || 'N/A'}</span>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-gray-700 dark:text-gray-300">{project.distribuidora || 'N/A'}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <Icons.Zap className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+
+                      {/* Informações principais */}
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Cliente Final:</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium text-right">{project.nomeClienteFinal || 'N/A'}</span>
                         </div>
-                        <span className="text-gray-700 dark:text-gray-300">{project.potencia || 0} kWp</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Potência:</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium">{project.potencia || 0} kWp</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Distribuidora:</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium text-right truncate max-w-[150px]">{project.distribuidora || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Empresa:</span>
+                          <span className="text-gray-900 dark:text-gray-100 font-medium text-right truncate max-w-[150px]">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</span>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm`}>
-                        <StatusIcon className="w-3.5 h-3.5" />
-                        <span className="text-sm font-medium">{project.status}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
+
+                      {/* Botão de ação */}
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 px-4 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-700 shadow-sm transition-all"
+                        className="w-full h-9 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-700 shadow-sm transition-all"
                         onClick={() => handleViewProject(project.id)}
                       >
                         <Icons.Eye className="h-4 w-4 mr-2" />
                         Ver Detalhes
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          // Layout de tabela para desktop
+          <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-md overflow-hidden bg-white dark:bg-gray-800">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 dark:bg-gray-700/50 dark:hover:bg-gray-700/50">
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Número</TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Empresa Integradora</TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Cliente Final</TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Distribuidora</TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Potência</TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Status</TableHead>
+                  <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300 pr-6">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProjects.map((project, index) => {
+                  const statusConfig = getStatusConfig(project.status);
+                  const StatusIcon = statusConfig.icon;
+
+                  return (
+                    <TableRow
+                      key={`${project.id}-${index}`}
+                      className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 cursor-pointer group border-b border-gray-100 dark:border-gray-700/50"
+                    >
+                      <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                        {project.number}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Icons.Building2 className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Icons.User className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">{project.nomeClienteFinal || 'N/A'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">{project.distribuidora || 'N/A'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Icons.Zap className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">{project.potencia || 0} kWp</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm`}>
+                          <StatusIcon className="w-3.5 h-3.5" />
+                          <span className="text-sm font-medium">{project.status}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 px-4 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-700 shadow-sm transition-all"
+                          onClick={() => handleViewProject(project.id)}
+                        >
+                          <Icons.Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )
       ) : (
         <div className="col-span-full">
           <Card className="border border-gray-200/60 dark:border-gray-700/60 shadow-lg bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 overflow-hidden">

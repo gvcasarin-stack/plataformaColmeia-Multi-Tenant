@@ -67,7 +67,10 @@ export default function NotificacoesClient() {
   }, [user, authLoading, router])
 
   const fetchNotifications = async () => {
-    setIsLoading(true)
+    // ✅ CORREÇÃO UX: Só mostrar loading se for o primeiro carregamento
+    if (notifications.length === 0) {
+      setIsLoading(true)
+    }
     setError(null)
     try {
       if (!user) {
@@ -139,6 +142,40 @@ export default function NotificacoesClient() {
 
   const handleNotificationClick = async (notification: NotificacaoPadrao) => {
     try {
+      // Verificar se trial expirou antes de permitir acesso ao projeto
+      const projectId = notification.projectId || notification.data?.projectId;
+      
+      if (projectId) {
+        try {
+          const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+          const headers = await createTenantHeaders(user?.id || '');
+          
+          const response = await fetch('/api/tenant/organization', {
+            method: 'GET',
+            headers,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              const orgData = result.data;
+              const now = new Date();
+              const trialEnd = new Date(orgData.trial_ends_at);
+              const isTrialExpired = orgData.is_trial && now > trialEnd && orgData.subscription_status !== 'active';
+              
+              if (isTrialExpired) {
+                // Trial expirado - redirecionar para assinaturas
+                devLog.log('[AdminNotifications] Trial expirado, redirecionando para assinaturas');
+                router.push('/admin/assinaturas');
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          devLog.error('[AdminNotifications] Erro ao verificar trial:', error);
+          // Em caso de erro, permitir acesso (fallback)
+        }
+      }
       if (!notification.read) {
         // 🚀 ATUALIZAÇÃO IMEDIATA: Decrementar contador antes da API
         updateCounterOptimistic(-1);
@@ -164,13 +201,53 @@ export default function NotificacoesClient() {
         }
       }
       
-      // Navigate to the appropriate page based on notification type
-      if (notification.type === 'new_project') {
-        router.push(`/projetos/${notification.projectId}`)
-      } else if (notification.type === 'new_client_registration' || notification.type === 'client_approval') {
-        router.push('/clientes')
-      } else if (notification.projectId) {
-        router.push(`/projetos/${notification.projectId}`)
+      // ✅ MELHORIA UX: Navegar para projeto com visualização expandida
+      if (notification.type === 'new_client_registration' || notification.type === 'client_approval') {
+        router.push('/admin/clientes')
+      } else {
+        devLog.log('[AdminNotifications] 🔍 DEBUG - Dados da notificação:', {
+          notificationId: notification.id,
+          projectId: notification.projectId,
+          projectIdFromData: notification.data?.projectId,
+          type: notification.type,
+          hasProjectId: !!notification.projectId,
+          notificationComplete: notification
+        });
+        
+        const projectId = notification.projectId || notification.data?.projectId;
+        
+        if (projectId) {
+        // Determinar seção específica baseada no tipo de notificação
+        let focusSection = '';
+        switch (notification.type) {
+          case 'new_comment':
+            focusSection = 'comments';
+            break;
+          case 'document_upload':
+            focusSection = 'documents';
+            break;
+          case 'status_change':
+            focusSection = 'status';
+            break;
+          case 'new_project':
+            focusSection = 'overview';
+            break;
+          default:
+            focusSection = 'overview';
+        }
+        
+          // Navegar com parâmetros para abrir visualização expandida
+          const url = `/admin/projetos/${projectId}?expand=true&focus=${focusSection}`;
+          
+          devLog.log('[AdminNotifications] Navegando para projeto:', {
+            projectId: projectId,
+            notificationType: notification.type,
+            focusSection,
+            url
+          });
+          
+          router.push(url);
+        }
       }
     } catch (error) {
       devLog.error('[AdminNotifications] Error marking notification as read:', error)

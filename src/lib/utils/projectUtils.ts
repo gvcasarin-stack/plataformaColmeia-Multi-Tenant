@@ -81,32 +81,48 @@ export const getProjectPriceRangesSync = (): FaixaPotenciaPreco[] => {
 
 // Função principal para calcular o custo do projeto com base na potência
 export const calculateProjectCost = (potencia: number): number => {
+  console.log(`🔧 [FALLBACK LOCAL] Calculando valor localmente para potência:`, potencia);
+  
   const faixasPotencia = getProjectPriceRangesSync();
   
-  // Encontrar a faixa apropriada para a potência
-  // Vamos primeiro procurar por limites exatos
-  for (const faixa of faixasPotencia) {
-    // Caso especial para o limite exato (ex: potência = 5)
-    if (potencia === faixa.potenciaMin) {
+  console.log(`📊 [FALLBACK LOCAL] Faixas disponíveis:`, faixasPotencia);
+  
+  // ✅ CORREÇÃO CRÍTICA: Aplicar a mesma lógica de faixas inclusivas
+  // Ordenar faixas por potenciaMin para garantir ordem correta
+  const faixasOrdenadas = [...faixasPotencia].sort((a, b) => a.potenciaMin - b.potenciaMin);
+  
+  for (let i = 0; i < faixasOrdenadas.length; i++) {
+    const faixa = faixasOrdenadas[i];
+    let condicaoAtendida = false;
+    
+    // Para a primeira faixa (potenciaMin = 0), incluir o limite inferior
+    if (faixa.potenciaMin === 0) {
+      condicaoAtendida = potencia >= faixa.potenciaMin && potencia <= faixa.potenciaMax;
+    } else {
+      // Para outras faixas, excluir o limite inferior (que já foi incluído na faixa anterior)
+      condicaoAtendida = potencia > faixa.potenciaMin && potencia <= faixa.potenciaMax;
+    }
+    
+    console.log(`🧮 [FALLBACK LOCAL] Testando faixa ${i + 1}:`, {
+      faixa,
+      condicaoAtendida,
+      potencia
+    });
+    
+    if (condicaoAtendida) {
+      console.log(`✅ [FALLBACK LOCAL] Faixa encontrada! Valor:`, faixa.valorBase);
       return faixa.valorBase;
     }
   }
   
-  // Se não encontrou nos limites exatos, procurar por faixa
-  const faixaCorrespondente = faixasPotencia.find(
-    faixa => potencia > faixa.potenciaMin && potencia <= faixa.potenciaMax
-  );
-  
-  // Se encontrou uma faixa, retornar o valor base correspondente
-  if (faixaCorrespondente) {
-    return faixaCorrespondente.valorBase;
-  }
-  
-  // Caso não encontre (improvável com a configuração atual), usar o maior valor
-  const maiorFaixa = faixasPotencia.reduce(
+  // Caso não encontre, usar o maior valor como fallback
+  const maiorFaixa = faixasOrdenadas.reduce(
     (prev, current) => prev.valorBase > current.valorBase ? prev : current,
-    faixasPotencia[0]
+    faixasOrdenadas[0]
   );
   
-  return maiorFaixa?.valorBase || 4000; // Valor de fallback
+  const valorFinal = maiorFaixa?.valorBase || 4000;
+  console.log(`❌ [FALLBACK LOCAL] Nenhuma faixa encontrada! Usando fallback:`, valorFinal);
+  
+  return valorFinal; // Valor de fallback
 }; 

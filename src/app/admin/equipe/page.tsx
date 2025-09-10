@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,137 +8,163 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
-import { PlusCircle, Trash2, Edit, Users } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2 } from "lucide-react";
 import { devLog } from "@/lib/utils/productionLogger";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-// ✅ SUPABASE - REMOVIDO: Firebase imports que causavam erros de API
-// import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, where, query } from 'firebase/firestore';
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone?: string;
+  department?: string;
+  status?: string;
+  created_at?: string;
+}
+
+interface FormData {
+  name: string;
+  email: string;
+  role: string;
+  phone: string;
+  department: string;
+}
 
 export default function EquipePage() {
   const { user } = useAuth();
-  const [teamMembers, setTeamMembers] = useState([]);
-  const [loading, setLoading] = useState(false); // Mudança: não carrega automaticamente
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState(null);
-  
-  const [formData, setFormData] = useState({
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
-    role: 'admin', // Por padrão, criamos como admin
+    role: 'cliente',
     phone: '',
-    department: '',
+    department: ''
   });
 
-  const isSuperAdmin = user?.profile?.role === 'superadmin';
-  
-  // Mudança: Verificar se o usuário é admin ou superadmin
-  const hasAdminAccess = user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+  // Filtrar membros baseado na busca
+  const filteredMembers = teamMembers.filter(member =>
+    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (member.department && member.department.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-  // State para pesquisa
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // ✅ SUPABASE - DESABILITADO: Carregamento automático até migração completa
-  // useEffect(() => {
-  //   if (user) {
-  //     fetchTeamMembers();
-  //   }
-  // }, [user]);
+  useEffect(() => {
+    if (user?.id) {
+      fetchTeamMembers();
+    }
+  }, [user]);
 
   const fetchTeamMembers = async () => {
-    toast({
-      title: 'Funcionalidade Temporariamente Indisponível',
-      description: 'A gestão de equipe será migrada para Supabase em breve.',
-      variant: 'default'
-    });
-    
-    // ✅ SUPABASE - TODO: Implementar busca usando Supabase
-    // try {
-    //   setLoading(true);
-    //   const supabase = createSupabaseServiceRoleClient();
-    //   const { data: members, error } = await supabase
-    //     .from('users')
-    //     .select('*')
-    //     .eq('role', 'admin');
-    //   
-    //   if (error) throw error;
-    //   setTeamMembers(members || []);
-    // } catch (error) {
-    //   devLog.error('Erro ao buscar membros da equipe:', error);
-    //   toast({
-    //     title: 'Erro',
-    //     description: 'Não foi possível carregar os membros da equipe.',
-    //     variant: 'destructive'
-    //   });
-    // } finally {
-    //   setLoading(false);
-    // }
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+      devLog.log('[EquipePage] Buscando membros da equipe');
+      
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+      
+      const response = await fetch('/api/admin/team-members', {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setTeamMembers(result.data || []);
+          devLog.log('[EquipePage] Membros carregados:', result.data?.length || 0);
+        } else {
+          throw new Error(result.error || 'Erro ao carregar membros');
+        }
+      } else {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+    } catch (error: any) {
+      devLog.error('[EquipePage] Erro ao buscar membros da equipe:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os membros da equipe.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
-  const handleRoleChange = (value) => {
-    setFormData({
-      ...formData,
+  const handleRoleChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
       role: value
-    });
+    }));
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      role: 'admin',
-      phone: '',
-      department: ''
-    });
-    setEditMode(false);
-    setCurrentUserId(null);
-  };
-
-  const handleCreateUser = async () => {
-    toast({
-      title: 'Funcionalidade Temporariamente Indisponível',
-      description: 'A criação de usuários será migrada para Supabase em breve.',
-      variant: 'default'
-    });
-    return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // ✅ SUPABASE - TODO: Implementar criação usando Supabase
-    // Código original comentado para evitar erros de API do Firebase
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+      
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+      
+      const url = editMode ? `/api/admin/team-members/${currentUserId}` : '/api/admin/team-members';
+      const method = editMode ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          toast({
+            title: 'Sucesso',
+            description: editMode ? 'Membro atualizado com sucesso!' : 'Membro adicionado com sucesso!',
+          });
+          
+          resetForm();
+          setOpen(false);
+          fetchTeamMembers();
+        } else {
+          throw new Error(result.error || 'Erro ao salvar membro');
+        }
+      } else {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+    } catch (error: any) {
+      devLog.error('[EquipePage] Erro ao salvar membro:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao salvar membro da equipe.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditUser = async () => {
-    toast({
-      title: 'Funcionalidade Temporariamente Indisponível',
-      description: 'A edição de usuários será migrada para Supabase em breve.',
-      variant: 'default'
-    });
-    return;
-    
-    // ✅ SUPABASE - TODO: Implementar edição usando Supabase
-    // Código original comentado para evitar erros de API do Firebase
-  };
-
-  const handleDeleteUser = async (userId) => {
-    toast({
-      title: 'Funcionalidade Temporariamente Indisponível',
-      description: 'A exclusão de usuários será migrada para Supabase em breve.',
-      variant: 'default'
-    });
-    return;
-    
-    // ✅ SUPABASE - TODO: Implementar exclusão usando Supabase
-    // Código original comentado para evitar erros de API do Firebase
-  };
-
-  const startEdit = (member) => {
+  const handleEdit = (member: TeamMember) => {
     setFormData({
       name: member.name,
       email: member.email,
@@ -151,15 +177,85 @@ export default function EquipePage() {
     setOpen(true);
   };
 
-  // Filtrando membros baseado na pesquisa
-  const filteredMembers = teamMembers.filter(member => 
-    member.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    member.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.department?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleDelete = async (memberId: string) => {
+    if (!user?.id) return;
+    
+    if (!confirm('Tem certeza que deseja remover este membro da equipe?')) {
+      return;
+    }
 
-  // Se não for admin ou superadmin, não pode ver esta página
-  if (!hasAdminAccess) {
+    try {
+      setLoading(true);
+      
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+      
+      const response = await fetch(`/api/admin/team-members/${memberId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          toast({
+            title: 'Sucesso',
+            description: 'Membro removido da equipe com sucesso!',
+          });
+          fetchTeamMembers();
+        } else {
+          throw new Error(result.error || 'Erro ao remover membro');
+        }
+      } else {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+    } catch (error: any) {
+      devLog.error('[EquipePage] Erro ao remover membro:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao remover membro da equipe.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      role: 'cliente',
+      phone: '',
+      department: ''
+    });
+    setEditMode(false);
+    setCurrentUserId(null);
+  };
+
+  // ✅ DEBUG: Verificar roles do usuário
+  useEffect(() => {
+    if (user) {
+      devLog.log('[Admin Equipe] Verificando roles do usuário:', {
+        userId: user.id,
+        userRole: user.role,
+        profileRole: user.profile?.role,
+        userObject: user
+      });
+    }
+  }, [user]);
+
+  // ✅ CORREÇÃO: Verificar se é admin corretamente
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || 
+                  user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+
+  devLog.log('[Admin Equipe] Resultado da verificação de admin:', {
+    isAdmin,
+    userRole: user?.role,
+    profileRole: user?.profile?.role
+  });
+
+  if (!user || !isAdmin) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <Card className="w-full max-w-md">
@@ -192,270 +288,239 @@ export default function EquipePage() {
           </p>
         </div>
         
-        {/* Elementos decorativos */}
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-teal-500/20"></div>
         <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-emerald-500/20"></div>
         <div className="absolute right-40 bottom-10 h-16 w-16 rounded-full bg-white/10"></div>
       </div>
 
-      {/* Barra de ações */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Membros da Equipe</h2>
-          <p className="text-gray-500 dark:text-gray-400">Administre os funcionários com acesso ao sistema</p>
+      {/* Controles */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Buscar membros..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-64">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500">🔍</span>
-            <Input
-              placeholder="Buscar membros..."
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              onClick={resetForm}
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Adicionar Membro
+            </Button>
+          </DialogTrigger>
           
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-teal-600 hover:bg-teal-700 w-full sm:w-auto">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Adicionar Membro
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[525px]">
-              <DialogHeader>
-                <DialogTitle>{editMode ? 'Editar Membro da Equipe' : 'Adicionar Novo Membro'}</DialogTitle>
-                <DialogDescription>
-                  {editMode 
-                    ? 'Atualize as informações do membro da equipe.' 
-                    : 'Preencha os dados para criar um novo membro da equipe. Após a criação, um email de redefinição de senha será enviado.'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nome
-                  </Label>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {editMode ? 'Editar Membro' : 'Adicionar Novo Membro'}
+              </DialogTitle>
+              <DialogDescription>
+                {editMode ? 'Atualize as informações do membro da equipe.' : 'Adicione um novo membro à sua equipe.'}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
                   <Input
                     id="name"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="col-span-3"
                     placeholder="Nome completo"
+                    required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="col-span-3"
                     placeholder="email@exemplo.com"
-                    disabled={editMode} // Não permitir editar o email
+                    required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">
-                    Função
-                  </Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={handleRoleChange}
-                    disabled={editMode} // Não permitir editar a função
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecione uma função" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="role">Função</Label>
+                  <Select value={formData.role} onValueChange={handleRoleChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a função" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="cliente">Cliente</SelectItem>
+                      <SelectItem value="colaborador">Colaborador</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Telefone
-                  </Label>
-                  <div className="col-span-3 space-y-1">
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder="(00) 00000-0000 (opcional)"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Campo opcional para contato direto
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="department" className="text-right">
-                    Departamento
-                  </Label>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="department">Departamento</Label>
                   <Input
                     id="department"
                     name="department"
                     value={formData.department}
                     onChange={handleInputChange}
-                    className="col-span-3"
-                    placeholder="Ex: Engenharia, Marketing, etc."
+                    placeholder="Ex: Vendas, Técnico"
                   />
                 </div>
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              
               <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  resetForm();
-                  setOpen(false);
-                }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={loading}
+                >
                   Cancelar
                 </Button>
                 <Button 
-                  onClick={editMode ? handleEditUser : handleCreateUser} 
+                  type="submit" 
                   disabled={loading}
                   className="bg-teal-600 hover:bg-teal-700"
                 >
-                  {loading ? 'Processando...' : editMode ? 'Salvar Alterações' : 'Criar Membro'}
+                  {loading ? 'Salvando...' : editMode ? 'Atualizar' : 'Adicionar'}
                 </Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Lista de membros da equipe - layout melhorado */}
-      <div className={`grid grid-cols-1 ${filteredMembers.length > 0 ? 'gap-4 sm:grid-cols-2 lg:grid-cols-3' : ''}`}>
-        {loading ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-16">
-            <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
-            <p className="mt-4 text-gray-500 dark:text-gray-400">Carregando membros da equipe...</p>
-          </div>
-        ) : filteredMembers.length === 0 ? (
-          <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg border border-dashed p-10 text-center min-h-[300px] flex flex-col items-center justify-center">
-            {searchQuery ? (
-              <>
-                <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
-                  <span className="text-xl">🔍</span>
-                </div>
-                <h3 className="mt-4 text-lg font-medium">Nenhum resultado encontrado</h3>
-                <p className="mt-1 text-sm text-gray-500 max-w-md">
-                  Não encontramos nenhum membro com &quot;{searchQuery}&quot;. Tente outro termo ou limpe a busca.
-                </p>
-                <Button 
-                  variant="outline"
-                  className="mt-4" 
-                  onClick={() => setSearchQuery('')}
-                >
-                  Limpar busca
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
-                  <Users className="h-6 w-6 text-gray-400" />
-                </div>
-                <h3 className="mt-4 text-lg font-medium">Nenhum membro da equipe</h3>
-                <p className="mt-1 text-sm text-gray-500 max-w-md">
-                  Adicione membros à sua equipe para começar a gerenciar permissões de acesso ao sistema.
-                </p>
-                <Button 
-                  className="mt-4 bg-teal-600 hover:bg-teal-700" 
-                  onClick={() => setOpen(true)}
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Adicionar Membro
-                </Button>
-              </>
-            )}
-          </div>
-        ) : (
-          filteredMembers.map(member => (
-            <Card key={member.id} className="overflow-hidden transition-all duration-200 hover:shadow-md">
-              <CardHeader className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/80 dark:to-gray-800/50 p-4 pb-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 overflow-hidden">
-                    <CardTitle className="text-lg truncate">{member.name}</CardTitle>
-                    <CardDescription className="truncate">{member.email}</CardDescription>
-                  </div>
-                  <div className="bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 text-xs px-2 py-1 rounded-full">
-                    {member.role === 'admin' ? 'Administrador' : member.role}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-3">
-                <div className="space-y-3">
-                  {member.department && (
-                    <div className="flex items-center text-sm">
-                      <div className="flex-shrink-0 w-8 flex justify-center">
-                        <span className="text-gray-400">🏢</span>
-                      </div>
-                      <span className="ml-2 truncate">{member.department}</span>
-                    </div>
-                  )}
-                  {member.phone && (
-                    <div className="flex items-center text-sm">
-                      <div className="flex-shrink-0 w-8 flex justify-center">
-                        <span className="text-gray-400">📞</span>
-                      </div>
-                      <span className="ml-2">{member.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center text-sm">
-                    <div className="flex-shrink-0 w-8 flex justify-center">
-                      <span className="text-gray-400">📅</span>
-                    </div>
-                    <span className="ml-2 text-gray-500 text-xs">
-                      Adicionado em {new Date(member.createdAt).toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t bg-white dark:bg-gray-800 p-3 flex justify-end gap-1">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 px-2 text-xs" 
-                  onClick={() => startEdit(member)}
-                >
-                  <Edit className="h-3.5 w-3.5 mr-1" />
-                  Editar
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 px-2 text-xs hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" 
-                  onClick={() => handleDeleteUser(member.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  Excluir
-                </Button>
-              </CardFooter>
-            </Card>
-          ))
-        )}
-      </div>
       {/* Mostrar resumo dos resultados quando estiver filtrando */}
-      {searchQuery && filteredMembers.length > 0 && (
-        <div className="text-sm text-gray-500 mt-2">
+      {searchQuery && (
+        <div className="text-sm text-gray-500">
           Exibindo {filteredMembers.length} de {teamMembers.length} membros
         </div>
       )}
+
+      {/* Lista de Membros */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {loading && teamMembers.length === 0 ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-3">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : filteredMembers.length > 0 ? (
+          filteredMembers.map((member) => (
+            <Card key={member.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{member.name}</CardTitle>
+                    <CardDescription className="capitalize">
+                      {member.role}
+                    </CardDescription>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(member)}
+                      disabled={loading}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(member.id)}
+                      disabled={loading}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-3">
+                <div className="flex items-center text-sm text-gray-600">
+                  <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                  {member.email}
+                </div>
+                
+                {member.phone && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                    {member.phone}
+                  </div>
+                )}
+                
+                {member.department && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Building2 className="h-4 w-4 mr-2 text-gray-400" />
+                    {member.department}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full">
+            <Card className="text-center py-12">
+              <CardContent>
+                <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchQuery ? 'Nenhum membro encontrado' : 'Nenhum membro na equipe'}
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  {searchQuery 
+                    ? 'Tente ajustar sua busca ou limpar o filtro.' 
+                    : 'Comece adicionando membros à sua equipe.'
+                  }
+                </p>
+                {!searchQuery && (
+                  <Button 
+                    onClick={resetForm}
+                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Adicionar Primeiro Membro
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
-} 
+}

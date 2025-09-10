@@ -58,8 +58,8 @@ function convertSupabaseToStandardFormat(notification: SupabaseNotification): No
     isAdminNotification: notification.data?.isAdminNotification || false,
     
     // Referências
-    projectId: notification.project_id || undefined,
-    projectNumber: notification.project_number || undefined,
+    projectId: notification.project_id || notification.data?.projectId || undefined,
+    projectNumber: notification.project_number || notification.data?.projectNumber || undefined,
     projectName: notification.data?.projectName || undefined,
     link: notification.data?.link || undefined,
     

@@ -64,6 +64,9 @@ export interface ExpandedProjectViewProps {
   onClose: () => void;
   onUpdate: (project: UpdatedProject) => Promise<void>;
   currentUserEmail?: string;
+  // ✅ MELHORIA UX: Props para controlar abertura automática
+  autoExpand?: boolean;
+  focusSection?: string;
 }
 
 interface DeleteItem {
@@ -137,7 +140,9 @@ export const ExpandedProjectView = ({
   project,
   onClose,
   onUpdate,
-  currentUserEmail
+  currentUserEmail,
+  autoExpand = false,
+  focusSection = 'overview'
 }: ExpandedProjectViewProps) => {
   // Helpers para datas: evitam mudança de dia por fuso e exibem no padrão pt-BR
   const formatDateInputValue = (value: any): string => {
@@ -259,6 +264,55 @@ export const ExpandedProjectView = ({
     document.addEventListener('app-logout-initiated', handleLogoutInitiated);
     return () => document.removeEventListener('app-logout-initiated', handleLogoutInitiated);
   }, [user]);
+
+  // ✅ MELHORIA UX: Auto-expandir e focar em seção específica quando vem de notificação
+  useEffect(() => {
+    if (autoExpand && focusSection) {
+      devLog.log('[ExpandedProjectView] Auto-expand ativado:', {
+        autoExpand,
+        focusSection
+      });
+      
+      // Definir aba ativa baseada na seção
+      const tabMapping: Record<string, string> = {
+        'comments': 'timeline',
+        'documents': 'documentos',
+        'status': 'visao-geral',
+        'overview': 'visao-geral'
+      };
+      
+      const targetTab = tabMapping[focusSection] || 'visao-geral';
+      setActiveTab(targetTab);
+      
+      // Scroll suave para a seção após um pequeno delay
+      setTimeout(() => {
+        let targetElement: HTMLElement | null = null;
+        
+        switch (focusSection) {
+          case 'comments':
+            targetElement = document.getElementById('timeline-section');
+            break;
+          case 'documents':
+            targetElement = document.getElementById('documents-section');
+            break;
+          case 'status':
+            targetElement = document.getElementById('status-section');
+            break;
+          default:
+            targetElement = document.getElementById('project-overview');
+        }
+        
+        if (targetElement) {
+          targetElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+          
+          devLog.log('[ExpandedProjectView] Scroll para seção:', focusSection);
+        }
+      }, 500); // Delay para garantir que o componente renderizou
+    }
+  }, [autoExpand, focusSection]);
 
   useEffect(() => {
     const handleLogoutRedirectStarted = () => {
@@ -457,15 +511,26 @@ export const ExpandedProjectView = ({
         profileFullName: user?.profile?.full_name
       });
       
-      // ✅ CORRIGIDO: Usar a estrutura correta do usuário Supabase
+      // ✅ CORREÇÃO CRÍTICA: Não usar Service Role Client no frontend
+      // Usar dados do usuário da sessão diretamente
+      const actualRole = user.role || user.profile?.role || 'client';
+      const actualName = user.profile?.full_name || user.profile?.name || user.email!;
+      
       const userForAction = {
         id: user.id,
         email: user.email!,
-        name: user.profile?.name || user.email!,
-        role: user.profile?.role || user.role || 'client'
+        name: actualName,
+        role: actualRole
       };
       
-      devLog.log('🔍 [handleAddComment] Objeto user sendo enviado:', userForAction);
+      devLog.log('🔍 [handleAddComment] Dados do usuário para action:', {
+        roleFromSession: user.role,
+        roleFromProfile: user.profile?.role,
+        actualRoleUsed: actualRole,
+        userForAction,
+        projectCreatedBy: project.userId || project.created_by,
+        isUserTheProjectOwner: user.id === (project.userId || project.created_by)
+      });
       
       const result = await addCommentAction(
         project.id,

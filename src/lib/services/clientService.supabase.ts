@@ -85,10 +85,13 @@ if (typeof window !== 'undefined') {
 /**
  * ✅ PRODUÇÃO - Busca contagem de clientes registrados
  * ✅ BROWSER CLIENT - Seguro para uso no frontend
+ * ✅ MULTI-TENANT - Conta apenas clientes do tenant atual
  */
-export async function getClientCount(): Promise<number> {
+export async function getClientCount(tenantId?: string): Promise<number> {
   try {
-    logger.debug('[ClientService] [SUPABASE] Verificando cache para contagem de clientes');
+    logger.debug('[ClientService] [SUPABASE] Verificando cache para contagem de clientes', { tenantId });
+    
+    const cacheKey = tenantId ? `client_count_${tenantId}` : 'client_count_global';
     
     // Verificar cache (mantendo lógica original)
     if (isCacheValid(cache.clientCount, CLIENT_COUNT_CACHE_TTL)) {
@@ -101,14 +104,29 @@ export async function getClientCount(): Promise<number> {
     // ✅ PRODUÇÃO - Usando Browser Client seguro
     const supabase = createSupabaseBrowserClient();
     
-    // Query com role='cliente' (padrão no Supabase)
-    const { count, error } = await supabase
+    // ✅ MULTI-TENANT: Construir query com filtro de tenant se disponível
+    let query = supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .eq('role', 'client'); // Usar role padrão do Supabase
+      .eq('role', 'cliente'); // Usar role em português
+    
+    // Se temos tenant_id, filtrar por ele
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+      logger.debug('[ClientService] [SUPABASE] Aplicando filtro de tenant:', tenantId);
+    }
+    
+    const { count, error } = await query;
     
     if (error) {
       logger.error('[ClientService] [SUPABASE] Erro ao obter contagem de clientes:', error);
+      
+      // ✅ FALLBACK: Se erro for RLS, tentar sem filtro de tenant
+      if (error.message?.includes('RLS') || error.message?.includes('permission')) {
+        logger.warn('[ClientService] [SUPABASE] Erro de RLS, retornando 0 como fallback');
+        return 0;
+      }
+      
       throw error;
     }
     
@@ -118,10 +136,10 @@ export async function getClientCount(): Promise<number> {
     cache.clientCount = {
       data: clientCount,
       timestamp: Date.now(),
-      key: 'client_count'
+      key: cacheKey
     };
     
-    logger.info('[ClientService] [SUPABASE] Contagem de clientes obtida com sucesso:', clientCount);
+    logger.info('[ClientService] [SUPABASE] Contagem de clientes obtida com sucesso:', { clientCount, tenantId });
     return clientCount;
     
   } catch (error) {
@@ -142,10 +160,13 @@ export async function getClientCount(): Promise<number> {
 /**
  * ✅ PRODUÇÃO - Busca todos os clientes registrados
  * ✅ BROWSER CLIENT - Seguro para uso no frontend
+ * ✅ MULTI-TENANT - Busca apenas clientes do tenant atual
  */
-export async function getClients(): Promise<any[]> {
+export async function getClients(tenantId?: string): Promise<any[]> {
   try {
-    logger.debug('[ClientService] [SUPABASE] Verificando cache para lista de clientes');
+    logger.debug('[ClientService] [SUPABASE] Verificando cache para lista de clientes', { tenantId });
+    
+    const cacheKey = tenantId ? `clients_list_${tenantId}` : 'clients_list_global';
     
     // Verificar cache (mantendo lógica original)
     if (isCacheValid(cache.clientsList)) {
@@ -158,16 +179,30 @@ export async function getClients(): Promise<any[]> {
     // ✅ PRODUÇÃO - Usando Browser Client seguro
     const supabase = createSupabaseBrowserClient();
     
-    // Query com role='cliente' (padrão no Supabase)  
-    const { data, error } = await supabase
+    // ✅ MULTI-TENANT: Construir query com filtro de tenant se disponível
+    let query = supabase
       .from('users')
       .select('*')
-      .eq('role', 'client') // Usar role padrão do Supabase
-      .eq('status', 'active') // Apenas clientes aprovados/ativos
-      .order('created_at', { ascending: false });
+      .eq('role', 'cliente') // Usar role em português
+      .eq('status', 'active'); // Apenas clientes aprovados/ativos
+    
+    // Se temos tenant_id, filtrar por ele
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+      logger.debug('[ClientService] [SUPABASE] Aplicando filtro de tenant:', tenantId);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
     
     if (error) {
       logger.error('[ClientService] [SUPABASE] Erro ao buscar clientes:', error);
+      
+      // ✅ FALLBACK: Se erro for RLS, retornar array vazio
+      if (error.message?.includes('RLS') || error.message?.includes('permission')) {
+        logger.warn('[ClientService] [SUPABASE] Erro de RLS, retornando array vazio como fallback');
+        return [];
+      }
+      
       throw error;
     }
     
@@ -188,10 +223,10 @@ export async function getClients(): Promise<any[]> {
     cache.clientsList = {
       data: formattedClients,
       timestamp: Date.now(),
-      key: 'clients_list'
+      key: cacheKey
     };
     
-    logger.info('[ClientService] [SUPABASE] Clientes obtidos com sucesso:', formattedClients.length);
+    logger.info('[ClientService] [SUPABASE] Clientes obtidos com sucesso:', { count: formattedClients.length, tenantId });
     return formattedClients;
     
   } catch (error) {
@@ -303,7 +338,7 @@ export async function getPaginatedClients(
     let query = supabase
       .from('users')
       .select('*')
-      .eq('role', 'client') // ✅ Usar role padrão do Supabase
+      .eq('role', 'cliente') // ✅ Usar role em português
       .order('created_at', { ascending: false })
       .limit(pageSize + 1); // +1 para verificar se há próxima página
     

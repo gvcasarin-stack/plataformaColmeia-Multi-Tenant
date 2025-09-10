@@ -257,7 +257,7 @@ export async function updateProjectAction(
         .from('projects')
         .select('*')
         .eq('id', project.id)
-        .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
+        .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
         .single();
 
       if (fetchError || !currentProject) {
@@ -271,12 +271,11 @@ export async function updateProjectAction(
 
       // Preparar dados para atualização no Supabase
       const supabaseUpdateData: any = {
-        nome_cliente_final: updateData.nome_cliente_final,
+        nome_cliente_final: updateData.nomeClienteFinal || updateData.nome_cliente_final,
         description: updateData.description,
         status: updateData.status,
         prioridade: updateData.prioridade,
         empresa_integradora: updateData.empresaIntegradora || updateData.empresa_integradora,
-        nome_cliente_final: updateData.nomeClienteFinal || updateData.nome_cliente_final,
         distribuidora: updateData.distribuidora,
         potencia: updateData.potencia,
         data_entrega: updateData.dataEntrega || updateData.data_entrega,
@@ -323,7 +322,7 @@ export async function updateProjectAction(
         .from('projects')
         .update(supabaseUpdateData)
         .eq('id', project.id)
-        .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
+        .eq('tenant_id', tenantInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
         .select()
         .single();
 
@@ -376,6 +375,16 @@ export async function updateProjectAction(
         
         if (finalData.userId) { 
           try {
+            // ✅ CORRIGIDO: Buscar role do banco para garantir consistência
+            const { data: adminProfile } = await supabase
+              .from('users')
+              .select('role, name')
+              .eq('id', user.id)
+              .single();
+            
+            const actualAdminRole = adminProfile?.role || user.role || 'admin';
+            const actualAdminName = adminProfile?.name || user.email || 'Admin';
+            
             await notifyStatusChange({
               projectId: finalData.id,
               projectNumber: finalData.number,
@@ -384,7 +393,7 @@ export async function updateProjectAction(
               newStatus: finalData.status,
               clientId: finalData.userId,
               adminId: user.id,
-              adminName: user.email || 'Admin'
+              adminName: actualAdminName
             });
             logger.info(`[updateProjectAction] Status change notification sent: ${oldStatus} → ${finalData.status}`);
           } catch (notificationError) {
@@ -424,14 +433,24 @@ export async function updateProjectAction(
           // Notificar o cliente (dono do projeto)
           if (finalData.userId) {
             try {
+              // ✅ CORRIGIDO: Buscar role do banco para garantir consistência
+              const { data: uploaderProfile } = await supabase
+                .from('users')
+                .select('role, name')
+                .eq('id', user.id)
+                .single();
+              
+              const actualUploaderRole = uploaderProfile?.role || user.role || 'admin';
+              const actualUploaderName = uploaderProfile?.name || user.email || 'Admin';
+              
               await notifyNewDocument({
                 projectId: finalData.id,
                 projectNumber: finalData.number,
                 projectName: finalData.nome_cliente_final,
                 documentName: addedFile.name,
                 uploaderId: user.id,
-                uploaderName: user.email || 'Admin',
-                uploaderRole: user.role || 'admin',
+                uploaderName: actualUploaderName,
+                uploaderRole: actualUploaderRole,
                 clientId: finalData.userId,
                 clientName: clientNameToNotify
               });
@@ -442,14 +461,24 @@ export async function updateProjectAction(
 
           // Notificar Admins
           try {
+            // ✅ CORRIGIDO: Usar role do banco para consistência
+            const { data: uploaderProfile } = await supabase
+              .from('users')
+              .select('role, name')
+              .eq('id', user.id)
+              .single();
+            
+            const actualUploaderRole = uploaderProfile?.role || user.role || 'admin';
+            const actualUploaderName = uploaderProfile?.name || user.email || 'Admin';
+            
             await notifyNewDocument({
               projectId: finalData.id,
               projectNumber: finalData.number,
               projectName: finalData.nome_cliente_final,
               documentName: addedFile.name,
               uploaderId: user.id,
-              uploaderName: user.email || 'Admin',
-              uploaderRole: user.role || 'admin',
+              uploaderName: actualUploaderName,
+              uploaderRole: actualUploaderRole,
               clientId: finalData.userId,
               clientName: clientNameToNotify
             });
@@ -556,30 +585,35 @@ export async function addCommentAction(
       .single();
 
     if (userError || !userInfo?.tenant_id) {
-      logger.error('[addCommentAction] Usuário não encontrado:', userError?.message);
+      logger.error('[addCommentAction] Usuário não encontrado', {
+        error: userError?.message,
+        userId: user.id
+      });
       return { error: 'Usuário não encontrado' };
     }
+
+    const userTenantId = userInfo.tenant_id;
 
     // Verificar se projeto pertence ao mesmo tenant
     const { data: projectExists, error: projectError } = await supabase
       .from('projects')
       .select('id')
       .eq('id', projectId)
-      .eq('tenant_id', userInfo.tenant_id)
+      .eq('tenant_id', userTenantId)
       .single();
 
     if (projectError || !projectExists) {
-      logger.error('[addCommentAction] Projeto não encontrado no tenant do usuário:', {
+      logger.error('[addCommentAction] Projeto não encontrado no tenant do usuário', {
         projectId,
-        userTenantId: userInfo.tenant_id,
+        userTenantId,
         error: projectError?.message
       });
       return { error: 'Projeto não encontrado' };
     }
 
-    logger.info('[addCommentAction] Acesso autorizado:', {
+    logger.info('[addCommentAction] Acesso autorizado', {
       projectId,
-      userTenantId: userInfo.tenant_id
+      userTenantId
     });
 
     // ❌ FIREBASE - COMENTADO: const adminApp = getOrCreateFirebaseAdminApp();
@@ -618,14 +652,14 @@ export async function addCommentAction(
     // ✅ SEGURANÇA: Filtrar por tenant_id para garantir isolamento multi-tenant
     console.log('🚨 [CRITICAL DEBUG] Buscando projeto para comentário:', {
       projectId,
-      tenantId: userInfo.tenant_id
+      tenantId: userTenantId
     });
     
     const { data: basicProject, error: fetchError } = await supabase
       .from('projects')
       .select('id, nome_cliente_final, number, created_by, comments, timeline_events')
       .eq('id', projectId)
-      .eq('tenant_id', userInfo.tenant_id)
+      .eq('tenant_id', userTenantId)
       .single();
       
     console.log('🚨 [CRITICAL DEBUG] Resultado busca projeto comentário:', {
@@ -639,7 +673,7 @@ export async function addCommentAction(
         fetchError: fetchError?.message,
         code: fetchError?.code,
         projectId,
-        tenantId: userInfo.tenant_id
+        tenantId: userTenantId
       });
       devLog.error('[addCommentAction] Project not found:', fetchError);
       return { error: 'Project not found' };
@@ -658,7 +692,7 @@ export async function addCommentAction(
       userId: user.id,
       userRole: user.role,
       currentCommentsCount: currentComments.length,
-      tenantId: userInfo.tenant_id
+      tenantId: userTenantId
     });
     
     const { error: updateError } = await supabase
@@ -676,7 +710,7 @@ export async function addCommentAction(
         }
       })
       .eq('id', projectId)
-      .eq('tenant_id', userInfo.tenant_id);
+      .eq('tenant_id', userTenantId);
 
     if (updateError) {
       console.log('🚨 [CRITICAL DEBUG] Resultado da operação:', { 
@@ -728,10 +762,29 @@ export async function addCommentAction(
       devLog.log('[addCommentAction] DEBUG - Iniciando sistema de notificações...');
       
       // Determinar se é admin comentando ou cliente comentando
-      const isAdmin = user.role === 'admin' || user.role === 'superadmin';
+      // ✅ CORRIGIDO: Buscar role do banco para garantir consistência
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
       
-      if (isAdmin && projectClientOwnerId) {
-        // ✅ Admin comentou → Notificar cliente
+      const actualRole = userProfile?.role || user.role || 'client';
+      const isAdmin = actualRole === 'admin' || actualRole === 'superadmin';
+      
+      devLog.log('[addCommentAction] 🚨 CRITICAL DEBUG - Role verification:', {
+        userRoleFromSession: user.role,
+        userRoleFromDatabase: userProfile?.role,
+        actualRoleUsed: actualRole,
+        isAdmin,
+        userId: user.id,
+        projectClientOwnerId: projectClientOwnerId,
+        shouldNotifyClient: isAdmin && projectClientOwnerId && user.id !== projectClientOwnerId,
+        shouldNotifyAdmins: !isAdmin || user.id === projectClientOwnerId
+      });
+      
+      if (isAdmin && projectClientOwnerId && user.id !== projectClientOwnerId) {
+        // ✅ Admin comentou → Notificar cliente (apenas se não for o próprio admin)
         devLog.log('[addCommentAction] Admin commented - notifying client', { 
           authorName, 
           projectClientOwnerId, 
@@ -750,7 +803,7 @@ export async function addCommentAction(
           // Buscar dados do cliente para pegar o nome correto (suporta ambos os campos)
           const { data: clientData, error: clientQueryError } = await supabase
             .from('users')
-            .select('name, full_name, email')
+            .select('name, email')
             .eq('id', projectClientOwnerId)
             .single();
 
@@ -758,7 +811,7 @@ export async function addCommentAction(
             clientData,
             clientQueryError,
             hasClientData: !!clientData,
-            clientName: clientData?.full_name || clientData?.name,
+            clientName: clientData?.name || clientData?.email,
             clientEmail: clientData?.email
           });
 
@@ -784,7 +837,7 @@ export async function addCommentAction(
             authorName,
             authorRole: user.role || 'admin',
             clientId: projectClientOwnerId,
-            clientName: clientData.full_name || clientData.name || clientData.email || 'Cliente'
+            clientName: clientData.name || clientData.email || 'Cliente'
           });
           
           // Logs removidos por questões de segurança em produção
@@ -799,7 +852,7 @@ export async function addCommentAction(
             authorName,
             authorRole: user.role || 'admin',
             clientId: projectClientOwnerId,
-            clientName: clientData.full_name || clientData.name || clientData.email || 'Cliente'
+            clientName: clientData.name || clientData.email || 'Cliente'
           });
 
           devLog.log('[addCommentAction] DEBUG - Notification result:', {
@@ -1244,11 +1297,35 @@ export async function deleteFileAction(
 }
 
 // ✅ SUPABASE - NOVA SERVER ACTION PARA CRIAÇÃO DE PROJETO PELO CLIENTE
+// Cache em memória para prevenir duplicação (TTL: 10 segundos)
+const creationCache = new Map<string, number>();
+
 export async function createProjectClientAction(
   projectDataFromClient: CreateProjectClientData, 
   clientUser: { id: string; name?: string | null; email?: string | null; companyName?: string | null; } // Mudado de uid para id para compatibilidade com Supabase
 ): Promise<{ data?: Project; error?: string; message?: string }> {
   try {
+    // ✅ PROTEÇÃO ANTI-DUPLICAÇÃO: Verificar cache de criação
+    const cacheKey = `project_creation_${clientUser.id}`;
+    const lastCreation = creationCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (lastCreation && (now - lastCreation) < 10000) {
+      logger.warn('[createProjectClientAction] Bloqueando duplicação - usuário tentou criar projeto muito rapidamente:', {
+        userId: clientUser.id,
+        timeSinceLastCreation: now - lastCreation
+      });
+      return { error: 'Aguarde 10 segundos entre criações de projeto' };
+    }
+    
+    // Registrar tentativa de criação
+    creationCache.set(cacheKey, now);
+    
+    // Limpar cache após 15 segundos
+    setTimeout(() => {
+      creationCache.delete(cacheKey);
+    }, 15000);
+    
     logger.info('[createProjectClientAction] DEBUGGING - Dados recebidos na action:', { 
       clientId: clientUser.id, 
       clientEmail: clientUser.email,
@@ -1276,7 +1353,9 @@ export async function createProjectClientAction(
       supabase = createSupabaseServiceRoleClient();
       logger.info('[createProjectClientAction] Supabase Service Role Client inicializado com sucesso.');
     } catch (supabaseError) {
-      logger.error('[createProjectClientAction] Erro ao inicializar Supabase Service Role Client:', supabaseError);
+      logger.error('[createProjectClientAction] Erro ao inicializar Supabase Service Role Client', {
+        error: supabaseError
+      });
       return { error: 'Erro interno: falha na inicialização do sistema.' };
     }
 
@@ -1285,7 +1364,9 @@ export async function createProjectClientAction(
     try {
       tenantInfo = await getTenantFromUser(clientUser.id);
       if (!tenantInfo || !tenantInfo.tenant_id) {
-        logger.error('[createProjectClientAction] Tenant não encontrado para o usuário:', clientUser.id);
+        logger.error('[createProjectClientAction] Tenant não encontrado para o usuário', {
+          userId: clientUser.id
+        });
         return { error: 'Erro: Organização não encontrada para o usuário. Entre em contato com o suporte.' };
       }
       logger.info('[createProjectClientAction] Tenant identificado:', { 
@@ -1293,7 +1374,9 @@ export async function createProjectClientAction(
         organization: tenantInfo.organization.name 
       });
     } catch (tenantError) {
-      logger.error('[createProjectClientAction] Erro ao buscar tenant do usuário:', tenantError);
+      logger.error('[createProjectClientAction] Erro ao buscar tenant do usuário', {
+        error: tenantError
+      });
       return { error: 'Erro interno: falha na identificação da organização.' };
     }
 
@@ -1317,7 +1400,9 @@ export async function createProjectClientAction(
         supabaseHealthy = true;
         logger.info('[createProjectClientAction] Supabase health check: OK');
       } catch (healthError) {
-        logger.error('[createProjectClientAction] Supabase health check falhou:', healthError);
+        logger.error('[createProjectClientAction] Supabase health check falhou', {
+          error: healthError
+        });
         supabaseHealthy = false;
       }
 
@@ -1325,7 +1410,7 @@ export async function createProjectClientAction(
         // Se Supabase não está acessível, usar fallback sequencial
         projectNumber = await generateFallbackSequentialNumber();
         numberGenerationMethod = 'fallback_no_connection';
-        logger.warn('[createProjectClientAction] Supabase inacessível, usando fallback sequencial:', projectNumber);
+        logger.warn('[createProjectClientAction] Supabase inacessível, usando fallback sequencial', { projectNumber });
       } else {
         // Buscar o último número usado no ano atual com retry
         let lastProject = null;
@@ -1402,13 +1487,13 @@ export async function createProjectClientAction(
 
           projectNumber = `${prefix}${nextNumber.toString().padStart(3, '0')}`;
           numberGenerationMethod = 'sequential';
-          logger.info('[createProjectClientAction] Número do projeto gerado sequencialmente:', projectNumber);
+          logger.info('[createProjectClientAction] Número do projeto gerado sequencialmente', { projectNumber });
         } else {
           throw new Error('Falha em todas as tentativas de query');
         }
       }
     } catch (numberError) {
-      logger.error('[createProjectClientAction] Erro ao gerar número do projeto após todas as tentativas:', {
+      logger.error('[createProjectClientAction] Erro ao gerar número do projeto após todas as tentativas', {
         error: numberError instanceof Error ? numberError.message : numberError,
         stack: numberError instanceof Error ? numberError.stack : undefined
       });
@@ -1436,7 +1521,7 @@ export async function createProjectClientAction(
         .from('configs')
         .select('value')
         .eq('key', 'checklist_message')
-        .eq('tenant_id', userInfo.tenant_id)
+        .eq('tenant_id', tenantInfo.tenant_id)
         .single();
 
       if (!configError && configData) {
@@ -1462,7 +1547,9 @@ export async function createProjectClientAction(
         });
       }
      } catch (configError) {
-       logger.error('[createProjectClientAction] Erro ao buscar mensagem de checklist:', { configError });
+       logger.error('[createProjectClientAction] Erro ao buscar mensagem de checklist', {
+         configError
+       });
     }
 
     // ✅ SUPABASE - Criar evento inicial de checklist para a timeline
@@ -1489,6 +1576,72 @@ export async function createProjectClientAction(
       });
      }
 
+    // ✅ CORREÇÃO MULTI-TENANT: Recalcular valor no servidor usando configurações do tenant
+    let valorProjetoFinal = projectDataFromClient.valorProjeto || 0;
+    const potencia = typeof projectDataFromClient.potencia === 'string' 
+      ? parseFloat(projectDataFromClient.potencia) || 0 
+      : (projectDataFromClient.potencia as number) || 0;
+
+    // ✅ CORREÇÃO CRÍTICA: SEMPRE recalcular valor no servidor usando configurações do tenant
+    // Ignorar o valor vindo do frontend e sempre calcular baseado nas configurações
+    if (potencia > 0) {
+      try {
+        // Buscar configurações de faixas de potência do tenant
+        const { data: configData } = await supabase
+          .from('configs')
+          .select('value')
+          .eq('key', 'faixas_potencia')
+          .eq('tenant_id', tenantInfo.tenant_id)
+          .single();
+
+        if (configData?.value) {
+          const faixasPotencia = Array.isArray(configData.value) ? configData.value : JSON.parse(configData.value);
+          
+          // ✅ CORREÇÃO CRÍTICA: Lógica de faixas inclusivas
+          // Ordenar faixas por potenciaMin para garantir ordem correta
+          const faixasOrdenadas = [...faixasPotencia].sort((a: any, b: any) => a.potenciaMin - b.potenciaMin);
+          
+          let faixaCorrespondente = null;
+          for (const faixa of faixasOrdenadas) {
+            // Para a primeira faixa (potenciaMin = 0), incluir o limite inferior
+            if (faixa.potenciaMin === 0) {
+              if (potencia >= faixa.potenciaMin && potencia <= faixa.potenciaMax) {
+                faixaCorrespondente = faixa;
+                break;
+              }
+            } else {
+              // Para outras faixas, excluir o limite inferior
+              if (potencia > faixa.potenciaMin && potencia <= faixa.potenciaMax) {
+                faixaCorrespondente = faixa;
+                break;
+              }
+            }
+          }
+          
+          if (faixaCorrespondente) {
+            const valorAnterior = valorProjetoFinal;
+            valorProjetoFinal = faixaCorrespondente.valorBase;
+            logger.info('[createProjectClientAction] ✅ VALOR RECALCULADO NO SERVIDOR:', {
+              potencia,
+              valorAnterior: valorAnterior,
+              valorRecalculado: valorProjetoFinal,
+              faixaUsada: faixaCorrespondente,
+              tenantId: tenantInfo.tenant_id,
+              source: 'server_calculation'
+            });
+          } else {
+            logger.warn('[createProjectClientAction] ❌ NENHUMA FAIXA ENCONTRADA para potência:', {
+              potencia,
+              faixasDisponiveis: faixasPotencia.length,
+              tenantId: tenantInfo.tenant_id
+            });
+          }
+        }
+      } catch (error) {
+        logger.warn('[createProjectClientAction] Erro ao calcular valor no servidor, usando valor fornecido:', error);
+      }
+    }
+
     // ✅ SUPABASE - Preparar dados do projeto para inserção
     const projectData = {
       nome_cliente_final: projectDataFromClient.nomeClienteFinal || projectDataFromClient.nome_cliente_final || 'Projeto sem nome',
@@ -1497,15 +1650,13 @@ export async function createProjectClientAction(
       tenant_id: tenantInfo.tenant_id, // ✅ CRÍTICO: Incluir tenant_id para isolamento
       empresa_integradora: projectDataFromClient.empresaIntegradora || '',
       distribuidora: projectDataFromClient.distribuidora || '',
-      potencia: typeof projectDataFromClient.potencia === 'string' 
-        ? parseFloat(projectDataFromClient.potencia) || 0 
-        : (projectDataFromClient.potencia as number) || 0,
+      potencia: potencia,
       data_entrega: projectDataFromClient.dataEntrega || null,
       lista_materiais: projectDataFromClient.listaMateriais && projectDataFromClient.listaMateriais.trim() !== '' ? projectDataFromClient.listaMateriais : null,
       disjuntor_padrao_entrada: projectDataFromClient.disjuntorPadraoEntrada && projectDataFromClient.disjuntorPadraoEntrada.trim() !== '' ? projectDataFromClient.disjuntorPadraoEntrada : null,
       status: projectDataFromClient.status || 'Não Iniciado',
       prioridade: projectDataFromClient.prioridade || 'Baixa',
-      valor_projeto: projectDataFromClient.valorProjeto || 0,
+      valor_projeto: valorProjetoFinal,
       pagamento: projectDataFromClient.pagamento || 'pendente', // ✅ GARANTIR SEMPRE PENDENTE
       
       timeline_events: initialTimelineEvents, // ✅ Agora inclui a checklist inicial
@@ -1542,20 +1693,31 @@ export async function createProjectClientAction(
         .single();
 
       if (error) {
-        logger.error('[createProjectClientAction] Erro ao inserir projeto no Supabase:', error);
+        logger.error('[createProjectClientAction] Erro ao inserir projeto no Supabase', {
+          error
+        });
         throw new Error(`Erro ao criar projeto: ${error.message}`);
       }
 
       newProject = data;
       logger.info('[createProjectClientAction] Projeto criado com sucesso no Supabase:', { projectId: newProject.id, number: newProject.number });
     } catch (insertError) {
-      logger.error('[createProjectClientAction] Erro na inserção do projeto:', insertError);
+      // Limpar cache em caso de erro para permitir nova tentativa
+      const cacheKey = `project_creation_${clientUser.id}`;
+      creationCache.delete(cacheKey);
+      
+      logger.error('[createProjectClientAction] Erro na inserção do projeto', {
+        insertError
+      });
       if (insertError instanceof Error) {
         if (insertError.message.includes('duplicate key')) {
           return { error: 'Número de projeto já existe. Tente novamente.' };
         }
         if (insertError.message.includes('foreign key')) {
           return { error: 'Erro de referência de usuário. Verifique se o usuário está registrado.' };
+        }
+        if (insertError.message.includes('Aguarde 10 segundos entre criações')) {
+          return { error: 'Você está criando projetos muito rapidamente. Aguarde alguns segundos.' };
         }
         return { error: `Erro ao criar projeto: ${insertError.message}` };
       }
@@ -1614,7 +1776,9 @@ export async function createProjectClientAction(
       logger.info(`[createProjectClientAction] Notificação sobre novo projeto ${projectResult.number} enviada para admins.`);
     } catch (notificationError) {
       // Log notification error but don't fail the entire operation
-      logger.error('[createProjectClientAction] Erro ao enviar notificação para admins (projeto criado com sucesso):', notificationError);
+      logger.error('[createProjectClientAction] Erro ao enviar notificação para admins (projeto criado com sucesso)', {
+        notificationError
+      });
       // Continue without failing - the project was created successfully
     }
     
@@ -1625,7 +1789,9 @@ export async function createProjectClientAction(
       revalidatePath('/');
       logger.info('[createProjectClientAction] Paths revalidated successfully');
     } catch (revalidateError) {
-      logger.error('[createProjectClientAction] Erro ao revalidar paths (projeto criado com sucesso):', revalidateError);
+      logger.error('[createProjectClientAction] Erro ao revalidar paths (projeto criado com sucesso)', {
+        revalidateError
+      });
       // Continue without failing - the project was created successfully
     }
 
@@ -1635,7 +1801,9 @@ export async function createProjectClientAction(
     });
 
   } catch (error) {
-    logger.error('[createProjectClientAction] Exceção não capturada ao criar projeto:', error);
+    logger.error('[createProjectClientAction] Exceção não capturada ao criar projeto', {
+      error
+    });
     
     // Try to provide a more specific error message
     if (error instanceof Error) {
@@ -1675,7 +1843,9 @@ export async function getClientProjectsAction(
     return { data: projectList, message: 'Projetos carregados com sucesso.' };
 
   } catch (error) {
-    logger.error('[getClientProjectsAction] Erro ao buscar projetos do cliente:', error);
+    logger.error('[getClientProjectsAction] Erro ao buscar projetos do cliente', {
+      error
+    });
     let errorMessage = 'Falha ao buscar os projetos.';
     if (error instanceof Error) {
       errorMessage = error.message;
@@ -1685,7 +1855,7 @@ export async function getClientProjectsAction(
 }
 
 // NOVA SERVER ACTION PARA BUSCAR DADOS PARA O PAINEL DE ADMIN
-export async function getAdminDashboardDataAction(): Promise<{
+export async function getAdminDashboardDataAction(userId: string): Promise<{
   projects?: Project[];
   projectCount?: number;
   error?: string;
@@ -1693,14 +1863,34 @@ export async function getAdminDashboardDataAction(): Promise<{
 }> {
   logger.info('[getAdminDashboardDataAction] Iniciando busca de dados para o painel de admin.');
   try {
-    // ✅ CORRIGIDO: Usar getProjectsWithFilters para buscar todos os projetos
-    const allProjects = await getProjectsWithFilters({ limit: 1000 });
+    if (!userId) {
+      return { error: 'User ID é obrigatório' };
+    }
+
+    // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id do usuário
+    const supabase = createSupabaseServiceRoleClient();
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('tenant_id, role')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData?.tenant_id) {
+      logger.error('[getAdminDashboardDataAction] Erro ao obter tenant do usuário:', userError);
+      return { error: 'Usuário não encontrado ou sem organização' };
+    }
+
+    // ✅ CORRIGIDO: Buscar APENAS projetos do tenant do usuário
+    const allProjects = await getProjectsWithFilters({ 
+      tenantId: userData.tenant_id,
+      limit: 1000 
+    });
     const projectCount = allProjects.length;
 
     // Log detalhado dos primeiros 2 projetos (ou menos, se houver menos)
     if (allProjects && allProjects.length > 0) {
       const sampleProjects = allProjects.slice(0, 2);
-      logger.info('[getAdminDashboardDataAction] Amostra de dados dos projetos recebidos (raw):', JSON.stringify(sampleProjects, null, 2));
+      logger.info('[getAdminDashboardDataAction] Amostra de dados dos projetos recebidos (raw)', { sampleProjects: JSON.stringify(sampleProjects, null, 2) });
       
       // Log específico dos campos de data para a amostra
       sampleProjects.forEach((p, index) => {
@@ -1725,7 +1915,9 @@ export async function getAdminDashboardDataAction(): Promise<{
       message: 'Admin dashboard data fetched successfully.',
     };
   } catch (error) {
-    logger.error('[getAdminDashboardDataAction] Erro ao buscar dados para o painel de admin:', error);
+    logger.error('[getAdminDashboardDataAction] Erro ao buscar dados para o painel de admin', {
+      error
+    });
     let errorMessage = 'Failed to fetch admin dashboard data.';
     if (error instanceof Error) {
       errorMessage = error.message;
@@ -1761,15 +1953,18 @@ export async function getProjectAction(projectId: string): Promise<{
 
     if (error) {
       if (error.code === 'PGRST116') {
-        logger.warn('[getProjectAction] Projeto não encontrado:', projectId);
+        logger.warn('[getProjectAction] Projeto não encontrado', { projectId });
       return { error: 'Projeto não encontrado.' };
     }
-      logger.error('[getProjectAction] Erro Supabase ao buscar projeto:', { projectId, error });
+      logger.error('[getProjectAction] Erro Supabase ao buscar projeto', {
+        projectId,
+        error
+      });
       return { error: `Erro ao buscar projeto: ${error.message}` };
     }
 
     if (!data) {
-      logger.warn('[getProjectAction] Nenhum dado retornado para projeto:', projectId);
+      logger.warn('[getProjectAction] Nenhum dado retornado para projeto', { projectId });
       return { error: 'Projeto não encontrado.' };
     }
 
@@ -1809,7 +2004,10 @@ export async function getProjectAction(projectId: string): Promise<{
     return sanitizeForSerialization({ data: project, message: 'Projeto carregado com sucesso.' });
 
   } catch (error) {
-    logger.error('[getProjectAction] Erro ao buscar projeto:', { projectId, error });
+    logger.error('[getProjectAction] Erro ao buscar projeto', {
+      projectId,
+      error
+    });
     let errorMessage = 'Falha ao buscar o projeto.';
     if (error instanceof Error) {
       errorMessage = error.message;
@@ -1842,7 +2040,9 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
       .single();
 
     if (userError || !userData?.tenant_id) {
-      logger.error('[getProjectsForUserAction] Error fetching user data:', userError);
+      logger.error('[getProjectsForUserAction] Error fetching user data', {
+        userError
+      });
       return { error: 'Erro ao verificar permissões do usuário ou organização não encontrada.' };
     }
 
@@ -1865,7 +2065,10 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
     return { projects: projectList, message: 'Projects loaded successfully.' };
 
   } catch (error) {
-    logger.error('[getProjectsForUserAction] Error fetching projects for user:', { userId, error });
+    logger.error('[getProjectsForUserAction] Error fetching projects for user', {
+      userId,
+      error
+    });
     let errorMessage = 'Failed to fetch projects.';
     if (error instanceof Error) {
       errorMessage = error.message;
@@ -1898,7 +2101,7 @@ export async function deleteProjectAction(projectId: string): Promise<{
       .single();
 
     if (fetchError || !projectData) {
-      logger.warn('[deleteProjectAction] Project not found, cannot delete:', { projectId, error: fetchError });
+      logger.warn('[deleteProjectAction] Project not found, cannot delete', { projectId, error: fetchError });
       return { error: 'Projeto não encontrado.' };
     }
 
@@ -1930,7 +2133,10 @@ export async function deleteProjectAction(projectId: string): Promise<{
       .eq('id', projectId);
 
     if (deleteError) {
-      logger.error('[deleteProjectAction] Failed to delete project from Supabase:', { projectId, error: deleteError });
+      logger.error('[deleteProjectAction] Failed to delete project from Supabase', {
+        projectId,
+        error: deleteError
+      });
       return { error: `Falha ao excluir projeto: ${deleteError.message}` };
     }
 
@@ -1944,7 +2150,10 @@ export async function deleteProjectAction(projectId: string): Promise<{
     return { success: true, message: 'Projeto excluído com sucesso.' };
 
   } catch (error) {
-    logger.error('[deleteProjectAction] Error deleting project:', { projectId, error });
+    logger.error('[deleteProjectAction] Error deleting project', {
+      projectId,
+      error
+    });
     let errorMessage = 'Falha ao excluir o projeto.';
     if (error instanceof Error) {
       errorMessage = error.message;
@@ -1960,14 +2169,18 @@ export async function generateUniqueProjectNumberAction(): Promise<{ number?: st
     const number = allProjects && allProjects.length > 0 ? allProjects[0].number : null;
     
     if (!number || number.startsWith('FALLBACK-') || number.startsWith('ERROR-')) {
-      logger.error('[generateUniqueProjectNumberAction] Serviço core retornou um número inválido ou de fallback:', number);
+      logger.error('[generateUniqueProjectNumberAction] Serviço core retornou um número inválido ou de fallback', {
+        number
+      });
       return { error: 'Falha ao gerar número único de projeto.' };
     }
 
-    logger.info('[generateUniqueProjectNumberAction] Número único gerado com sucesso:', number);
+            logger.info('[generateUniqueProjectNumberAction] Número único gerado com sucesso', { number });
     return { number };
   } catch (error) {
-    logger.error('[generateUniqueProjectNumberAction] Erro ao chamar generateUniqueProjectNumberCore:', error);
+    logger.error('[generateUniqueProjectNumberAction] Erro ao chamar generateUniqueProjectNumberCore', {
+      error
+    });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao gerar número do projeto.';
     return { error: errorMessage };
   }
@@ -1984,7 +2197,10 @@ export async function isProjectNumberUsedAction(projectNumber: string): Promise<
     const isUsed = existingProjects.some(project => project.number === projectNumber);
     return { isUsed };
   } catch (error) {
-    logger.error('[isProjectNumberUsedAction] Erro ao chamar isProjectNumberAlreadyUsedCore:', { projectNumber, error });
+    logger.error('[isProjectNumberUsedAction] Erro ao chamar isProjectNumberAlreadyUsedCore', {
+      projectNumber,
+      error
+    });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao verificar número do projeto.';
     return { error: errorMessage, isUsed: true }; 
   }
@@ -2271,6 +2487,96 @@ export async function editProjectAction(
     }
 
     console.log('[SERVER] editProjectAction - SUCESSO!');
+    
+    // ✅ CRÍTICO: Adicionar notificações como updateProjectAction
+    try {
+      // Verificar mudança de status para notificações
+      if (updatedProjectData.status && currentProject.status !== updatedProjectData.status) {
+        console.log('[SERVER] editProjectAction - Status mudou, enviando notificações:', {
+          oldStatus: currentProject.status,
+          newStatus: updatedProjectData.status
+        });
+        
+        if (updatedProjectData.created_by) {
+          // Buscar role do admin do banco para garantir consistência
+          const { data: adminProfile } = await supabase
+            .from('users')
+            .select('role, name')
+            .eq('id', adminData.id)
+            .single();
+          
+          const actualAdminName = adminProfile?.name || adminData.email || 'Admin';
+          
+          const { notifyStatusChange } = await import('@/lib/services/notificationService');
+          await notifyStatusChange({
+            projectId: updatedProjectData.id,
+            projectNumber: updatedProjectData.number,
+            projectName: updatedProjectData.nome_cliente_final,
+            oldStatus: currentProject.status,
+            newStatus: updatedProjectData.status,
+            clientId: updatedProjectData.created_by,
+            adminId: adminData.id,
+            adminName: actualAdminName
+          });
+          console.log('[SERVER] editProjectAction - Notificação de status enviada');
+        }
+      }
+      
+      // Verificar novos arquivos para notificações
+      const oldFiles = currentProject.files || [];
+      const newFiles = updatedProjectData.files || [];
+      const addedFiles = newFiles.filter(newFile => 
+        !oldFiles.some(oldFile => oldFile.url === newFile.url)
+      );
+      
+      if (addedFiles.length > 0) {
+        console.log('[SERVER] editProjectAction - Novos arquivos detectados, enviando notificações:', addedFiles.length);
+        
+        // Buscar dados do cliente para notificação
+        let clientName = 'Cliente';
+        if (updatedProjectData.created_by) {
+          const { data: clientData } = await supabase
+            .from('users')
+            .select('name, email')
+            .eq('id', updatedProjectData.created_by)
+            .single();
+          
+          if (clientData) {
+            clientName = clientData.name || clientData.email || 'Cliente';
+          }
+        }
+        
+        // Buscar role do admin do banco
+        const { data: adminProfile } = await supabase
+          .from('users')
+          .select('role, name')
+          .eq('id', adminData.id)
+          .single();
+        
+        const actualAdminRole = adminProfile?.role || adminData.role || 'admin';
+        const actualAdminName = adminProfile?.name || adminData.email || 'Admin';
+        
+        const { notifyNewDocument } = await import('@/lib/services/notificationService');
+        
+        for (const addedFile of addedFiles) {
+          await notifyNewDocument({
+            projectId: updatedProjectData.id,
+            projectNumber: updatedProjectData.number,
+            projectName: updatedProjectData.nome_cliente_final,
+            documentName: addedFile.name,
+            uploaderId: adminData.id,
+            uploaderName: actualAdminName,
+            uploaderRole: actualAdminRole,
+            clientId: updatedProjectData.created_by,
+            clientName: clientName
+          });
+        }
+        console.log('[SERVER] editProjectAction - Notificações de documento enviadas');
+      }
+    } catch (notificationError) {
+      console.log('[SERVER] editProjectAction - Erro nas notificações (não crítico):', notificationError);
+      // Não falhar a edição por causa das notificações
+    }
 
     // Converter dados do Supabase para formato Project
     const finalData: Project = {

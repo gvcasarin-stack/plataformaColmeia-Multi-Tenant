@@ -32,24 +32,81 @@ export async function createNotificationDirectly(
       notificationData.senderType
     );
 
+    // Mapear tipos de notificação para os tipos válidos da constraint
+    const typeMapping: Record<string, { type: string; category: string }> = {
+      'new_project': { type: 'info', category: 'project' },
+      'new_comment': { type: 'info', category: 'project' },
+      'document_upload': { type: 'info', category: 'project' },
+      'status_change': { type: 'success', category: 'project' },
+      'system_message': { type: 'info', category: 'system' },
+      'test_smart_analysis': { type: 'info', category: 'system' },
+      'info': { type: 'info', category: 'system' },
+      'success': { type: 'success', category: 'system' },
+      'warning': { type: 'warning', category: 'system' },
+      'error': { type: 'error', category: 'system' }
+    };
+    
+    const mappedType = typeMapping[notificationData.type] || { type: 'info', category: 'system' };
+    
+    // Buscar tenant_id do usuário
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', notificationData.userId)
+      .single();
+    
+    if (userError || !userData?.tenant_id) {
+      console.log('❌ [DEBUG-NOTIFICATION] ERRO ao buscar tenant_id:', {
+        userId: notificationData.userId,
+        userError: userError?.message,
+        userData,
+        hasTenantId: !!userData?.tenant_id
+      });
+      logger.error('[createNotificationDirectly] Erro ao obter tenant_id do usuário:', userError);
+      return {
+        success: false,
+        error: 'Usuário não encontrado ou sem tenant_id'
+      };
+    }
+    
+    console.log('✅ [DEBUG-NOTIFICATION] Tenant_id obtido:', {
+      userId: notificationData.userId,
+      tenantId: userData.tenant_id
+    });
+
     const notificationToInsert = {
-      type: notificationData.type,
+      type: mappedType.type,
+      category: mappedType.category,
+      priority: 'normal',
       title: notificationData.title,
       message: notificationData.message,
       user_id: notificationData.userId,
-      project_id: notificationData.projectId || null,
-      project_number: notificationData.projectNumber || null,
+      tenant_id: userData.tenant_id,
       read: false,
       data: {
         ...notificationData.data,
+        // Armazenar dados do projeto no campo data (JSONB)
+        projectId: notificationData.projectId,
+        projectNumber: notificationData.projectNumber,
+        projectName: notificationData.projectName,
+        // Dados do remetente
         senderId: senderInfo.id,
         senderName: senderInfo.name,
         senderType: senderInfo.type,
         link: notificationData.link,
-        projectName: notificationData.projectName
+        // Tipo original para referência
+        originalType: notificationData.type
       }
     };
 
+    console.log('🔍 [DEBUG-NOTIFICATION] Tentando inserir notificação:', {
+      type: notificationToInsert.type,
+      category: notificationToInsert.category,
+      userId: notificationToInsert.user_id,
+      tenantId: notificationToInsert.tenant_id,
+      title: notificationToInsert.title
+    });
+    
     const { data, error } = await supabase
       .from('notifications')
       .insert([notificationToInsert])
@@ -57,9 +114,24 @@ export async function createNotificationDirectly(
       .single();
 
     if (error) {
+      console.log('❌ [DEBUG-NOTIFICATION] ERRO ao inserir notificação:', {
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        notificationData: notificationToInsert
+      });
       logger.error('[createNotificationDirectly] Erro ao criar notificação:', error);
       return { success: false, error: error.message };
     }
+    
+    console.log('✅ [DEBUG-NOTIFICATION] Notificação criada com sucesso:', {
+      id: data.id,
+      type: data.type,
+      category: data.category,
+      userId: data.user_id,
+      tenantId: data.tenant_id
+    });
 
     logger.info('[createNotificationDirectly] Notificação criada com sucesso:', data.id);
     return { success: true, id: data.id };
@@ -80,13 +152,13 @@ export async function createNotification(
   notificationData: CreateNotificationParams
 ): Promise<NotificationResult> {
   try {
-    logger.info('[createNotification] Processando notificação:', notificationData.type);
+    logger.info('[createNotification] Processando notificação:', { type: notificationData.type });
     
     // Se userId for 'all_admins', criar para todos os admins
     if (notificationData.userId === 'all_admins') {
       const adminIds = await createNotificationForAllAdmins({
         ...notificationData,
-        userId: undefined as any // Remove userId temporariamente
+        // Remove userId para a função createNotificationForAllAdmins
       });
       return { success: true, id: adminIds.join(',') };
     }
@@ -127,7 +199,7 @@ export async function createNotificationForAllAdmins(
         
       if (!projectError && projectData) {
         tenantId = projectData.tenant_id;
-        logger.info('[createNotificationForAllAdmins] Tenant obtido do projeto:', tenantId);
+        logger.info('[createNotificationForAllAdmins] Tenant obtido do projeto:', { tenantId });
       }
     }
     
@@ -141,7 +213,7 @@ export async function createNotificationForAllAdmins(
         
       if (!userError && userData) {
         tenantId = userData.tenant_id;
-        logger.info('[createNotificationForAllAdmins] Tenant obtido do remetente:', tenantId);
+        logger.info('[createNotificationForAllAdmins] Tenant obtido do remetente:', { tenantId });
       }
     }
     
@@ -152,7 +224,7 @@ export async function createNotificationForAllAdmins(
       // USAR NOVA FUNÇÃO COM FILTRO POR TENANT
       const adminUsersWithTenant = await getAllAdminUsersByTenant(tenantId);
       adminUsers = adminUsersWithTenant.map(u => ({ id: u.uid }));
-      logger.info(`[createNotificationForAllAdmins] ${adminUsers.length} admins encontrados para tenant ${tenantId}`);
+      logger.info('[createNotificationForAllAdmins] Admins encontrados para tenant:', { adminCount: adminUsers.length, tenantId });
     } else {
       // Fallback: buscar todos os admins (comportamento antigo - deve ser evitado)
       logger.warn('[createNotificationForAllAdmins] AVISO: Sem tenant_id, buscando TODOS os admins do sistema');
@@ -181,38 +253,79 @@ export async function createNotificationForAllAdmins(
       notificationData.senderType
     );
 
+    // Mapear tipos de notificação para os tipos válidos da constraint
+    const typeMapping: Record<string, { type: string; category: string }> = {
+      'new_project': { type: 'info', category: 'project' },
+      'new_comment': { type: 'info', category: 'project' },
+      'document_upload': { type: 'info', category: 'project' },
+      'status_change': { type: 'success', category: 'project' },
+      'system_message': { type: 'info', category: 'system' },
+      'test_smart_analysis': { type: 'info', category: 'system' },
+      'info': { type: 'info', category: 'system' },
+      'success': { type: 'success', category: 'system' },
+      'warning': { type: 'warning', category: 'system' },
+      'error': { type: 'error', category: 'system' }
+    };
+    
+    const mappedType = typeMapping[notificationData.type] || { type: 'info', category: 'system' };
+
     // Criar notificações para cada admin
     const notifications = adminUsers.map(admin => ({
-      type: notificationData.type,
+      type: mappedType.type,
+      category: mappedType.category,
+      priority: 'normal',
       title: notificationData.title,
       message: notificationData.message,
       user_id: admin.id,
-      project_id: notificationData.projectId || null,
-      project_number: notificationData.projectNumber || null,
+      tenant_id: tenantId,
       read: false,
       data: {
         ...notificationData.data,
+        // Armazenar dados do projeto no campo data (JSONB)
+        projectId: notificationData.projectId,
+        projectNumber: notificationData.projectNumber,
+        projectName: notificationData.projectName,
+        // Dados do remetente
         senderId: senderInfo.id,
         senderName: senderInfo.name,
         senderType: senderInfo.type,
         link: notificationData.link,
-        projectName: notificationData.projectName,
+        // Tipo original para referência
+        originalType: notificationData.type,
         isAdminNotification: true
       }
     }));
 
+    console.log('🔍 [DEBUG-ADMIN-NOTIFICATION] Tentando inserir notificações para admins:', {
+      count: notifications.length,
+      tenantId,
+      firstNotification: notifications[0]
+    });
+    
     const { data, error } = await supabase
       .from('notifications')
       .insert(notifications)
       .select('id');
 
     if (error) {
+      console.log('❌ [DEBUG-ADMIN-NOTIFICATION] ERRO ao inserir notificações:', {
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        notificationsData: notifications
+      });
       logger.error('[createNotificationForAllAdmins] Erro ao criar notificações:', error);
       return [];
     }
+    
+    console.log('✅ [DEBUG-ADMIN-NOTIFICATION] Notificações criadas com sucesso:', {
+      count: data?.length || 0,
+      ids: data?.map(n => n.id) || []
+    });
 
     const ids = data?.map(n => n.id) || [];
-    logger.info('[createNotificationForAllAdmins] Notificações criadas:', ids.length);
+    logger.info('[createNotificationForAllAdmins] Notificações criadas:', { count: ids.length });
     return ids;
     
   } catch (error) {
@@ -245,13 +358,13 @@ export async function getOrCreateSenderInfo(
     if (user) {
       return {
         id: senderId,
-        name: user.name || user.displayName || 'Usuário',
+        name: user.name || 'Usuário',
         type: ['admin', 'superadmin'].includes(user.role) ? 'admin' : 'client'
       };
     }
 
     // Fallback para system
-    logger.warn('[getOrCreateSenderInfo] Usuário não encontrado, usando system:', senderId);
+    logger.warn('[getOrCreateSenderInfo] Usuário não encontrado, usando system:', { senderId });
     return { id: 'system', name: 'Sistema', type: 'system' };
     
   } catch (error) {

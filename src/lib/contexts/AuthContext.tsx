@@ -239,36 +239,72 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         async () => {
           logger.debug('Fetching profile from API', { userId }, 'Auth');
           
-          // Usar nossa API em vez de consulta direta ao Supabase
-          const response = await fetch(`/api/user/profile?userId=${encodeURIComponent(userId)}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+          try {
+            // ✅ CORREÇÃO: Aguardar um pouco para o middleware injetar headers
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // ✅ PRIMEIRA TENTATIVA: Usar nossa API
+            const response = await fetch(`/api/user/profile?userId=${encodeURIComponent(userId)}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            logger.error('API profile request failed', { 
+            if (response.ok) {
+              const data = await response.json();
+              if (data && data.id) {
+                const userProfile = data as UserProfile;
+                logger.auth.profileFetch(userId, true, 'api', { profile: userProfile });
+                
+                // ✅ PHASE 1: Cachear resultado da API
+                profileCache.setProfile(userId, userProfile, 'api');
+                
+                return userProfile;
+              }
+            }
+            
+            // Se chegou aqui, a API falhou
+            logger.warn('API profile request failed, trying direct Supabase', { 
               userId, 
-              status: response.status, 
-              error: errorData.message || 'Unknown error' 
+              status: response.status 
             }, 'Auth');
-            throw new Error(`API error: ${errorData.message || 'Failed to fetch profile'}`);
+            
+          } catch (apiError) {
+            logger.warn('API profile request exception, trying direct Supabase', { 
+              userId, 
+              error: apiError.message 
+            }, 'Auth');
           }
-
-          const data = await response.json();
-
-          if (!data) {
-            logger.warn('User profile not found via API', { userId }, 'Auth');
-            throw new Error('Profile not found');
-          }
-
-          const userProfile = data as UserProfile;
-          logger.auth.profileFetch(userId, true, 'api', { profile: userProfile });
           
-          // ✅ PHASE 1: Cachear resultado da API
-          profileCache.setProfile(userId, userProfile, 'api');
+          // ✅ FALLBACK DIRETO: Buscar diretamente no Supabase
+          logger.debug('Fetching profile directly from Supabase', { userId }, 'Auth');
+          
+          const { data: userData, error: supabaseError } = await supabaseInstance
+            .from('users')
+            .select('id, name, email, role, tenant_id, status')
+            .eq('id', userId)
+            .single();
+          
+          if (supabaseError || !userData) {
+            logger.error('Direct Supabase profile request failed', { 
+              userId, 
+              error: supabaseError?.message 
+            }, 'Auth');
+            throw new Error(`Supabase error: ${supabaseError?.message || 'Profile not found'}`);
+          }
+          
+          const userProfile: UserProfile = {
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role
+          };
+          
+          logger.auth.profileFetch(userId, true, 'supabase-direct', { profile: userProfile });
+          
+          // ✅ PHASE 1: Cachear resultado do Supabase
+          profileCache.setProfile(userId, userProfile, 'supabase-direct');
           
           return userProfile;
         },
@@ -337,6 +373,24 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         }
         
         if (currentSession?.user) {
+          // ✅ CORREÇÃO CRÍTICA: Apenas não buscar perfil na página de login, sem limpar sessão
+          const isLoginPage = typeof window !== 'undefined' && 
+                             (window.location.pathname === '/cliente/login' || 
+                              window.location.pathname === '/admin/login');
+          
+          if (isLoginPage) {
+            logger.info('Na página de login - não buscar perfil mas manter sessão para login em processo', { 
+              userId: currentSession.user.id,
+              pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+            }, 'Auth');
+            
+            // ✅ CORREÇÃO: Não limpar sessão - pode estar em processo de login
+            setSession(currentSession);
+            setAuthState('unauthenticated'); // Manter estado como não autenticado na tela de login
+            setIsLoading(false);
+            return;
+          }
+          
           logger.info('Sessão ativa encontrada, buscando perfil', { userId: currentSession.user.id }, 'Auth');
           setSession(currentSession);
           setAuthState('loading-profile');
@@ -421,19 +475,37 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         setIsLoading(true);
         logger.debug('Processing INITIAL_SESSION event', {}, 'Auth');
         if (newSession?.user) {
+          // ✅ CORREÇÃO CRÍTICA: Verificação mais robusta para páginas de login
+          const isLoginPage = typeof window !== 'undefined' && 
+                             (window.location.pathname === '/cliente/login' || 
+                              window.location.pathname === '/admin/login');
+          
+          if (isLoginPage) {
+            logger.info('INITIAL_SESSION na página de login - não buscar perfil mas manter sessão', { 
+              userId: newSession.user.id,
+              pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+            }, 'Auth');
+            
+            // ✅ CORREÇÃO: Não limpar sessão - pode estar em processo de login
+            setSession(newSession);
+            setAuthState('unauthenticated');
+            setIsLoading(false);
+            return;
+          }
+          
           setSession(newSession);
           setAuthState('loading-profile');
           
-                      // ✅ TIMEOUT AUMENTADO: 8 segundos para INITIAL_SESSION
-            try {
-              const profilePromise = (async () => {
-                const cachedProfile = await profileCache.getProfile(newSession.user.id);
-                if (cachedProfile) {
-                  logger.auth.cacheHit(newSession.user.id, 'initial-session', { source: 'profileCache' });
-                  return cachedProfile;
-                }
-                return await fetchUserProfileInternal(newSession.user.id);
-              })();
+          // ✅ TIMEOUT AUMENTADO: 8 segundos para INITIAL_SESSION
+          try {
+            const profilePromise = (async () => {
+              const cachedProfile = await profileCache.getProfile(newSession.user.id);
+              if (cachedProfile) {
+                logger.auth.cacheHit(newSession.user.id, 'initial-session', { source: 'profileCache' });
+                return cachedProfile;
+              }
+              return await fetchUserProfileInternal(newSession.user.id);
+            })();
               
               const timeoutPromise = new Promise<null>((resolve) => {
                 setTimeout(() => {
@@ -553,6 +625,22 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         }
       } else if (event === 'TOKEN_REFRESHED') {
         if (newSession?.user) {
+          // ✅ CORREÇÃO CRÍTICA: Não buscar perfil na página de login
+          const isLoginPage = typeof window !== 'undefined' && 
+                             (window.location.pathname === '/cliente/login' || 
+                              window.location.pathname === '/admin/login');
+          
+          if (isLoginPage) {
+            logger.info('TOKEN_REFRESHED na página de login - não buscar perfil mas manter sessão', { 
+              userId: newSession.user.id 
+            }, 'Auth');
+            
+            // ✅ CORREÇÃO: Não limpar sessão - pode estar em processo de login
+            setSession(newSession);
+            setAuthState('unauthenticated');
+            return;
+          }
+          
           logger.info('Processing TOKEN_REFRESHED event', { userId: newSession.user.id }, 'Auth');
           setSession(newSession);
           setAuthState('loading-profile');
@@ -596,6 +684,22 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       } else if (event === 'USER_UPDATED') {
         logger.info('Processing USER_UPDATED event', { userId: newSession?.user?.id }, 'Auth');
         if (newSession?.user) {
+          // ✅ CORREÇÃO CRÍTICA: Não buscar perfil na página de login
+          const isLoginPage = typeof window !== 'undefined' && 
+                             (window.location.pathname === '/cliente/login' || 
+                              window.location.pathname === '/admin/login');
+          
+          if (isLoginPage) {
+            logger.info('USER_UPDATED na página de login - não buscar perfil mas manter sessão', { 
+              userId: newSession.user.id 
+            }, 'Auth');
+            
+            // ✅ CORREÇÃO: Não limpar sessão - pode estar em processo de login
+            setSession(newSession);
+            setAuthState('unauthenticated');
+            return;
+          }
+          
           // ✅ TIMEOUT PARA USER_UPDATED: 2 segundos
           try {
             const profilePromise = fetchUserProfileInternal(newSession.user.id);
@@ -673,6 +777,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       const enrichedUser = { ...signInData.user, profile: profile || undefined };
       setUser(enrichedUser);
       setSession(signInData.session);
+      setAuthState('authenticated'); // ✅ CRÍTICO: Marcar como autenticado após login
       setIsLoading(false);
       
       // DEBUG: Verificar se o e-mail foi confirmado

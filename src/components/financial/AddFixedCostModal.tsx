@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { createTenantHeaders } from '@/lib/utils/tenant-helper';
 import { PlusCircle } from 'lucide-react';
 
 interface AddFixedCostModalProps {
@@ -65,11 +66,11 @@ export default function AddFixedCostModal({ onCostAdded }: AddFixedCostModalProp
         return `${y}-${mo}-01`;
       };
 
+      // ✅ SEGURANÇA MULTI-TENANT: Incluir headers com tenant_id
+      const headers = await createTenantHeaders(user.id);
       const response = await fetch('/api/financial/fixed-costs', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           category: formData.category,
           name: formData.name,

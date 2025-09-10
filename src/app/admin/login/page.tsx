@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
  */
 export default function AdminLoginPage() {
   // Debug crítico para confirmar renderização
-  console.log('🔑 [ADMIN-LOGIN] COMPONENTE CORRETO RENDERIZADO - Colmeia Projetos / Área Administrativa');
+  console.log('🔑 [ADMIN-LOGIN] COMPONENTE CORRETO RENDERIZADO - Sistema de Gerenciamento Fotovoltaico / Área Administrativa');
   
   // Forçar renderização com alert para debug
   if (typeof window !== 'undefined') {
@@ -121,7 +121,7 @@ export default function AdminLoginPage() {
               />
             </svg>
           </div>
-          <h1 className="mt-6 text-[#1A1A1A] dark:text-white text-2xl font-bold">Colmeia Projetos</h1>
+          <h1 className="mt-6 text-[#1A1A1A] dark:text-white text-2xl font-bold whitespace-nowrap">Sistema de Gerenciamento Fotovoltaico</h1>
           <p className="mt-2 text-[#666666] dark:text-gray-300">Área Administrativa</p>
         </div>
         

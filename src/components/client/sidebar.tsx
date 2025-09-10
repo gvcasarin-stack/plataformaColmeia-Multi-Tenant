@@ -155,7 +155,7 @@ export function Sidebar({ collapsed: collapsedProp, onToggle: onToggleProp }: Si
             )}>
               {!collapsed && (
                 <div className="ml-3">
-                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">Colmeia</h2>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">SGF</h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Área do Cliente</p>
                 </div>
               )}

@@ -10,5 +10,11 @@ export const AWS_CONFIG = {
   }),
   
   // Usar função para obter email remetente dinamicamente
-  getSESSourceEmail: () => process.env.EMAIL_FROM || process.env.SES_SENDER_EMAIL || 'no-reply@colmeiasolar.com',
+  getSESSourceEmail: () => {
+    const email = process.env.SES_SENDER_EMAIL || process.env.EMAIL_FROM;
+    if (!email && process.env.NODE_ENV === 'production') {
+      throw new Error('SES_SENDER_EMAIL deve estar configurado nas variáveis de ambiente');
+    }
+    return email || 'development@localhost.com'; // Fallback apenas para desenvolvimento
+  },
 }; 

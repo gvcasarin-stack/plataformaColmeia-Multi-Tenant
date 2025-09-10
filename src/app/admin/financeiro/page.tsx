@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { toast } from '@/components/ui/use-toast';
 import { devLog } from '@/lib/utils/productionLogger';
+import { TrialExpiredTabBlocker } from '@/components/security/TrialExpiredTabBlocker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -187,6 +188,7 @@ export default function AdminBillingPage() {
   const [activeTab, setActiveTab] = useState<'cobrancas' | 'historico'>('cobrancas');
   const [searchTerm, setSearchTerm] = useState('');
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isTrialExpired, setIsTrialExpired] = useState(false);
 
   const [metrics, setMetrics] = useState({
     totalPendingAmount: 0,
@@ -768,14 +770,59 @@ export default function AdminBillingPage() {
     }
   };
 
-  // ✅ SEGUINDO O PADRÃO DAS OUTRAS PÁGINAS ADMIN: Sem verificação desnecessária
+  // Verificar status do trial
+  useEffect(() => {
+    const checkTrialStatus = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+        const headers = await createTenantHeaders(user.id);
+        
+        const response = await fetch('/api/tenant/organization', {
+          method: 'GET',
+          headers,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            const orgData = result.data;
+            const now = new Date();
+            const trialEnd = new Date(orgData.trial_end_date);
+            const isExpired = orgData.is_trial && now > trialEnd;
+            
+            setIsTrialExpired(isExpired && orgData.subscription_status !== 'active');
+          }
+        }
+      } catch (error) {
+        devLog.error('[FinanceiroPage] Erro ao verificar trial:', error);
+      }
+    };
+
+    checkTrialStatus();
+  }, [user?.id]);
+
+  // ✅ SEGUINDO O PADRÃO DAS OUTRAS PÁGINAS ADMIN: Carregar dados apenas se trial não expirou
   useEffect(() => {
     async function loadData() {
-      await fetchData();
+      if (!isTrialExpired) {
+        await fetchData();
+      }
     }
     
     loadData();
-  }, []);
+  }, [isTrialExpired]);
+
+  // Se trial expirado, mostrar bloqueio leve
+  if (isTrialExpired) {
+    return (
+      <TrialExpiredTabBlocker 
+        tabName="Financeiro"
+        description="Os dados financeiros estão bloqueados durante o período de trial expirado"
+      />
+    );
+  }
 
   return (
     <div className="">

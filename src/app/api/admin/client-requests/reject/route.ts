@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString()
       })
       .eq('id', requestId)
-      .eq('role', 'client');
+      .eq('role', 'cliente');
     
     if (updateError) {
       devLog.error('[API] [Admin] [ClientRequests] [Reject] Erro ao atualizar usuário:', updateError);

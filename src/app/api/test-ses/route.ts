@@ -110,7 +110,10 @@ export async function GET_old() {
     const region = process.env.AWS_REGION || 'sa-east-1';
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
-    const senderEmail = process.env.SES_SENDER_EMAIL || 'no-reply@colmeiasolar.com';
+    const senderEmail = process.env.SES_SENDER_EMAIL;
+    if (!senderEmail) {
+      return NextResponse.json({ error: 'SES_SENDER_EMAIL não configurado' }, { status: 500 });
+    }
     
     // Exibe informações sanitizadas (sem mostrar credenciais completas)
     const envInfo = {
@@ -180,7 +183,7 @@ export async function POST_old(request: Request) {
   try {
     // Extrair email de destino do corpo da requisição
     const body = await request.json();
-    const { email, subject = 'Teste API SES - Colmeia Solar', htmlContent } = body;
+    const { email, subject = 'Teste API SES - Sistema de Gerenciamento Fotovoltaico', htmlContent } = body;
     
     devLog.log(`[API-SES] Dados recebidos: email="${email}", subject="${subject}", htmlContent tamanho=${htmlContent?.length || 0}`);
     
@@ -197,7 +200,10 @@ export async function POST_old(request: Request) {
     const region = process.env.AWS_REGION || 'sa-east-1';
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
-    const senderEmail = process.env.SES_SENDER_EMAIL || 'no-reply@colmeiasolar.com';
+    const senderEmail = process.env.SES_SENDER_EMAIL;
+    if (!senderEmail) {
+      return NextResponse.json({ error: 'SES_SENDER_EMAIL não configurado' }, { status: 500 });
+    }
     
     devLog.log(`[API-SES] Usando região: ${region}, sender: ${senderEmail}, AWS key começa com: ${accessKeyId ? accessKeyId.substring(0, 3) : 'não definida'}`);
     
@@ -221,7 +227,7 @@ export async function POST_old(request: Request) {
     const finalHtmlContent = htmlContent || `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #10b981; padding: 20px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+          <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
         </div>
         <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
           <h2 style="color: #10b981;">Teste de Email SES</h2>
@@ -230,7 +236,7 @@ export async function POST_old(request: Request) {
           <p>Timestamp: ${new Date().toISOString()}</p>
           <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
             Este é um email automático, por favor não responda.<br>
-            &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+            &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
           </p>
         </div>
       </div>

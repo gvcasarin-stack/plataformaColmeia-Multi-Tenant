@@ -102,17 +102,26 @@ export async function getUserSupabaseNotifications(
 /**
  * Conta notificações não lidas de um usuário
  */
-export async function getUnreadSupabaseNotificationCount(userId: string): Promise<number> {
+export async function getUnreadSupabaseNotificationCount(userId: string, tenantId?: string): Promise<number> {
   try {
-    logger.info('[SupabaseNotifications] Contando notificações não lidas para:', userId);
+    logger.info('[SupabaseNotifications] Contando notificações não lidas para:', { userId, tenantId });
 
     const supabase = createSupabaseServiceRoleClient();
     
-    const { count, error } = await supabase
+    // ✅ CORREÇÃO MULTI-TENANT: Filtrar por tenant_id também
+    let query = supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('read', false);
+    
+    // Se temos tenant_id, filtrar por ele para segurança adicional
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+      logger.info('[SupabaseNotifications] Aplicando filtro de tenant:', tenantId);
+    }
+    
+    const { count, error } = await query;
 
     if (error) {
       logger.error('[SupabaseNotifications] Erro ao contar notificações:', error);

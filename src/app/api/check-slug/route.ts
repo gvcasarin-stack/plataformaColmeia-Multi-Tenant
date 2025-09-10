@@ -115,6 +115,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug')?.toLowerCase().trim();
 
+    // Criar cliente Supabase uma vez
+    const supabase = createSupabaseServiceRoleClient();
+
     if (!slug) {
       return NextResponse.json(
         { 
@@ -136,7 +139,29 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Verificar se é um slug reservado
+    // Verificar se é um slug reservado (usando tabela do banco)
+    const { data: reservedSlug, error: reservedError } = await supabase
+      .from('reserved_slugs')
+      .select('slug, reason, category')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single();
+
+    if (reservedError && reservedError.code !== 'PGRST116') {
+      devLog.error('[check-slug] Erro ao verificar slug reservado:', reservedError);
+      // Continuar com verificação fallback usando array hardcoded
+    }
+
+    if (reservedSlug) {
+      return NextResponse.json({
+        available: false,
+        message: `Este slug é reservado e não pode ser usado. ${reservedSlug.reason}`,
+        suggestions: generateSlugSuggestions(slug),
+        error: 'RESERVED_SLUG'
+      });
+    }
+
+    // Fallback: Verificar array hardcoded se tabela não estiver disponível
     if (RESERVED_SLUGS.includes(slug)) {
       return NextResponse.json({
         available: false,
@@ -145,9 +170,6 @@ export async function GET(request: NextRequest) {
         error: 'RESERVED_SLUG'
       });
     }
-
-    // Verificar disponibilidade no banco de dados
-    const supabase = createSupabaseServiceRoleClient();
     
     const { data: existingOrg, error: dbError } = await supabase
       .from('organizations')

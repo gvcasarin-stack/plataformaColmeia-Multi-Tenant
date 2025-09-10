@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       statusChange: (projectName: string, oldStatus: string, newStatus: string, projectUrl: string) => `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #10b981; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+            <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
           </div>
           <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
             <h2 style="color: #10b981;">Atualização de Status do Projeto</h2>
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
             </div>
             <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
               Este é um e-mail automático, por favor não responda.<br>
-              &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+              &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       documentAdded: (projectName: string, documentName: string, projectUrl: string) => `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #10b981; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+            <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
           </div>
           <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
             <h2 style="color: #10b981;">Novo Documento Adicionado</h2>
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
             </div>
             <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
               Este é um e-mail automático, por favor não responda.<br>
-              &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+              &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       commentAdded: (projectName: string, commentBy: string, commentPreview: string, projectUrl: string) => `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #10b981; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+            <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
           </div>
           <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
             <h2 style="color: #10b981;">Novo Comentário</h2>
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
             </div>
             <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
               Este é um e-mail automático, por favor não responda.<br>
-              &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+              &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
     const indexHtml = `
       <html>
         <head>
-          <title>Templates de E-mail - Colmeia Solar</title>
+          <title>Templates de E-mail - Sistema de Gerenciamento Fotovoltaico</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -173,7 +173,7 @@ export async function GET(request: Request) {
         </head>
         <body>
           <div class="container">
-            <h1>Templates de E-mail - Colmeia Solar</h1>
+            <h1>Templates de E-mail - Sistema de Gerenciamento Fotovoltaico</h1>
             <p>Esta página permite visualizar os templates de e-mail utilizados no sistema de notificações.</p>
             
             <h2>Templates Disponíveis</h2>

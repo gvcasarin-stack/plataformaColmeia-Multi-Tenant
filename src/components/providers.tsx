@@ -10,6 +10,19 @@ import { InactivityProvider } from "@/lib/contexts/InactivityContext"
 import { useState, useEffect } from "react"
 import { Toaster as HotToaster } from 'react-hot-toast'
 import { usePathname } from "next/navigation"
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+// Configuração do QueryClient para polling inteligente
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      retryDelay: 5000,
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      gcTime: 10 * 60 * 1000, // 10 minutos (antigo cacheTime)
+    },
+  },
+})
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
@@ -20,7 +33,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     '/cliente/login',
     '/cliente/cadastro', 
     '/cliente/recuperar-senha',
-    '/admin/login',
+    '/admin/login', // ✅ CORREÇÃO: Admin login deve ser página pública
     '/confirmar-email',
     '/recuperar-senha',
     '/cadastro/aguardando-confirmacao',
@@ -29,6 +42,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
     '/cliente/nova-senha-simples',
     '/cliente/nova-senha-simples-debug',
     '/cliente/nova-senha-test'
+  ].includes(pathname) : false
+
+  // ✅ CORREÇÃO CRÍTICA: Páginas de login NÃO devem ter NotificationProvider
+  const isLoginPage = pathname ? [
+    '/cliente/login',
+    '/admin/login'
   ].includes(pathname) : false
 
   useEffect(() => {
@@ -46,9 +65,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Em páginas públicas, não inicializar providers que disparam chamadas de sessão/notifications
+  // ✅ CORREÇÃO: Páginas de login têm stack de providers mais limpo
   const content = (
-    <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
       {isPublicPage ? (
         <>
           <LayoutProvider>
@@ -93,7 +113,51 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </LoadingProvider>
           </LayoutProvider>
         </>
+      ) : isLoginPage ? (
+        // ✅ CORREÇÃO CRÍTICA: Páginas de login sem NotificationProvider e InactivityProvider
+        <LayoutProvider>
+          <LoadingProvider 
+            defaultTimeout={45000} 
+            defaultTimeoutMessage="Esta operação está demorando mais que o esperado"
+            defaultTimeoutSubMessage="Você pode tentar novamente ou voltar à página inicial"
+          >
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem={false}
+              forcedTheme="light"
+            >
+              {children}
+              <Toaster />
+              <HotToaster
+                position="top-right"
+                toastOptions={{
+                  duration: 5000,
+                  style: {
+                    background: '#FFF',
+                    color: '#333',
+                  },
+                  success: {
+                    style: {
+                      background: '#ECFDF5',
+                      border: '1px solid #D1FAE5',
+                      color: '#047857',
+                    },
+                  },
+                  error: {
+                    style: {
+                      background: '#FEF2F2',
+                      border: '1px solid #FEE2E2',
+                      color: '#B91C1C',
+                    },
+                  },
+                }}
+              />
+            </ThemeProvider>
+          </LoadingProvider>
+        </LayoutProvider>
       ) : (
+        // Stack completo para páginas autenticadas
         <InactivityProvider>
           <NotificationProvider>
             <LayoutProvider>
@@ -141,6 +205,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         </InactivityProvider>
       )}
     </AuthProvider>
+    </QueryClientProvider>
   );
 
   return content

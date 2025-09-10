@@ -105,6 +105,38 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
 
     registrationLogger.log('SLUG_CHECK', 'Slug disponível', { slug: sanitizedSlug })
 
+    // 1.5. Verificar se o slug não está reservado
+    registrationLogger.log('RESERVED_SLUG_CHECK', 'Verificando se slug está reservado', { slug: sanitizedSlug })
+    
+    const { data: reservedSlug, error: reservedCheckError } = await supabase
+      .from('reserved_slugs')
+      .select('slug, reason, category')
+      .eq('slug', sanitizedSlug)
+      .eq('is_active', true)
+      .single()
+
+    if (reservedCheckError && reservedCheckError.code !== 'PGRST116') {
+      registrationLogger.error('RESERVED_SLUG_CHECK', 'Erro ao verificar slug reservado', reservedCheckError)
+      // Não falhar o registro por erro na verificação de reservados
+      // Log de warning e continuar
+      registrationLogger.log('RESERVED_SLUG_CHECK', 'Continuando registro apesar do erro na verificação de reservados')
+    }
+
+    if (reservedSlug) {
+      registrationLogger.log('RESERVED_SLUG_CHECK', 'Slug está reservado', { 
+        slug: sanitizedSlug, 
+        reason: reservedSlug.reason,
+        category: reservedSlug.category 
+      })
+      return {
+        success: false,
+        error: 'SLUG_RESERVED',
+        message: `Este nome não pode ser usado. ${reservedSlug.reason}. Escolha outro nome para sua empresa.`
+      }
+    }
+
+    registrationLogger.log('RESERVED_SLUG_CHECK', 'Slug não está reservado, prosseguindo', { slug: sanitizedSlug })
+
     // 2. Criar usuário no Supabase Auth
     registrationLogger.log('AUTH_USER', 'Criando usuário no Supabase Auth', { 
       email: data.adminEmail,

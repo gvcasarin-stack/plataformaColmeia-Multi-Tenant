@@ -20,6 +20,8 @@ import {
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AddTransactionModal from './AddTransactionModal';
 import AddFixedCostModal from './AddFixedCostModal';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { createTenantHeaders } from '@/lib/utils/tenant-helper';
 
 // ✅ CORREÇÃO REACT #130: Definir aliases para ícones que não existem
 const Icons = {
@@ -60,6 +62,7 @@ type AnalysisType = 'numerical' | 'graphical';
 
 export default function FinancialHistoryPanel() {
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +82,31 @@ export default function FinancialHistoryPanel() {
   // Estados para edição
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [editingFixedCost, setEditingFixedCost] = useState<any>(null);
+
+  // Função utilitária para converter data do banco (YYYY-MM-DD) para formato do input month (YYYY-MM)
+  const formatDateForMonthInput = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      return `${year}-${month}`;
+    } catch (error) {
+      return '';
+    }
+  };
+
+  // Função para preparar custo fixo para edição com datas formatadas e fallbacks
+  const prepareFixedCostForEdit = (cost: any) => {
+    const currentDate = new Date();
+    const currentYearMonth = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    return {
+      ...cost,
+      vigencia_inicio: formatDateForMonthInput(cost.vigencia_inicio) || currentYearMonth,
+      vigencia_fim: formatDateForMonthInput(cost.vigencia_fim)
+    };
+  };
 
   const months = [
     { value: 1, label: 'Janeiro' },
@@ -100,7 +128,16 @@ export default function FinancialHistoryPanel() {
   const fetchFinancialData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/financial/dashboard?month=${selectedMonth}&year=${selectedYear}`);
+      
+      // ✅ SEGURANÇA MULTI-TENANT: Buscar headers com tenant_id
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      const headers = await createTenantHeaders(user.id);
+      const response = await fetch(`/api/financial/dashboard?month=${selectedMonth}&year=${selectedYear}`, {
+        headers
+      });
       
       if (!response.ok) {
         throw new Error('Erro ao buscar dados financeiros');
@@ -206,7 +243,12 @@ export default function FinancialHistoryPanel() {
       
       try {
         // Buscar dados financeiros reais para este mês
-        const response = await fetch(`/api/financial/dashboard?month=${month}&year=${year}`);
+        if (!user?.id) continue;
+        
+        const headers = await createTenantHeaders(user.id);
+        const response = await fetch(`/api/financial/dashboard?month=${month}&year=${year}`, {
+          headers
+        });
         
         if (response.ok) {
           const monthData = await response.json();
@@ -249,8 +291,15 @@ export default function FinancialHistoryPanel() {
 
   const deleteTransaction = async (id: string) => {
     try {
+      // ✅ SEGURANÇA MULTI-TENANT: Incluir headers com tenant_id
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      const headers = await createTenantHeaders(user.id);
       const response = await fetch(`/api/financial/transactions?id=${id}`, {
         method: 'DELETE',
+        headers
       });
       
       if (!response.ok) {
@@ -277,8 +326,15 @@ export default function FinancialHistoryPanel() {
 
   const deleteFixedCost = async (id: string) => {
     try {
+      // ✅ SEGURANÇA MULTI-TENANT: Incluir headers com tenant_id
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      const headers = await createTenantHeaders(user.id);
       const response = await fetch(`/api/financial/fixed-costs?id=${id}`, {
         method: 'DELETE',
+        headers
       });
       
       if (!response.ok) {
@@ -306,11 +362,15 @@ export default function FinancialHistoryPanel() {
   // Funções de edição
   const updateTransaction = async (id: string, data: { description: string; amount: number; category: string }) => {
     try {
+      // ✅ SEGURANÇA MULTI-TENANT: Incluir headers com tenant_id
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      const headers = await createTenantHeaders(user.id);
       const response = await fetch('/api/financial/transactions', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           id,
           ...data,
@@ -342,11 +402,15 @@ export default function FinancialHistoryPanel() {
 
   const updateFixedCost = async (id: string, data: { name: string; amount: number; category: string; vigencia_inicio?: string; vigencia_fim?: string }) => {
     try {
+      // ✅ SEGURANÇA MULTI-TENANT: Incluir headers com tenant_id
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      const headers = await createTenantHeaders(user.id);
       const response = await fetch('/api/financial/fixed-costs', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           id,
           ...data,
@@ -739,7 +803,7 @@ export default function FinancialHistoryPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(financialData.transactions || []).filter(t => t.type === 'despesa').length > 0 ? (
+                  {(financialData.transactions || []).filter(t => t.type === 'expense').length > 0 ? (
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -749,7 +813,7 @@ export default function FinancialHistoryPanel() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {(financialData.transactions || []).filter(t => t.type === 'despesa').map((transaction) => {
+                        {(financialData.transactions || []).filter(t => t.type === 'expense').map((transaction) => {
                           const isEditing = editingTransaction?.id === transaction.id;
                           
                           return (
@@ -960,7 +1024,7 @@ export default function FinancialHistoryPanel() {
                                 ) : (
                                   <div className="flex space-x-1">
                                     <Button
-                                      onClick={() => setEditingFixedCost(cost)}
+                                      onClick={() => setEditingFixedCost(prepareFixedCostForEdit(cost))}
                                       className="text-blue-500 hover:text-blue-700 bg-transparent border-none p-1"
                                       size="sm"
                                     >
@@ -1082,7 +1146,7 @@ export default function FinancialHistoryPanel() {
                   {/* Outras Receitas */}
                   <div>
                     <h4 className="font-medium text-sm text-gray-700 mb-3">Outras Receitas</h4>
-                    {(financialData.transactions || []).filter(t => t.type === 'receita').length > 0 ? (
+                    {(financialData.transactions || []).filter(t => t.type === 'income').length > 0 ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -1092,7 +1156,7 @@ export default function FinancialHistoryPanel() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(financialData.transactions || []).filter(t => t.type === 'receita').map((transaction) => {
+                          {(financialData.transactions || []).filter(t => t.type === 'income').map((transaction) => {
                             const isEditing = editingTransaction?.id === transaction.id;
                             
                             return (

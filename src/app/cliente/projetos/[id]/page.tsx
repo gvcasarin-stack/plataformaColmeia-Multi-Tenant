@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getProjectAction, updateProjectAction, editProjectAction } from "@/lib/actions/project-actions";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
@@ -14,102 +14,132 @@ import { subscribeToProject } from "@/lib/services/projectService/supabase";
 export default function ClientProjectDetail() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [firstLoadComplete, setFirstLoadComplete] = useState(false);
+  
+  // ✅ MELHORIA UX: Estados para controlar visualização expandida automática
+  const [shouldAutoExpand, setShouldAutoExpand] = useState(false);
+  const [focusSection, setFocusSection] = useState<string>('overview');
+
+  // ✅ MELHORIA UX: Detectar parâmetros para abrir visualização expandida
+  useEffect(() => {
+    const expand = searchParams.get('expand');
+    const focus = searchParams.get('focus');
+    
+    if (expand === 'true') {
+      setShouldAutoExpand(true);
+      setFocusSection(focus || 'overview');
+      
+      devLog.log('[ClientProjectDetail] Auto-expand detectado:', {
+        expand,
+        focus: focus || 'overview'
+      });
+      
+      // Limpar parâmetros da URL após detectar (opcional)
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams]);
 
   // Function to fetch project data
-  const fetchProject = async () => {
-    if (!id || !user) return;
+  const fetchProject = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    devLog.log('[ClientProjectDetail] fetchProject: Iniciando...');
+
+    if (!user) {
+      devLog.error('[ClientProjectDetail] fetchProject: Usuário não encontrado. Abortando.');
+      setError('Autenticação necessária.');
+      setLoading(false);
+      return;
+    }
+
+    if (!id) {
+      devLog.error('[ClientProjectDetail] fetchProject: ProjectID não encontrado. Abortando.');
+      setError('ID do projeto não fornecido.');
+      setLoading(false);
+      return;
+    }
+
+    devLog.log(`[ClientProjectDetail] fetchProject: Preparando para chamar getProjectAction para projectId: ${id}`);
     
     try {
-      setRefreshing(true);
-      setLoading(true);
-      
-      const timestamp = Date.now();
-      devLog.log(`[ClientProjectDetail] Fetching project with cache-busting timestamp: ${timestamp}`);
-      
       const result = await getProjectAction(id as string);
 
-      if (result.error || !result.data) {
-        devLog.error("[ClientProjectDetail] Project not found or error fetching:", result.error);
-        toast({
-          title: "Erro",
-          description: result.error || "Projeto não encontrado.",
-          variant: "destructive",
-        });
-        router.push("/cliente/projetos");
-        return;
+      devLog.log('[ClientProjectDetail] fetchProject: getProjectAction retornou:', result);
+
+      if (result.error) {
+        devLog.error('[ClientProjectDetail] fetchProject: Erro retornado por getProjectAction:', result.error);
+        setError(result.error);
+        setProject(null);
+      } else if (result.data) {
+        // Verificar se projeto pertence ao usuário
+        if (result.data.userId !== user.id) {
+          devLog.error("[ClientProjectDetail] Project does not belong to current user");
+          setError("Você não tem permissão para acessar este projeto.");
+          setProject(null);
+          return;
+        }
+        
+        devLog.log('[ClientProjectDetail] fetchProject: Projeto carregado com sucesso:', result.data);
+        setProject(result.data);
+        
+        // Buscar dados do usuário apenas se necessário
+        if (!userData) {
+          try {
+            const userDataResult = await getUserDataSupabase(user.id);
+            setUserData(userDataResult);
+          } catch (error) {
+            devLog.error("[ClientProjectDetail] Error fetching user data:", error);
+          }
+        }
+      } else {
+        devLog.error('[ClientProjectDetail] fetchProject: Nenhum dado e nenhum erro de getProjectAction.');
+        setError('Projeto não encontrado.');
+        setProject(null);
       }
-      const projectData = result.data;
+      setFirstLoadComplete(true);
+    } catch (err: any) {
+      devLog.error('[ClientProjectDetail] fetchProject: EXCEÇÃO ao chamar getProjectAction.');
+      devLog.error('[ClientProjectDetail] fetchProject: Mensagem da Exceção:', err.message);
+      devLog.error('[ClientProjectDetail] fetchProject: Nome da Exceção:', err.name);
+      devLog.error('[ClientProjectDetail] fetchProject: Stack da Exceção:', err.stack);
+      devLog.error('[ClientProjectDetail] fetchProject: Objeto da Exceção Completo:', err);
       
-      devLog.log("[ClientProjectDetail] Fetched project data:", {
-        id: projectData.id,
-        commentsCount: projectData.comments?.length || 0,
-        timelineEventsCount: projectData.timelineEvents?.length || 0
-      });
-      
-      if (projectData.userId !== user.id) {
-        devLog.error("[ClientProjectDetail] Project does not belong to current user");
-        toast({
-          title: "Erro",
-          description: "Você não tem permissão para acessar este projeto.",
-          variant: "destructive",
-        });
-        router.push("/cliente/projetos");
-        return;
-      }
-      
-      try {
-        const userDataResult = await getUserDataSupabase(user.id);
-        setUserData(userDataResult);
-      } catch (error) {
-        devLog.error("[ClientProjectDetail] Error fetching user data:", error);
-      }
-      
-      setProject(projectData);
-    } catch (error) {
-      devLog.error("[ClientProjectDetail] Error fetching project:", error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar dados do projeto.",
-        variant: "destructive",
-      });
+      setError(err.message || 'Erro crítico ao carregar o projeto.');
+      setProject(null);
     } finally {
+      devLog.log('[ClientProjectDetail] fetchProject: Bloco finally executado.');
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [id, user, userData]);
 
   useEffect(() => {
-    fetchProject();
-    
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [id, user]);
+    if (user && id) {
+      fetchProject();
+    }
+  }, [id, user, fetchProject]);
 
   useEffect(() => {
-    if (!id || !user?.id) return;
-    
-    devLog.log("[ClientProjectDetail] Setting up Supabase real-time listener for project:", id);
+    if (!id || !user) return;
+    devLog.log("[ClientProjectDetail] Setting up real-time listener for project:", id);
     
     const unsubscribe = subscribeToProject(
       id as string,
       user.id,
       (updatedProject) => {
         if (updatedProject) {
-          devLog.log("[ClientProjectDetail] Supabase real-time update detected:", {
-            id: updatedProject.id,
-            commentsCount: updatedProject.comments?.length || 0,
-            timelineEventsCount: updatedProject.timelineEvents?.length || 0
-          });
-          
-          setProject(updatedProject);
+          devLog.log("[ClientProjectDetail] Real-time update detected:", updatedProject.id);
+          if (firstLoadComplete) {
+            setProject(updatedProject);
+          }
         } else {
           devLog.log("[ClientProjectDetail] Project was deleted or access denied");
           router.push("/cliente/projetos");
@@ -119,15 +149,10 @@ export default function ClientProjectDetail() {
     
     return () => {
       unsubscribe();
-      devLog.log("[ClientProjectDetail] Supabase real-time listener removed for project:", id);
+      devLog.log("[ClientProjectDetail] Real-time listener removed for project:", id);
     };
-  }, [id, user?.id, router]);
+  }, [id, user, firstLoadComplete, router]);
 
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible" && !refreshing) {
-      fetchProject();
-    }
-  };
 
   const handleBack = () => {
     router.push("/cliente/projetos");
@@ -185,29 +210,40 @@ export default function ClientProjectDetail() {
     }
   };
 
-  if (loading) {
+  if (loading && !firstLoadComplete) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Carregando...</h2>
-          <p className="text-gray-600">Aguarde enquanto carregamos os dados do projeto.</p>
+          <h2 className="text-xl font-semibold mb-2">Carregando Projeto...</h2>
+          <p className="text-gray-600">Aguarde enquanto carregamos os dados.</p>
         </div>
       </div>
     );
   }
 
-  if (!project || !user) {
+  if (error || !project) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Erro</h2>
-          <p className="text-gray-600">Não foi possível carregar os dados do projeto.</p>
+          <h2 className="text-xl font-semibold mb-2">Erro ao Carregar Projeto</h2>
+          <p className="text-gray-600">{error || 'Não foi possível carregar os dados do projeto. Verifique o ID ou tente novamente.'}</p>
           <button 
-            onClick={handleBack} 
+            onClick={handleBack}
             className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
           >
             Voltar para Projetos
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Autenticação Necessária</h2>
+          <p className="text-gray-600">Por favor, faça login para ver os detalhes do projeto.</p>
         </div>
       </div>
     );
@@ -219,6 +255,8 @@ export default function ClientProjectDetail() {
       onClose={handleBack}
       onUpdate={handleUpdate}
       currentUserEmail={user?.email}
+      autoExpand={shouldAutoExpand}
+      focusSection={focusSection}
     />
   );
 } 

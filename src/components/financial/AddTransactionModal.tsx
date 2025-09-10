@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { createTenantHeaders } from '@/lib/utils/tenant-helper';
 import { PlusCircle } from 'lucide-react';
 
 interface AddTransactionModalProps {
@@ -19,12 +21,13 @@ export default function AddTransactionModal({ onTransactionAdded, month, year }:
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
     category: '',
-    type: 'despesa' as 'receita' | 'despesa',
+    type: 'expense' as 'income' | 'expense' | 'transfer',
     date: new Date().toISOString().split('T')[0] // Data atual como padrão
   });
   
@@ -44,15 +47,19 @@ export default function AddTransactionModal({ onTransactionAdded, month, year }:
     setLoading(true);
     
     try {
+      // ✅ SEGURANÇA MULTI-TENANT: Incluir headers com tenant_id
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      const headers = await createTenantHeaders(user.id);
       const response = await fetch('/api/financial/transactions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           ...formData,
-          month,
-          year
+          transaction_date: formData.date, // Use correct column name
+          created_by: user.id // ✅ CRÍTICO: Incluir user_id real
         }),
       });
       
@@ -106,15 +113,16 @@ export default function AddTransactionModal({ onTransactionAdded, month, year }:
             <Label htmlFor="type">Tipo</Label>
             <Select
               value={formData.type}
-              onValueChange={(value) => setFormData({ ...formData, type: value as 'receita' | 'despesa' })}
+              onValueChange={(value) => setFormData({ ...formData, type: value as 'income' | 'expense' | 'transfer' })}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="receita">Receita</SelectItem>
-                <SelectItem value="despesa">Despesa</SelectItem>
-              </SelectContent>
+                          <SelectTrigger>
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="income">Receita</SelectItem>
+              <SelectItem value="expense">Despesa</SelectItem>
+              <SelectItem value="transfer">Transferência</SelectItem>
+            </SelectContent>
             </Select>
           </div>
           

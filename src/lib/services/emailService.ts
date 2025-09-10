@@ -20,7 +20,11 @@ const supabase = createSupabaseServiceRoleClient();
 
 // Obter o email remetente da configuração
 function getSenderEmail() {
-  return process.env.SES_SENDER_EMAIL || 'no-reply@colmeiasolar.com';
+  const email = process.env.SES_SENDER_EMAIL || process.env.EMAIL_FROM;
+  if (!email && process.env.NODE_ENV === 'production') {
+    throw new Error('SES_SENDER_EMAIL deve estar configurado nas variáveis de ambiente');
+  }
+  return email || 'development@localhost.com'; // Fallback apenas para desenvolvimento
 }
 
 /**
@@ -157,7 +161,7 @@ export async function sendEmailWithCooldown(
 
     // ✅ Pode enviar! PRIMEIRO enviar email, DEPOIS atualizar timestamp
     logger.info(`[EMAIL_COOLDOWN] ✅ STEP 2: Pode enviar - Enviando email para ${recipientUserId}`);
-    const emailSent = await sendEmail([recipientEmail], subject, htmlBody, process.env.EMAIL_FROM || 'no-reply@colmeiasolar.com');
+    const emailSent = await sendEmail([recipientEmail], subject, htmlBody, getSenderEmail());
     
     logger.info(`[EMAIL_COOLDOWN] 🔍 STEP 2 RESULTADO:`, { emailSent, recipientEmail });
     
@@ -207,8 +211,8 @@ async function sendEmailWithCooldownLegacy(
     }
 
     // Enviar email
-    // 🔧 TESTE: Forçar usar EMAIL_FROM como as APIs que funcionavam
-    const emailSent = await sendEmail([recipientEmail], subject, htmlBody, process.env.EMAIL_FROM || 'no-reply@colmeiasolar.com');
+    // Usar email configurado no SES_SENDER_EMAIL
+    const emailSent = await sendEmail([recipientEmail], subject, htmlBody, getSenderEmail());
     
     if (emailSent) {
       await updateEmailCooldown(recipientUserId, projectId);
@@ -226,7 +230,7 @@ export const emailTemplates = {
   statusChange: (projectName: string, projectNumber: string, oldStatus: string, newStatus: string, projectUrl: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #10b981; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
       </div>
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
         <h2 style="color: #10b981;">Atualização de Status</h2>
@@ -240,7 +244,7 @@ export const emailTemplates = {
         </div>
         <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
           Este é um e-mail automático, por favor não responda.<br>
-          &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
         </p>
       </div>
     </div>
@@ -249,7 +253,7 @@ export const emailTemplates = {
   documentAdded: (projectName: string, projectNumber: string, documentName: string, projectUrl: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #10b981; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
       </div>
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
         <h2 style="color: #10b981;">Novo Documento Adicionado</h2>
@@ -268,7 +272,7 @@ export const emailTemplates = {
         
         <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
           Este é um e-mail automático, por favor não responda.<br>
-          &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
         </p>
       </div>
     </div>
@@ -277,7 +281,7 @@ export const emailTemplates = {
   commentAdded: (projectName: string, projectNumber: string, commentBy: string, commentText: string, projectUrl: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #10b981; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
       </div>
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
         <h2 style="color: #10b981;">Novo Comentário</h2>
@@ -293,7 +297,7 @@ export const emailTemplates = {
         </div>
         <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
           Este é um e-mail automático, por favor não responda.<br>
-          &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
         </p>
       </div>
     </div>
@@ -303,11 +307,11 @@ export const emailTemplates = {
   emailVerification: (userName: string, verificationLink: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #10b981; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
       </div>
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
         <h2 style="color: #10b981;">Verificação de Email</h2>
-        <p>Olá <strong>${userName}</strong>, bem-vindo(a) à Plataforma Colmeia Solar!</p>
+        <p>Olá <strong>${userName}</strong>, bem-vindo(a) ao Sistema de Gerenciamento Fotovoltaico!</p>
         <p>Para verificar seu endereço de email e confirmar sua conta, clique no botão abaixo:</p>
         <div style="margin: 30px 0; text-align: center;">
           <a href="${verificationLink}" style="background-color: #10b981; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Verificar Email</a>
@@ -318,7 +322,7 @@ export const emailTemplates = {
         <p>Após a verificação do seu email, seu cadastro passará por uma análise e aprovação pelos nossos administradores. Você receberá uma notificação assim que seu cadastro for aprovado.</p>
         <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
           Este é um e-mail automático, por favor não responda.<br>
-          &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
         </p>
       </div>
     </div>
@@ -328,12 +332,12 @@ export const emailTemplates = {
   accountApproval: (userName: string, loginUrl: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #10b981; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
       </div>
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
         <h2 style="color: #10b981;">Cadastro Aprovado</h2>
         <p>Olá <strong>${userName}</strong>,</p>
-        <p>Temos o prazer de informar que seu cadastro na Plataforma Colmeia Solar foi <strong>aprovado</strong>!</p>
+        <p>Temos o prazer de informar que seu cadastro no Sistema de Gerenciamento Fotovoltaico foi <strong>aprovado</strong>!</p>
         <p>Agora você pode acessar todas as funcionalidades da plataforma, incluindo a criação e gerenciamento de projetos.</p>
         <div style="margin: 30px 0; text-align: center;">
           <a href="${loginUrl}" style="background-color: #10b981; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Acessar Plataforma</a>
@@ -341,7 +345,7 @@ export const emailTemplates = {
         <p>Caso precise de ajuda ou tenha alguma dúvida, entre em contato com nosso suporte.</p>
         <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
           Este é um e-mail automático, por favor não responda.<br>
-          &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
         </p>
       </div>
     </div>
@@ -351,7 +355,7 @@ export const emailTemplates = {
   newProject: (projectName: string, projectNumber: string, clientName: string, projectUrl: string, potencia?: string|number, distribuidora?: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #3b82f6; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
       </div>
       <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
         <h2 style="color: #3b82f6;">Novo Projeto Criado</h2>
@@ -366,7 +370,7 @@ export const emailTemplates = {
         </div>
         <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
           Este é um e-mail automático, por favor não responda.<br>
-          &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
         </p>
       </div>
     </div>

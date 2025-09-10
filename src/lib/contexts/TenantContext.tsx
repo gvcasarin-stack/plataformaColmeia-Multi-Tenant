@@ -32,7 +32,27 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetch('/api/tenant/organization')
+      // Obter tenant ID do URL para clientes
+      const pathname = window.location.pathname;
+      const slug = pathname.split('/')[1]; // Primeiro segmento do path
+      
+      devLog.log('[TenantContext] Buscando info do tenant:', { slug, pathname });
+
+      // Para clientes, usar o slug do URL para criar headers
+      let headers: HeadersInit = {};
+      
+      if (slug && slug !== 'admin') {
+        // Para páginas de cliente, o slug está no URL
+        headers = {
+          'x-tenant-slug': slug,
+          'Content-Type': 'application/json'
+        };
+      }
+
+      const response = await fetch('/api/tenant/organization', {
+        method: 'GET',
+        headers
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
@@ -40,16 +60,24 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json()
 
-      if (data.success && data.organization) {
+      if (data.success && data.data) {
+        const organization = data.data;
         setTenant({
-          id: data.organization.id,
-          name: data.organization.name,
-          slug: data.organization.slug,
-          plan: data.organization.plan,
-          isTrial: data.organization.is_trial,
-          trialEndsAt: data.organization.trial_ends_at,
-          status: data.organization.status
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          plan: organization.plan || 'basico',
+          isTrial: organization.is_trial,
+          trialEndsAt: organization.trial_ends_at,
+          status: organization.status
         })
+        
+        devLog.log('[TenantContext] Tenant carregado:', {
+          id: organization.id,
+          name: organization.name,
+          isTrial: organization.is_trial,
+          subscriptionStatus: organization.subscription_status
+        });
       } else {
         throw new Error(data.message || 'Erro ao carregar informações da organização')
       }

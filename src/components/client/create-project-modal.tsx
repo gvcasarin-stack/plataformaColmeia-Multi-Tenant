@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -127,6 +128,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
         return;
       }
       
+      // ✅ PROTEÇÃO ANTI-DUPLICAÇÃO: Definir flags IMEDIATAMENTE
       window._isCreatingProject = true;
       setLoading(true);
       devLog.log(`[${submitId}] Iniciando submissão de formulário`);
@@ -173,10 +175,10 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {(() => { devLog.log('Dialog rendering with open:', open); return null; })()}
-      <DialogContent className="max-w-[500px] p-6 rounded-lg border border-gray-200 shadow-lg">
-        <DialogHeader className="space-y-3 pb-5 border-b border-gray-100">
-          <DialogTitle className="text-2xl font-semibold text-gray-800">Criar Novo Projeto</DialogTitle>
-          <p className="text-sm text-gray-500">Preencha os detalhes abaixo para criar um novo projeto solar.</p>
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[500px] max-h-[90vh] p-4 sm:p-6 rounded-lg border border-gray-200 shadow-lg">
+        <DialogHeader className="space-y-3 pb-5 border-b border-gray-100 flex-shrink-0">
+          <DialogTitle className="text-xl sm:text-2xl font-semibold text-gray-800">Criar Novo Projeto</DialogTitle>
+          <p className="text-xs sm:text-sm text-gray-500">Preencha os detalhes abaixo para criar um novo projeto solar.</p>
         </DialogHeader>
         
         {/* Exibir mensagem de erro detalhada se houver */}
@@ -196,16 +198,17 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
           </div>
         )}
         
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 mt-2">
+        <ScrollArea className="max-h-[60vh] sm:max-h-none overflow-y-auto flex-1">
+          <form id="project-form" onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 sm:space-y-5 mt-2 pr-4">
           <div className="space-y-2">
-            <Label htmlFor="nomeClienteFinal" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="nomeClienteFinal" className="text-xs sm:text-sm font-medium text-gray-700">
               Nome Cliente Final <span className="text-red-500">*</span>
             </Label>
             <Input
               id="nomeClienteFinal"
               {...register("nomeClienteFinal", { required: true })}
               placeholder="Ex: João da Silva ou Empresa XYZ"
-              className="h-11 px-4 border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+              className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
             />
             {errors.nomeClienteFinal && (
               <p className="text-sm text-red-500 flex items-center mt-1">
@@ -218,7 +221,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="distribuidora" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="distribuidora" className="text-xs sm:text-sm font-medium text-gray-700">
               Distribuidora de Energia <span className="text-red-500">*</span>
             </Label>
             <Controller
@@ -230,7 +233,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
-                  <SelectTrigger className="h-11 px-4 border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
+                  <SelectTrigger className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
                     <SelectValue placeholder="Selecione uma distribuidora" />
                   </SelectTrigger>
                   <SelectContent 
@@ -268,7 +271,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
                     required: distribuidoraSelecionada === "Outro",
                   })}
                   placeholder="Digite o nome da distribuidora"
-                  className="h-11 px-4 border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+                  className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
                 />
                 {errors.distribuidoraOutro && (
                   <p className="text-sm text-red-500 flex items-center mt-1">
@@ -283,7 +286,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="power" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="power" className="text-xs sm:text-sm font-medium text-gray-700">
               Potência (kWp) <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
@@ -297,9 +300,9 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
                   min: 0
                 })}
                 placeholder="Ex: 5.76"
-                className="h-11 px-4 pr-12 border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+                className="h-10 sm:h-11 px-3 sm:px-4 pr-10 sm:pr-12 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
               />
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 text-sm font-medium">
+              <span className="absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3 text-gray-500 text-xs sm:text-sm font-medium">
                 kWp
               </span>
             </div>
@@ -314,44 +317,48 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="listaMateriais" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="listaMateriais" className="text-xs sm:text-sm font-medium text-gray-700">
               Lista de Materiais
             </Label>
             <textarea
               id="listaMateriais"
               {...register("listaMateriais")}
               placeholder="Preencha Marca, Modelo e Quantidades dos Equipamentos que serão utilizados.&#10;&#10;Ex: 1x Inversor Growatt, MIN 5000TL-X e 10x Módulos Fotovoltaicos TSUN de 560W"
-              className="w-full h-24 px-4 py-3 border border-gray-300 rounded-lg focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all resize-none text-sm"
-              rows={4}
+              className="w-full h-20 sm:h-24 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all resize-none text-xs sm:text-sm"
+              rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="disjuntorPadraoEntrada" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="disjuntorPadraoEntrada" className="text-xs sm:text-sm font-medium text-gray-700">
               Disjuntor do Padrão de Entrada
             </Label>
             <Input
               id="disjuntorPadraoEntrada"
               {...register("disjuntorPadraoEntrada")}
               placeholder="Ex: Bifásico 63A, Trifásico 50A"
-              className="h-11 px-4 border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+              className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-gray-100 mt-6">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="h-10 px-5 text-gray-700 border-gray-300 hover:bg-gray-50"
-            >
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              className={`h-10 px-5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all`}
-              disabled={loading}
-            >
+          </form>
+        </ScrollArea>
+        
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-100 mt-4 flex-shrink-0">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto h-10 px-4 sm:px-5 text-sm text-gray-700 border-gray-300 hover:bg-gray-50"
+          >
+            Cancelar
+          </Button>
+          <Button 
+            type="submit" 
+            form="project-form"
+            className="w-full sm:w-auto h-10 px-4 sm:px-5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all text-sm"
+            disabled={loading || (typeof window !== 'undefined' && window._isCreatingProject)}
+          >
               {loading ? (
                 <div className="flex items-center justify-center">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
@@ -361,8 +368,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
                 "Criar Projeto"
               )}
             </Button>
-          </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

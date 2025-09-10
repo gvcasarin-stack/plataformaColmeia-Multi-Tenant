@@ -49,22 +49,57 @@ export function FeatureGuard({
       }
 
       try {
-        // Verificar status do trial
-        const trialResponse = await fetch('/api/tenant/trial-status')
+        // Verificar status do trial usando API de organização
+        const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+        const headers = await createTenantHeaders(tenant.id);
+        
+        const trialResponse = await fetch('/api/tenant/organization', {
+          method: 'GET',
+          headers,
+        });
+        
         if (trialResponse.ok) {
           const trialData = await trialResponse.json()
           if (trialData.success) {
-            const status = trialData.trial_status as TrialStatus
-            setTrialStatus(status)
+            const orgData = trialData.data;
+            const now = new Date();
+            const trialEnd = new Date(orgData.trial_end_date);
+            const isExpired = orgData.is_trial && now > trialEnd;
+            const isTrialExpired = isExpired && orgData.subscription_status !== 'active';
+            
+            const status: TrialStatus = {
+              is_trial: orgData.is_trial,
+              days_remaining: Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))),
+              is_expired: isTrialExpired,
+              can_access: !isTrialExpired,
+              needs_upgrade: isTrialExpired
+            };
+            
+            setTrialStatus(status);
 
-            // Se trial expirou, bloquear funcionalidade
-            if (status.is_expired && status.is_trial) {
+            // Se trial expirado, bloquear funcionalidade
+            if (isTrialExpired) {
+              devLog.log('[FeatureGuard] Trial expirado, bloqueando funcionalidade:', {
+                feature,
+                isTrialExpired,
+                isTrial: orgData.is_trial,
+                subscriptionStatus: orgData.subscription_status,
+                trialEndsAt: orgData.trial_end_date,
+                now: now.toISOString()
+              });
               setCanCreate(false)
               if (showModal) {
                 setShowUpgradeModal(true)
               }
               setIsLoading(false)
               return
+            } else {
+              devLog.log('[FeatureGuard] Trial OK, permitindo acesso:', {
+                feature,
+                isTrialExpired,
+                isTrial: orgData.is_trial,
+                subscriptionStatus: orgData.subscription_status
+              });
             }
           }
         }
@@ -115,18 +150,38 @@ export function FeatureGuard({
     checkAccess()
   }, [tenant, feature, showModal])
 
-  const handleUpgrade = () => {
-    // TODO: Implementar modal do Stripe
+  const handleUpgrade = async () => {
     devLog.log('[FeatureGuard] Iniciando upgrade para plano pago')
-    // Redirecionar para página de upgrade
-    window.location.href = '/billing/upgrade'
+    
+    try {
+      // Redirecionar para aba de assinaturas onde está o Stripe
+      const currentPath = window.location.pathname
+      const isClientPath = currentPath.includes('/cliente/')
+      
+      if (isClientPath) {
+        // Para clientes, redirecionar para página de assinaturas do admin
+        const slug = window.location.pathname.split('/')[1]
+        window.location.href = `/${slug}/admin/assinaturas`
+      } else {
+        // Para admin, ir para aba de assinaturas
+        window.location.href = '/admin/assinaturas'
+      }
+    } catch (error) {
+      devLog.error('[FeatureGuard] Erro no redirecionamento:', error)
+      // Fallback
+      window.location.href = '/admin/assinaturas'
+    }
   }
 
   const getBlockedMessage = () => {
     if (trialStatus?.is_expired && trialStatus.is_trial) {
+      const isAdminFeature = ['admin', 'financial'].includes(feature)
+      
       return {
         title: 'Trial Expirado ⏰',
-        description: 'Seu período de teste de 7 dias expirou. Faça upgrade para continuar usando todas as funcionalidades.',
+        description: isAdminFeature 
+          ? 'Seu período de teste expirou. Seus clientes também não conseguem criar projetos ou fazer uploads. Faça upgrade para reativar todas as funcionalidades.'
+          : 'Período de teste expirado. Entre em contato com o administrador da sua empresa para reativar sua conta.',
         icon: <AlertTriangle className="w-6 h-6 text-orange-500" />
       }
     }
@@ -254,13 +309,26 @@ export function useFeatureAccess(feature: FeatureGuardProps['feature']) {
       }
 
       try {
-        // Verificar trial
-        const trialResponse = await fetch('/api/tenant/trial-status')
+        // Verificar trial usando API de organização
+        const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+        const headers = await createTenantHeaders(tenant.id);
+        
+        const trialResponse = await fetch('/api/tenant/organization', {
+          method: 'GET',
+          headers,
+        });
+        
         if (trialResponse.ok) {
           const trialData = await trialResponse.json()
           if (trialData.success) {
-            const status = trialData.trial_status
-            if (status.is_expired && status.is_trial) {
+            const orgData = trialData.data;
+            const now = new Date();
+            const trialEnd = new Date(orgData.trial_end_date);
+            const isExpired = orgData.is_trial && now > trialEnd;
+            const isTrialExpired = isExpired && orgData.subscription_status !== 'active';
+            
+            if (isTrialExpired) {
+              devLog.log('[useFeatureAccess] Trial expirado, bloqueando acesso:', feature);
               setCanAccess(false)
               setIsLoading(false)
               return

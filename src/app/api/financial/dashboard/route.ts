@@ -22,6 +22,12 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseServiceRoleClient();
     const hdrs = headers();
     const tenantId = hdrs.get('x-tenant-id');
+    
+    // Extrair parâmetros antes de usar
+    const { searchParams } = new URL(request.url);
+    const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
+    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    
     if (!tenantId) {
       devLog.warn('[API Financial Dashboard] Sem x-tenant-id; retornando estrutura vazia');
       return NextResponse.json({
@@ -31,12 +37,7 @@ export async function GET(request: NextRequest) {
       });
     }
     devLog.log('[API Financial Dashboard] Cliente Supabase criado');
-    
-    const { searchParams } = new URL(request.url);
-    const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-    
-    devLog.log('[API Financial Dashboard] Parâmetros:', { month, year });
+    devLog.log('[API Financial Dashboard] Parâmetros:', { month, year, tenantId });
 
     // Buscar projetos do mês
     devLog.log('[API Financial Dashboard] Buscando projetos...');
@@ -44,19 +45,12 @@ export async function GET(request: NextRequest) {
       .from('projects')
       .select(`
         id,
-        name,
+        nome_cliente_final,
         valor_projeto,
         price,
         pagamento,
         empresa_integradora,
-        nome_cliente_final,
-        created_at,
-        users (
-          id,
-          name,
-          email,
-          role
-        )
+        created_at
       `)
       .eq('tenant_id', tenantId)
       .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`)
@@ -79,16 +73,17 @@ export async function GET(request: NextRequest) {
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('financial_transactions')
         .select('*')
-        .order('date', { ascending: false });
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
       
       if (transactionsError) {
         devLog.log('[API Financial Dashboard] Tabela financial_transactions não existe:', transactionsError.message);
         transactions = [];
       } else {
-        // Filtrar por mês/ano no JavaScript já que os campos não existem na tabela
+        // ✅ CORREÇÃO: Filtrar por transaction_date que existe na tabela
         const filteredTransactions = transactionsData?.filter(transaction => {
-          if (!transaction.date) return false;
-          const transactionDate = new Date(transaction.date);
+          if (!transaction.transaction_date) return false;
+          const transactionDate = new Date(transaction.transaction_date);
           const transactionMonth = transactionDate.getMonth() + 1;
           const transactionYear = transactionDate.getFullYear();
           return transactionMonth === month && transactionYear === year;
@@ -106,11 +101,13 @@ export async function GET(request: NextRequest) {
     devLog.log('[API Financial Dashboard] Buscando custos fixos...');
     let fixedCosts = [];
     try {
+      // ✅ CONFIRMADO: fixed_costs tem tenant_id
       const { data: fixedCostsData, error: fixedCostsError } = await supabase
         .from('fixed_costs')
         .select('*')
+        .eq('tenant_id', tenantId)
         .eq('is_active', true)
-        .order('category', { ascending: true });
+        .order('created_at', { ascending: false });
       
       if (fixedCostsError) {
         devLog.log('[API Financial Dashboard] Tabela fixed_costs não existe:', fixedCostsError.message);
@@ -141,10 +138,10 @@ export async function GET(request: NextRequest) {
               return total + (project.valor_projeto || 0);
     }, 0) || 0;
     
-    const transactionRevenue = transactions?.filter(t => t.type === 'receita')
+    const transactionRevenue = transactions?.filter(t => t.type === 'income')
       .reduce((total, t) => total + parseFloat(t.amount || 0), 0) || 0;
     
-    const variableExpenses = transactions?.filter(t => t.type === 'despesa')
+    const variableExpenses = transactions?.filter(t => t.type === 'expense')
       .reduce((total, t) => total + parseFloat(t.amount || 0), 0) || 0;
     
     // Aplicar vigência dos custos fixos: considerar apenas os custos válidos para o mês solicitado
@@ -173,7 +170,7 @@ export async function GET(request: NextRequest) {
         };
       }
       
-      if (transaction.type === 'receita') {
+      if (transaction.type === 'income') {
         acc[category].receitas += parseFloat(transaction.amount || 0);
       } else {
         acc[category].despesas += parseFloat(transaction.amount || 0);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { devLog } from "@/lib/utils/productionLogger";
 import { getUnreadSupabaseNotificationCount } from '@/lib/services/notificationService/supabase';
 
@@ -14,7 +15,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const count = await getUnreadSupabaseNotificationCount(userId);
+    // ✅ CORREÇÃO MULTI-TENANT: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+    
+    devLog.log('[API Notifications Count] Headers multi-tenant:', {
+      userId,
+      tenantId,
+      hostname: headersList.get('host')
+    });
+
+    const count = await getUnreadSupabaseNotificationCount(userId, tenantId || undefined);
 
     return NextResponse.json({ count });
   } catch (error) {

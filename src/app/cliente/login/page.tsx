@@ -248,7 +248,7 @@ export default function ClientLoginPage() {
               />
             </svg>
           </div>
-          <h1 className="mt-6 text-[#1A1A1A] text-2xl font-bold">Colmeia Projetos</h1>
+          <h1 className="mt-6 text-[#1A1A1A] text-2xl font-bold whitespace-nowrap">Sistema de Gerenciamento Fotovoltaico</h1>
           <p className="mt-2 text-[#666666]">
             {pageTitle}
           </p>

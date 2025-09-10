@@ -24,7 +24,7 @@ export default function AguardandoConfirmacaoPage() {
         <div>
           <Image
             src="/logo.svg" // Certifique-se que este caminho está correto
-            alt="Colmeia Solar Logo"
+            alt="Sistema de Gerenciamento Fotovoltaico Logo"
             width={120}
             height={40}
             className="mx-auto h-12 w-auto"

@@ -222,7 +222,7 @@ function ConfirmEmailContent() {
       </div>
       
       <footer className="mt-8 text-center text-gray-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.</p>
+        <p>&copy; {new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

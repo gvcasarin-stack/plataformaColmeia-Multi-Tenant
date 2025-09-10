@@ -26,16 +26,40 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [firstLoadComplete, setFirstLoadComplete] = useState(false);
   
+  // ✅ MELHORIA UX: Estados para controlar visualização expandida automática
+  const [shouldAutoExpand, setShouldAutoExpand] = useState(false);
+  const [focusSection, setFocusSection] = useState<string>('overview');
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
+      
+      // ✅ MELHORIA UX: Detectar parâmetros para auto-expansão
+      const expand = url.searchParams.get('expand');
+      const focus = url.searchParams.get('focus');
+      
+      if (expand === 'true') {
+        setShouldAutoExpand(true);
+        setFocusSection(focus || 'overview');
+        
+        devLog.log('[AdminProjectPage] Auto-expand detectado:', {
+          expand,
+          focus: focus || 'overview'
+        });
+      }
+      
+      // Limpar parâmetros da URL após detectar
       if (url.searchParams.has('refresh') || 
           url.searchParams.has('t') || 
-          url.searchParams.has('timestamp')) {
-        devLog.log('[AdminProjectPage] Removendo parâmetros de refresh da URL');
+          url.searchParams.has('timestamp') ||
+          url.searchParams.has('expand') ||
+          url.searchParams.has('focus')) {
+        devLog.log('[AdminProjectPage] Removendo parâmetros da URL');
         url.searchParams.delete('refresh');
         url.searchParams.delete('t');
         url.searchParams.delete('timestamp');
+        url.searchParams.delete('expand');
+        url.searchParams.delete('focus');
         window.history.replaceState({}, '', url.toString());
       }
     }
@@ -248,6 +272,8 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
       onClose={handleClose}
       onUpdate={handleUpdate}
       currentUserEmail={user?.email}
+      autoExpand={shouldAutoExpand}
+      focusSection={focusSection}
     />
   );
 } 

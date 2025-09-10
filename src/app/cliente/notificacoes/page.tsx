@@ -71,7 +71,10 @@ export default function ClientNotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     
-    setIsLoadingNotifications(true);
+    // ✅ CORREÇÃO UX: Só mostrar loading se for o primeiro carregamento
+    if (notifications.length === 0) {
+      setIsLoadingNotifications(true);
+    }
     setError(null);
     
     try {
@@ -121,23 +124,9 @@ export default function ClientNotificationsPage() {
     fetchNotifications();
   }, [user, authLoading, router, fetchNotifications]);
 
-  // Atualizar notificações quando a página ganhar foco
-  useEffect(() => {
-    if (!user) return;
-    
-    // Handler para quando o usuário voltar para a tab
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        devLog.log('[ClientNotifications] Tab visível, atualizando notificações');
-        fetchNotifications();
-        refreshUnreadCount();
-      }
-    };
-    
-    // Registrar e limpar o listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user, fetchNotifications, refreshUnreadCount]);
+  // ✅ CORREÇÃO UX: Removido listener visibilitychange desnecessário
+  // O polling inteligente já atualiza as notificações automaticamente
+  // Não precisamos forçar reload a cada mudança de aba
 
   // Obter ícone com base no tipo de notificação
   const getNotificationIcon = (type: NotificacaoPadronizada['type']) => {
@@ -164,6 +153,41 @@ export default function ClientNotificationsPage() {
   // Lidar com clique na notificação
   const handleNotificationClick = useCallback(async (notification: NotificacaoPadronizada) => {
     try {
+      // Verificar se trial expirou antes de permitir acesso ao projeto
+      const projectId = notification.projectId || notification.data?.projectId;
+      
+      if (projectId) {
+        try {
+          const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+          const headers = await createTenantHeaders(user?.id || '');
+          
+          const response = await fetch('/api/tenant/organization', {
+            method: 'GET',
+            headers,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              const orgData = result.data;
+              const now = new Date();
+              const trialEnd = new Date(orgData.trial_ends_at);
+              const isTrialExpired = orgData.is_trial && now > trialEnd && orgData.subscription_status !== 'active';
+              
+              if (isTrialExpired) {
+                // Trial expirado - redirecionar para assinaturas
+                devLog.log('[ClientNotifications] Trial expirado, redirecionando para assinaturas');
+                const slug = window.location.pathname.split('/')[1];
+                router.push(`/${slug}/admin/assinaturas`);
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          devLog.error('[ClientNotifications] Erro ao verificar trial:', error);
+          // Em caso de erro, permitir acesso (fallback)
+        }
+      }
       // Marcar como lida se não estiver
       if (!notification.read) {
         // 🚀 ATUALIZAÇÃO IMEDIATA: Decrementar contador antes da API
@@ -192,9 +216,45 @@ export default function ClientNotificationsPage() {
         }
       }
       
-      // Navegar com base no tipo de notificação
-      if (notification.projectId) {
-        router.push(`/cliente/projetos/${notification.projectId}`);
+      // ✅ MELHORIA UX: Navegar para projeto com visualização expandida
+      devLog.log('[ClientNotifications] 🔍 DEBUG - Dados da notificação:', {
+        notificationId: notification.id,
+        projectId: projectId,
+        projectIdFromData: notification.data?.projectId,
+        type: notification.type,
+        hasProjectId: !!projectId,
+        notificationComplete: notification
+      });
+      
+      // Continuar com navegação se projectId existe e trial não expirou
+      if (projectId) {
+        // Determinar seção específica baseada no tipo de notificação
+        let focusSection = '';
+        switch (notification.type) {
+          case 'new_comment':
+            focusSection = 'comments';
+            break;
+          case 'document_upload':
+            focusSection = 'documents';
+            break;
+          case 'status_change':
+            focusSection = 'status';
+            break;
+          default:
+            focusSection = 'overview';
+        }
+        
+        // Navegar com parâmetros para abrir visualização expandida
+        const url = `/cliente/projetos/${projectId}?expand=true&focus=${focusSection}`;
+        
+        devLog.log('[ClientNotifications] Navegando para projeto:', {
+          projectId: projectId,
+          notificationType: notification.type,
+          focusSection,
+          url
+        });
+        
+        router.push(url);
       }
     } catch (error) {
       devLog.error('[ClientNotifications] Error on notification click:', error);

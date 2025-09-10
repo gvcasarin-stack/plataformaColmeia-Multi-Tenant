@@ -29,10 +29,18 @@ export async function GET(request: NextRequest) {
       .from('financial_transactions')
       .select('*')
       .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Filtrar por tenant
-      .order('date', { ascending: false });
+      .order('created_at', { ascending: false });
     
+    // ✅ CORREÇÃO: Filtro por mês/ano usando transaction_date
     if (month && year) {
-      query = query.eq('month', parseInt(month)).eq('year', parseInt(year));
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const endDate = month === 12 
+        ? `${year + 1}-01-01` 
+        : `${year}-${(month + 1).toString().padStart(2, '0')}-01`;
+      
+      query = query
+        .gte('transaction_date', startDate)
+        .lt('transaction_date', endDate);
     }
     
     const { data, error } = await query;
@@ -70,12 +78,22 @@ export async function POST(request: NextRequest) {
     
     devLog.log('[API Financial Transactions] Criando transação:', body);
     
-    const { type, category, description, amount, date } = body;
+    const { type, category, description, amount, date, created_by } = body;
     
-    if (!type || !category || !description || !amount || !date) {
-      devLog.log('[API Financial Transactions] Campos faltando:', { type, category, description, amount, date });
+    if (!type || !category || !description || !amount || !date || !created_by) {
+      devLog.log('[API Financial Transactions] Campos faltando:', { type, category, description, amount, date, created_by });
       return NextResponse.json(
-        { error: 'Campos obrigatórios: type, category, description, amount, date' },
+        { error: 'Campos obrigatórios: type, category, description, amount, date, created_by' },
+        { status: 400 }
+      );
+    }
+
+    // ✅ VALIDAÇÃO: Verificar se type é válido
+    const validTypes = ['income', 'expense', 'transfer'];
+    if (!validTypes.includes(type)) {
+      devLog.log('[API Financial Transactions] Tipo inválido:', { type, validTypes });
+      return NextResponse.json(
+        { error: `Tipo inválido. Valores aceitos: ${validTypes.join(', ')}` },
         { status: 400 }
       );
     }
@@ -111,13 +129,15 @@ export async function POST(request: NextRequest) {
     }
     
     // ✅ SEGURANÇA: Incluir tenant_id na transação
+    // ✅ CORREÇÃO: Usando estrutura real da tabela
     const transactionData = {
       type,
       category,
       description,
       amount: parseFloat(amount),
-      date,
-      tenant_id: tenantId  // ✅ CRÍTICO: Associar transação ao tenant
+      transaction_date: date,  // ✅ CORRETO: transaction_date existe
+      tenant_id: tenantId,     // ✅ CRÍTICO: Associar transação ao tenant
+      created_by: created_by   // ✅ CORRIGIDO: user_id real da sessão
     };
     
     devLog.log('[API Financial Transactions] Dados para inserção:', transactionData);

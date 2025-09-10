@@ -155,7 +155,7 @@ export async function createNotificationForProjectClient(
     const supabase = createSupabaseServiceRoleClient();
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, name, created_by')
+      .select('id, nome_cliente_final, created_by, tenant_id') // ✅ CORRIGIDO: campos corretos
       .eq('id', projectId)
       .single();
       
@@ -178,23 +178,70 @@ export async function createNotificationForProjectClient(
       return { success: false, error: 'Projeto sem cliente associado' };
     }
     
-    devLog.log('🔍 [URGENT DEBUG createNotificationForProjectClient] Cliente identificado:', clientId);
+    // ✅ VERIFICAÇÃO MULTI-TENANT: Garantir que cliente pertence ao mesmo tenant do projeto
+    const { data: clientData, error: clientError } = await supabase
+      .from('users')
+      .select('id, name, email, tenant_id')
+      .eq('id', clientId)
+      .single();
+    
+    if (clientError || !clientData) {
+      devLog.error('🔍 [URGENT DEBUG createNotificationForProjectClient] ERRO: Cliente não encontrado!', clientError?.message);
+      return { success: false, error: 'Cliente não encontrado' };
+    }
+    
+    if (clientData.tenant_id !== project.tenant_id) {
+      devLog.error('🔍 [URGENT DEBUG createNotificationForProjectClient] ERRO: VIOLAÇÃO MULTI-TENANT!', {
+        clientTenant: clientData.tenant_id,
+        projectTenant: project.tenant_id
+      });
+      return { success: false, error: 'Violação de isolamento multi-tenant' };
+    }
+    
+    devLog.log('🔍 [URGENT DEBUG createNotificationForProjectClient] Cliente identificado e verificado:', {
+      clientId,
+      clientName: clientData.name || clientData.email,
+      clientTenant: clientData.tenant_id,
+      projectTenant: project.tenant_id
+    });
     logger.info('[createNotificationForProjectClient] Criando notificação para cliente:', { clientId });
     
     // 2. Criar notificação usando função do core
     devLog.log('🔍 [URGENT DEBUG createNotificationForProjectClient] Chamando createNotification...');
-    const result = await createNotification({
+    
+    const notificationParams = {
       type: type as any, // ✅ TEMPORÁRIO: usar any para resolver conflito de tipos
       title,
       message,
       userId: clientId,
       projectId,
+      projectNumber,
+      projectName: data.projectName || project.nome_cliente_final || title,
+      link: data.link || `/cliente/projetos/${projectId}`, // ✅ URL padrão para cliente
       data: {
         ...data,
         projectNumber,
         notificationType: 'client_notification',
         clientNotification: true
       }
+    };
+    
+    console.log('🔍 [DEBUG-CLIENT-NOTIFICATION] Parâmetros da notificação:', {
+      type: notificationParams.type,
+      userId: notificationParams.userId,
+      projectId: notificationParams.projectId,
+      title: notificationParams.title,
+      clientTenant: clientData.tenant_id,
+      projectTenant: project.tenant_id
+    });
+    
+    const result = await createNotification(notificationParams);
+    
+    console.log('🔍 [DEBUG-CLIENT-NOTIFICATION] Resultado createNotification:', {
+      success: result.success,
+      id: result.id,
+      error: result.error,
+      fullResult: result
     });
     
     devLog.log('🔍 [URGENT DEBUG createNotificationForProjectClient] Resultado createNotification:', {
@@ -295,9 +342,18 @@ export async function notifyNewComment(params: {
     let notificationIds: string[] = [];
     let emailSent = false;
     
+    console.log('🔍 [DEBUG-COMMENT-FLOW] Determinando fluxo:', {
+      authorRole: params.authorRole,
+      isAdminComment,
+      hasClientId: !!params.clientId,
+      clientId: params.clientId
+    });
+    
     if (isAdminComment) {
       // Admin comentou - notificar cliente
+      console.log('🔍 [DEBUG-COMMENT-FLOW] FLUXO: Admin comentou → notificar cliente');
       if (params.clientId) {
+        console.log('🔍 [DEBUG-COMMENT-FLOW] Chamando createNotificationForProjectClient...');
         const clientResult = await createNotificationForProjectClient(
           params.projectId,
           params.projectNumber,
@@ -308,7 +364,8 @@ export async function notifyNewComment(params: {
             commentText: params.commentText,
             authorId: params.authorId,
             authorName: params.authorName,
-            isFromAdmin: true
+            isFromAdmin: true,
+            link: `/cliente/projetos/${params.projectId}?tab=comments` // ✅ URL correta para cliente
           }
         );
         
@@ -325,7 +382,7 @@ export async function notifyNewComment(params: {
           projectNumber: params.projectNumber,
           authorName: params.authorName,
           commentText: params.commentText,
-          projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/projetos/${params.projectId}?tab=comments`,
+          projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}?tab=comments`,
           projectId: params.projectId
         });
       }
@@ -434,7 +491,8 @@ export async function notifyNewDocument(params: {
             documentName: params.documentName,
             uploaderId: params.uploaderId,
             uploaderName: params.uploaderName,
-            isFromAdmin: true
+            isFromAdmin: true,
+            link: `/cliente/projetos/${params.projectId}?tab=documents` // ✅ URL correta para cliente
           }
         );
         
@@ -536,7 +594,8 @@ export async function notifyStatusChange(params: {
       {
         oldStatus: params.oldStatus,
         newStatus: params.newStatus,
-        updatedBy: params.adminName || 'Administração'
+        updatedBy: params.adminName || 'Administração',
+        link: `/cliente/projetos/${params.projectId}` // ✅ URL correta para cliente
       }
     );
     

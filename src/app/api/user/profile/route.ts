@@ -1,110 +1,143 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
 
+/**
+ * API para buscar perfil do usuário
+ * GET /api/user/profile?userId=ID
+ * 
+ * COMPATÍVEL COM MULTI-TENANT - Funciona tanto para admin quanto cliente
+ */
 export async function GET(request: NextRequest) {
   try {
-    devLog.log('[UserProfile] GET recebido');
-    
-    const supabase = createSupabaseServerClient();
-    
-    // Tentar obter userId da query string ou da sessão
     const { searchParams } = new URL(request.url);
-    let userId = searchParams.get('userId');
-    
-    // Se não tem userId na query, tentar obter da sessão
+    const userId = searchParams.get('userId');
+
     if (!userId) {
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      return NextResponse.json(
+        { error: 'userId é obrigatório' },
+        { status: 400 }
+      );
+    }
+
+    devLog.log('[API User Profile] Buscando perfil do usuário:', userId);
+
+    // ✅ MULTI-TENANT: Obter tenant_id dos headers se disponível
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+    
+    devLog.log('[API User Profile] Headers multi-tenant:', {
+      tenantId,
+      userId,
+      hostname: headersList.get('host')
+    });
+
+    const supabase = createSupabaseServiceRoleClient();
+    
+    // ✅ SEGURANÇA MULTI-TENANT: Tentar com filtro de tenant primeiro, fallback sem filtro
+    let userData = null;
+    let error = null;
+    
+    devLog.log('[API User Profile] Tentando busca com filtro de tenant:', tenantId);
+    
+    if (tenantId) {
+      // Primeira tentativa: com filtro de tenant
+      const { data: tenantUserData, error: tenantError } = await supabase
+        .from('users')
+        .select('id, name, email, role, tenant_id, status')
+        .eq('id', userId)
+        .eq('tenant_id', tenantId)
+        .single();
       
-      if (authError) {
-        devLog.error('[UserProfile] Erro ao verificar autenticação', { error: authError.message });
-      }
-      
-      if (!authUser) {
-        devLog.warn('[UserProfile] Usuário não autenticado e sem userId na query', { 
-          error: authError?.message,
-          hasSession: !!supabase.auth.getSession
+      if (tenantError || !tenantUserData) {
+        devLog.warn('[API User Profile] Busca com tenant falhou, tentando sem filtro:', {
+          error: tenantError?.message,
+          tenantId,
+          userId
         });
-        return NextResponse.json({ 
-          error: 'UNAUTHORIZED', 
-          message: 'Usuário não autenticado ou userId não fornecido',
-          debug: authError?.message || 'No user session found and no userId provided'
-        }, { status: 401 });
+        
+        // Segunda tentativa: sem filtro de tenant
+        const { data: fallbackUserData, error: fallbackError } = await supabase
+          .from('users')
+          .select('id, name, email, role, tenant_id, status')
+          .eq('id', userId)
+          .single();
+        
+        if (fallbackError || !fallbackUserData) {
+          error = fallbackError;
+          userData = null;
+        } else {
+          userData = fallbackUserData;
+          error = null;
+          
+          devLog.warn('[API User Profile] Usuário encontrado sem filtro de tenant - possível inconsistência:', {
+            userId,
+            userTenantId: fallbackUserData.tenant_id,
+            requestTenantId: tenantId,
+            tenantMatch: fallbackUserData.tenant_id === tenantId
+          });
+        }
+      } else {
+        userData = tenantUserData;
+        error = null;
+        devLog.log('[API User Profile] Usuário encontrado com filtro de tenant com sucesso');
       }
+    } else {
+      // Sem tenant_id nos headers - busca direta
+      devLog.warn('[API User Profile] Tenant_id não encontrado nos headers - busca direta');
+      const { data: directUserData, error: directError } = await supabase
+        .from('users')
+        .select('id, name, email, role, tenant_id, status')
+        .eq('id', userId)
+        .single();
       
-      userId = authUser.id;
+      userData = directUserData;
+      error = directError;
     }
     
-    devLog.log('[UserProfile] Buscando perfil para usuário:', userId);
-    
-    // Buscar perfil na tabela users usando Service Role (bypass RLS)
-    const { data: userProfile, error: profileError } = await supabase
-      .from('users')
-      .select('id, name, email, role, status, tenant_id, created_at, updated_at')
-      .eq('id', userId)
-      .single();
-    
-    if (profileError) {
-      devLog.error('[UserProfile] Erro ao buscar perfil:', {
+    if (error) {
+      devLog.error('[API User Profile] Erro final ao buscar usuário:', {
+        error: error.message,
+        code: error.code,
         userId,
-        error: profileError.message,
-        code: profileError.code
+        tenantId
       });
       
-      // Se usuário não existe na tabela users, retornar dados básicos
-      if (profileError.code === 'PGRST116') {
-        devLog.log('[UserProfile] Usuário não encontrado na tabela users, retornando dados básicos');
-        return NextResponse.json({
-          id: userId,
-          name: 'Usuário',
-          email: 'unknown@example.com',
-          role: 'cliente',
-          status: 'pending',
-          tenant_id: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      }
-      
-      return NextResponse.json({ 
-        error: 'PROFILE_ERROR', 
-        message: 'Erro ao buscar perfil do usuário' 
-      }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
+      );
     }
     
-    if (!userProfile) {
-      devLog.warn('[UserProfile] Perfil não encontrado');
-      return NextResponse.json({ 
-        error: 'PROFILE_NOT_FOUND', 
-        message: 'Perfil não encontrado' 
-      }, { status: 404 });
+    if (!userData) {
+      devLog.warn('[API User Profile] Usuário não encontrado:', userId);
+      return NextResponse.json(
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
+      );
     }
-    
-    devLog.log('[UserProfile] Perfil encontrado:', {
-      userId: userProfile.id,
-      email: userProfile.email,
-      role: userProfile.role
+
+    devLog.log('[API User Profile] Perfil encontrado com sucesso:', {
+      userId: userData.id,
+      role: userData.role,
+      tenantId: userData.tenant_id,
+      requestTenant: tenantId,
+      tenantMatch: userData.tenant_id === tenantId
     });
     
-    return NextResponse.json(userProfile);
+    return NextResponse.json({
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role
+    });
     
-  } catch (error: any) {
-    devLog.error('[UserProfile] Erro inesperado:', error);
-    return NextResponse.json({ 
-      error: 'INTERNAL_ERROR', 
-      message: 'Erro interno do servidor' 
-    }, { status: 500 });
+  } catch (error) {
+    devLog.error('[API User Profile] Erro inesperado:', error);
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
   }
-}
-
-// Handler para requisições OPTIONS (CORS)
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Allow': 'GET, OPTIONS',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
 }

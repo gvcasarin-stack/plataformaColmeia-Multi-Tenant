@@ -53,7 +53,7 @@ export async function GET(_req: NextRequest) {
     const region = process.env.AWS_REGION || 'sa-east-1';
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
-    const senderEmail = process.env.SES_SENDER_EMAIL || 'no-reply@colmeiasolar.com';
+    const senderEmail = process.env.SES_SENDER_EMAIL || 'NÃO CONFIGURADO';
     
     // Verificar se as credenciais estão presentes
     const envVars = {

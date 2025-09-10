@@ -147,8 +147,13 @@ export default function AdminPainelPage() {
       setIsLoading(true)
       
       // ✅ Buscar dados do dashboard e billing em paralelo
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+
       Promise.all([
-        getAdminDashboardDataAction(),
+        getAdminDashboardDataAction(user.id),
         fetchBillingData(false)
       ]).then(([dashboardData]) => {
         // Processar dados do dashboard
@@ -199,9 +204,16 @@ export default function AdminPainelPage() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      getClientCount()
+      // ✅ MULTI-TENANT: Obter tenant_id do usuário para filtrar clientes
+      const tenantId = (user as any)?.profile?.tenant_id || (user as any)?.tenant_id;
+      
+      getClientCount(tenantId)
         .then(setClientCountState)
-        .catch(err => devLog.error("Failed to fetch client count", err))
+        .catch(err => {
+          devLog.error("Failed to fetch client count", err);
+          // ✅ FALLBACK: Se falhar, definir como 0 para não quebrar a UI
+          setClientCountState(0);
+        });
     }
   }, [user, authLoading])
   

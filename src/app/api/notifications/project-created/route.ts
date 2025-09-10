@@ -27,8 +27,19 @@ import {
  */
 export async function GET(req: NextRequest) {
   try {
-    // Extrair parâmetros da query
+    // 🚨 PROTEÇÃO: Apenas executar se chamado explicitamente com parâmetro debug
     const { searchParams } = new URL(req.url);
+    const debugParam = searchParams.get('debug');
+    
+    if (debugParam !== 'true') {
+      return NextResponse.json({
+        error: 'API de teste protegida',
+        message: 'Para executar esta API, adicione ?debug=true na URL',
+        usage: 'GET /api/notifications/project-created?debug=true&projectId=ID'
+      }, { status: 403 });
+    }
+    
+    // Extrair parâmetros da query
     const projectId = searchParams.get("projectId");
     const clientName = searchParams.get("clientName") || "Cliente de Teste";
     const clientId = searchParams.get("clientId") || "user123";
@@ -98,7 +109,7 @@ export async function GET(req: NextRequest) {
       const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #3b82f6; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Colmeia Solar</h1>
+            <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
           </div>
           <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
             <h2 style="color: #3b82f6;">Novo Projeto Criado</h2>
@@ -112,7 +123,7 @@ export async function GET(req: NextRequest) {
               <a href="${process.env.NEXT_PUBLIC_APP_URL}/projetos/${projectId}" style="background-color: #3b82f6; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Acessar Projeto</a>
             </div>
             <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-              &copy; ${new Date().getFullYear()} Colmeia Solar. Todos os direitos reservados.
+              &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
             </p>
           </div>
         </div>

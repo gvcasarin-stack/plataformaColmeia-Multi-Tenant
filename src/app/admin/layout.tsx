@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import { LayoutManager } from '@/components/ui/layout-manager'
 import { logAdminPageAccess } from '@/lib/utils/adminRoutesLogger'
 import { ClientRequestProvider } from '@/lib/contexts/ClientRequestContext'
+import { PollingStatusIndicator } from '@/components/debug/PollingStatusIndicator'
 
 // Dynamically load the sidebar to improve initial load time
 const Sidebar = dynamic(() => import("@/components/layouts/AdminSidebar").then(mod => ({ default: mod.default })), {
@@ -88,6 +89,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <ClientRequestProvider>
       <LayoutManager sidebar={<Sidebar />}>
         {children}
+        {/* 🧪 DEBUG: Indicador de status do polling (apenas em desenvolvimento) */}
+        {process.env.NODE_ENV === 'development' && (
+          <PollingStatusIndicator showDebugPanel={true} />
+        )}
       </LayoutManager>
     </ClientRequestProvider>
   )

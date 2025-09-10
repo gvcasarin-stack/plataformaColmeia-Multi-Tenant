@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('role', 'client')
+      .eq('role', 'cliente')
       .order('name', { ascending: true });
 
     if (error) {

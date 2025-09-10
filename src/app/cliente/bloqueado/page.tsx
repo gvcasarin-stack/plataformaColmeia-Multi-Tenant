@@ -155,10 +155,10 @@ export default function UsuarioBloqueadoPage() {
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Email:</span>
                   <a 
-                    href="mailto:suporte@colmeiasolar.com" 
+                    href="mailto:suporte@gerenciamentofotovoltaico.com.br" 
                     className="ml-2 text-blue-600 dark:text-blue-400 hover:underline"
                   >
-                    suporte@colmeiasolar.com
+                    suporte@gerenciamentofotovoltaico.com.br
                   </a>
                 </div>
               </div>
@@ -216,7 +216,7 @@ export default function UsuarioBloqueadoPage() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-gray-500 dark:text-gray-400">
-          <p>Colmeia Solar - Sistema de Gestão de Projetos</p>
+          <p>Sistema de Gerenciamento Fotovoltaico</p>
           <p className="mt-1">
             Sua conta será reativada assim que a situação for resolvida.
           </p>

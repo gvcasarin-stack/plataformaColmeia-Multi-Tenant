@@ -157,15 +157,24 @@ export function FileUploadSection({
           
           setUploadProgress(prev => ({ ...prev, [file.name]: 50 }));
           
+          // ✅ CORREÇÃO CRÍTICA: Não usar Service Role Client no frontend
+          // Usar dados do usuário da sessão diretamente
+          const actualRole = user.role || user.profile?.role || 'client';
+          
+          devLog.log('[FileUpload] Dados do usuário para upload:', {
+            roleFromSession: user.role,
+            roleFromProfile: user.profile?.role,
+            actualRoleUsed: actualRole
+          });
+          
           const uploadResult = await uploadProjectFileAction(
             project.id,
             formData,
             {
               id: userId,
               email: user.email,
-              role: user.role,
-              profile: (user as any).profile
-            } as any
+              role: actualRole
+            }
           );
           
           setUploadProgress(prev => ({ ...prev, [file.name]: 80 }));

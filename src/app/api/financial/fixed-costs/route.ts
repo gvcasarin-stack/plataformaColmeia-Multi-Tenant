@@ -1,20 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
 
 export async function GET(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Fixed Costs] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
     
-    devLog.log('[API Fixed Costs] Buscando custos fixos para usuário:', userId);
+    devLog.log('[API Fixed Costs] Buscando custos fixos:', { userId, tenantId });
     
+    // ✅ SEGURANÇA: Filtrar custos fixos por tenant
     let query = supabase
       .from('fixed_costs')
       .select('*')
+      .eq('tenant_id', tenantId)  // ✅ CONFIRMADO: Coluna existe
       .eq('is_active', true)
-      .order('category', { ascending: true });
+      .order('created_at', { ascending: false });
     
     if (userId) {
       query = query.eq('user_id', userId);
@@ -38,6 +53,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Fixed Costs] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const body = await request.json();
     
@@ -71,19 +98,23 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    devLog.log('[API Fixed Costs] Inserindo dados:', { category, name: finalName, amount: amountNum, user_id });
+    // ✅ SEGURANÇA: Incluir tenant_id no custo fixo
+    const fixedCostData = {
+      category,
+      name: finalName,
+      amount: amountNum,
+      user_id,
+      tenant_id: tenantId,  // ✅ CRÍTICO: Associar custo ao tenant
+      is_active: true,
+      vigencia_inicio: vigencia_inicio ? new Date(vigencia_inicio) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      vigencia_fim: vigencia_fim ? new Date(vigencia_fim) : null
+    };
+    
+    devLog.log('[API Fixed Costs] Inserindo dados:', fixedCostData);
     
     const { data, error } = await supabase
       .from('fixed_costs')
-      .insert([{
-        category,
-        name: finalName,
-        amount: amountNum,
-        user_id,
-        is_active: true,
-        vigencia_inicio: vigencia_inicio ? new Date(vigencia_inicio) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        vigencia_fim: vigencia_fim ? new Date(vigencia_fim) : null
-      }])
+      .insert([fixedCostData])
       .select()
       .single();
     
@@ -103,6 +134,18 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Fixed Costs] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const body = await request.json();
     
@@ -117,6 +160,7 @@ export async function PUT(request: NextRequest) {
       );
     }
     
+    // ✅ SEGURANÇA: Atualizar apenas custos fixos do tenant atual
     const { data, error } = await supabase
       .from('fixed_costs')
       .update({
@@ -127,6 +171,7 @@ export async function PUT(request: NextRequest) {
         vigencia_fim: vigencia_fim === null ? null : (vigencia_fim ? new Date(vigencia_fim) : undefined)
       })
       .eq('id', id)
+      .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
       .select()
       .single();
     
@@ -146,6 +191,18 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id dos headers
+    const headersList = headers();
+    const tenantId = headersList.get('x-tenant-id');
+
+    if (!tenantId) {
+      devLog.error('[API Fixed Costs] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createSupabaseServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -156,10 +213,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
     
+    // ✅ SEGURANÇA: Deletar apenas custos fixos do tenant atual
     const { error } = await supabase
       .from('fixed_costs')
       .update({ is_active: false })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('tenant_id', tenantId);  // ✅ CRÍTICO: Verificar tenant
     
     if (error) {
       devLog.error('[API Fixed Costs] Erro ao deletar:', error);
