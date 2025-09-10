@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       // Notificações
       { 
         name: 'Notifications - Count', 
-        url: '/api/notifications/count',
+        url: '/api/notifications/count?userId=70b7eacc-a3d5-480d-8058-f850671ba34f',
         method: 'GET',
         tab: 'notificacoes'
       },
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
       // Perfil/Sistema
       { 
         name: 'User Profile', 
-        url: '/api/user/profile',
+        url: '/api/user/profile?userId=70b7eacc-a3d5-480d-8058-f850671ba34f',
         method: 'GET',
         tab: 'sistema'
       },

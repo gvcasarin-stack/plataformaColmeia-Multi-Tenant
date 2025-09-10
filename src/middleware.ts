@@ -132,18 +132,47 @@ async function middlewareCore(request: NextRequest) {
       devLog.log('[Middleware] API de debug detectada - lookup com fallback:', pathname);
     }
 
-    // ✅ CORREÇÃO CRÍTICA: Configurar headers básicos do tenant sem lookup no banco
-    // O lookup será feito pelas APIs individuais conforme necessário
-    devLog.log('[Middleware] ✅ CONFIGURANDO HEADERS BÁSICOS DO TENANT:', tenantSlug);
+    // ✅ CORREÇÃO: Fazer lookup real do tenant para obter UUID correto
+    devLog.log('[Middleware] ✅ FAZENDO LOOKUP DO TENANT PARA OBTER UUID:', tenantSlug);
     
     try {
-      // Configurar headers mínimos necessários
-      const tenantId = `tenant_${tenantSlug}`; // ID temporário para compatibilidade
-      const tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
-      const isTrialActive = true; // Assumir trial ativo por padrão
-      devLog.log('[Middleware] Configurando headers básicos do tenant:', {
+      // Criar client Supabase direto no middleware (sem cookies)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (!supabaseUrl || !supabaseServiceKey) {
+        devLog.error('[Middleware] Variáveis do Supabase não configuradas');
+        throw new Error('Supabase não configurado');
+      }
+      
+      // Fazer lookup direto com fetch
+      const lookupUrl = `${supabaseUrl}/rest/v1/organizations?slug=eq.${tenantSlug}&status=eq.active&select=id,name,trial_end_date,is_trial`;
+      const lookupResponse = await fetch(lookupUrl, {
+        headers: {
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!lookupResponse.ok) {
+        throw new Error(`Lookup failed: ${lookupResponse.status}`);
+      }
+      
+      const orgData = await lookupResponse.json();
+      
+      if (!orgData || orgData.length === 0) {
+        throw new Error(`Tenant ${tenantSlug} não encontrado`);
+      }
+      
+      const tenant = orgData[0];
+      const tenantId = tenant.id; // UUID real do banco
+      const tenantName = tenant.name;
+      const isTrialActive = tenant.is_trial && tenant.trial_end_date ? 
+        new Date() <= new Date(tenant.trial_end_date) : false;
+      devLog.log('[Middleware] Tenant encontrado - configurando headers com UUID real:', {
         tenantSlug,
-        tenantId,
+        tenantId, // UUID real do banco
         tenantName,
         isTrialActive
       });
@@ -162,25 +191,32 @@ async function middlewareCore(request: NextRequest) {
       response.headers.set('x-tenant-name', tenantName);
       response.headers.set('x-tenant-trial', isTrialActive.toString());
 
-    } catch (headerError: any) {
-      devLog.error('[Middleware] ERRO ao configurar headers do tenant:', {
+    } catch (lookupError: any) {
+      devLog.error('[Middleware] ERRO no lookup do tenant - usando fallback:', {
         tenantSlug,
-        error: headerError.message,
+        error: lookupError.message,
         pathname
       });
       
-      // ✅ CORREÇÃO CRÍTICA: NUNCA falhar completamente o middleware
-      // Configurar headers mínimos e deixar a requisição continuar
+      // ✅ FALLBACK: Configurar headers básicos se lookup falhar
+      const fallbackTenantId = `tenant_${tenantSlug}`;
+      const fallbackTenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
       
+      requestHeaders.set('x-tenant-id', fallbackTenantId);
       requestHeaders.set('x-tenant-slug', tenantSlug);
-      requestHeaders.set('x-middleware-error', 'header-config-failed');
+      requestHeaders.set('x-tenant-name', fallbackTenantName);
+      requestHeaders.set('x-tenant-trial', 'true');
+      requestHeaders.set('x-middleware-error', 'tenant-lookup-failed');
       
       response = NextResponse.next({
         request: { headers: requestHeaders }
       });
       
+      response.headers.set('x-tenant-id', fallbackTenantId);
       response.headers.set('x-tenant-slug', tenantSlug);
-      response.headers.set('x-middleware-error', 'header-config-failed');
+      response.headers.set('x-tenant-name', fallbackTenantName);
+      response.headers.set('x-tenant-trial', 'true');
+      response.headers.set('x-middleware-error', 'tenant-lookup-failed');
       
       return response;
     }
