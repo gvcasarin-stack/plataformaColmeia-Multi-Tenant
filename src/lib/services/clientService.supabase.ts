@@ -108,7 +108,8 @@ export async function getClientCount(tenantId?: string): Promise<number> {
     let query = supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .eq('role', 'cliente'); // Usar role em português
+      .eq('role', 'client') // Clientes
+      .eq('status', 'active'); // Apenas clientes ativos (aprovados)
     
     // Se temos tenant_id, filtrar por ele
     if (tenantId) {
@@ -159,7 +160,7 @@ export async function getClientCount(tenantId?: string): Promise<number> {
 
 /**
  * ✅ PRODUÇÃO - Busca todos os clientes registrados
- * ✅ BROWSER CLIENT - Seguro para uso no frontend
+ * ✅ FALLBACK - Usa API interna para contornar problemas de RLS
  * ✅ MULTI-TENANT - Busca apenas clientes do tenant atual
  */
 export async function getClients(tenantId?: string): Promise<any[]> {
@@ -174,60 +175,104 @@ export async function getClients(tenantId?: string): Promise<any[]> {
       return cache.clientsList!.data;
     }
     
-    logger.debug('[ClientService] [SUPABASE] Buscando todos os clientes');
+    logger.debug('[ClientService] [SUPABASE] Buscando todos os clientes via API interna');
     
-    // ✅ PRODUÇÃO - Usando Browser Client seguro
-    const supabase = createSupabaseBrowserClient();
-    
-    // ✅ MULTI-TENANT: Construir query com filtro de tenant se disponível
-    let query = supabase
-      .from('users')
-      .select('*')
-      .eq('role', 'cliente') // Usar role em português
-      .eq('status', 'active'); // Apenas clientes aprovados/ativos
-    
-    // Se temos tenant_id, filtrar por ele
-    if (tenantId) {
-      query = query.eq('tenant_id', tenantId);
-      logger.debug('[ClientService] [SUPABASE] Aplicando filtro de tenant:', tenantId);
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
-    
-    if (error) {
-      logger.error('[ClientService] [SUPABASE] Erro ao buscar clientes:', error);
-      
-      // ✅ FALLBACK: Se erro for RLS, retornar array vazio
-      if (error.message?.includes('RLS') || error.message?.includes('permission')) {
-        logger.warn('[ClientService] [SUPABASE] Erro de RLS, retornando array vazio como fallback');
-        return [];
+    try {
+      // ✅ FALLBACK: Usar API interna para contornar problemas de RLS
+      const res = await fetch('/api/admin/clients', { method: 'GET' });
+      if (!res.ok) {
+        logger.warn('[ClientService] [API] HTTP não OK, tentando fallback direto:', res.status);
+        throw new Error(`API retornou ${res.status}`);
       }
       
-      throw error;
+      const payload = await res.json();
+      const clients = payload?.data || [];
+      
+      // ✅ PRODUÇÃO - Mapear dados para formato esperado (compatibilidade Firebase)
+      const formattedClients = clients.map((client: any) => ({
+        id: client.id,
+        name: client.full_name || client.name || client.email,
+        email: client.email,
+        phone: client.phone || '',
+        isCompany: client.is_company || false,
+        razaoSocial: client.company_name || '',
+        cnpj: client.cnpj || '',
+        cpf: client.cpf || '',
+        createdAt: client.created_at,
+        updatedAt: client.updated_at,
+        // Adicionar campos de bloqueio
+        isBlocked: client.is_blocked || false,
+        blockedReason: client.blocked_reason,
+        blockedAt: client.blocked_at,
+        blockedBy: client.blocked_by,
+        ...client
+      }));
+      
+      // Atualizar cache (mantendo estrutura original)
+      cache.clientsList = {
+        data: formattedClients,
+        timestamp: Date.now(),
+        key: cacheKey
+      };
+      
+      logger.info('[ClientService] [SUPABASE] Clientes obtidos via API:', { count: formattedClients.length, tenantId });
+      return formattedClients;
+      
+    } catch (apiError) {
+      logger.warn('[ClientService] [API] Fallback para busca direta no Supabase:', apiError);
+      
+      // ✅ FALLBACK FINAL: Tentar busca direta se API falhar
+      const supabase = createSupabaseBrowserClient();
+      
+      let query = supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'client');
+      
+      // Se temos tenant_id, filtrar por ele
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) {
+        logger.error('[ClientService] [SUPABASE] Erro final na busca direta:', error);
+        throw error;
+      }
+      
+      const clients = data || [];
+      
+      // ✅ PRODUÇÃO - Mapear dados para formato esperado
+      const formattedClients = clients.map(client => ({
+        id: client.id,
+        name: client.full_name || client.name || client.email,
+        email: client.email,
+        phone: client.phone || '',
+        isCompany: client.is_company || false,
+        razaoSocial: client.company_name || '',
+        cnpj: client.cnpj || '',
+        cpf: client.cpf || '',
+        createdAt: client.created_at,
+        updatedAt: client.updated_at,
+        // Adicionar campos de bloqueio
+        isBlocked: client.is_blocked || false,
+        blockedReason: client.blocked_reason,
+        blockedAt: client.blocked_at,
+        blockedBy: client.blocked_by,
+        ...client
+      }));
+      
+      // Atualizar cache
+      cache.clientsList = {
+        data: formattedClients,
+        timestamp: Date.now(),
+        key: cacheKey
+      };
+      
+      logger.info('[ClientService] [SUPABASE] Clientes obtidos por busca direta:', { count: formattedClients.length });
+      return formattedClients;
     }
-    
-    const clients = data || [];
-    
-    // ✅ PRODUÇÃO - Mapear dados para formato esperado (compatibilidade Firebase)
-    const formattedClients = clients.map(client => ({
-      id: client.id,
-      ...client,
-      // Adicionar campos de bloqueio
-      isBlocked: client.is_blocked || false,
-      blockedReason: client.blocked_reason,
-      blockedAt: client.blocked_at,
-      blockedBy: client.blocked_by
-    }));
-    
-    // Atualizar cache (mantendo estrutura original)
-    cache.clientsList = {
-      data: formattedClients,
-      timestamp: Date.now(),
-      key: cacheKey
-    };
-    
-    logger.info('[ClientService] [SUPABASE] Clientes obtidos com sucesso:', { count: formattedClients.length, tenantId });
-    return formattedClients;
     
   } catch (error) {
     logger.error('[ClientService] [SUPABASE] Erro ao buscar clientes:', error);
@@ -338,7 +383,8 @@ export async function getPaginatedClients(
     let query = supabase
       .from('users')
       .select('*')
-      .eq('role', 'cliente') // ✅ Usar role em português
+      .eq('role', 'client') // Clientes
+      .eq('status', 'active') // Apenas clientes ativos (aprovados)
       .order('created_at', { ascending: false })
       .limit(pageSize + 1); // +1 para verificar se há próxima página
     

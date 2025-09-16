@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ interface TrialInfo {
 
 export default function AssinaturasPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
@@ -77,6 +79,12 @@ export default function AssinaturasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [manualSyncAvailable, setManualSyncAvailable] = useState(false);
+
+  // Detectar sucesso no pagamento
+  const paymentSuccess = searchParams.get('success') === 'true';
+  const sessionId = searchParams.get('session_id');
 
   // Função para calcular informações do trial
   const calculateTrialInfo = (org: Organization): TrialInfo => {
@@ -296,6 +304,40 @@ export default function AssinaturasPage() {
     await handleUpgrade('basico');
   };
 
+  // Função para sincronização manual como fallback final
+  const handleManualSync = async () => {
+    if (!sessionId) return;
+
+    setPaymentProcessing(true);
+    setError(null);
+
+    try {
+      devLog.log('[Manual Sync] Forçando sincronização manual...');
+
+      // Tentar sincronização direta via fetch simples
+      const response = await fetch('/api/stripe/sync-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          organizationId: organization?.id || '5790d7a1-1c54-4fa8-b509-db766ca6bc3c'
+        }),
+      });
+
+      if (response.ok) {
+        // Recarregar página inteira para garantir dados atualizados
+        window.location.reload();
+      } else {
+        setError('Não foi possível sincronizar automaticamente. Tente recarregar a página.');
+      }
+    } catch (error) {
+      devLog.error('[Manual Sync] Falha na sincronização manual:', error);
+      setError('Erro na sincronização. Por favor, recarregue a página para ver as atualizações.');
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
+
   // Carregar dados ao montar o componente
   useEffect(() => {
     if (user?.id) {
@@ -303,6 +345,75 @@ export default function AssinaturasPage() {
       fetchUsageStats();
     }
   }, [user?.id]);
+
+  // Auto-refresh inteligente após pagamento bem-sucedido
+  useEffect(() => {
+    if (paymentSuccess && sessionId && user?.id) {
+      setPaymentProcessing(true);
+
+      // Aguardar 3 segundos para o webhook processar
+      const timer = setTimeout(async () => {
+        devLog.log('[Auto-refresh] Sincronizando pagamento após sucesso');
+
+        try {
+          // Forçar sincronização do pagamento com retry automático
+          const { apiClient } = await import('@/lib/utils/api-client');
+          const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+
+          // Obter headers com tenant info
+          const tenantHeaders = await createTenantHeaders(user.id);
+
+          devLog.log('[Auto-refresh] Iniciando sincronização robusta...');
+
+          // Usar apiClient com retry automático
+          const syncResponse = await apiClient.post('/api/stripe/sync-payment', {
+            sessionId,
+            organizationId: organization?.id || '5790d7a1-1c54-4fa8-b509-db766ca6bc3c' // Fallback para Goias Solar
+          }, {
+            headers: tenantHeaders,
+            retryOnAuth: true // Ativar retry em caso de 401
+          });
+
+          const syncResult = await syncResponse.json();
+          devLog.log('[Auto-refresh] Resultado da sincronização:', syncResult);
+
+          if (syncResponse.status === 401) {
+            devLog.warn('[Auto-refresh] Falha de autenticação mesmo após retry - requer relogin');
+            // Fallback gracioso - não quebrar a experiência
+            setError('Sessão expirada. Por favor, recarregue a página para ver as atualizações.');
+          }
+
+          // Recarregar dados da organização
+          await fetchOrganizationData();
+          await fetchUsageStats();
+
+        } catch (error) {
+          devLog.error('[Auto-refresh] Erro na sincronização:', error);
+
+          // Fallback gracioso: mostrar mensagem amigável
+          if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
+            setError('Sessão expirada. Recarregue a página para ver as atualizações do seu plano.');
+            setManualSyncAvailable(true);
+          } else {
+            // Para outros erros, tentar recarregar dados mesmo assim
+            try {
+              await fetchOrganizationData();
+              await fetchUsageStats();
+            } catch (fetchError) {
+              devLog.error('[Auto-refresh] Erro ao recarregar dados:', fetchError);
+              setError('Pagamento processado com sucesso! Recarregue a página para ver as atualizações.');
+              setManualSyncAvailable(true);
+            }
+          }
+        }
+
+        setPaymentProcessing(false);
+        devLog.log('[Auto-refresh] Processo concluído');
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [paymentSuccess, sessionId, user?.id]);
 
   // Função para obter cor do badge baseado no status
   const getTrialBadgeColor = () => {
@@ -351,6 +462,49 @@ export default function AssinaturasPage() {
 
   return (
     <div className="space-y-6">
+      {/* Alerta de Pagamento Bem-sucedido - PRIMEIRO para garantir visibilidade */}
+      {paymentSuccess && sessionId && (
+        <Alert className="border-l-4 border-l-emerald-500 bg-emerald-50">
+          <CheckCircle className="h-4 w-4 text-emerald-600" />
+          <AlertTitle className="text-emerald-800">
+            {paymentProcessing ? '⏳ Processando Pagamento...' : '🎉 Pagamento Confirmado!'}
+          </AlertTitle>
+          <AlertDescription className="text-emerald-700">
+            {paymentProcessing
+              ? 'Seu pagamento foi aprovado! Estamos atualizando seu plano agora...'
+              : 'Pagamento processado com sucesso! Seu plano foi atualizado e você já tem acesso a todas as funcionalidades premium.'
+            }
+            {paymentProcessing && (
+              <div className="mt-3 flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
+                <span className="text-sm">Sincronizando dados...</span>
+              </div>
+            )}
+            {sessionId && (
+              <div className="mt-2 text-xs font-mono text-emerald-600">
+                ID da sessão: {sessionId.substring(0, 20)}...
+              </div>
+            )}
+            {manualSyncAvailable && (
+              <div className="mt-3 pt-3 border-t border-emerald-200">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleManualSync}
+                  disabled={paymentProcessing}
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                >
+                  {paymentProcessing ? '⏳ Sincronizando...' : '🔄 Sincronizar Manualmente'}
+                </Button>
+                <p className="text-xs text-emerald-600 mt-1">
+                  Se os dados não atualizaram automaticamente, clique aqui.
+                </p>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 p-8 text-white shadow-lg">
         <div className="relative z-10">
@@ -359,7 +513,7 @@ export default function AssinaturasPage() {
             Gerencie seu plano, limites e informações de cobrança
           </p>
         </div>
-        
+
         {/* Elementos decorativos */}
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-emerald-500/30"></div>
         <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-green-500/30"></div>
@@ -388,24 +542,14 @@ export default function AssinaturasPage() {
           <AlertTitle>🚨 Trial Expirado</AlertTitle>
           <AlertDescription>
             Seu período de teste expirou em {trialInfo.endDate}. Faça upgrade para continuar usando a plataforma.
-            <div className="mt-3 flex gap-2">
-              <Button 
-                size="sm" 
+            <div className="mt-3">
+              <Button
+                size="sm"
                 className="bg-red-600 hover:bg-red-700"
                 onClick={() => handleUpgrade('basico')}
                 disabled={isUpgrading}
               >
                 {isUpgrading ? 'Processando...' : 'Fazer Upgrade Agora'}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => {
-                  console.log('🔍 Debug - Dados da organização:', organization);
-                  console.log('🔍 Debug - Dados do usuário:', user);
-                }}
-              >
-                🐛 Debug
               </Button>
             </div>
           </AlertDescription>

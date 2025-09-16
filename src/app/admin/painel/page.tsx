@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { getClientCount } from '@/lib/services/clientService.supabase'
 import { Project, ProjectStatus } from '@/types/project'
 import { calculateProjectCost, getProjectPriceRanges as fetchProjectPriceRanges } from '@/lib/utils/projectUtils'
 import { format } from 'date-fns/format'
@@ -204,13 +203,19 @@ export default function AdminPainelPage() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      // ✅ MULTI-TENANT: Obter tenant_id do usuário para filtrar clientes
-      const tenantId = (user as any)?.profile?.tenant_id || (user as any)?.tenant_id;
-      
-      getClientCount(tenantId)
-        .then(setClientCountState)
+      // ✅ CORREÇÃO: Usar API ao invés de chamar Supabase diretamente
+      fetch('/api/admin/client-count')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setClientCountState(data.count || 0);
+          } else {
+            devLog.error("API client-count failed:", data.error);
+            setClientCountState(0);
+          }
+        })
         .catch(err => {
-          devLog.error("Failed to fetch client count", err);
+          devLog.error("Failed to fetch client count from API", err);
           // ✅ FALLBACK: Se falhar, definir como 0 para não quebrar a UI
           setClientCountState(0);
         });

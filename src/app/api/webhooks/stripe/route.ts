@@ -48,10 +48,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // Verificar idempotência - evitar processar o mesmo evento duas vezes
+    const supabase = createSupabaseServiceRoleClient();
+
+    const { data: existingEvent } = await supabase
+      .from('stripe_webhook_events')
+      .select('id')
+      .eq('stripe_event_id', event.id)
+      .single();
+
+    if (existingEvent) {
+      devLog.log('[Stripe Webhook] Event already processed:', { eventId: event.id });
+      return NextResponse.json({ received: true, status: 'already_processed' });
+    }
+
     // Processar eventos do Stripe
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, event.id, supabase);
         break;
 
       case 'customer.subscription.created':
@@ -93,7 +107,7 @@ export async function POST(request: NextRequest) {
  * Processar checkout session completed
  * Ativado quando o pagamento é confirmado
  */
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, eventId: string, supabase: any) {
   try {
     devLog.log('[Stripe Webhook] Processing checkout.session.completed:', {
       sessionId: session.id,
@@ -108,8 +122,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       devLog.error('[Stripe Webhook] Missing organization metadata in session');
       return;
     }
-
-    const supabase = createSupabaseServiceRoleClient();
 
     // Atualizar organização com dados do Stripe
     const { error: updateError } = await supabase
@@ -128,6 +140,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       devLog.error('[Stripe Webhook] Error updating organization:', updateError);
       return;
     }
+
+    // Registrar evento como processado (idempotência)
+    await supabase
+      .from('stripe_webhook_events')
+      .insert({
+        stripe_event_id: eventId,
+        event_type: 'checkout.session.completed',
+        organization_id: organizationId,
+        metadata: {
+          session_id: session.id,
+          customer_id: session.customer,
+          subscription_id: session.subscription
+        }
+      });
 
     devLog.log('[Stripe Webhook] Organization updated successfully:', {
       organizationId,

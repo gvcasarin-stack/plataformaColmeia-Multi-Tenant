@@ -157,18 +157,19 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'subscription',
+      allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
         organizationId: organization.id,
-        tenantId: organization.tenant_id,
+        tenantId: organization.id, // Usar organization.id como tenantId
         planType,
         slug: organization.slug
       },
       subscription_data: {
         metadata: {
           organizationId: organization.id,
-          tenantId: organization.tenant_id,
+          tenantId: organization.id, // Usar organization.id como tenantId
           planType
         }
       }

@@ -60,8 +60,12 @@ export function getStripeConfig() {
 /**
  * URL base para redirecionamentos do Stripe
  */
-export function getBaseUrl() {
+export function getBaseUrl(organizationSlug?: string) {
   if (process.env.NODE_ENV === 'production') {
+    // Se temos o slug da organização, usar o domínio correto do tenant
+    if (organizationSlug) {
+      return `https://${organizationSlug}.gerenciamentofotovoltaico.com.br`;
+    }
     return process.env.NEXT_PUBLIC_BASE_URL || 'https://sgf.colmeiasolar.com';
   }
   return 'http://localhost:3000';
@@ -69,13 +73,14 @@ export function getBaseUrl() {
 
 /**
  * URLs de sucesso e cancelamento para o Stripe Checkout
+ * CORREÇÃO: Remover duplicação do tenant no path - o tenant já está no domínio
  */
 export function getStripeUrls(organizationSlug: string) {
-  const baseUrl = getBaseUrl();
-  
+  const baseUrl = getBaseUrl(organizationSlug);
+
   return {
-    successUrl: `${baseUrl}/${organizationSlug}/admin/assinaturas?success=true&session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${baseUrl}/${organizationSlug}/admin/assinaturas?canceled=true`
+    successUrl: `${baseUrl}/admin/assinaturas?success=true&session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${baseUrl}/admin/assinaturas?canceled=true`
   };
 }
 

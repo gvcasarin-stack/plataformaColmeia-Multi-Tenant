@@ -68,17 +68,48 @@ export async function getUserTenantId(userId: string): Promise<string | null> {
 
 /**
  * Helper para criar headers com tenant_id para chamadas de API
+ * Agora integrado com sistema de autenticação robusta
  */
 export async function createTenantHeaders(userId: string): Promise<HeadersInit> {
   const tenantId = await getUserTenantId(userId);
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
-  
+
   if (tenantId) {
     headers['x-tenant-id'] = tenantId;
   }
-  
+
+  // Adicionar token de autenticação se disponível
+  if (typeof window !== 'undefined') {
+    const authToken = localStorage.getItem('supabase.auth.token') ||
+                     sessionStorage.getItem('auth_token');
+
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+  }
+
+  return headers;
+}
+
+/**
+ * Criar headers com retry automático em caso de falha de autenticação
+ */
+export async function createRobustTenantHeaders(userId: string): Promise<HeadersInit> {
+  // Importar dinamicamente para evitar problemas de SSR
+  const { apiClient } = await import('./api-client');
+
+  const tenantId = await getUserTenantId(userId);
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (tenantId) {
+    headers['x-tenant-id'] = tenantId;
+  }
+
   return headers;
 }
