@@ -86,10 +86,11 @@ export function getStripeUrls(organizationSlug: string) {
 
 /**
  * URL universal do webhook para todos os tenants
- * Funciona independente do domínio do tenant
+ * DOMÍNIO DEDICADO SEMPRE ONLINE - Independente das tenants individuais
+ * Todos os webhooks são enviados para este endpoint único
  */
 export function getWebhookUrl() {
-  // Usar domínio principal da plataforma para webhook
-  const webhookDomain = process.env.STRIPE_WEBHOOK_DOMAIN || 'https://sgf.colmeiasolar.com';
+  // Usar domínio dedicado da API - SEMPRE ONLINE para todas as tenants
+  const webhookDomain = process.env.STRIPE_WEBHOOK_DOMAIN || 'https://api.gerenciamentofotovoltaico.com.br';
   return `${webhookDomain}/api/webhooks/stripe`;
 }

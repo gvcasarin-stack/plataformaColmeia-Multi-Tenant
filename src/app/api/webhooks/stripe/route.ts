@@ -1,6 +1,19 @@
 /**
- * Webhook do Stripe para capturar eventos de pagamento
- * Atualiza automaticamente o status das organizações após pagamento
+ * 🎯 WEBHOOK UNIVERSAL DO STRIPE - MULTI-TENANT
+ *
+ * ✅ DOMÍNIO DEDICADO: api.gerenciamentofotovoltaico.com.br
+ * ✅ SEMPRE ONLINE: Independente das tenants individuais
+ * ✅ MULTI-TENANT: Serve todas as organizações usando metadata
+ *
+ * Como funciona:
+ * 1. Stripe envia eventos para: https://api.gerenciamentofotovoltaico.com.br/api/webhooks/stripe
+ * 2. Webhook usa metadata.organizationId para identificar qual tenant atualizar
+ * 3. Atualiza automaticamente o status das organizações após pagamento
+ *
+ * Eventos processados:
+ * - checkout.session.completed (pagamento concluído)
+ * - customer.subscription.* (mudanças de assinatura)
+ * - invoice.payment_* (pagamentos de faturas)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
