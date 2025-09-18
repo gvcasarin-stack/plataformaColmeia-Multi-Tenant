@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import { GlassCard } from "./glass-card"
 import { TechBackground } from "./tech-background"
 import { CircuitPattern } from "./circuit-pattern"
@@ -48,7 +48,7 @@ export default function CtaSection() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter text-white sm:text-4xl md:text-5xl drop-shadow-md">
-                  Pronto para transformar a forma como você gerencia seus projetos fotovoltaicos?
+                  Transforme Sua Gestão de Projetos. A Partir de Hoje.
                 </h2>
                 <div className="flex items-center justify-center space-x-2 pt-2 pb-4">
                   <span className="w-12 h-0.5 bg-white/60 rounded-full"></span>
@@ -56,8 +56,7 @@ export default function CtaSection() {
                   <span className="w-12 h-0.5 bg-white/60 rounded-full"></span>
                 </div>
                 <p className="mx-auto max-w-[700px] text-white/90 md:text-xl drop-shadow-sm">
-                  Comece agora com o Sistema de Gerenciamento Fotovoltaico e descubra como é simples ganhar mais
-                  eficiência, controle e profissionalismo.
+                  Deixe o caos das planilhas para trás. Com o SGF, você centraliza sua operação, acelera aprovações e eleva sua credibilidade no mercado. A eficiência que você busca está a um clique de distância.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row mt-6">
@@ -69,7 +68,7 @@ export default function CtaSection() {
                   <a href="#precos">
                     <span className="absolute top-0 left-0 w-full h-full bg-blue-50/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                     Começar agora
-                    <ArrowRight className="ml-2 h-4 w-4 animate-pulse" />
+                    <ChevronRight className="ml-2 h-4 w-4 animate-pulse" />
                   </a>
                 </Button>
                 <Button

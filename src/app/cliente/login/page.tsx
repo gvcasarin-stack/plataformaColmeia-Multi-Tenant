@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getCurrentDomainTenantId } from '@/lib/utils/tenant-client';
 import toast from 'react-hot-toast';
 import { devLog } from "@/lib/utils/productionLogger";
 import { getAuthErrorMessage, VALIDATION_MESSAGES, AUTH_SUCCESS_MESSAGES } from "@/lib/utils/auth-errors";
@@ -14,7 +15,12 @@ export default function ClientLoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isPasswordReset, setIsPasswordReset] = useState(false);
-  
+  const [tenantWarning, setTenantWarning] = useState<string | null>(null);
+  const [domainInfo, setDomainInfo] = useState<{ tenantId: string | null; hostname: string }>({
+    tenantId: null,
+    hostname: ''
+  });
+
   // Estados para controlar o fluxo de recovery
   const [isAwaitingRecovery, setIsAwaitingRecovery] = useState(false);
   const [currentSession, setCurrentSession] = useState<any>(null);
@@ -69,9 +75,91 @@ export default function ClientLoginPage() {
     }
   }, [searchParams]);
 
+  // 🔒 VALIDAÇÃO PREVENTIVA: Detectar informações do domínio atual
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const tenantId = getCurrentDomainTenantId();
+
+      setDomainInfo({ tenantId, hostname });
+
+      devLog.log('[CLIENT-LOGIN] Domínio detectado:', {
+        hostname,
+        tenantId,
+        isGoiasSolar: hostname.includes('goias-solar'),
+        isSuprema: hostname.includes('suprema')
+      });
+    }
+  }, []);
+
+  // 🔒 VALIDAÇÃO PREVENTIVA: Detectar possível tentativa cross-tenant
+  const checkTenantMismatch = (userEmail: string) => {
+    if (!domainInfo.tenantId || !userEmail) return;
+
+    const isGoiasSolarDomain = domainInfo.hostname.includes('goias-solar');
+    const isSupremaDomain = domainInfo.hostname.includes('suprema');
+
+    const emailLowerCase = userEmail.toLowerCase();
+
+    if (isGoiasSolarDomain) {
+      if (emailLowerCase.includes('suprema') ||
+          emailLowerCase.includes('luan') ||
+          emailLowerCase.endsWith('@suprema.com') ||
+          emailLowerCase.endsWith('@supremasolar.com')) {
+
+        setTenantWarning(
+          '⚠️ Atenção: Você está tentando fazer login no domínio da Goiás Solar, mas seu e-mail parece ser da Suprema Solar. ' +
+          'Você deveria fazer login em suprema-solar.gerenciamentofotovoltaico.com.br'
+        );
+        return true;
+      }
+    }
+
+    if (isSupremaDomain) {
+      if (emailLowerCase.includes('goias') ||
+          emailLowerCase.includes('goiás') ||
+          emailLowerCase.includes('gabriel') ||
+          emailLowerCase.endsWith('@goiassolar.com') ||
+          emailLowerCase.endsWith('@colmeiasolar.com')) {
+
+        setTenantWarning(
+          '⚠️ Atenção: Você está tentando fazer login no domínio da Suprema Solar, mas seu e-mail parece ser da Goiás Solar. ' +
+          'Você deveria fazer login em goias-solar.gerenciamentofotovoltaico.com.br'
+        );
+        return true;
+      }
+    }
+
+    if (tenantWarning) {
+      setTenantWarning(null);
+    }
+
+    return false;
+  };
+
+  // Validar tenant quando e-mail mudar
+  useEffect(() => {
+    if (email && domainInfo.tenantId) {
+      checkTenantMismatch(email);
+    }
+  }, [email, domainInfo.tenantId, domainInfo.hostname]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // 🔒 VERIFICAÇÃO ADICIONAL: Se há warning de tenant, pedir confirmação
+    if (tenantWarning) {
+      const shouldContinue = window.confirm(
+        tenantWarning + '\n\nTem certeza que deseja continuar com este login? ' +
+        'Lembre-se que o sistema irá bloquear automaticamente se você não pertencer a esta organização.'
+      );
+
+      if (!shouldContinue) {
+        devLog.log('[CLIENT-LOGIN] Login cancelado pelo usuário devido ao warning de tenant');
+        return;
+      }
+    }
+
     // Validação básica de campos
     if (!email || !password) {
       const validation = VALIDATION_MESSAGES.REQUIRED_FIELDS;
@@ -170,6 +258,22 @@ export default function ClientLoginPage() {
   let formTitle = "Login do Cliente";
   let content = (
     <>
+      {/* 🔒 AVISO DE TENANT MISMATCH */}
+      {tenantWarning && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-800">{tenantWarning}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">

@@ -80,7 +80,7 @@ export default function BenefitsSection() {
             Por que escolher o SGF?
           </h2>
           <p className="mx-auto max-w-[700px] text-gray-600 md:text-xl">
-            Transforme a gestão dos seus projetos fotovoltaicos com uma plataforma completa e profissional.
+            Com o SGF, você substitui planilhas e processos manuais por uma plataforma inteligente que garante controle total, agilidade nas aprovações e uma imagem profissional inquestionável.
           </p>
         </div>
 

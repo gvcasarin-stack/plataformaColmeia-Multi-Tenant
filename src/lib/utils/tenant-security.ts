@@ -338,9 +338,50 @@ export async function canCreateResource(
     return { allowed: true }
   } catch (error) {
     devLog.error('[canCreateResource] Erro inesperado:', error)
-    return { 
-      allowed: false, 
-      message: 'Erro ao verificar limites' 
+    return {
+      allowed: false,
+      message: 'Erro ao verificar limites'
     }
+  }
+}
+
+/**
+ * 🔒 HELPER PARA VALIDAÇÃO DE TENANT NO LOGIN
+ * Obtém o tenant_id baseado no domínio atual
+ */
+export function getCurrentDomainTenantId(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const hostname = window.location.hostname;
+
+    // Mapear domínios para tenant IDs (baseado no middleware.ts)
+    const tenantMap: Record<string, string> = {
+      'goias-solar': '5790d7a1-1c54-4fa8-b509-db766ca6bc3c',
+      'suprema': '3e446dd9-44d2-4e22-ae7e-edbac10edf73'
+    };
+
+    // Extrair slug do hostname
+    let tenantSlug = '';
+
+    if (hostname.includes('goias-solar')) {
+      tenantSlug = 'goias-solar';
+    } else if (hostname.includes('suprema')) {
+      tenantSlug = 'suprema';
+    }
+
+    const tenantId = tenantMap[tenantSlug];
+
+    devLog.log('[getCurrentDomainTenantId] Tenant extraído:', {
+      hostname,
+      tenantSlug,
+      tenantId
+    });
+
+    return tenantId || null;
+
+  } catch (error) {
+    devLog.error('[getCurrentDomainTenantId] Erro ao extrair tenant do domínio:', error);
+    return null;
   }
 }

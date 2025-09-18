@@ -33,46 +33,78 @@ export default function FeaturesSection() {
 
   const features = [
     {
-      title: "Gestão de Projetos Completa do início ao fim",
+      title: "O Ciclo Completo do Projeto Fotovoltaico, Sob Seu Comando",
       description:
-        "Acompanhe cada etapa — da concepção à homologação — com recursos que trazem clareza, controle e produtividade:",
+        "Tenha uma visão 360° da sua operação.",
       image: "/images/projetos-gestao.png",
       points: [
-        "Dashboard intuitivo com visão geral de todos os projetos",
-        "Acompanhamento de prazos e marcos importantes",
-        "Histórico completo de alterações e atualizações",
-        "Indicadores e métricas para controle total do desempenho dos projetos",
+        {
+          title: "Dashboard intuitivo que centraliza o status de todos os projetos em tempo real, permitindo identificar prioridades rapidamente.",
+          subtitle: "Nunca mais perca um prazo crítico."
+        },
+        {
+          title: "Acompanhe marcos e etapas com um cronograma visual claro e receba alertas automáticos sobre as datas mais importantes.",
+          subtitle: "Rastreabilidade total e segurança no processo."
+        },
+        {
+          title: "Acesse o histórico completo de cada alteração, sabendo quem fez o quê e quando, garantindo transparência e controle.",
+          subtitle: "Decisões baseadas em dados, não em 'achismos'."
+        },
       ],
     },
     {
-      title: "Comunicação Integrada e Centralizada",
+      title: "Comunicação que Gera Confiança e Credibilidade",
       description:
-        "Mantenha clientes, integradores e equipe sempre informados com um sistema de comunicação claro, ágil e organizado:",
+        "Eleve o padrão do seu atendimento com um portal de comunicação que transmite profissionalismo, agilidade e total transparência ao seu cliente.",
       image: "/images/comunicacao-integrada.png",
       points: [
-        "Notificações automáticas no app e por e-mail para atualizações em tempo real",
-        "Área exclusiva para comentários e compartilhamento de documentos do projeto",
-        "Histórico completo de interações e movimentações",
-        "Registro de todas as mudanças de status dos projetos, etapa por etapa",
+        {
+          title: "Mantenha os clientes satisfeitos com atualizações automáticas sobre o andamento do projeto, antes mesmo que eles perguntem.",
+          subtitle: "Proatividade que Impressiona o Cliente"
+        },
+        {
+          title: "Ofereça um portal exclusivo e profissional para a troca de mensagens e o compartilhamento de documentos importantes do projeto.",
+          subtitle: "Colaboração Centralizada e Segura"
+        },
+        {
+          title: "Cada interação fica registrada em um histórico completo, oferecendo um backup de todas as decisões e conversas.",
+          subtitle: "Segurança para Você e Seu Cliente"
+        },
+        {
+          title: "O registro automático de todas as mudanças de status garante que não haja dúvidas sobre o andamento do projeto.",
+          subtitle: "Transparência total em cada etapa"
+        },
       ],
     },
     {
-      title: "Gestão Financeira Integrada e Sem Complicação",
+      title: "Do Orçamento ao Lucro, com Total Clareza",
       description:
-        "Emita ordens de serviço, acompanhe pagamentos e mantenha suas finanças sob controle com total profissionalismo:",
+        "Nossas ferramentas financeiras foram projetadas para simplificar a cobrança, acelerar o recebimento e fornecer a visão estratégica que seu negócio precisa para crescer.",
       image: "/images/gestao-financeira.png",
       points: [
-        "Geração automática de ordens de serviço",
-        "Acompanhamento de pagamentos e pendências em tempo real",
-        "Relatórios financeiros completos e prontos para análise",
-        "Transparência total sobre valores, prazos e status de pagamento",
+        {
+          title: "Emita Ordens de Serviço completas e padronizadas com um clique, eliminando o trabalho manual e o risco de erros.",
+          subtitle: "Agilidade Profissional na Geração de Cobranças"
+        },
+        {
+          title: "Acompanhe pagamentos realizados e pendências em tempo real. Saiba exatamente quanto e quando você tem a receber.",
+          subtitle: "Controle Total do seu Fluxo de Caixa"
+        },
+        {
+          title: "Relatórios financeiros transformam dados complexos em insights visuais, mostrando a rentabilidade de cada projeto.",
+          subtitle: "Inteligência para Tomar Decisões Estratégicas"
+        },
+        {
+          title: "Um registro claro de valores, prazos e status de pagamento gera confiança no cliente e facilita a cobrança.",
+          subtitle: "Transparência que Evita Conflitos e Atrasos"
+        },
       ],
     },
   ]
 
   return (
-    <section ref={sectionRef} className="w-full py-8 md:py-16 lg:py-24 relative overflow-hidden" id="funcionalidades">
-      <TechBackground variant="light" intensity="low" className="bg-gradient-to-b from-blue-50 to-white" />
+    <section ref={sectionRef} className="w-full py-8 md:py-16 lg:py-24 relative" id="funcionalidades">
+      <div className="absolute inset-0 bg-slate-50/30"></div>
 
       <CircuitPattern className="top-20 right-10 opacity-20 rotate-12 scale-75" />
       <CircuitPattern className="bottom-20 left-10 opacity-20 -rotate-12 scale-75" color="text-green-200" />
@@ -99,19 +131,18 @@ export default function FeaturesSection() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl relative inline-block text-gray-800 drop-shadow-sm">
-              Tudo o que você precisa em um só lugar
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-slate-800">
+              O Fim das Planilhas, E-mails Perdidos e Atrasos
             </h2>
-            <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-green-500 mx-auto my-4 rounded-full"></div>
-            <p className="max-w-[900px] text-gray-600 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Conheça as principais funcionalidades que tornam o SGF a solução ideal para o gerenciamento de projetos
-              fotovoltaicos.
+            <div className="w-20 h-0.5 bg-blue-600 mx-auto my-6 rounded-full"></div>
+            <p className="max-w-[900px] text-slate-600 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              Explore as funcionalidades que trazem clareza, automação e controle para sua operação, transformando o caos em um fluxo de trabalho previsível e eficiente.
             </p>
           </div>
         </div>
 
-        <div className="mx-auto mt-16">
-          <div className="space-y-16 mt-12">
+        <div className="mx-auto mt-12 md:mt-16">
+          <div className="space-y-12 md:space-y-16 lg:space-y-20 mt-8 md:mt-12">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -120,7 +151,7 @@ export default function FeaturesSection() {
                 }`}
                 style={{ transitionDelay: `${index * 200}ms` }}
               >
-                <div className="grid gap-8 lg:grid-cols-2 items-center">
+                <div className="grid gap-6 md:gap-8 lg:grid-cols-2 items-center">
                   <div className={`${index % 2 === 0 ? "order-1" : "order-1 lg:order-2"}`}>
                     <div className="space-y-4">
                       <div className="inline-flex items-center space-x-2">
@@ -129,16 +160,35 @@ export default function FeaturesSection() {
                       </div>
                       <h3 className="text-2xl font-bold tracking-tighter sm:text-3xl text-gray-800">{feature.title}</h3>
                       <p className="text-gray-600 md:text-lg/relaxed">{feature.description}</p>
-                      <ul className="grid gap-3 mt-6">
+                      <div className="space-y-8 mt-8">
                         {feature.points.map((point, pointIndex) => (
-                          <li key={pointIndex} className="flex items-start gap-2">
-                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-green-100 mt-0.5">
-                              <Check className="h-3 w-3 text-green-600" />
-                            </div>
-                            <span className="text-gray-700">{point}</span>
-                          </li>
+                          <div key={pointIndex} className="group">
+                            {typeof point === 'string' ? (
+                              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50/50 transition-all duration-300">
+                                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-green-100 to-green-200 mt-0.5 group-hover:scale-110 transition-transform duration-300">
+                                  <Check className="h-3.5 w-3.5 text-green-600" />
+                                </div>
+                                <span className="text-gray-700 font-medium">{point}</span>
+                              </div>
+                            ) : (
+                              <div className="p-4 rounded-lg bg-white border border-slate-100 hover:border-blue-100 hover:shadow-sm transition-all duration-300">
+                                {point.subtitle && (
+                                  <h4 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2">
+                                    <div className="w-1 h-5 bg-blue-600 rounded-full"></div>
+                                    {point.subtitle}
+                                  </h4>
+                                )}
+                                <div className="flex items-start gap-3 ml-3">
+                                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 mt-1">
+                                    <Check className="h-3 w-3 text-blue-600" />
+                                  </div>
+                                  <p className="text-slate-700 leading-relaxed">{point.title}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   </div>
                   <div className={`${index % 2 === 0 ? "order-2" : "order-2 lg:order-1"}`}>
@@ -154,19 +204,46 @@ export default function FeaturesSection() {
                       </div>
 
                       <div className="relative rounded-md overflow-hidden bg-white">
-                        <div className="relative w-full" style={{ paddingTop: "60%" }}>
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                            <div className="text-center p-4">
-                              <div className="w-16 h-16 bg-blue-500 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
+                        {index === 0 ? (
+                          <Image
+                            src="/images/gestao-projetos-dashboard.png"
+                            alt="Dashboard de Gestão de Projetos - SGF"
+                            width={800}
+                            height={480}
+                            className="w-full h-auto object-contain"
+                            priority
+                          />
+                        ) : index === 1 ? (
+                          <Image
+                            src="/images/comunicacao-integrada.png"
+                            alt="Histórico de Comunicação Integrada - SGF"
+                            width={800}
+                            height={480}
+                            className="w-full h-auto object-contain"
+                          />
+                        ) : index === 2 ? (
+                          <Image
+                            src="/images/gestao-financeira.png"
+                            alt="Dashboard de Gestão Financeira - SGF"
+                            width={800}
+                            height={480}
+                            className="w-full h-auto object-contain"
+                          />
+                        ) : (
+                          <div className="relative w-full" style={{ paddingTop: "60%" }}>
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                              <div className="text-center p-4">
+                                <div className="w-16 h-16 bg-blue-500 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                  </svg>
+                                </div>
+                                <h4 className="font-semibold text-gray-800 mb-1">SGF Dashboard</h4>
+                                <p className="text-sm text-gray-600">Interface de Gestão</p>
                               </div>
-                              <h4 className="font-semibold text-gray-800 mb-1">SGF Dashboard</h4>
-                              <p className="text-sm text-gray-600">Interface de Gestão</p>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>

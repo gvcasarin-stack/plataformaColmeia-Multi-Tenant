@@ -33,21 +33,21 @@ export default function TestimonialsSection() {
   const testimonials = [
     {
       quote:
-        "Eu tentava controlar tudo no Trello, planilhas, Google Drive... era uma bagunça. Depois que comecei a usar a plataforma, tudo ficou mais claro. Agora sei exatamente em que etapa cada projeto está, e ganho um tempão no dia a dia.",
+        "A gente vivia pulando entre Trello, planilhas e Google Drive. Era uma bagunça que, honestamente, gerava atrasos. Com o SGF, a clareza foi imediata. Hoje, eu sei exatamente o status de cada projeto e o tempo que eu perdia tentando organizar tudo, agora uso para entregar mais qualidade ao cliente.",
       author: "Carlos Henrique",
       role: "Engenheiro Eletricista",
       avatar: "C.H.",
     },
     {
       quote:
-        "Meus clientes logo perceberam a diferença. Com os documentos organizados e as notificações automáticas, tudo ficou mais claro e fácil de acompanhar. A comunicação melhorou muito e minha entrega ficou bem mais profissional.",
+        "O impacto no cliente foi imediato. A organização e as notificações trouxeram uma agilidade que eles valorizam muito. A comunicação deixou de ser um problema e passou a ser um ponto forte. Hoje, sinto que eles têm mais confiança no meu trabalho, e isso não tem preço.",
       author: "Fernanda Lopes",
       role: "Autônoma em Projetos Fotovoltaicos",
       avatar: "F.L.",
     },
     {
       quote:
-        "Hoje eu sei exatamente o que está rolando em cada projeto, o que já foi pago, o que tá pendente... tudo em um só lugar. Isso me dá uma tranquilidade enorme. Sem falar que ficou muito mais fácil cobrar, acompanhar e entregar com qualidade.",
+        "Ter tudo em um só lugar mudou o jogo para mim. Hoje, em uma única tela, eu vejo o status de todos os projetos, quem pagou, quem está devendo. Acabou a ansiedade de não saber o que está acontecendo. Essa clareza me deu uma tranquilidade enorme e simplificou todo o resto: da cobrança à entrega final.",
       author: "Rodrigo Mendes",
       role: "Gerente de Homologação",
       avatar: "R.M.",
@@ -69,41 +69,50 @@ export default function TestimonialsSection() {
               <span>Depoimentos</span>
               <span className="w-1 h-1 rounded-full bg-blue-700"></span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-gray-800 drop-shadow-sm">
-              O que nossos clientes dizem
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-slate-800">
+              A Opinião de Quem Lidera o Mercado Fotovoltaico
             </h2>
-            <div className="w-20 h-1 bg-gradient-to-r from-blue-600 to-green-600 mx-auto my-4 rounded-full"></div>
-            <p className="max-w-[900px] text-gray-600 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Veja como o SGF tem transformado a gestão de projetos fotovoltaicos para empresas de todos os tamanhos.
+            <div className="w-20 h-0.5 bg-blue-600 mx-auto my-6 rounded-full"></div>
+            <p className="max-w-[800px] text-slate-600 md:text-xl/relaxed leading-relaxed">
+              Líderes de projetos, engenheiros e diretores compartilham como o SGF se tornou uma peça-chave para otimizar suas operações e impulsionar o crescimento.
             </p>
           </div>
         </div>
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 mt-16">
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className={`transform transition-all duration-500 ${
+              className={`transform transition-all duration-700 hover:scale-105 ${
                 isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
               }`}
-              style={{ transitionDelay: `${index * 200}ms` }}
+              style={{ transitionDelay: `${index * 150}ms` }}
             >
-              <GlassCard className="h-full flex flex-col justify-between" style={{ minHeight: "380px" }}>
-                <div>
-                  <div className="mb-4">
-                    <QuoteIcon className="h-8 w-8 text-blue-500" />
+              <div className="h-full">
+                <div className="h-full flex flex-col justify-between p-6 bg-white rounded-lg border border-slate-200 hover:border-blue-200 hover:shadow-lg transition-all duration-300 shadow-sm" style={{ minHeight: "380px" }}>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <QuoteIcon className="h-8 w-8 text-blue-500" />
+                      <div className="flex space-x-1">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                        ))}
+                      </div>
+                    </div>
+                    <blockquote className="text-slate-700 text-base leading-relaxed">
+                      "{testimonial.quote}"
+                    </blockquote>
                   </div>
-                  <p className="text-gray-700 mb-6">{testimonial.quote}</p>
+                  <div className="flex items-center gap-4 mt-6 pt-4 border-t border-slate-100">
+                    <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                      {testimonial.avatar}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-slate-800">{testimonial.author}</h4>
+                      <p className="text-slate-500 text-sm">{testimonial.role}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4 mt-auto">
-                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">{testimonial.author}</h4>
-                    <p className="text-sm text-gray-500">{testimonial.role}</p>
-                  </div>
-                </div>
-              </GlassCard>
+              </div>
             </div>
           ))}
         </div>

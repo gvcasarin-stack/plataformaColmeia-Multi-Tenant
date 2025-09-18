@@ -41,7 +41,32 @@ export function middleware(request: NextRequest) {
     response.headers.set('x-tenant-name', 'Suprema Solar'); // SEM acento!
     response.headers.set('x-tenant-trial', 'true');
   }
-  
+
+  // 🔒 VALIDAÇÃO DE SEGURANÇA ADICIONAL - Bloquear acesso a domínios não reconhecidos
+  const isKnownTenant = hostname.includes('goias-solar') ||
+                       hostname.includes('suprema') ||
+                       hostname.includes('gerenciamentofotovoltaico.com.br') || // Domínio principal para marketing
+                       hostname.includes('localhost') ||
+                       hostname.includes('127.0.0.1') ||
+                       hostname.includes('vercel.app');
+
+  if (!isKnownTenant && !pathname.startsWith('/api/')) {
+    // Redirecionar para página de erro ou página principal
+    console.log(`🚨 [MIDDLEWARE] Acesso bloqueado para domínio desconhecido: ${hostname}`);
+    return NextResponse.redirect(new URL('https://gerenciamentofotovoltaico.com.br', request.url));
+  }
+
+  // 🔒 MONITORAMENTO DE TENTATIVAS SUSPEITAS
+  if (pathname.startsWith('/admin') || pathname.startsWith('/cliente')) {
+    console.log(`🔍 [MIDDLEWARE] Acesso monitorado:`, {
+      hostname,
+      pathname,
+      userAgent: request.headers.get('user-agent')?.substring(0, 100),
+      ip: request.ip || request.headers.get('x-forwarded-for'),
+      timestamp: new Date().toISOString()
+    });
+  }
+
   return response;
 }
 

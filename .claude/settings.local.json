@@ -8,7 +8,12 @@
       "Bash(npm run lint)",
       "Bash(git commit:*)",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git push:*)",
+      "Bash(mkdir:*)",
+      "Bash(copy:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,6 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import { useEffect, useState } from "react"
 import { TechBackground } from "./tech-background"
 import { CircuitPattern } from "./circuit-pattern"
@@ -63,12 +63,11 @@ export default function HeroSection() {
                   </span>
                 </span>
               </div>
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-blue-700">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-slate-900">
                 Sistema de Gerenciamento Fotovoltaico
               </h1>
-              <p className="max-w-[600px] text-gray-700 md:text-xl mt-4">
-                Tenha sua própria plataforma digital para organizar arquivos, automatizar notificações, gerar ordens de
-                serviço profissionais e encantar seus clientes — tudo isso com mais agilidade, controle e credibilidade.
+              <p className="max-w-[600px] text-slate-600 md:text-xl mt-4">
+                A plataforma definitiva para empresas e profissionais de homologação de projetos fotovoltaicos. Centralize a gestão de ponta a ponta: organize arquivos, automatize notificações e emita ordens de serviço impecáveis. O resultado: agilidade para acelerar aprovações, controle total do fluxo de trabalho e a máxima credibilidade no mercado.
               </p>
             </div>
 
@@ -76,23 +75,21 @@ export default function HeroSection() {
             <div className="hidden lg:flex flex-col gap-2 min-[400px]:flex-row mt-6">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 relative overflow-hidden group shadow-lg shadow-blue-500/20"
+                className="bg-blue-600 hover:bg-blue-700 shadow-sm"
                 asChild
               >
                 <a href="#precos">
-                  <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                   Começar agora
-                  <ArrowRight className="ml-2 h-4 w-4 animate-pulse" />
+                  <ChevronRight className="ml-2 h-4 w-4" />
                 </a>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="relative overflow-hidden border-2 border-blue-500/20 hover:border-blue-500/40 shadow-lg text-gray-700 hover:text-blue-700"
+                className="border border-slate-300 hover:border-blue-300 text-slate-700 hover:text-blue-700 bg-white"
                 asChild
               >
                 <a href="https://wa.me/554899000387" target="_blank" rel="noopener noreferrer">
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-50 to-green-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                   <span className="relative">Agendar demonstração</span>
                 </a>
               </Button>

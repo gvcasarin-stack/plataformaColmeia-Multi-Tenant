@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getCurrentDomainTenantId } from '@/lib/utils/tenant-client';
 import toast from 'react-hot-toast';
 
 /**
@@ -21,12 +22,31 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tenantWarning, setTenantWarning] = useState<string | null>(null);
+  const [domainInfo, setDomainInfo] = useState<{ tenantId: string | null; hostname: string }>({
+    tenantId: null,
+    hostname: ''
+  });
   const { user, signInWithPassword, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
 
-  // Logger para monitorar acesso
+  // 🔒 VALIDAÇÃO PREVENTIVA: Detectar informações do domínio atual
   useEffect(() => {
     console.log('🔑 [ADMIN-LOGIN] useEffect executado - página carregada');
+
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const tenantId = getCurrentDomainTenantId();
+
+      setDomainInfo({ tenantId, hostname });
+
+      console.log('🔒 [ADMIN-LOGIN] Domínio detectado:', {
+        hostname,
+        tenantId,
+        isGoiasSolar: hostname.includes('goias-solar'),
+        isSuprema: hostname.includes('suprema')
+      });
+    }
   }, []);
 
   // Redirecionamento apenas se usuário tiver papel de admin/superadmin
@@ -44,6 +64,62 @@ export default function AdminLoginPage() {
     }
   }, [user, authIsLoading, router]);
 
+  // 🔒 VALIDAÇÃO PREVENTIVA: Detectar possível tentativa cross-tenant
+  const checkTenantMismatch = (userEmail: string) => {
+    if (!domainInfo.tenantId || !userEmail) return;
+
+    const isGoiasSolarDomain = domainInfo.hostname.includes('goias-solar');
+    const isSupremaDomain = domainInfo.hostname.includes('suprema');
+
+    // Heurística: detectar possível mismatch baseado no e-mail
+    const emailLowerCase = userEmail.toLowerCase();
+
+    if (isGoiasSolarDomain) {
+      // Está no domínio Goiás Solar - verificar se e-mail pode ser da Suprema
+      if (emailLowerCase.includes('suprema') ||
+          emailLowerCase.includes('luan') ||
+          emailLowerCase.endsWith('@suprema.com') ||
+          emailLowerCase.endsWith('@supremasolar.com')) {
+
+        setTenantWarning(
+          '⚠️ Atenção: Você está tentando fazer login no domínio da Goiás Solar, mas seu e-mail parece ser da Suprema Solar. ' +
+          'Você deveria fazer login em suprema-solar.gerenciamentofotovoltaico.com.br'
+        );
+        return true;
+      }
+    }
+
+    if (isSupremaDomain) {
+      // Está no domínio Suprema - verificar se e-mail pode ser da Goiás
+      if (emailLowerCase.includes('goias') ||
+          emailLowerCase.includes('goiás') ||
+          emailLowerCase.includes('gabriel') ||
+          emailLowerCase.endsWith('@goiassolar.com') ||
+          emailLowerCase.endsWith('@colmeiasolar.com')) {
+
+        setTenantWarning(
+          '⚠️ Atenção: Você está tentando fazer login no domínio da Suprema Solar, mas seu e-mail parece ser da Goiás Solar. ' +
+          'Você deveria fazer login em goias-solar.gerenciamentofotovoltaico.com.br'
+        );
+        return true;
+      }
+    }
+
+    // Limpar warning se não há mismatch
+    if (tenantWarning) {
+      setTenantWarning(null);
+    }
+
+    return false;
+  };
+
+  // Validar tenant quando e-mail mudar
+  useEffect(() => {
+    if (email && domainInfo.tenantId) {
+      checkTenantMismatch(email);
+    }
+  }, [email, domainInfo.tenantId, domainInfo.hostname]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -55,6 +131,19 @@ export default function AdminLoginPage() {
         position: 'top-center',
       });
       return;
+    }
+
+    // 🔒 VERIFICAÇÃO ADICIONAL: Se há warning de tenant, pedir confirmação
+    if (tenantWarning) {
+      const shouldContinue = window.confirm(
+        tenantWarning + '\n\nTem certeza que deseja continuar com este login? ' +
+        'Lembre-se que o sistema irá bloquear automaticamente se você não pertencer a esta organização.'
+      );
+
+      if (!shouldContinue) {
+        console.log('🔒 [ADMIN-LOGIN] Login cancelado pelo usuário devido ao warning de tenant');
+        return;
+      }
     }
 
     try {
@@ -128,7 +217,23 @@ export default function AdminLoginPage() {
         {/* Formulário de login */}
         <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold mb-4 dark:text-white">Login do Administrador</h2>
-          
+
+          {/* 🔒 AVISO DE TENANT MISMATCH */}
+          {tenantWarning && (
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-800">{tenantWarning}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

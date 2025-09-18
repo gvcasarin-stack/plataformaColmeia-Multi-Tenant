@@ -38,11 +38,11 @@ export default function PricingSection() {
     <section id="precos" className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
       <div className="container mx-auto px-4 md:px-6 max-w-7xl">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-gray-900 mb-4">
-            Planos que cabem no seu bolso
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-slate-800 mb-4">
+            Um Plano para Cada Fase do Seu Negócio
           </h2>
-          <p className="mx-auto max-w-[700px] text-gray-600 md:text-xl">
-            Comece com 7 dias grátis. Sem cartão de crédito. Cancele quando quiser.
+          <p className="mx-auto max-w-[700px] text-slate-600 md:text-xl">
+            Comece hoje com 7 dias de teste gratuito. Sem compromisso e sem a necessidade de cartão de crédito.
           </p>
         </div>
 

@@ -8,6 +8,7 @@ import { profileCache } from '@/lib/cache/profileCache';
 import { fetchUserProfileWithRecovery } from '@/lib/recovery/errorRecovery';
 import { devLog } from "@/lib/utils/productionLogger";
 import { logger } from '@/lib/utils/logger';
+import { getCurrentDomainTenantId, getUserTenantInfo } from '@/lib/utils/tenant-client';
 // ✅ SUPABASE - Imports otimizados (sessão gerenciada pelo InactivityContext)
 
 // ✅ PHASE 1: Performance tracking aprimorado com logging estruturado
@@ -763,8 +764,60 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     logger.auth.login(identifier, true, { userId: signInData.user?.id });
 
     if (signInData.user && signInData.session) {
-      logger.debug('User and session present, fetching profile', { userId: signInData.user.id }, 'Auth');
-      
+      logger.debug('User and session present, validating tenant', { userId: signInData.user.id }, 'Auth');
+
+      // 🔒 VALIDAÇÃO CRÍTICA DE SEGURANÇA: Verificar se usuário pertence ao tenant do domínio atual
+      try {
+        const domainTenantId = getCurrentDomainTenantId();
+
+        if (domainTenantId) {
+          logger.debug('Validating user tenant against domain tenant', {
+            userId: signInData.user.id,
+            domainTenantId
+          }, 'Auth');
+
+          const userTenantInfo = await getUserTenantInfo(signInData.user.id);
+
+          if (!userTenantInfo || userTenantInfo.tenant_id !== domainTenantId) {
+            logger.warn('🚨 SECURITY: Cross-tenant login attempt blocked', {
+              userId: signInData.user.id,
+              userEmail: signInData.user.email,
+              userTenantId: userTenantInfo?.tenant_id || 'null',
+              domainTenantId,
+              organizationName: userTenantInfo?.organization?.name || 'unknown'
+            }, 'Auth');
+
+            // 🚨 LOGOUT FORÇADO para prevenir acesso cross-tenant
+            await supabase.auth.signOut();
+
+            setUser(null);
+            setSession(null);
+            setAuthState('unauthenticated');
+            setError(new Error('Usuário não autorizado para esta organização') as AuthError);
+            setIsLoading(false);
+
+            return {
+              error: new Error('Usuário não autorizado para esta organização') as AuthError,
+              user: null,
+              session: null
+            };
+          }
+
+          logger.info('✅ Tenant validation passed', {
+            userId: signInData.user.id,
+            tenantId: userTenantInfo.tenant_id,
+            organizationName: userTenantInfo.organization?.name
+          }, 'Auth');
+        }
+
+      } catch (tenantValidationError: any) {
+        logger.error('Error during tenant validation - proceeding with caution', {
+          userId: signInData.user.id,
+          error: tenantValidationError.message
+        }, 'Auth');
+        // Em caso de erro na validação, continuar (mas loggar para auditoria)
+      }
+
       // ✅ PHASE 1: fetchUserProfileInternal já tem retry logic robusto e gerencia cache automaticamente
       const profile = await fetchUserProfileInternal(signInData.user.id);
       
