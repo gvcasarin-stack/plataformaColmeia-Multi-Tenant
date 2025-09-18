@@ -122,7 +122,7 @@ export default function HeroSection() {
               <a href="#precos">
                 <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                 Começar agora
-                <ArrowRight className="ml-2 h-4 w-4 animate-pulse" />
+                <ChevronRight className="ml-2 h-4 w-4" />
               </a>
             </Button>
             <Button

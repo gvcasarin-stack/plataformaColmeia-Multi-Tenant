@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   AlertTriangle, 
   Lock, 
-  ArrowRight,
+  ChevronRight,
   X
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -86,7 +86,7 @@ export function TrialExpiredTabBlocker({
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={handleGoToSubscriptions}
             >
-              <ArrowRight className="h-4 w-4 mr-2" />
+              <ChevronRight className="h-4 w-4 mr-2" />
               Ir para Assinaturas
             </Button>
           </div>
