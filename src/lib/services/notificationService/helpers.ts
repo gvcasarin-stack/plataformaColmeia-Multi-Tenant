@@ -41,7 +41,8 @@ async function sendEmailNotification(type: string, params: any): Promise<boolean
           projectNumber: params.projectNumber,
           potencia: params.potencia,
           distribuidora: params.distribuidora,
-          projectUrl: params.projectUrl
+          projectUrl: params.projectUrl,
+          projectId: params.projectId  // ✅ CORRIGIDO: Adicionar projectId para identificar tenant correto
         });
         
       case 'admin_comment':
