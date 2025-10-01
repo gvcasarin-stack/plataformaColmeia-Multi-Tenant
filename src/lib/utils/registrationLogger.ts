@@ -3,6 +3,8 @@
  * Funciona em PRODUÇÃO para debugging crítico
  */
 
+import { devLog } from './productionLogger'
+
 export interface RegistrationLogEntry {
   timestamp: string;
   step: string;
@@ -24,10 +26,10 @@ export const registrationLogger = {
     };
 
     // Log no console (sempre ativo para debugging)
-    console.log(`[REGISTRATION-${step}] ${message}`, data || '');
+    devLog.log(`[REGISTRATION-${step}] ${message}`, data || '');
     
-    // Log também no console.info para garantir que apareça na Vercel
-    console.info(`[REG-${step}]`, message, data);
+    // Log também no devLog.info para garantir que apareça na Vercel
+    devLog.info(`[REG-${step}]`, message, data);
 
     // Salvar no localStorage para análise posterior
     if (typeof window !== 'undefined') {
@@ -38,7 +40,7 @@ export const registrationLogger = {
         const recentLogs = logs.slice(-50);
         localStorage.setItem('registration_logs', JSON.stringify(recentLogs));
       } catch (e) {
-        console.warn('[REGISTRATION] Erro ao salvar log no localStorage:', e);
+        devLog.warn('[REGISTRATION] Erro ao salvar log no localStorage:', e);
       }
       
       // Enviar log crítico para API (apenas em produção)
@@ -77,10 +79,10 @@ export const registrationLogger = {
     };
 
     // Log de erro no console (sempre ativo)
-    console.error(`[REGISTRATION-ERROR-${step}] ${message}`, error);
+    devLog.error(`[REGISTRATION-ERROR-${step}] ${message}`, error);
     
-    // Log também no console.warn para garantir que apareça na Vercel
-    console.warn(`[REG-ERROR-${step}]`, message, error);
+    // Log também no devLog.warn para garantir que apareça na Vercel
+    devLog.warn(`[REG-ERROR-${step}]`, message, error);
 
     // Salvar erros no localStorage
     if (typeof window !== 'undefined') {
@@ -91,7 +93,7 @@ export const registrationLogger = {
         const recentErrors = errors.slice(-20);
         localStorage.setItem('registration_errors', JSON.stringify(recentErrors));
       } catch (e) {
-        console.warn('[REGISTRATION] Erro ao salvar erro no localStorage:', e);
+        devLog.warn('[REGISTRATION] Erro ao salvar erro no localStorage:', e);
       }
       
       // Enviar erro crítico para API
@@ -120,7 +122,7 @@ export const registrationLogger = {
           errors: JSON.parse(localStorage.getItem('registration_errors') || '[]')
         };
       } catch (e) {
-        console.warn('[REGISTRATION] Erro ao recuperar logs:', e);
+        devLog.warn('[REGISTRATION] Erro ao recuperar logs:', e);
         return { logs: [], errors: [] };
       }
     }
@@ -134,7 +136,7 @@ export const registrationLogger = {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('registration_logs');
       localStorage.removeItem('registration_errors');
-      console.log('[REGISTRATION] Logs limpos');
+      devLog.log('[REGISTRATION] Logs limpos');
     }
   }
 };

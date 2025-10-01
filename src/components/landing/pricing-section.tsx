@@ -7,11 +7,11 @@ export default function PricingSection() {
   const plans = [
     {
       name: "Básico",
-      price: "299",
+      price: "199",
       description: "Ideal para empresas pequenas",
       features: [
-        "30 projetos",
-        "3GB de armazenamento",
+        "60 projetos",
+        "10GB de armazenamento",
         "10 usuários",
         "100 clientes",
         "Suporte por email"
@@ -20,11 +20,11 @@ export default function PricingSection() {
     },
     {
       name: "Profissional",
-      price: "399",
+      price: "349",
       description: "Perfeito para empresas em crescimento",
       features: [
-        "100 projetos",
-        "10GB de armazenamento",
+        "500 projetos",
+        "100GB de armazenamento",
         "50 usuários",
         "1.000 clientes",
         "Suporte prioritário",

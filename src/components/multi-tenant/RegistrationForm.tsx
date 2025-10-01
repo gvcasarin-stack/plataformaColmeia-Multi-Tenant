@@ -18,6 +18,7 @@ interface FormErrors {
   adminName?: string
   adminEmail?: string
   adminPassword?: string
+  adminPhone?: string
   plan?: string
   acceptedTerms?: string
   acceptedPrivacy?: string
@@ -44,6 +45,7 @@ export function RegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const [isNextStepLoading, setIsNextStepLoading] = useState(false)
   
   // Estados do formulário
   const [formData, setFormData] = useState<RegistrationData>({
@@ -52,6 +54,7 @@ export function RegistrationForm() {
     adminName: '',
     adminEmail: '',
     adminPassword: '',
+    adminPhone: '',
     plan: 'basico'
   })
   
@@ -66,6 +69,8 @@ export function RegistrationForm() {
     message: '',
     suggestions: []
   })
+
+  // 🛠️ CAMPOS INDEPENDENTES: Nome da empresa e URL são totalmente independentes
 
   // Função para gerar slug automaticamente
   const generateSlug = (companyName: string): string => {
@@ -126,13 +131,9 @@ export function RegistrationForm() {
     return () => clearTimeout(timer)
   }, [formData.slug])
 
-  // Atualizar slug automaticamente quando o nome da empresa muda
-  useEffect(() => {
-    if (formData.companyName && !formData.slug) {
-      const newSlug = generateSlug(formData.companyName)
-      setFormData(prev => ({ ...prev, slug: newSlug }))
-    }
-  }, [formData.companyName, formData.slug])
+  // 🛠️ CORRIGIDO: DESABILITAR AUTO-PREENCHIMENTO COMPLETAMENTE
+  // Campos Nome da Empresa e URL são agora totalmente independentes
+  // useEffect removido para garantir independência total dos campos
 
   // Validação da senha
   const getPasswordStrength = (password: string) => {
@@ -168,13 +169,19 @@ export function RegistrationForm() {
       if (!formData.adminName.trim()) {
         newErrors.adminName = 'Nome do administrador é obrigatório'
       }
-      
+
       if (!formData.adminEmail.trim()) {
         newErrors.adminEmail = 'Email é obrigatório'
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) {
         newErrors.adminEmail = 'Email inválido'
       }
-      
+
+      if (!formData.adminPhone.trim()) {
+        newErrors.adminPhone = 'Telefone (WhatsApp) é obrigatório'
+      } else if (!/^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(formData.adminPhone) && !/^\d{10,11}$/.test(formData.adminPhone.replace(/\D/g, ''))) {
+        newErrors.adminPhone = 'Formato de telefone inválido. Use (11) 99999-9999 ou apenas números'
+      }
+
       if (!formData.adminPassword) {
         newErrors.adminPassword = 'Senha é obrigatória'
       } else if (passwordStrength.score < 5) {
@@ -196,10 +203,48 @@ export function RegistrationForm() {
     return Object.keys(newErrors).length === 0
   }
 
+  // Função para enviar dados para o webhook de marketing
+  const sendMarketingWebhook = async () => {
+    try {
+      const webhookData = {
+        nome_completo: formData.adminName,
+        email: formData.adminEmail,
+        telefone: formData.adminPhone
+      }
+
+      devLog.log('🎯 Enviando dados para webhook de marketing:', webhookData)
+
+      const response = await fetch('https://webhook.colmeiasolar.digital/webhook/formulario', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookData)
+      })
+
+      if (response.ok) {
+        devLog.log('✅ Webhook de marketing enviado com sucesso')
+      } else {
+        devLog.warn('⚠️ Webhook de marketing falhou, mas continuando o fluxo normal')
+      }
+    } catch (error) {
+      devLog.error('❌ Erro ao enviar webhook de marketing:', error)
+      // Não interromper o fluxo normal por causa de erro no webhook
+    }
+  }
+
   // Próximo passo
-  const nextStep = () => {
+  const nextStep = async () => {
     if (validateForm()) {
+      setIsNextStepLoading(true)
+
+      // Se estamos no passo 2 e temos os dados do administrador, enviar para webhook
+      if (currentStep === 2 && formData.adminName && formData.adminEmail && formData.adminPhone) {
+        await sendMarketingWebhook()
+      }
+
       setCurrentStep(prev => Math.min(prev + 1, 3))
+      setIsNextStepLoading(false)
     }
   }
 
@@ -219,7 +264,7 @@ export function RegistrationForm() {
     setIsSubmitting(true)
     
     // Log visível no console do navegador
-    console.log('🚀 INICIANDO REGISTRO DE ORGANIZAÇÃO', {
+    devLog.log('🚀 INICIANDO REGISTRO DE ORGANIZAÇÃO', {
       companyName: formData.companyName,
       slug: formData.slug,
       plan: formData.plan,
@@ -236,7 +281,7 @@ export function RegistrationForm() {
       const result = await registerOrganization(formData)
 
       if (result.success) {
-        console.log('✅ REGISTRO CONCLUÍDO COM SUCESSO!', result)
+        devLog.log('✅ REGISTRO CONCLUÍDO COM SUCESSO!', result)
         registrationLogger.log('FORM_SUCCESS', 'Registro concluído com sucesso', result)
         
         toast({
@@ -249,7 +294,7 @@ export function RegistrationForm() {
           window.location.href = result.redirectUrl
         }
       } else {
-        console.error('❌ ERRO NO REGISTRO:', result)
+        devLog.error('❌ ERRO NO REGISTRO:', result)
         registrationLogger.error('FORM_ERROR', 'Erro retornado pela função de registro', result)
         
         toast({
@@ -259,7 +304,7 @@ export function RegistrationForm() {
         })
       }
     } catch (error) {
-      console.error('❌ ERRO INESPERADO NO REGISTRO:', error)
+      devLog.error('❌ ERRO INESPERADO NO REGISTRO:', error)
       registrationLogger.error('FORM_EXCEPTION', 'Erro inesperado na submissão do formulário', error)
       devLog.error('Erro no registro:', error)
       
@@ -298,7 +343,10 @@ export function RegistrationForm() {
               <Input
                 id="slug"
                 value={formData.slug}
-                onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, slug: e.target.value }))
+                  // 🛠️ CAMPOS INDEPENDENTES: URL não depende mais do nome da empresa
+                }}
                 placeholder="solar-tech-energia"
                 className={`mt-1 h-12 ${errors.slug ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
               />
@@ -377,12 +425,12 @@ export function RegistrationForm() {
                     <label htmlFor="plan-basico" className="font-semibold text-lg cursor-pointer">Básico</label>
                   </div>
                   <div className="mb-4">
-                    <span className="text-2xl font-bold text-blue-600">R$ 299</span>
+                    <span className="text-2xl font-bold text-blue-600">R$ 199</span>
                     <span className="text-gray-600">/mês</span>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-2">
-                    <li>• 30 projetos</li>
-                    <li>• 3GB de armazenamento</li>
+                    <li>• 60 projetos</li>
+                    <li>• 10GB de armazenamento</li>
                     <li>• 10 usuários</li>
                     <li>• 100 clientes</li>
                     <li>• Suporte por email</li>
@@ -417,12 +465,12 @@ export function RegistrationForm() {
                     <label htmlFor="plan-profissional" className="font-semibold text-lg cursor-pointer">Profissional</label>
                   </div>
                   <div className="mb-4">
-                    <span className="text-2xl font-bold text-blue-600">R$ 399</span>
+                    <span className="text-2xl font-bold text-blue-600">R$ 349</span>
                     <span className="text-gray-600">/mês</span>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-2">
-                    <li>• 100 projetos</li>
-                    <li>• 10GB de armazenamento</li>
+                    <li>• 500 projetos</li>
+                    <li>• 100GB de armazenamento</li>
                     <li>• 50 usuários</li>
                     <li>• 1.000 clientes</li>
                     <li>• Suporte prioritário</li>
@@ -463,6 +511,21 @@ export function RegistrationForm() {
               />
               {errors.adminEmail && (
                 <p className="text-sm text-red-500 mt-1">{errors.adminEmail}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="adminPhone" className="text-sm font-medium text-gray-700">Telefone (WhatsApp) *</Label>
+              <Input
+                id="adminPhone"
+                type="tel"
+                value={formData.adminPhone}
+                onChange={(e) => setFormData(prev => ({ ...prev, adminPhone: e.target.value }))}
+                placeholder="(11) 99999-9999"
+                className={`mt-1 h-12 ${errors.adminPhone ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+              />
+              {errors.adminPhone && (
+                <p className="text-sm text-red-500 mt-1">{errors.adminPhone}</p>
               )}
             </div>
 
@@ -518,7 +581,7 @@ export function RegistrationForm() {
                 <div className="space-y-1 text-sm">
                   <p><span className="font-medium">Nome:</span> {formData.companyName}</p>
                   <p><span className="font-medium">Subdomínio:</span> {formData.slug}.gerenciamentofotovoltaico.com.br</p>
-                  <p><span className="font-medium">Plano:</span> {formData.plan === 'basico' ? 'Básico (R$ 299/mês)' : 'Profissional (R$ 399/mês)'}</p>
+                  <p><span className="font-medium">Plano:</span> {formData.plan === 'basico' ? 'Básico (R$ 199/mês)' : 'Profissional (R$ 349/mês)'}</p>
                 </div>
               </div>
 
@@ -528,6 +591,7 @@ export function RegistrationForm() {
                 <div className="space-y-1 text-sm">
                   <p><span className="font-medium">Nome:</span> {formData.adminName}</p>
                   <p><span className="font-medium">Email:</span> {formData.adminEmail}</p>
+                  <p><span className="font-medium">Telefone (WhatsApp):</span> {formData.adminPhone}</p>
                 </div>
               </div>
             </div>
@@ -622,13 +686,20 @@ export function RegistrationForm() {
           
           <div className={currentStep === 1 ? 'ml-auto' : ''}>
             {currentStep < 3 ? (
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 onClick={nextStep}
-                disabled={currentStep === 1 && (!formData.companyName || !formData.slug || !slugValidation.isAvailable)}
+                disabled={(currentStep === 1 && (!formData.companyName || !formData.slug || !slugValidation.isAvailable)) || isNextStepLoading}
                 className="bg-gray-800 hover:bg-gray-900 text-white px-8 py-2 rounded-md font-medium"
               >
-                Continuar
+                {isNextStepLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  'Continuar'
+                )}
               </Button>
             ) : (
               <Button 

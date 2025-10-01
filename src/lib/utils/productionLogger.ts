@@ -8,18 +8,12 @@
  * - Manter logs apenas em desenvolvimento
  */
 
-// Detecta se está em produção - FORÇAR PRODUÇÃO PARA VERCEL
-const isProduction = process.env.NODE_ENV === 'production' || 
-                    process.env.VERCEL_ENV === 'production' ||
-                    (typeof window !== 'undefined' && 
-                     window.location.hostname.includes('vercel.app'));
+// Detecta se está em produção - INCLUIR DOMINIO DE PRODUÇÃO
+const isProduction = process.env.NODE_ENV === 'production' ||
+                    process.env.VERCEL_ENV === 'production';
 
-// Detecta se é desenvolvimento - APENAS localhost
-const isDevelopment = !isProduction && 
-                     (process.env.NODE_ENV === 'development' || 
-                      (typeof window !== 'undefined' && 
-                       (window.location.hostname.includes('localhost') || 
-                        window.location.hostname.includes('127.0.0.1'))));
+// Detecta se é desenvolvimento - APENAS localhost e ambientes de dev
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 /**
  * Logger condicional que só executa em desenvolvimento
@@ -32,28 +26,28 @@ export const devLog = {
       console.log(...args);
     }
   },
-  
+
   error: (...args: any[]) => {
     // NUNCA loga em produção
     if (isDevelopment) {
       console.error(...args);
     }
   },
-  
+
   warn: (...args: any[]) => {
     // NUNCA loga em produção
     if (isDevelopment) {
       console.warn(...args);
     }
   },
-  
+
   info: (...args: any[]) => {
     // NUNCA loga em produção
     if (isDevelopment) {
       console.info(...args);
     }
   },
-  
+
   debug: (...args: any[]) => {
     // NUNCA loga em produção
     if (isDevelopment) {

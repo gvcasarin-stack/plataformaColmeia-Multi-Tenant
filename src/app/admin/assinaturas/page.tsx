@@ -22,7 +22,7 @@ import {
 import { useAuth } from '@/lib/hooks/useAuth';
 import { devLog } from '@/lib/utils/productionLogger';
 import { openStripeCheckoutInNewTab } from '@/lib/stripe/client';
-import { STRIPE_PLANS } from '@/lib/stripe/config';
+import { getStripePlans } from '@/lib/stripe/config';
 
 // Interfaces para tipagem
 interface Organization {
@@ -81,6 +81,7 @@ export default function AssinaturasPage() {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [manualSyncAvailable, setManualSyncAvailable] = useState(false);
+  const [stripePlans, setStripePlans] = useState<any>(null);
 
   // Detectar sucesso no pagamento
   const paymentSuccess = searchParams.get('success') === 'true';
@@ -270,7 +271,7 @@ export default function AssinaturasPage() {
         
         // Mostrar mensagem de sucesso temporária
         const successMessage = 'Redirecionando para pagamento... Verifique a nova guia que abriu.';
-        console.log('✅ [Stripe] ' + successMessage);
+        devLog.log('✅ [Stripe] ' + successMessage);
       } else {
         throw new Error('URL de checkout não foi retornada');
       }
@@ -337,6 +338,20 @@ export default function AssinaturasPage() {
       setPaymentProcessing(false);
     }
   };
+
+  // Carregar planos do banco de dados
+  useEffect(() => {
+    async function loadPlans() {
+      try {
+        const plans = await getStripePlans();
+        setStripePlans(plans);
+        devLog.log('[Assinaturas] Planos carregados do banco:', plans);
+      } catch (error) {
+        devLog.error('[Assinaturas] Erro ao carregar planos:', error);
+      }
+    }
+    loadPlans();
+  }, []);
 
   // Carregar dados ao montar o componente
   useEffect(() => {
@@ -428,7 +443,7 @@ export default function AssinaturasPage() {
     }
   };
 
-  if (loading) {
+  if (loading || !stripePlans) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
@@ -556,238 +571,6 @@ export default function AssinaturasPage() {
         </Alert>
       )}
 
-      {/* Debug removido para produção */}
-      {false && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <AlertTriangle className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-800">🔧 Debug Info (Desenvolvimento)</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            {organization ? (
-              <div className="mt-2 text-xs font-mono">
-                <div><strong>Organization ID:</strong> {organization.id}</div>
-                <div><strong>Tenant ID:</strong> {organization.tenant_id || '❌ FALTANDO'}</div>
-                <div><strong>Nome:</strong> {organization.name}</div>
-                <div><strong>Trial:</strong> {organization.is_trial ? '✅' : '❌'}</div>
-              </div>
-            ) : (
-              <div className="mt-2 text-sm text-red-600">
-                ❌ Organização não carregada - Erro 500 na API
-              </div>
-            )}
-            <div className="mt-3 flex gap-2">
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
-                    const headers = await createTenantHeaders(user?.id || '');
-                    
-                    const response = await fetch('/api/debug/organization-test', {
-                      method: 'GET',
-                      headers
-                    });
-                    
-                    const result = await response.json();
-                    console.log('🔍 Debug Organization Test:', result);
-                    alert('Resultado do teste no console');
-                  } catch (error) {
-                    console.error('Erro no teste:', error);
-                    alert('Erro no teste - veja o console');
-                  }
-                }}
-              >
-                🧪 Testar API
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => {
-                  console.log('🔍 Debug - Estado atual:');
-                  console.log('- Organization:', organization);
-                  console.log('- User:', user);
-                  console.log('- Loading:', loading);
-                  console.log('- Error:', error);
-                }}
-              >
-                🐛 Log Estado
-              </Button>
-              {organization && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/debug/check-organization', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          organizationId: organization.id,
-                          tenantId: organization.tenant_id || organization.id
-                        })
-                      });
-                      
-                      const result = await response.json();
-                      console.log('🔍 Check Organization:', result);
-                      alert('Resultado da verificação no console');
-                    } catch (error) {
-                      console.error('Erro na verificação:', error);
-                      alert('Erro na verificação - veja o console');
-                    }
-                  }}
-                >
-                  🔍 Check DB
-                </Button>
-              )}
-              {organization && (
-                <>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch('/api/debug/simulate-payment-flow', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            organizationId: organization.id,
-                            tenantId: organization.tenant_id || organization.id,
-                            step: 'start'
-                          })
-                        });
-                        
-                        const result = await response.json();
-                        console.log('🔴 Simular Trial Expirado:', result);
-                        
-                        if (result.success) {
-                          alert('🔴 Trial expirado simulado! Recarregando página...');
-                          setTimeout(() => window.location.reload(), 1000);
-                        } else {
-                          alert('❌ Erro: ' + result.error);
-                        }
-                      } catch (error) {
-                        console.error('Erro:', error);
-                        alert('Erro - veja o console');
-                      }
-                    }}
-                  >
-                    🔴 Trial Expirado
-                  </Button>
-                  
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch('/api/debug/simulate-payment-flow', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            organizationId: organization.id,
-                            tenantId: organization.tenant_id || organization.id,
-                            step: 'payment'
-                          })
-                        });
-                        
-                        const result = await response.json();
-                        console.log('✅ Simular Pagamento:', result);
-                        
-                        if (result.success) {
-                          alert('✅ Pagamento simulado! Recarregando página...');
-                          setTimeout(() => window.location.reload(), 1000);
-                        } else {
-                          alert('❌ Erro: ' + result.error);
-                        }
-                      } catch (error) {
-                        console.error('Erro:', error);
-                        alert('Erro - veja o console');
-                      }
-                    }}
-                  >
-                    ✅ Simular Pagamento
-                  </Button>
-                  
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch('/api/debug/simulate-payment-flow', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            organizationId: organization.id,
-                            tenantId: organization.tenant_id || organization.id,
-                            step: 'reset'
-                          })
-                        });
-                        
-                        const result = await response.json();
-                        console.log('🔄 Reset Trial:', result);
-                        
-                        if (result.success) {
-                          alert('🔄 Trial resetado! Recarregando página...');
-                          setTimeout(() => window.location.reload(), 1000);
-                        } else {
-                          alert('❌ Erro: ' + result.error);
-                        }
-                      } catch (error) {
-                        console.error('Erro:', error);
-                        alert('Erro - veja o console');
-                      }
-                    }}
-                  >
-                    🔄 Reset Trial
-                  </Button>
-                  
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        console.log('🧪 Testando Stripe diretamente...');
-                        const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
-                        const headers = await createTenantHeaders(user?.id || '');
-                        
-                        const response = await fetch('/api/stripe/create-checkout-session', {
-                          method: 'POST',
-                          headers: {
-                            ...headers,
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            planType: 'profissional',
-                            organizationId: organization.id,
-                            tenantId: organization.tenant_id || organization.id
-                          }),
-                        });
-                        
-                        const result = await response.json();
-                        console.log('🔍 Stripe Response:', {
-                          status: response.status,
-                          result,
-                          headers: Object.fromEntries(response.headers.entries())
-                        });
-                        
-                        if (response.ok && result.success) {
-                          alert('✅ Stripe funcionando! URL: ' + result.url?.substring(0, 50) + '...');
-                        } else {
-                          alert('❌ Erro Stripe: ' + JSON.stringify(result, null, 2));
-                        }
-                      } catch (error) {
-                        console.error('Erro no teste Stripe:', error);
-                        alert('❌ Erro: ' + error.message);
-                      }
-                    }}
-                  >
-                    🔍 Test Stripe
-                  </Button>
-                </>
-              )}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informações do Plano */}
@@ -811,38 +594,38 @@ export default function AssinaturasPage() {
                 </div>
                 
                 <p className="text-3xl font-bold text-green-600 mb-4">
-                  R$ {STRIPE_PLANS.basico.price.toLocaleString('pt-BR')}/mês
+                  R$ {stripePlans.basico.price.toLocaleString('pt-BR')}/mês
                 </p>
-                
+
                 <div className="space-y-3 text-sm text-gray-700 mb-6">
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.basico.features.max_projects} projetos</strong>
+                      <strong>{stripePlans.basico.features.max_projects} projetos</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.basico.features.max_users} usuários</strong>
+                      <strong>{stripePlans.basico.features.max_users} usuários</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.basico.features.max_clients} clientes</strong>
+                      <strong>{stripePlans.basico.features.max_clients} clientes</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.basico.features.max_storage_gb}GB storage</strong>
+                      <strong>{stripePlans.basico.features.max_storage_gb}GB storage</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.basico.features.api_calls_per_day.toLocaleString('pt-BR')} API calls/dia</strong>
+                      <strong>{stripePlans.basico.features.api_calls_per_day.toLocaleString('pt-BR')} API calls/dia</strong>
                     </span>
                   </div>
                   
@@ -919,50 +702,50 @@ export default function AssinaturasPage() {
             <div className="space-y-4">
               <div className="border rounded-lg p-6 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-xl text-blue-900">{STRIPE_PLANS.profissional.name}</h3>
+                  <h3 className="font-bold text-xl text-blue-900">{stripePlans.profissional.name}</h3>
                   <Badge className="bg-blue-100 text-blue-700 border-blue-200">
                     Upgrade Recomendado
                   </Badge>
                 </div>
-                
+
                 <p className="text-3xl font-bold text-green-600 mb-4">
-                  R$ {STRIPE_PLANS.profissional.price.toLocaleString('pt-BR')}/mês
+                  R$ {stripePlans.profissional.price.toLocaleString('pt-BR')}/mês
                 </p>
-                
+
                 <div className="space-y-3 text-sm text-gray-700 mb-6">
                   <div className="flex items-center gap-2">
                     <span className="text-blue-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.profissional.features.max_projects} projetos</strong>
-                      <span className="text-xs text-gray-500 ml-1">(vs {STRIPE_PLANS.basico.features.max_projects} atual)</span>
+                      <strong>{stripePlans.profissional.features.max_projects} projetos</strong>
+                      <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_projects} atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-blue-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.profissional.features.max_users} usuários</strong>
-                      <span className="text-xs text-gray-500 ml-1">(vs {STRIPE_PLANS.basico.features.max_users} atual)</span>
+                      <strong>{stripePlans.profissional.features.max_users} usuários</strong>
+                      <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_users} atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-blue-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.profissional.features.max_clients} clientes</strong>
-                      <span className="text-xs text-gray-500 ml-1">(vs {STRIPE_PLANS.basico.features.max_clients} atual)</span>
+                      <strong>{stripePlans.profissional.features.max_clients} clientes</strong>
+                      <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_clients} atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-blue-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.profissional.features.max_storage_gb}GB storage</strong>
-                      <span className="text-xs text-gray-500 ml-1">(vs {STRIPE_PLANS.basico.features.max_storage_gb}GB atual)</span>
+                      <strong>{stripePlans.profissional.features.max_storage_gb}GB storage</strong>
+                      <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_storage_gb}GB atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-blue-500">✓</span>
                     <span>
-                      <strong>{STRIPE_PLANS.profissional.features.api_calls_per_day.toLocaleString('pt-BR')} API calls/dia</strong>
-                      <span className="text-xs text-gray-500 ml-1">(vs {STRIPE_PLANS.basico.features.api_calls_per_day.toLocaleString('pt-BR')} atual)</span>
+                      <strong>{stripePlans.profissional.features.api_calls_per_day.toLocaleString('pt-BR')} API calls/dia</strong>
+                      <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.api_calls_per_day.toLocaleString('pt-BR')} atual)</span>
                     </span>
                   </div>
                   
@@ -1000,13 +783,13 @@ export default function AssinaturasPage() {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
                   onClick={() => handleUpgrade('profissional')}
                   disabled={isUpgrading}
                 >
                   <TrendingUp className="h-4 w-4 mr-2" />
-                  {isUpgrading ? 'Processando...' : `Fazer Upgrade para ${STRIPE_PLANS.profissional.name}`}
+                  {isUpgrading ? 'Processando...' : `Fazer Upgrade para ${stripePlans.profissional.name}`}
                 </Button>
                 
                 <p className="text-xs text-center text-gray-500 mt-3">
@@ -1019,7 +802,7 @@ export default function AssinaturasPage() {
       </div>
 
       {/* Uso dos Recursos */}
-      {usageStats && (
+      {usageStats && usageStats.projects && usageStats.users && usageStats.clients && usageStats.storage && usageStats.apiCalls && (
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
