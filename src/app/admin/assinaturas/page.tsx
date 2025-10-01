@@ -666,14 +666,10 @@ export default function AssinaturasPage() {
                     </p>
                   </div>
                 ) : (
-                  // Trial ou trial expirado - mostrar botão de upgrade
-                  <Button 
+                  // Trial ou trial expirado - mostrar botão de upgrade para BÁSICO
+                  <Button
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3"
-                    onClick={() => {
-                      // Se trial expirado, usar plano básico, senão profissional
-                      const targetPlan = trialInfo?.isExpired ? 'basico' : 'profissional';
-                      handleUpgrade(targetPlan);
-                    }}
+                    onClick={() => handleUpgrade('basico')}
                     disabled={isUpgrading}
                   >
                     <TrendingUp className="h-4 w-4 mr-2" />
