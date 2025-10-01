@@ -5,12 +5,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getStripeConfig, STRIPE_PLANS, getStripeUrls, PlanType } from '@/lib/stripe/config';
+import { getStripeConfig, STRIPE_IDS, getStripeUrls, PlanType } from '@/lib/stripe/config';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createSupabaseServiceRoleClient();
+
     // Inicializar Stripe com validação detalhada
     const stripeConfig = getStripeConfig();
     
@@ -55,16 +57,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se o plano existe
-    if (!STRIPE_PLANS[planType as PlanType]) {
+    // Buscar plano do banco de dados
+    devLog.log('[Stripe] Buscando plano do banco:', { planType });
+
+    const { data: plans, error: plansError } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('plan_code', planType)
+      .eq('is_active', true)
+      .single();
+
+    if (plansError || !plans) {
+      devLog.error('[Stripe] Plano não encontrado no banco:', plansError);
       return NextResponse.json(
         { error: 'Plano não encontrado' },
         { status: 404 }
       );
     }
 
-    const plan = STRIPE_PLANS[planType as PlanType];
-    const supabase = createSupabaseServiceRoleClient();
+    // Montar objeto do plano com dados do banco
+    const plan = {
+      productId: plans.stripe_product_id || STRIPE_IDS[planType as PlanType]?.productId,
+      priceId: plans.stripe_price_id || STRIPE_IDS[planType as PlanType]?.priceId,
+      name: plans.name,
+      price: parseFloat(plans.price),
+      features: plans
+    };
+
+    devLog.log('[Stripe] Plano carregado do banco:', {
+      planCode: planType,
+      priceId: plan.priceId,
+      price: plan.price
+    });
 
     // Buscar dados da organização
     devLog.log('[Stripe] Buscando organização:', { organizationId, tenantId });
