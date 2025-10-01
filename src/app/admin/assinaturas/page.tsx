@@ -673,7 +673,7 @@ export default function AssinaturasPage() {
                     disabled={isUpgrading}
                   >
                     <TrendingUp className="h-4 w-4 mr-2" />
-                    {isUpgrading ? 'Processando...' : 'Fazer Upgrade'}
+                    {isUpgrading ? 'Processando...' : 'Fazer Upgrade para Básico'}
                   </Button>
                 )}
                 
