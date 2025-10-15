@@ -91,12 +91,12 @@ export function useProjects() {
       }
     };
 
-    // ✅ OTIMIZAÇÃO - Debounce para evitar chamadas múltiplas
-    const debounceTimeout = setTimeout(() => {
-      fetchProjects();
-    }, 100);
+    // ✅ CORREÇÃO: Remover debounce que estava causando race condition
+    // O debounce atrasava o carregamento inicial e causava badges não aparecerem
+    fetchProjects();
 
-    return () => clearTimeout(debounceTimeout);
+    // Cleanup se necessário
+    return () => {};
   }, [user?.id, user?.role]);
 
   const updateProject = useCallback(async (updatedProjectData: UpdatedProject): Promise<Project | undefined> => {
