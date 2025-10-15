@@ -304,6 +304,12 @@ export default function EquipePage() {
     setCurrentUserId(null);
   };
 
+  // ✅ Função para abrir modal de adicionar (usado pelos botões "Adicionar Membro")
+  const handleAddMember = () => {
+    resetForm();
+    setOpen(true);
+  };
+
   // ✅ DEBUG: Verificar roles do usuário
   useEffect(() => {
     if (user) {
@@ -737,8 +743,8 @@ export default function EquipePage() {
                   }
                 </p>
                 {!searchQuery && (
-                  <Button 
-                    onClick={resetForm}
+                  <Button
+                    onClick={handleAddMember}
                     className="bg-teal-600 hover:bg-teal-700 text-white"
                   >
                     <PlusCircle className="h-4 w-4 mr-2" />
