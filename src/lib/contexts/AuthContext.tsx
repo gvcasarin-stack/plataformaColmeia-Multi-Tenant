@@ -1210,12 +1210,17 @@ function sanitizeSupabaseUser(user: SupabaseUser): Record<string, any> {
 function createSanitizedAuthUser(supabaseUser: SupabaseUser, profile?: UserProfile): AuthUser {
   const sanitizedUser = sanitizeSupabaseUser(supabaseUser);
 
-  // ✅ NOVO: Copiar permissions e role do profile para o nível do user
+  // ✅ CORREÇÃO CRÍTICA: O Supabase retorna role="authenticated" que não serve para nada
+  // Precisamos SEMPRE usar o role do profile (admin/superadmin/colaborador/cliente)
+  // Remover o role do sanitizedUser para evitar conflito
+  const { role: _supabaseRole, ...userWithoutRole } = sanitizedUser;
+
   const authUser: AuthUser = {
-    ...sanitizedUser,
+    ...userWithoutRole,
     profile: profile || undefined,
     permissions: profile?.permissions || undefined,
-    role: profile?.role || undefined
+    // ✅ CRÍTICO: Usar APENAS o role do profile, nunca o do Supabase
+    role: profile?.role
   } as AuthUser;
 
   return authUser;

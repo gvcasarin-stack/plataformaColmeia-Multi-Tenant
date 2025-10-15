@@ -3,51 +3,46 @@
 import React, { useState, useEffect, useMemo, ReactNode, forwardRef, useImperativeHandle } from "react"
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Card } from "@/components/ui/card"
-import { 
-  Building2, 
+import {
+  Building2,
   Users,
-  BarChart3, 
-  X
+  BarChart3,
+  X,
+  Zap,
+  Calendar,
+  User,
+  AlertCircle,
+  Factory,
+  AlertTriangle,
+  Clock
 } from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
 import { Project, TimelineEvent } from "@/types/project"
 import { ProjectStatus } from "@/types/kanban"
 import { cn } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
 import { EditableColumnTitle } from '@/components/kanban'
-import { getKanbanColumnTitles, updateKanbanColumnTitle, getKanbanColumnColors } from '@/lib/services/kanbanService'
+import { getKanbanColumnTitles, updateKanbanColumnTitle, getKanbanColumnColors, getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 import { toast } from '@/components/ui/use-toast'
 import { DeleteColumnDialog } from '@/components/kanban'
 import { devLog } from "@/lib/utils/productionLogger";
 import { useAuth } from '@/lib/hooks/useAuth'
-
-/**
- * Define os IDs de coluna padrão do quadro Kanban
- */
-type ColumnId = 
-  | "nao-iniciados" 
-  | "em-desenvolvimento" 
-  | "aguardando-assinaturas" 
-  | "em-homologacao" 
-  | "projeto-aprovado" 
-  | "aguardando-solicitar-vistoria" 
-  | "projeto-pausado" 
-  | "em-vistoria" 
-  | "finalizado" 
-  | "cancelado";
+import { calculateSLAStatus, calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 
 /**
  * Interface que define a estrutura de uma coluna do quadro Kanban
+ * Agora dinâmica baseada nos status do tenant
  */
 interface Column {
-  id: ColumnId;
+  id: string;
   title: string;
-  status: ProjectStatus;
-  iconType: string; // ✅ CORREÇÃO REACT #130: Usar string ao invés de ReactNode
+  slug: string;
   color: string;
-  style?: {
-    border?: string;
-    bg?: string;
-  };
+  order: number;
+  isDefault: boolean;
+  projectCount: number;
+  slaDays?: number | null;
+  slaExcludeWeekends?: boolean;
 }
 
 /**
@@ -63,10 +58,10 @@ interface KanbanBoardProps {
  * Estilos de prioridade para os cartões de projeto
  */
 const priorityStyles = {
-  'Alta': { bg: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-600/20', icon: <BarChart3 className="w-3 h-3 text-red-600" /> },
-  'Média': { bg: 'bg-yellow-50', text: 'text-yellow-700', ring: 'ring-yellow-600/20', icon: <BarChart3 className="w-3 h-3 text-yellow-600" /> },
-  'Baixa': { bg: 'bg-green-50', text: 'text-green-700', ring: 'ring-green-600/20', icon: <BarChart3 className="w-3 h-3 text-green-600" /> },
-  'Urgente': { bg: 'bg-purple-50', text: 'text-purple-700', ring: 'ring-purple-600/20', icon: <BarChart3 className="w-3 h-3 text-purple-600" /> }
+  'Alta': { bg: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-600/20', icon: <AlertTriangle className="w-3 h-3 text-red-600" /> },
+  'Média': { bg: 'bg-yellow-50', text: 'text-yellow-700', ring: 'ring-yellow-600/20', icon: <AlertTriangle className="w-3 h-3 text-yellow-600" /> },
+  'Baixa': { bg: 'bg-green-50', text: 'text-green-700', ring: 'ring-green-600/20', icon: <AlertTriangle className="w-3 h-3 text-green-600" /> },
+  'Urgente': { bg: 'bg-purple-50', text: 'text-purple-700', ring: 'ring-purple-600/20', icon: <AlertTriangle className="w-3 h-3 text-purple-600" /> }
 } as const; 
 
 /**
@@ -82,10 +77,9 @@ export const KanbanBoard = forwardRef<
   const router = useRouter()
   const { user } = useAuth();
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
-  const [customColumnTitles, setCustomColumnTitles] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [dynamicColumns, setDynamicColumns] = useState<Record<string, any>>({});
-  const [columnColors, setColumnColors] = useState<Record<string, string>>({});
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({});  // slug -> name
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [columnToDelete, setColumnToDelete] = useState<{ id: string, title: string, isDefault: boolean }>({ id: '', title: '', isDefault: false });
 
@@ -96,53 +90,58 @@ export const KanbanBoard = forwardRef<
     }
   }));
 
-  // Função para recarregar os títulos das colunas (útil após adicionar uma nova coluna)
+  // Função para recarregar as colunas dinamicamente do tenant atual
   const reloadColumnTitles = async () => {
     try {
+      devLog.log('[KanbanBoard] ========== INICIANDO RELOAD DE COLUNAS ==========');
       setIsLoading(true);
-      const titles = await getKanbanColumnTitles();
-      setCustomColumnTitles(titles);
-      
-      // Carregar as cores das colunas
-      const colors = await getKanbanColumnColors();
-      setColumnColors(colors);
-      
-      // Identificar novas colunas personalizadas que não estão no conjunto padrão
-      const baseColumnIds = [
-        "nao-iniciados", "em-desenvolvimento", "aguardando-assinaturas", 
-        "em-homologacao", "projeto-aprovado", "aguardando-solicitar-vistoria", 
-        "projeto-pausado", "em-vistoria", "finalizado", "cancelado"
-      ];
-      
-      // Colunas adicionadas pelo usuário (não estão nas colunas base)
-      const customColumns: Record<string, any> = {};
-      
-      Object.entries(titles).forEach(([columnId, title]) => {
-        if (!baseColumnIds.includes(columnId)) {
-          // Esta é uma coluna personalizada adicionada pelo usuário
-          const columnColor = colors[columnId] || 'bg-gray-500'; // Usar cor armazenada ou cinza como fallback
-            
-          customColumns[columnId] = {
-            id: columnId,
-            title: title,
-            status: title as ProjectStatus, // O status é o mesmo que o título
-            iconType: "x",
-            color: columnColor,
-            style: { 
-              border: `border-l-${columnColor.replace('bg-', '')}`, 
-              bg: `from-${columnColor.replace('bg-', '')}-50/80 to-${columnColor.replace('bg-', '')}-50/30` 
-            }
-          };
-        }
+
+      devLog.log('[KanbanBoard] Buscando status via getProjectStatuses...');
+      const statuses = await getProjectStatuses();
+
+      devLog.log('[KanbanBoard] Status recebidos:', {
+        count: statuses?.length || 0,
+        statuses: statuses?.map(s => ({ id: s.id, name: s.name, slug: s.slug })) || []
       });
-      
-      setDynamicColumns(customColumns);
+
+      // ✅ CORREÇÃO: Mapear ProjectStatusInfo para Column interface
+      const mappedColumns: Column[] = statuses.map(status => ({
+        id: status.id,
+        title: status.name, // ✅ Mapear name -> title
+        slug: status.slug,
+        color: status.color,
+        order: status.order,
+        isDefault: status.isDefault,
+        projectCount: status.projectCount,
+        slaDays: status.slaDays,
+        slaExcludeWeekends: status.slaExcludeWeekends
+      }));
+
+      devLog.log('[KanbanBoard] Mapeando columns:', {
+        originalCount: statuses.length,
+        mappedCount: mappedColumns.length
+      });
+
+      setColumns(mappedColumns);
+
+      // Criar mapa slug -> name para conversões rápidas
+      const map: Record<string, string> = {};
+      statuses.forEach(status => {
+        map[status.slug] = status.name;
+      });
+      setStatusMap(map);
+
+      devLog.log('[KanbanBoard] ✅ COLUNAS ATUALIZADAS COM SUCESSO:', {
+        count: statuses.length,
+        newColumnsState: mappedColumns.map(c => ({ id: c.id, title: c.title, slug: c.slug }))
+      });
+
       return true;
     } catch (error) {
-      devLog.error('Erro ao recarregar títulos de colunas:', error);
+      devLog.error('Erro ao recarregar colunas:', error);
       toast({
         title: "Erro ao atualizar",
-        description: "Não foi possível recarregar os títulos das colunas.",
+        description: "Não foi possível recarregar as colunas.",
         variant: "destructive"
       });
       return false;
@@ -150,6 +149,11 @@ export const KanbanBoard = forwardRef<
       setIsLoading(false);
     }
   };
+
+  // Carregar colunas na inicialização
+  useEffect(() => {
+    reloadColumnTitles();
+  }, []);
 
   useEffect(() => {
     setLocalProjects(projects);
@@ -182,111 +186,12 @@ export const KanbanBoard = forwardRef<
     setDeleteDialogOpen(true);
   };
 
-  // Definir as colunas com títulos personalizados, se disponíveis
-  // Definir as colunas com títulos personalizados, se disponíveis
-
-  const columns = useMemo<Record<ColumnId, Column>>(() => {
-    const baseColumns: Record<ColumnId, Column> = {
-  "nao-iniciados": {
-        id: "nao-iniciados",
-    title: "Não Iniciado",
-        status: "Não Iniciado" as ProjectStatus,
-        iconType: "x",
-        color: "bg-blue-500",
-        style: { border: 'border-l-blue-400', bg: 'from-blue-50/80 to-blue-50/30' }
-  },
-  "em-desenvolvimento": {
-        id: "em-desenvolvimento",
-    title: "Em Desenvolvimento",
-        status: "Em Desenvolvimento" as ProjectStatus,
-        iconType: "x",
-        color: "bg-yellow-500",
-        style: { border: 'border-l-yellow-400', bg: 'from-yellow-50/80 to-yellow-50/30' }
-  },
-  "aguardando-assinaturas": {
-        id: "aguardando-assinaturas",
-        title: "Aguardando Assinaturas",
-        status: "Aguardando Assinaturas" as ProjectStatus, 
-        iconType: "x",
-        color: "bg-orange-500",
-        style: { border: 'border-l-orange-400', bg: 'from-orange-50/80 to-orange-50/30' }
-  },
-  "em-homologacao": {
-        id: "em-homologacao",
-        title: "Em Homologação",
-        status: "Em Homologação" as ProjectStatus,
-        iconType: "x",
-        color: "bg-purple-500",
-        style: { border: 'border-l-purple-400', bg: 'from-purple-50/80 to-purple-50/30' }
-  },
-  "projeto-aprovado": {
-        id: "projeto-aprovado",
-    title: "Projeto Aprovado",
-        status: "Projeto Aprovado" as ProjectStatus,
-        iconType: "x",
-        color: "bg-green-500",
-        style: { border: 'border-l-green-400', bg: 'from-green-50/80 to-green-50/30' }
-      },
-      "aguardando-solicitar-vistoria": {
-        id: "aguardando-solicitar-vistoria",
-        title: "Aguardando Solicitar Vistoria",
-        status: "Aguardando Solicitar Vistoria" as ProjectStatus,
-        iconType: "x",
-        color: "bg-amber-500",
-        style: { border: 'border-l-amber-400', bg: 'from-amber-50/80 to-amber-50/30' }
-  },
-  "projeto-pausado": {
-        id: "projeto-pausado",
-    title: "Projeto Pausado",
-        status: "Projeto Pausado" as ProjectStatus,
-        iconType: "x",
-        color: "bg-yellow-500",
-        style: { border: 'border-l-yellow-400', bg: 'from-yellow-50/80 to-yellow-50/30' }
-  },
-  "em-vistoria": {
-        id: "em-vistoria",
-    title: "Em Vistoria",
-        status: "Em Vistoria" as ProjectStatus,
-        iconType: "x",
-        color: "bg-cyan-500",
-        style: { border: 'border-l-cyan-400', bg: 'from-cyan-50/80 to-cyan-50/30' }
-  },
-  "finalizado": {
-        id: "finalizado",
-    title: "Finalizado",
-        status: "Finalizado" as ProjectStatus,
-        iconType: "x",
-        color: "bg-emerald-500",
-        style: { border: 'border-l-emerald-400', bg: 'from-emerald-50/80 to-emerald-50/30' }
-  },
-  "cancelado": {
-        id: "cancelado",
-    title: "Cancelado",
-        status: "Cancelado" as ProjectStatus,
-        iconType: "x",
-        color: "bg-red-500",
-        style: { border: 'border-l-red-400', bg: 'from-red-50/80 to-red-50/30' }
-      }
-    };
-
-    // Aplicar títulos personalizados se disponíveis
-    if (customColumnTitles && !isLoading) {
-      Object.keys(baseColumns).forEach((id) => {
-        if (customColumnTitles[id]) {
-          baseColumns[id as ColumnId].title = customColumnTitles[id];
-        }
-      });
-    }
-
-    return baseColumns;
-  }, [customColumnTitles, isLoading]);
 
   // Função para atualizar o título de uma coluna
   const handleUpdateTitle = async (columnId: string, newTitle: string) => {
     try {
-      // Verificar se a coluna existe e obter o status original
-      const column = columns[columnId as ColumnId] || dynamicColumns[columnId];
-      
+      const column = columns.find(col => col.id === columnId);
+
       if (!column) {
         devLog.error(`Coluna não encontrada: ${columnId}`);
         toast({
@@ -296,18 +201,21 @@ export const KanbanBoard = forwardRef<
         });
         return;
       }
-      
-      const originalStatus = column.status;
-      
-      // Atualizar no Firestore
-      await updateKanbanColumnTitle(columnId, newTitle, originalStatus);
-      
+
+      // Atualizar via API
+      await updateKanbanColumnTitle(columnId, newTitle, column.slug);
+
       // Atualizar o estado local
-      setCustomColumnTitles((prev) => ({
+      setColumns(prev => prev.map(col =>
+        col.id === columnId ? { ...col, title: newTitle } : col
+      ));
+
+      // Atualizar mapa slug -> name
+      setStatusMap(prev => ({
         ...prev,
-        [columnId]: newTitle,
+        [column.slug]: newTitle
       }));
-      
+
       toast({
         title: "Coluna atualizada",
         description: `O título da coluna foi atualizado com sucesso para "${newTitle}".`,
@@ -320,78 +228,28 @@ export const KanbanBoard = forwardRef<
         description: "Não foi possível atualizar o título da coluna. Tente novamente mais tarde.",
         variant: "destructive"
       });
-      throw error; // Re-throw para que o componente filho possa lidar com o erro
+      throw error;
     }
   };
 
-  const getColumnProjects = (columnId: ColumnId) => {
-    devLog.log(`[Kanban] Getting projects for column: ${columnId}`);
+  const getColumnProjects = (columnSlug: string) => {
+    devLog.log(`[Kanban] Getting projects for column slug: ${columnSlug}`);
     devLog.log(`[Kanban] Total projects: ${localProjects.length}`);
-    
-    // Normalize status for comparison
-    const normalizeStatus = (status: string) => {
-      // Convert to lowercase and remove accents and spaces
-      return status.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "-");
-    };
-    
-    // Map of expected statuses to their normalized versions
-    const statusMap: Record<string, string[]> = {
-      "nao-iniciados": ["não iniciado", "nao iniciado", "não-iniciado", "nao-iniciado"],
-      "em-desenvolvimento": ["em desenvolvimento", "em-desenvolvimento"],
-      "aguardando-assinaturas": ["aguardando assinaturas", "aguardando-assinaturas"],
-      "em-homologacao": ["em homologação", "em-homologacao", "em homologacao", "em-homologação"],
-      "projeto-aprovado": ["projeto aprovado", "projeto-aprovado"],
-      "aguardando-solicitar-vistoria": ["aguardando solicitar vistoria", "aguardando-solicitar-vistoria"],
-      "projeto-pausado": ["projeto pausado", "projeto-pausado"],
-      "em-vistoria": ["em vistoria", "em-vistoria"],
-      "finalizado": ["finalizado"],
-      "cancelado": ["cancelado"]
-    };
-    
-    // Get the expected statuses for this column
-    const expectedStatuses = statusMap[columnId] || [];
-    
-    if (columnId === "nao-iniciados") {
-      devLog.log(`[Kanban] Looking for projects with statuses: ${expectedStatuses.join(", ")}`);
-      
-      // Log all project statuses to debug
-      const statusCounts: Record<string, number> = {};
-      localProjects.forEach(project => {
-        const status = project.status || "";
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
-      devLog.log("[Kanban] Project status counts:", statusCounts);
-    }
-    
-    return localProjects.filter(project => {
-      const projectStatus = (project.status || "").toLowerCase();
-      const normalizedProjectStatus = normalizeStatus(projectStatus);
-      
-      // Check if the project status matches any of the expected statuses for this column
-      const isMatch = expectedStatuses.some(status => 
-        normalizedProjectStatus === normalizeStatus(status)
-      );
-      
-      if (columnId === "nao-iniciados" && isMatch) {
-        devLog.log(`[Kanban] Found "Não Iniciado" project:`, {
-          id: project.id,
-          nome_cliente_final: project.nome_cliente_final,
-          status: project.status,
-          normalizedStatus: normalizedProjectStatus
-        });
-      }
-      
-      return isMatch;
+
+    const filteredProjects = localProjects.filter(project => {
+      // Usar slug diretamente para comparação
+      return project.status === columnSlug;
     });
+
+    devLog.log(`[Kanban] Found ${filteredProjects.length} projects for ${columnSlug}`);
+    return filteredProjects;
   };
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
-    if (!destination || 
-        (destination.droppableId === source.droppableId && 
+    if (!destination ||
+        (destination.droppableId === source.droppableId &&
          destination.index === source.index)) {
       return;
     }
@@ -399,16 +257,15 @@ export const KanbanBoard = forwardRef<
     const project = filteredProjects.find(p => p.id === draggableId);
     if (!project) return;
 
-    const newStatus = columns[destination.droppableId as ColumnId].status;
-    const oldStatus = project.status;
-    
-    // ✅ DEBUG: Log detalhado para debugging do constraint
+    const newStatusSlug = destination.droppableId;
+    const oldStatusSlug = project.status;
+
     devLog.log('[KANBAN DEBUG] Status change details:', {
       draggableId,
       sourceColumn: source.droppableId,
       destinationColumn: destination.droppableId,
-      oldStatus,
-      newStatus,
+      oldStatus: oldStatusSlug,
+      newStatus: newStatusSlug,
       project: {
         id: project.id,
         currentStatus: project.status
@@ -416,95 +273,107 @@ export const KanbanBoard = forwardRef<
     });
 
     // Verifica se houve mudança real de status
-    if (oldStatus === newStatus) return;
+    if (oldStatusSlug === newStatusSlug) return;
 
-    // ✅ VALIDAÇÃO: Todos os 10 status são válidos no banco
-    const validStatuses: ProjectStatus[] = [
-      'Não Iniciado',
-      'Em Desenvolvimento', 
-      'Aguardando Assinaturas',
-      'Em Homologação',
-      'Projeto Aprovado',
-      'Aguardando Solicitar Vistoria',
-      'Projeto Pausado',
-      'Em Vistoria',
-      'Finalizado',
-      'Cancelado'
-    ];
-
-    if (!validStatuses.includes(newStatus)) {
-      devLog.error('[KANBAN ERROR] Status inválido detectado:', newStatus);
+    // Validar se o status de destino existe nas colunas atuais
+    const targetColumn = columns.find(col => col.slug === newStatusSlug);
+    if (!targetColumn) {
+      devLog.error('[KANBAN ERROR] Status de destino não encontrado:', newStatusSlug);
       toast({
         title: "Erro de Status",
-        description: `Status "${newStatus}" não é válido. Verifique a configuração das colunas.`,
+        description: `Status de destino não é válido. Recarregue a página.`,
         variant: "destructive"
       });
       return;
     }
 
-    // Usar o user que já foi obtido no nível superior do componente
-    // Priorizar user.profile.name, depois user.email, e por fim "Sistema"
     const userName = user?.profile?.name || user?.email || 'Sistema';
     const userId = user?.id || 'system';
     const userRole = user?.role || 'admin';
 
-    // Log the project update
     devLog.log(`[Kanban] Updating project status:`, {
       id: project.id,
-      oldStatus: project.status,
-      newStatus: newStatus,
-      user: userName // Usar userName aqui também para o log
+      oldStatus: oldStatusSlug,
+      newStatus: newStatusSlug,
+      user: userName
     });
 
-    // Obter os títulos personalizados para criar o evento de timeline
-    const oldDisplayStatus = columns[Object.keys(columns).find(key => 
-      columns[key as ColumnId].status === oldStatus
-    ) as ColumnId]?.title || oldStatus;
-    
-    const newDisplayStatus = columns[destination.droppableId as ColumnId].title;
+    // Obter nomes para display
+    const oldColumn = columns.find(col => col.slug === oldStatusSlug);
+    const newColumn = columns.find(col => col.slug === newStatusSlug);
+
+    const oldDisplayStatus = oldColumn?.title || statusMap[oldStatusSlug] || oldStatusSlug;
+    const newDisplayStatus = newColumn?.title || statusMap[newStatusSlug] || newStatusSlug;
+
+    // ✅ Calcular SLA para o novo status
+    const now = new Date();
+    let slaExpiresAt: string | null = null;
+    let slaExpired = false;
+
+    if (targetColumn.slaDays && targetColumn.slaDays > 0) {
+      const expirationDate = calculateSLAExpiration(
+        now,
+        targetColumn.slaDays,
+        targetColumn.slaExcludeWeekends !== undefined ? targetColumn.slaExcludeWeekends : true
+      );
+      slaExpiresAt = expirationDate.toISOString();
+      slaExpired = false; // Resetar flag ao mudar de status
+
+      devLog.log('[Kanban] SLA calculado para novo status:', {
+        status: newStatusSlug,
+        slaDays: targetColumn.slaDays,
+        excludeWeekends: targetColumn.slaExcludeWeekends,
+        statusChangedAt: now.toISOString(),
+        slaExpiresAt
+      });
+    } else {
+      devLog.log('[Kanban] Sem SLA configurado para status:', newStatusSlug);
+    }
 
     // Criar o evento de timeline para a mudança de status
     const timelineEvent: TimelineEvent = {
       type: 'status',
       timestamp: new Date().toISOString(),
-      // Adicionar userName ao content
-      content: `Status alterado de ${oldDisplayStatus} para ${newDisplayStatus}`,
-      user: userName, // Usar userName
+      content: `Status alterado de ${oldDisplayStatus} para ${newDisplayStatus}${slaExpiresAt ? ` (Prazo: ${targetColumn.slaDays} dia${targetColumn.slaDays !== 1 ? 's' : ''})` : ''}`,
+      user: userName,
       userId: userId,
       id: crypto.randomUUID(),
       userType: userRole,
       data: {
-        oldStatus,
-        newStatus,
-        updatedBy: userName, // Usar userName
-        updatedByEmail: user?.email || 'unknown', // Manter o email se disponível
+        oldStatus: oldStatusSlug,
+        newStatus: newStatusSlug,
+        updatedBy: userName,
+        updatedByEmail: user?.email || 'unknown',
         updatedByRole: userRole
       }
     };
 
-    // Cria o projeto atualizado com informações de quem fez a atualização
+    // Cria o projeto atualizado usando slugs + campos SLA
     const updatedProject: Project = {
       ...project,
-      status: newStatus,
+      status: newStatusSlug,  // Usar slug para o status
       updatedAt: new Date().toISOString(),
+      status_changed_at: now.toISOString(), // ✅ Registrar quando mudou
+      sla_expires_at: slaExpiresAt, // ✅ Quando expira o prazo
+      sla_expired: slaExpired, // ✅ Flag de expirado
       timelineEvents: [
         timelineEvent,
         ...(project.timelineEvents || [])
       ],
       lastUpdateBy: {
         uid: userId,
-        email: user?.email || 'unknown', // Manter o email se disponível
+        email: user?.email || 'unknown',
         role: userRole,
         timestamp: new Date().toISOString()
       }
     };
 
-    // Atualiza o estado local para refletir a mudança imediatamente
-    setLocalProjects(localProjects.map(p => 
+    // Atualiza o estado local
+    setLocalProjects(localProjects.map(p =>
       p.id === updatedProject.id ? updatedProject : p
     ));
 
-    // Usar o callback fornecido para atualizar o projeto
+    // Usar o callback para atualizar via API
     if (onProjectUpdate) {
       onProjectUpdate(updatedProject)
         .then(result => {
@@ -512,30 +381,15 @@ export const KanbanBoard = forwardRef<
         })
         .catch(error => {
           devLog.error(`[Kanban] Error updating project:`, error);
-          
-          // Log detalhado do erro para debug
-          devLog.error('[KANBAN ERROR DETAILS]:', {
-            errorMessage: error.message || error,
-            projectId: project.id,
-            attemptedStatus: newStatus,
-            originalStatus: oldStatus,
-            errorStack: error.stack
-          });
-          
-          // Reverter para o estado anterior em caso de erro
-          setLocalProjects(localProjects.map(p => 
+
+          // Reverter para o estado anterior
+          setLocalProjects(localProjects.map(p =>
             p.id === project.id ? project : p
           ));
-          
-          // Mensagem de erro específica para constraint violation
-          let errorMessage = "Não foi possível atualizar o status do projeto.";
-          if (error.message && error.message.includes('projects_status_valid')) {
-            errorMessage = `Status "${newStatus}" não é válido no sistema. Contate o suporte técnico.`;
-          }
-          
+
           toast({
             title: "Erro ao atualizar projeto",
-            description: errorMessage,
+            description: "Não foi possível atualizar o status do projeto.",
             variant: "destructive"
           });
         });
@@ -546,10 +400,10 @@ export const KanbanBoard = forwardRef<
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="h-full overflow-x-auto pb-6">
         <div className="inline-flex gap-4 p-1 min-w-full">
-          {/* Renderizar primeiro as colunas padrão */}
-          {Object.entries(columns).map(([columnId, column]) => (
-            <div 
-              key={columnId} 
+          {/* Renderizar colunas dinâmicas do tenant */}
+          {columns.map((column) => (
+            <div
+              key={column.id}
               className={cn(
                 "flex-shrink-0 w-[280px] rounded-xl",
                 "border border-gray-200 dark:border-gray-700",
@@ -564,51 +418,42 @@ export const KanbanBoard = forwardRef<
               )}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      columnId === 'nao-iniciados' && 'bg-blue-500',
-                      columnId === 'em-desenvolvimento' && 'bg-yellow-500',
-                      columnId === 'aguardando-assinaturas' && 'bg-orange-500',
-                      columnId === 'em-homologacao' && 'bg-purple-500',
-                      columnId === 'projeto-aprovado' && 'bg-green-500',
-                      columnId === 'aguardando-solicitar-vistoria' && 'bg-amber-500',
-                      columnId === 'projeto-pausado' && 'bg-yellow-500',
-                      columnId === 'em-vistoria' && 'bg-cyan-500',
-                      columnId === 'finalizado' && 'bg-emerald-500',
-                      columnId === 'cancelado' && 'bg-red-500'
-                    )} />
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: column.color }}
+                    />
                     <EditableColumnTitle
-                      columnId={columnId}
+                      columnId={column.id}
                       title={column.title}
-                      originalStatus={column.status}
+                      originalStatus={column.slug}
                       onUpdateTitle={handleUpdateTitle}
                     />
                     <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full">
-                      {getColumnProjects(columnId as ColumnId).length}
-                  </span>
+                      {getColumnProjects(column.slug).length}
+                    </span>
                   </div>
-                  <div 
+                  <div
                     className={cn(
                       "w-7 h-7 rounded-full flex items-center justify-center",
                       "bg-gray-100 dark:bg-gray-700",
                       "text-gray-500 dark:text-gray-400",
                       "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     )}
-                    onClick={(e) => handleDeleteClick(columnId, column.title, true, e)}
+                    onClick={(e) => handleDeleteClick(column.id, column.title, column.isDefault, e)}
                   >
                     <X className="h-4 w-4 text-red-500 hover:text-red-700" />
                   </div>
                 </div>
               </div>
 
-              <Droppable droppableId={columnId}>
+              <Droppable droppableId={column.slug}>
                 {(provided) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className="p-2 space-y-2 min-h-[200px] max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
                   >
-                    {getColumnProjects(columnId as ColumnId).map((project, index) => (
+                    {getColumnProjects(column.slug).map((project, index) => (
                       <Draggable
                         key={project.id}
                         draggableId={project.id}
@@ -661,7 +506,7 @@ export const KanbanBoard = forwardRef<
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                   <div className="w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
-                                    <BarChart3 className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
+                                    <Factory className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
                                   </div>
                                   <span className="truncate">{project.distribuidora}</span>
                                 </div>
@@ -671,17 +516,81 @@ export const KanbanBoard = forwardRef<
                               <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
                                 <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
                                   <div className="w-5 h-5 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-                                    <BarChart3 className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                                    <Zap className="h-3 w-3 text-amber-500 dark:text-amber-400" />
                                   </div>
                                   <span>{project.potencia} kWp</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
                                   <div className="w-5 h-5 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
-                                    <BarChart3 className="h-3 w-3 text-red-500 dark:text-red-400" />
+                                    <Calendar className="h-3 w-3 text-red-500 dark:text-red-400" />
                                   </div>
                                   <span>{new Date(project.dataEntrega).toLocaleDateString('pt-BR')}</span>
                                 </div>
                               </div>
+
+                              {/* ✅ Responsável pelo Projeto */}
+                              {user && (user.role === 'admin' || user.role === 'superadmin' || user.role === 'colaborador') && (
+                                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                                  {project.adminResponsibleName ? (
+                                    <Badge variant="secondary" className="w-full justify-center bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 text-xs py-1">
+                                      <User className="h-3 w-3 mr-1" />
+                                      {project.adminResponsibleName}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="w-full justify-center bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800 text-xs py-1">
+                                      <AlertCircle className="h-3 w-3 mr-1" />
+                                      Atribuir Responsável
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* ✅ Badge de SLA - Prazo da Etapa */}
+                              {(() => {
+                                const slaStatus = calculateSLAStatus(
+                                  project.status_changed_at,
+                                  project.sla_expires_at,
+                                  column.slaDays,
+                                  column.slaExcludeWeekends
+                                );
+
+                                // Não mostrar se não tem SLA configurado
+                                if (slaStatus.status === 'no-sla') return null;
+
+                                // Badge vermelho - ATRASADO
+                                if (slaStatus.status === 'expired') {
+                                  return (
+                                    <div className="mt-2">
+                                      <Badge className="w-full justify-center bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 text-xs py-1 font-medium">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        ATRASADO {slaStatus.hoursOverdue}h
+                                      </Badge>
+                                    </div>
+                                  );
+                                }
+
+                                // Badge amarelo - ALERTA
+                                if (slaStatus.status === 'warning') {
+                                  return (
+                                    <div className="mt-2">
+                                      <Badge className="w-full justify-center bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800 text-xs py-1 font-medium">
+                                        <AlertTriangle className="h-3 w-3 mr-1" />
+                                        {slaStatus.message}
+                                      </Badge>
+                                    </div>
+                                  );
+                                }
+
+                                // Badge verde - PRAZO OK
+                                return (
+                                  <div className="mt-2">
+                                    <Badge className="w-full justify-center bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 text-xs py-1 font-medium">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {slaStatus.message}
+                                    </Badge>
+                                  </div>
+                                );
+                              })()}
                           </Card>
                           </div>
                         )}
