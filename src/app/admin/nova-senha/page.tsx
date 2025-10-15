@@ -148,7 +148,46 @@ function NovaSenhaContent() {
 
       setSuccess(true);
       toast.success("Senha definida com sucesso!");
-      setTimeout(() => router.push('/admin/painel'), 2000);
+
+      // ✅ CORREÇÃO: Redirecionar para o domínio correto do tenant
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user?.id) {
+          // Buscar tenant_id do usuário
+          const { data: userData } = await supabase
+            .from('users')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single();
+
+          if (userData?.tenant_id) {
+            // Buscar slug da organização
+            const { data: orgData } = await supabase
+              .from('organizations')
+              .select('slug')
+              .eq('id', userData.tenant_id)
+              .single();
+
+            const slug = orgData?.slug;
+
+            if (slug) {
+              // Redirecionar para o domínio correto do tenant
+              const tenantDomain = `https://${slug}.gerenciamentofotovoltaico.com.br/admin/painel`;
+              setTimeout(() => {
+                window.location.href = tenantDomain;
+              }, 2000);
+              return;
+            }
+          }
+        }
+
+        // Fallback: se não conseguir determinar o tenant, redirecionar para login
+        setTimeout(() => router.push('/admin/login'), 2000);
+      } catch (redirectError) {
+        // Em caso de erro, redirecionar para login genérico
+        setTimeout(() => router.push('/admin/login'), 2000);
+      }
     } catch (err: any) {
       setError(err.message || "Erro ao definir senha.");
     } finally {
