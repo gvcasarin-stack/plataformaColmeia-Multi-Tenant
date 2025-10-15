@@ -24,6 +24,8 @@ export default function UsuarioBloqueadoPage() {
   const [blockInfo, setBlockInfo] = useState<BlockInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ CORREÇÃO: useEffect executado apenas UMA vez na montagem inicial
+  // Evita recarregamento desnecessário ao trocar de aba do navegador
   useEffect(() => {
     const checkBlockStatus = async () => {
       if (!user) {
@@ -39,7 +41,7 @@ export default function UsuarioBloqueadoPage() {
         if (response.ok) {
           const data = await response.json();
           setBlockInfo(data.blockStatus);
-          
+
           // Se não está bloqueado, redirecionar para o painel
           if (!data.blockStatus.isBlocked) {
             router.push('/cliente/painel');
@@ -47,14 +49,15 @@ export default function UsuarioBloqueadoPage() {
           }
         }
       } catch (error) {
-        devLog.error('Erro ao verificar status de bloqueio:', error);
+        // Erro silencioso
       } finally {
         setLoading(false);
       }
     };
 
     checkBlockStatus();
-  }, [user, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ Array vazio - executa apenas uma vez na montagem
 
   const handleLogout = async () => {
     try {

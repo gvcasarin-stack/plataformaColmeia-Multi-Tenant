@@ -38,9 +38,12 @@ import { v4 as uuidv4 } from 'uuid'
 import { calculateProjectCost } from "@/lib/utils/projectUtils"
 import { resetAllForms } from '@/lib/utils/reset'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 // ❌ FIREBASE - REMOVIDO: import { Timestamp } from 'firebase/firestore'
-import { deleteCommentAction, deleteFileAction, assumeProjectResponsibilityAction } from '@/lib/actions/project-actions'
+import { deleteCommentAction, deleteFileAction } from '@/lib/actions/project-actions'
 import { useTransition } from 'react'
+import { ProjectResponsibleAdmin } from './project-view/project-responsible-admin'
+import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 
 // Import custom icon components
 import ClockIcon from '@/components/icons/clock';
@@ -107,31 +110,33 @@ const checklistItems: ChecklistItem[] = [
 ];
 
 // Helper component (pode ser movido para um arquivo separado depois)
-const DetailItem = ({ 
-  icon, 
-  label, 
-  value, 
+const DetailItem = ({
+  icon,
+  label,
+  value,
   bgColor = 'bg-gray-100 dark:bg-gray-700',
   multiline = false,
-}: { 
-  icon?: React.ReactNode, 
-  label: string, 
-  value: string | number | null, 
+}: {
+  icon?: React.ReactNode,
+  label: string,
+  value: string | number | null,
   bgColor?: string,
   multiline?: boolean,
 }) => (
   <div className={`p-4 rounded-lg shadow-sm ${bgColor} h-full flex flex-col`}>
     <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">{label}</span>
     <div className={`flex mt-1 ${icon ? 'items-start' : 'items-start'}`}>
-      {icon && <span className="mr-2 mt-0.5 text-gray-700 dark:text-gray-300">{icon}</span>}
-      <p
-        className={[
-          'text-gray-900 dark:text-gray-100 font-bold',
-          multiline ? 'text-base md:text-lg whitespace-pre-wrap break-words leading-relaxed max-h-60 overflow-auto pr-1' : 'text-lg md:text-xl truncate'
-        ].join(' ')}
-      >
-        {value || 'N/A'}
-      </p>
+      {icon && <span className="mr-2 mt-0.5 flex-shrink-0 text-gray-700 dark:text-gray-300">{icon}</span>}
+      <div className="flex-1 min-w-0">
+        <p
+          className={[
+            'text-gray-900 dark:text-gray-100 font-bold w-full',
+            multiline ? 'text-base md:text-lg whitespace-pre-wrap break-words leading-relaxed max-h-60 overflow-y-auto overflow-x-hidden custom-scrollbar pr-2' : 'text-lg md:text-xl truncate'
+          ].join(' ')}
+        >
+          {value || 'N/A'}
+        </p>
+      </div>
     </div>
   </div>
 );
@@ -178,14 +183,25 @@ export const ExpandedProjectView = ({
     return 'N/A';
   };
   const { user } = useAuth()
-  // ✅ CORREÇÃO ROLE: Verificar tanto 'admin' quanto role do usuário corretamente
-  // O banco armazena 'client' mas alguns locais podem ter 'cliente' ou 'admin'
-  const isAdminPanel = (
-    user?.role === 'admin' || 
-    user?.role === 'superadmin' || 
-    user?.profile?.role === 'admin' || 
-    user?.profile?.role === 'superadmin'
-  ) && user?.role !== 'client' && user?.role !== 'cliente'
+
+  // ✅ Obter permissões do usuário
+  const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
+
+  // ✅ CORREÇÃO ROLE: Verificar admin, superadmin OU colaborador com permissão de editar
+  const isFullAdmin = user?.role === 'admin' ||
+                      user?.role === 'superadmin' ||
+                      user?.profile?.role === 'admin' ||
+                      user?.profile?.role === 'superadmin';
+
+  const isColaboradorWithEditPermission = (
+    user?.role === 'colaborador' ||
+    user?.profile?.role === 'colaborador'
+  ) && userPermissions.can_edit_projects === true;
+
+  // Usuario tem acesso ao painel admin se for admin completo OU colaborador com permissão
+  const isAdminPanel = (isFullAdmin || isColaboradorWithEditPermission) &&
+                       user?.role !== 'client' &&
+                       user?.role !== 'cliente'
   
   // ✅ DEBUG: Verificar dados do usuário e role
   devLog.log('🔍 [EXPANDED PROJECT VIEW] Dados do usuário:', {
@@ -195,17 +211,22 @@ export const ExpandedProjectView = ({
     userEmail: user?.email,
     userProfile: user?.profile,
     profileRole: user?.profile?.role,
+    userPermissions: userPermissions,
+    isFullAdmin,
+    isColaboradorWithEditPermission,
     isAdminPanel,
     roleChecks: {
       isAdmin: user?.role === 'admin',
       isSuperAdmin: user?.role === 'superadmin',
+      isColaborador: user?.role === 'colaborador',
       profileIsAdmin: user?.profile?.role === 'admin',
       profileIsSuperAdmin: user?.profile?.role === 'superadmin',
+      profileIsColaborador: user?.profile?.role === 'colaborador',
+      canEditProjects: userPermissions.can_edit_projects,
       isClient: user?.role === 'client',
       isCliente: user?.role === 'cliente',
       finalIsAdminPanel: isAdminPanel
-    },
-    allUserData: JSON.stringify(user, null, 2)
+    }
   });
 
   const [editedProject, setEditedProject] = useState<Project>({
@@ -246,8 +267,34 @@ export const ExpandedProjectView = ({
   const [showAddDocumentSection, setShowAddDocumentSection] = useState(false);
   const [showAddCommentSection, setShowAddCommentSection] = useState(false);
   const isPending = false; // Placeholder
-  const [isSessionChecking, setIsSessionChecking] = useState(false)
+  const [isSessionChecking, setIsSessionChecking] = useState(false);
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
+  const [statusLoading, setStatusLoading] = useState(true);
   const [isDeleting, startDeleteTransition] = useTransition();
+
+  // Carregar status dinâmicos do tenant
+  useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        setStatusLoading(true);
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[ExpandedProjectView] Status carregados:', statuses.length);
+      } catch (error) {
+        devLog.error('[ExpandedProjectView] Erro ao carregar status:', error);
+        // Em caso de erro, usar status padrão
+        setAvailableStatuses([
+          { id: '1', name: 'Não Iniciado', slug: 'nao-iniciado', color: '#3b82f6', order: 1, isDefault: true, projectCount: 0 },
+          { id: '2', name: 'Em Desenvolvimento', slug: 'em-desenvolvimento', color: '#f59e0b', order: 2, isDefault: true, projectCount: 0 },
+          { id: '3', name: 'Finalizado', slug: 'finalizado', color: '#10b981', order: 10, isDefault: true, projectCount: 0 }
+        ]);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    loadStatuses();
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -370,7 +417,7 @@ export const ExpandedProjectView = ({
     try {
       // ✅ DETECTAR MUDANÇA DE STATUS
       const statusChanged = project.status !== editedProject.status;
-      
+
       devLog.log('🔍 [EXPANDED PROJECT DEBUG] Verificando mudança de status:', {
         originalStatus: project.status,
         newStatus: editedProject.status,
@@ -380,43 +427,83 @@ export const ExpandedProjectView = ({
         userEmail: user?.email
       });
 
+      // ✅ CALCULAR SLA se o status mudou
+      let slaExpiresAt: string | null = null;
+      let slaExpired = false;
+      const now = new Date();
+
+      if (statusChanged) {
+        // Buscar informações do novo status
+        const newStatusInfo = availableStatuses.find(s => s.slug === editedProject.status);
+
+        if (newStatusInfo?.slaDays && newStatusInfo.slaDays > 0) {
+          const expirationDate = calculateSLAExpiration(
+            now,
+            newStatusInfo.slaDays,
+            newStatusInfo.slaExcludeWeekends !== undefined ? newStatusInfo.slaExcludeWeekends : true
+          );
+          slaExpiresAt = expirationDate.toISOString();
+          slaExpired = false;
+
+          devLog.log('✅ [EXPANDED PROJECT] SLA calculado:', {
+            status: editedProject.status,
+            slaDays: newStatusInfo.slaDays,
+            excludeWeekends: newStatusInfo.slaExcludeWeekends,
+            statusChangedAt: now.toISOString(),
+            slaExpiresAt
+          });
+        } else {
+          devLog.log('ℹ️ [EXPANDED PROJECT] Sem SLA configurado para o novo status:', editedProject.status);
+        }
+      }
+
       let updateEvent: TimelineEvent;
-      
+
       if (statusChanged) {
         // Se o status mudou, criar evento de mudança de status
-        updateEvent = createTimelineEvent('status', { 
-          content: `Status alterado de "${project.status}" para "${editedProject.status}"`,
+        const statusName = availableStatuses.find(s => s.slug === editedProject.status)?.name || editedProject.status;
+        const oldStatusName = availableStatuses.find(s => s.slug === project.status)?.name || project.status;
+        const slaDays = availableStatuses.find(s => s.slug === editedProject.status)?.slaDays;
+
+        updateEvent = createTimelineEvent('status', {
+          content: `Status alterado de "${oldStatusName}" para "${statusName}"${slaExpiresAt && slaDays ? ` (Prazo: ${slaDays} dia${slaDays !== 1 ? 's' : ''})` : ''}`,
           oldStatus: project.status,
           newStatus: editedProject.status
         });
         devLog.log('✅ [EXPANDED PROJECT] Criado evento de STATUS CHANGE:', updateEvent);
       } else {
         // Se não houve mudança de status, criar evento genérico
-        updateEvent = createTimelineEvent('comment', { 
-          content: 'Informações do projeto atualizadas.' 
+        updateEvent = createTimelineEvent('comment', {
+          content: 'Informações do projeto atualizadas.'
         });
         devLog.log('✅ [EXPANDED PROJECT] Criado evento de ATUALIZAÇÃO GERAL:', updateEvent);
       }
 
-      const projectToUpdate: UpdatedProject = { 
-        ...editedProject, 
-        timelineEvents: [updateEvent, ...timelineEvents] 
+      const projectToUpdate: UpdatedProject = {
+        ...editedProject,
+        timelineEvents: [updateEvent, ...timelineEvents],
+        // ✅ Adicionar campos SLA se o status mudou
+        ...(statusChanged && {
+          status_changed_at: now.toISOString(),
+          sla_expires_at: slaExpiresAt,
+          sla_expired: slaExpired
+        })
       };
-      
+
       await onUpdate(projectToUpdate);
       devLog.log('[Debug EPV] handleSave: setting hasChanges to false and isEditing to false.');
-      setHasChanges(false); 
+      setHasChanges(false);
       setIsEditing(false);
       setTimelineEvents(prevEvents => [updateEvent, ...prevEvents]);
-      
-      const successMessage = statusChanged 
-        ? `Status alterado para "${editedProject.status}" com sucesso.`
+
+      const successMessage = statusChanged
+        ? `Status alterado para "${availableStatuses.find(s => s.slug === editedProject.status)?.name || editedProject.status}" com sucesso.`
         : "As alterações foram salvas com sucesso.";
-        
-      toast({ 
-        title: "Alterações salvas", 
-        description: successMessage, 
-        className: "bg-green-500 text-white" 
+
+      toast({
+        title: "Alterações salvas",
+        description: successMessage,
+        className: "bg-green-500 text-white"
       });
     } catch (error) {
       devLog.error('Error updating project:', error);
@@ -608,52 +695,26 @@ export const ExpandedProjectView = ({
     }
   };
 
-  const handleAssumeResponsibility = async () => {
-    if (!user || !project) return;
-    
-    // 🚨 CORREÇÃO: Usar nova server action que não valida tenant
-    console.log('🚨 [EXPANDED-VIEW] Usando nova server action assumeProjectResponsibilityAction');
-    
+  // ✅ REMOVIDO: handleAssumeResponsibility - agora usa o componente ProjectResponsibleAdmin
+  const handleProjectUpdate = async (updatedProject: Partial<Project>) => {
     try {
-      const result = await assumeProjectResponsibilityAction(project.id, {
-        id: user.id,
-        name: user.profile?.name || user.email,
-        email: user.email,
-        phone: user.profile?.phone || '',
-        role: user.role || 'admin'
-      });
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
       // Atualizar estado local
-      const newAdminResponsible = {
-        adminResponsibleId: user.id,
-        adminResponsibleName: user.profile?.name || user.email || 'Admin',
-        adminResponsibleEmail: user.email,
-        adminResponsiblePhone: user.profile?.phone || ''
-      };
+      setEditedProject(prev => ({ ...prev, ...updatedProject }));
 
-      setEditedProject(prev => ({ ...prev, ...newAdminResponsible }));
-      
-      // Adicionar evento de timeline ao estado local
-      if (result.data?.timelineEvents) {
-        setTimelineEvents(result.data.timelineEvents);
-      }
+      // Chamar callback de atualização do pai
+      await onUpdate(updatedProject);
 
-      toast({ 
-        title: "Responsabilidade assumida", 
-        description: `Você agora é o responsável pelo projeto ${project.number}.`,
+      toast({
+        title: "Projeto atualizado",
+        description: "As informações do projeto foram atualizadas com sucesso.",
       });
 
     } catch (error) {
-      console.log('🚨 [EXPANDED-VIEW] Erro:', error);
-      devLog.error("Erro ao assumir responsabilidade:", error);
-      toast({ 
-        title: "Erro", 
-        description: error instanceof Error ? error.message : "Não foi possível assumir a responsabilidade.", 
-        variant: "destructive" 
+      devLog.error("Erro ao atualizar projeto:", error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar o projeto.",
+        variant: "destructive"
       });
     }
   };
@@ -739,7 +800,24 @@ export const ExpandedProjectView = ({
         <div className="px-6 py-6">
           {/* Linha Superior: Status e Atualização (Botão Voltar Removido) */}
           <div className="flex items-center justify-start space-x-3 mb-3">
-            <span className="bg-white/25 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">{editedProject.status}</span>
+            <div className="bg-white/25 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
+              {availableStatuses.length > 0 && (() => {
+                const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
+                if (currentStatus) {
+                  return (
+                    <>
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: currentStatus.color }}
+                      />
+                      {currentStatus.name}
+                    </>
+                  );
+                }
+                return editedProject.status;
+              })()}
+              {availableStatuses.length === 0 && editedProject.status}
+            </div>
             <div className="flex items-center text-xs text-blue-100">
               {/* Ícone de relógio removido anteriormente, manter sem por enquanto */}
               <span>{`Atualizado ${new Date(editedProject.updatedAt instanceof Date ? editedProject.updatedAt : editedProject.updatedAt).toLocaleTimeString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}</span>
@@ -846,19 +924,28 @@ export const ExpandedProjectView = ({
                       <div>
                         <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status do Projeto</Label>
                         <Select value={editedProject.status} onValueChange={(value) => handleChange('status', value)}>
-                          <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Não Iniciado">Não Iniciado</SelectItem>
-                  <SelectItem value="Em Desenvolvimento">Em Desenvolvimento</SelectItem>
-                            <SelectItem value="Aguardando Assinaturas">Aguardando Assinaturas</SelectItem>
-                            <SelectItem value="Em Homologação">Em Homologação</SelectItem>
-                            <SelectItem value="Projeto Aprovado">Projeto Aprovado</SelectItem>
-                            <SelectItem value="Aguardando Solicitar Vistoria">Aguardando Solicitar Vistoria</SelectItem>
-                            <SelectItem value="Projeto Pausado">Projeto Pausado</SelectItem>
-                            <SelectItem value="Em Vistoria">Em Vistoria</SelectItem>
-                  <SelectItem value="Finalizado">Finalizado</SelectItem>
-                            <SelectItem value="Cancelado">Cancelado</SelectItem>
-                </SelectContent>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Selecione o status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusLoading ? (
+                              <SelectItem value="" disabled>Carregando status...</SelectItem>
+                            ) : (
+                              availableStatuses
+                                .sort((a, b) => a.order - b.order)
+                                .map((status) => (
+                                  <SelectItem key={status.id} value={status.slug}>
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: status.color }}
+                                      />
+                                      {status.name}
+                                    </div>
+                                  </SelectItem>
+                                ))
+                            )}
+                          </SelectContent>
               </Select>
             </div>
             <div>
@@ -961,7 +1048,29 @@ export const ExpandedProjectView = ({
                     <div className="flex-grow">
                       <div>
                         <Label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status Atual</Label>
-                        <p className="mt-0.5 text-lg md:text-xl font-semibold text-gray-900">{editedProject.status}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {availableStatuses.length > 0 && (() => {
+                            const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
+                            if (currentStatus) {
+                              return (
+                                <>
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: currentStatus.color }}
+                                  />
+                                  <p className="text-lg md:text-xl font-semibold text-gray-900">
+                                    {currentStatus.name}
+                                  </p>
+                                </>
+                              );
+                            }
+                          })()}
+                          {availableStatuses.length === 0 && (
+                            <p className="text-lg md:text-xl font-semibold text-gray-900">
+                              {editedProject.status}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       {/* Mostrar prioridade apenas para administradores */}
                       {isAdminPanel && (
@@ -980,33 +1089,20 @@ export const ExpandedProjectView = ({
                     </div>
                   </div>
                   
-                  {editedProject.adminResponsibleName && (
+                  {/* ✅ Componente de Responsável pelo Projeto */}
+                  {isAdminPanel && user && (
                     <div className="pt-4 border-t border-gray-200">
-                      <Label className="text-sm font-medium text-gray-700">Responsável Administrativo</Label>
-                      <p className="mt-1 text-md text-gray-900">
-                        {editedProject.adminResponsibleName}
-                        {editedProject.adminResponsibleEmail && ` (${editedProject.adminResponsibleEmail})`}
-                      </p>
-                    </div>
-                  )}
-
-                  {isAdminPanel && (
-                    <div className="pt-4">
-                      {(!editedProject.adminResponsibleId || editedProject.adminResponsibleId !== user?.id) ? (
-                        <Button 
-                          onClick={handleAssumeResponsibility} 
-                          className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white py-2.5 font-semibold"
-                          disabled={isPending}
-                        >
-                          <User className="mr-2 h-5 w-5" />
-                          Assumir Responsabilidade
-                        </Button>
-                      ) : (
-                        <p className="mt-1 text-sm text-green-700 font-semibold flex items-center">
-                          <User className="mr-2 h-5 w-5 text-green-700" />
-                          Você é o responsável por este projeto.
-                        </p>
-                      )}
+                      <ProjectResponsibleAdmin
+                        project={editedProject}
+                        currentUser={{
+                          uid: user.id,
+                          email: user.email,
+                          name: user.profile?.name || user.email,
+                          phone: user.profile?.phone || '',
+                          role: user.role
+                        }}
+                        onUpdate={handleProjectUpdate}
+                      />
                     </div>
                   )}
                 </CardContent>
@@ -1152,16 +1248,34 @@ export const ExpandedProjectView = ({
                                             <Button
                                               variant="outline"
                                               size="sm"
-                                              onClick={() => {
-                                                devLog.log('[Debug EPV] Download button clicked for file:', event.fileName);
-                                                const link = document.createElement('a');
-                                                link.href = event.fileUrl!;
-                                                link.setAttribute('download', event.fileName || 'download');
-                                                link.target = "_blank";
-                                                link.rel = "noopener noreferrer";
-                                                document.body.appendChild(link);
-                                                link.click();
-                                                document.body.removeChild(link);
+                                              onClick={async () => {
+                                                try {
+                                                  devLog.log('[Debug EPV] Download button clicked for file:', event.fileName);
+
+                                                  // Fazer download via fetch para forçar download direto
+                                                  const response = await fetch(event.fileUrl!);
+                                                  const blob = await response.blob();
+
+                                                  // Criar URL temporária do blob
+                                                  const blobUrl = window.URL.createObjectURL(blob);
+
+                                                  // Criar link e forçar download
+                                                  const link = document.createElement('a');
+                                                  link.href = blobUrl;
+                                                  link.download = event.fileName || 'download';
+                                                  document.body.appendChild(link);
+                                                  link.click();
+                                                  document.body.removeChild(link);
+
+                                                  // Limpar URL temporária
+                                                  window.URL.revokeObjectURL(blobUrl);
+                                                } catch (error) {
+                                                  toast({
+                                                    title: "Erro ao baixar arquivo",
+                                                    description: "Não foi possível baixar o arquivo. Tente novamente.",
+                                                    variant: "destructive"
+                                                  });
+                                                }
                                               }}
                                               className="text-xs"
                                             >

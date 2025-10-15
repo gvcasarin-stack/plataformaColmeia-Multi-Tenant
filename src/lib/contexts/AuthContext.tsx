@@ -1,8 +1,10 @@
 "use client";
 
+
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { type User as SupabaseUser, type Session, type AuthError, SignInWithPasswordCredentials, SignUpWithPasswordCredentials, SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 // ✅ PHASE 1: Importar novos sistemas de cache, recovery e logging
 import { profileCache } from '@/lib/cache/profileCache';
 import { fetchUserProfileWithRecovery } from '@/lib/recovery/errorRecovery';
@@ -71,11 +73,14 @@ export interface UserProfile {
   id: string;
   name?: string;
   email?: string;
-  role?: 'cliente' | 'admin' | 'superadmin';
+  role?: 'cliente' | 'admin' | 'superadmin' | 'colaborador';
+  permissions?: any; // ✅ NOVO: Incluir permissions do banco
+  [key: string]: any; // Permitir outras propriedades
 }
 
 export interface AuthUser extends SupabaseUser {
   profile?: UserProfile; // O perfil será opcional até ser carregado
+  permissions?: any; // ✅ NOVO: Também no nível de AuthUser
 }
 
 // Estados de autenticação mais granulares
@@ -99,6 +104,7 @@ interface AuthContextType {
   signOut: () => Promise<{ error: AuthError | null }>;
   sendPasswordResetEmail: (email: string) => Promise<{ error: AuthError | null }>;
   checkSession: () => Promise<boolean>; // ADICIONADO: função para verificar se a sessão é válida
+  refreshUserProfile: () => Promise<void>; // ✅ NOVO: Atualizar perfil do usuário do banco (incluindo permissions)
   // fetchUserProfile não precisa ser exposto se for usado apenas internamente
 }
 
@@ -109,6 +115,7 @@ const createInitialAuthFunctions = () => ({
   signOut: async () => ({ error: null }),
   sendPasswordResetEmail: async () => ({ error: null }),
   checkSession: async () => false,
+  refreshUserProfile: async () => {}, // ✅ NOVO: Função vazia para contexto inicial
 });
 
 // Valor inicial para o contexto (sem funções diretamente no objeto)
@@ -265,49 +272,20 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
               }
             }
             
-            // Se chegou aqui, a API falhou
-            logger.warn('API profile request failed, trying direct Supabase', { 
-              userId, 
-              status: response.status 
+            // Se chegou aqui, a API falhou - SEM FALLBACK DIRETO para segurança multi-tenant
+            logger.error('API profile request failed - no fallback allowed for security', {
+              userId,
+              status: response.status
             }, 'Auth');
-            
-          } catch (apiError) {
-            logger.warn('API profile request exception, trying direct Supabase', { 
-              userId, 
-              error: apiError.message 
+            throw new Error(`API profile request failed: ${response.status}`);
+
+          } catch (apiError: any) {
+            logger.error('API profile request exception - no fallback allowed for security', {
+              userId,
+              error: apiError.message
             }, 'Auth');
+            throw new Error(`API profile request failed: ${apiError.message}`);
           }
-          
-          // ✅ FALLBACK DIRETO: Buscar diretamente no Supabase
-          logger.debug('Fetching profile directly from Supabase', { userId }, 'Auth');
-          
-          const { data: userData, error: supabaseError } = await supabaseInstance
-            .from('users')
-            .select('id, name, email, role, tenant_id, status')
-            .eq('id', userId)
-            .single();
-          
-          if (supabaseError || !userData) {
-            logger.error('Direct Supabase profile request failed', { 
-              userId, 
-              error: supabaseError?.message 
-            }, 'Auth');
-            throw new Error(`Supabase error: ${supabaseError?.message || 'Profile not found'}`);
-          }
-          
-          const userProfile: UserProfile = {
-            id: userData.id,
-            name: userData.name,
-            email: userData.email,
-            role: userData.role
-          };
-          
-          logger.auth.profileFetch(userId, true, 'supabase-direct', { profile: userProfile });
-          
-          // ✅ PHASE 1: Cachear resultado do Supabase
-          profileCache.setProfile(userId, userProfile, 'supabase-direct');
-          
-          return userProfile;
         },
         // Fallback: criar perfil da sessão
         session?.user && session.user.id === userId ? {
@@ -769,41 +747,119 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       // 🔒 VALIDAÇÃO CRÍTICA DE SEGURANÇA: Verificar se usuário pertence ao tenant do domínio atual
       try {
         const domainTenantId = getCurrentDomainTenantId();
+        const userTenantInfo = await getUserTenantInfo(signInData.user.id);
 
-        if (domainTenantId) {
-          logger.debug('Validating user tenant against domain tenant', {
+        // 🔍 Verificação de validação de tenant
+        const hostname = typeof window !== 'undefined' ? window.location.hostname : 'unknown';
+        const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
+
+        // 🚀 SISTEMA DINÂMICO: Se não há domainTenantId (tenant dinâmico novo) OU é localhost
+        if (!domainTenantId || isLocalhost) {
+          logger.debug('Dynamic tenant detected - validating via hostname', {
             userId: signInData.user.id,
-            domainTenantId
+            hostname: hostname,
+            isLocalhost: isLocalhost,
+            reason: !domainTenantId ? 'no_domain_tenant_id' : 'localhost_override'
           }, 'Auth');
 
-          const userTenantInfo = await getUserTenantInfo(signInData.user.id);
+          // Para tenants dinâmicos, verificar se usuário tem um tenant válido OU é pending
+          if (!userTenantInfo || !userTenantInfo.tenant_id) {
+            // ✅ CORREÇÃO: Usar ServiceRole para evitar erro 500 - buscar dados básicos do usuário para verificar se é pending
+            const serviceSupabase = createSupabaseServiceRoleClient();
+            const { data: basicUserData } = await serviceSupabase
+              .from('users')
+              .select('tenant_id, status')
+              .eq('id', signInData.user.id)
+              .single();
 
-          if (!userTenantInfo || userTenantInfo.tenant_id !== domainTenantId) {
-            logger.warn('🚨 SECURITY: Cross-tenant login attempt blocked', {
-              userId: signInData.user.id,
-              userEmail: signInData.user.email,
-              userTenantId: userTenantInfo?.tenant_id || 'null',
-              domainTenantId,
-              organizationName: userTenantInfo?.organization?.name || 'unknown'
-            }, 'Auth');
+            // Se usuário tem tenant_id no banco E é pending, permitir login
+            if (basicUserData && basicUserData.tenant_id && basicUserData.status === 'pending') {
+              logger.info('✅ Pending user with valid tenant_id - allowing login for approval flow', {
+                userId: signInData.user.id,
+                tenantId: basicUserData.tenant_id,
+                status: basicUserData.status
+              }, 'Auth');
 
-            // 🚨 LOGOUT FORÇADO para prevenir acesso cross-tenant
-            await supabase.auth.signOut();
+              // Permitir login para usuários pending mostrarem mensagem de aprovação
+            } else {
+              logger.warn('🚨 SECURITY: User without valid tenant', {
+                userId: signInData.user.id,
+                userEmail: signInData.user.email,
+                userTenantInfo,
+                basicUserData
+              }, 'Auth');
 
-            setUser(null);
-            setSession(null);
-            setAuthState('unauthenticated');
-            setError(new Error('Usuário não autorizado para esta organização') as AuthError);
-            setIsLoading(false);
+              await supabase.auth.signOut();
+              setUser(null);
+              setSession(null);
+              setAuthState('unauthenticated');
+              setError(new Error('Usuário sem organização válida') as AuthError);
+              setIsLoading(false);
 
-            return {
-              error: new Error('Usuário não autorizado para esta organização') as AuthError,
-              user: null,
-              session: null
-            };
+              return {
+                error: new Error('Usuário sem organização válida') as AuthError,
+                user: null,
+                session: null
+              };
+            }
           }
 
-          logger.info('✅ Tenant validation passed', {
+          logger.info('✅ Dynamic tenant validation passed', {
+            userId: signInData.user.id,
+            tenantId: userTenantInfo.tenant_id,
+            organizationName: userTenantInfo.organization?.name
+          }, 'Auth');
+        }
+        // 🔒 SISTEMA HARDCODED: Validação estrita para tenants conhecidos
+        else {
+          logger.debug('Legacy tenant detected - strict validation', {
+            userId: signInData.user.id,
+            domainTenantId,
+            userTenantId: userTenantInfo?.tenant_id
+          }, 'Auth');
+
+          if (!userTenantInfo || userTenantInfo.tenant_id !== domainTenantId) {
+            // ✅ CORREÇÃO: Usar ServiceRole para evitar erro 500 - verificar se é usuário pending com tenant correto
+            const serviceSupabase = createSupabaseServiceRoleClient();
+            const { data: basicUserData } = await serviceSupabase
+              .from('users')
+              .select('tenant_id, status')
+              .eq('id', signInData.user.id)
+              .single();
+
+            // Se usuário pending tem tenant_id correto, permitir login
+            if (basicUserData && basicUserData.tenant_id === domainTenantId && basicUserData.status === 'pending') {
+              logger.info('✅ Legacy tenant validation passed for pending user', {
+                userId: signInData.user.id,
+                tenantId: basicUserData.tenant_id,
+                status: basicUserData.status
+              }, 'Auth');
+            } else {
+              logger.warn('🚨 SECURITY: Cross-tenant login attempt blocked', {
+                userId: signInData.user.id,
+                userEmail: signInData.user.email,
+                userTenantId: userTenantInfo?.tenant_id || 'null',
+                domainTenantId,
+                organizationName: userTenantInfo?.organization?.name || 'unknown',
+                basicUserData
+              }, 'Auth');
+
+              await supabase.auth.signOut();
+              setUser(null);
+              setSession(null);
+              setAuthState('unauthenticated');
+              setError(new Error('Usuário não autorizado para esta organização') as AuthError);
+              setIsLoading(false);
+
+              return {
+                error: new Error('Usuário não autorizado para esta organização') as AuthError,
+                user: null,
+                session: null
+              };
+            }
+          }
+
+          logger.info('✅ Legacy tenant validation passed', {
             userId: signInData.user.id,
             tenantId: userTenantInfo.tenant_id,
             organizationName: userTenantInfo.organization?.name
@@ -996,24 +1052,35 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const sendPasswordResetEmailHandler = useMemo(() => async (email: string) => {
     setIsLoading(true);
     setError(null);
-    
-    // Definir explicitamente a URL de redirecionamento para a página de nova senha
-    const redirectTo = `${window.location.origin}/cliente/nova-senha`;
-    logger.info('Sending password reset email', { email: email, redirectTo: redirectTo }, 'Auth');
-    
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectTo,
-    });
-    
-    if (resetError) {
-      logger.error('Error sending password reset email', { error: resetError.message }, 'Auth', resetError);
+
+    // ✅ SOLUÇÃO REAL: Chamar API que usa admin.generateLink + Amazon SES
+    try {
+      const response = await fetch('/api/auth/send-reset-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        const resetError = data.error || { message: 'Erro ao enviar email' };
+        logger.error('Error sending password reset email', { error: resetError.message }, 'Auth', resetError);
+        setError(resetError);
+        setIsLoading(false);
+        return { error: resetError };
+      }
+
+      logger.info('Password reset email sent successfully', { email }, 'Auth');
+      setIsLoading(false);
+      return { error: null };
+    } catch (err: any) {
+      const resetError = { message: err.message || 'Erro ao enviar email' };
+      logger.error('Exception sending password reset email', { error: resetError.message }, 'Auth');
       setError(resetError);
-    } else {
-      logger.info('Password reset email sent successfully via Supabase native system', { email: email }, 'Auth');
+      setIsLoading(false);
+      return { error: resetError };
     }
-    
-    setIsLoading(false);
-    return { error: resetError };
   }, [supabase]);
 
   const checkSessionHandler = useMemo(() => async (): Promise<boolean> => {
@@ -1025,19 +1092,55 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     return !!currentSession;
   }, [supabase]);
 
+  // ✅ NOVO: Função para atualizar perfil do usuário do banco (incluindo permissions)
+  const refreshUserProfile = useCallback(async (): Promise<void> => {
+    if (!user?.id) {
+      logger.warn('Cannot refresh profile - no user ID', {}, 'Auth');
+      return;
+    }
+
+    try {
+      logger.info('Refreshing user profile from database', { userId: user.id }, 'Auth');
+
+      // Limpar cache para forçar busca do banco
+      profileCache.invalidateProfile(user.id);
+
+      // Buscar perfil atualizado do banco
+      const updatedProfile = await fetchUserProfileInternal(user.id);
+
+      if (updatedProfile) {
+        setUser({ ...user, profile: updatedProfile });
+        logger.info('User profile refreshed successfully', {
+          userId: user.id,
+          hasPermissions: !!updatedProfile.permissions
+        }, 'Auth');
+      } else {
+        logger.warn('Failed to refresh user profile', { userId: user.id }, 'Auth');
+      }
+    } catch (error: any) {
+      logger.error('Error refreshing user profile', {
+        userId: user.id,
+        error: error.message
+      }, 'Auth', error);
+    }
+  }, [user, fetchUserProfileInternal]);
+
   const value = useMemo(() => ({
     user,
     session,
     isLoading,
     authState,
     error,
-    isAuthenticated: !!session && !!user?.email_confirmed_at && authState === 'authenticated',
+    isAuthenticated: !!session && authState === 'authenticated' && (
+      !!user?.email_confirmed_at || user?.profile?.status === 'pending'
+    ),
     signInWithPassword: signInWithPasswordHandler,
     signUpWithPassword: signUpWithPasswordHandler,
     signOut: signOutHandler,
     sendPasswordResetEmail: sendPasswordResetEmailHandler,
     checkSession: checkSessionHandler,
-  }), [user, session, isLoading, authState, error, signInWithPasswordHandler, signUpWithPasswordHandler, signOutHandler, sendPasswordResetEmailHandler, checkSessionHandler]);
+    refreshUserProfile, // ✅ NOVO: Expor função para atualizar perfil
+  }), [user, session, isLoading, authState, error, signInWithPasswordHandler, signUpWithPasswordHandler, signOutHandler, sendPasswordResetEmailHandler, checkSessionHandler, refreshUserProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -1106,9 +1209,14 @@ function sanitizeSupabaseUser(user: SupabaseUser): Record<string, any> {
 // ✅ CORREÇÃO REACT #130: Função para criar AuthUser sanitizado
 function createSanitizedAuthUser(supabaseUser: SupabaseUser, profile?: UserProfile): AuthUser {
   const sanitizedUser = sanitizeSupabaseUser(supabaseUser);
-  
-  return {
+
+  // ✅ NOVO: Copiar permissions e role do profile para o nível do user
+  const authUser: AuthUser = {
     ...sanitizedUser,
-    profile: profile || undefined
+    profile: profile || undefined,
+    permissions: profile?.permissions || undefined,
+    role: profile?.role || undefined
   } as AuthUser;
+
+  return authUser;
 }

@@ -48,6 +48,23 @@ export function generateInvoiceHTML(
     }
   };
 
+  // Função para formatar slug do status para nome legível
+  const formatProjectStatus = (statusSlug: string): string => {
+    const statusMap: Record<string, string> = {
+      'nao-iniciado': 'Não Iniciado',
+      'em-desenvolvimento': 'Em Desenvolvimento',
+      'aguardando-assinaturas': 'Aguardando Assinaturas',
+      'em-homologacao': 'Em Homologação',
+      'projeto-aprovado': 'Projeto Aprovado',
+      'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
+      'projeto-pausado': 'Projeto Pausado',
+      'em-vistoria': 'Em Vistoria',
+      'finalizado': 'Finalizado',
+      'cancelado': 'Cancelado',
+    };
+    return statusMap[statusSlug] || statusSlug;
+  };
+
   // Log completo do objeto user para debug
   devLog.log('FULL USER OBJECT:', user);
 
@@ -752,7 +769,7 @@ export function generateInvoiceHTML(
                 </tr>
                 <tr>
                   <td>Status do Projeto</td>
-                  <td>${project.status || "N/A"}</td>
+                  <td>${formatProjectStatus(project.status || "N/A")}</td>
                 </tr>
                 <tr>
                   <td>Situação do Pagamento</td>
@@ -1002,8 +1019,7 @@ export function downloadHTMLAsPDF(html: string, filename: string): void {
           // Script para garantir que os recursos estejam carregados adequadamente
           window.addEventListener('load', function() {
             document.title = "Fatura - ${filename.replace('.pdf', '')}";
-            devLog.log("Documento de fatura carregado com sucesso");
-            
+
             // Adicionar estilos específicos para garantir cores e formatação na impressão
             const styleEl = document.createElement('style');
             styleEl.textContent = \`
@@ -1270,14 +1286,14 @@ export const generateConsolidatedInvoiceHTML = (
   
   // Obter documento do cliente (CNPJ para empresa, CPF para pessoa física)
   const isCompany2 = Boolean(
-    (userData?.userData?.isCompany) || userData?.isCompany || userData?.companyName || userData?.cnpj
+    userData?.is_company || userData?.userData?.isCompany || userData?.isCompany || userData?.company_name || userData?.companyName || userData?.cnpj
   );
   const clientDocument2 = isCompany2
     ? (
-        userData?.userData?.cnpj || userData?.cnpj || userData?.companyDocument || userData?.document || userData?.documentNumber || (userData?.company?.cnpj) || (userData?.company?.document) || (userData?.companyData?.cnpj) || 'N/A'
+        userData?.cnpj || userData?.userData?.cnpj || userData?.companyDocument || userData?.document || userData?.documentNumber || (userData?.company?.cnpj) || (userData?.company?.document) || (userData?.companyData?.cnpj) || 'N/A'
       )
     : (
-        userData?.userData?.cpf || userData?.cpf || userData?.document || userData?.documentNumber || 'N/A'
+        userData?.cpf || userData?.userData?.cpf || userData?.document || userData?.documentNumber || 'N/A'
       );
   const clientDocumentLabel2 = isCompany2 ? 'CNPJ' : 'CPF';
   

@@ -79,7 +79,7 @@ function NovaSenhaContent() {
   if (isLoading || checkingToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -101,10 +101,10 @@ function NovaSenhaContent() {
               </p>
             )}
             <button
-              onClick={() => router.push('/cliente/recuperar-senha')}
-              className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 mt-4"
+              onClick={() => router.push('/admin/login')}
+              className="w-full bg-emerald-500 text-white py-3 rounded-lg hover:bg-emerald-600 mt-4"
             >
-              Solicitar Novo Link
+              Ir para Login
             </button>
           </div>
         </div>
@@ -147,10 +147,10 @@ function NovaSenhaContent() {
       }
 
       setSuccess(true);
-      toast.success("Senha atualizada!");
-      setTimeout(() => router.push('/cliente/painel'), 2000);
+      toast.success("Senha definida com sucesso!");
+      setTimeout(() => router.push('/admin/painel'), 2000);
     } catch (err: any) {
-      setError(err.message || "Erro ao atualizar senha.");
+      setError(err.message || "Erro ao definir senha.");
     } finally {
       setIsUpdating(false);
     }
@@ -161,7 +161,7 @@ function NovaSenhaContent() {
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="text-green-600 text-5xl mb-4">✓</div>
-          <h1 className="text-xl font-bold mb-2">Senha Atualizada!</h1>
+          <h1 className="text-xl font-bold mb-2">Senha Definida!</h1>
           <p className="text-gray-600">Redirecionando...</p>
         </div>
       </div>
@@ -172,7 +172,7 @@ function NovaSenhaContent() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full mx-4">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-center mb-8">Nova Senha</h1>
+          <h1 className="text-2xl font-bold text-center mb-8">Definir Senha</h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -183,14 +183,14 @@ function NovaSenhaContent() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nova Senha
+                Senha
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
-                placeholder="Digite sua nova senha"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                placeholder="Digite sua senha"
                 required
               />
 
@@ -226,7 +226,7 @@ function NovaSenhaContent() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
                 placeholder="Digite novamente"
                 required
               />
@@ -235,9 +235,9 @@ function NovaSenhaContent() {
             <button
               type="submit"
               disabled={isUpdating}
-              className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 disabled:opacity-50"
+              className="w-full bg-emerald-500 text-white py-3 rounded-lg hover:bg-emerald-600 disabled:opacity-50"
             >
-              {isUpdating ? 'Atualizando...' : 'Atualizar Senha'}
+              {isUpdating ? 'Definindo...' : 'Definir Senha'}
             </button>
           </form>
         </div>
@@ -250,7 +250,7 @@ export default function NovaSenhaPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <NovaSenhaContent />
