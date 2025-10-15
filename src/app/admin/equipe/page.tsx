@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,9 @@ import { toast } from '@/components/ui/use-toast';
 import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2 } from "lucide-react";
 import { devLog } from "@/lib/utils/productionLogger";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { PermissionsCheckboxes } from '@/components/admin/PermissionsCheckboxes';
+import { UserPermissions, ADMIN_PERMISSIONS, COLABORADOR_PERMISSIONS } from '@/types/user';
 
 interface TeamMember {
   id: string;
@@ -29,22 +33,27 @@ interface FormData {
   role: string;
   phone: string;
   department: string;
+  permissions: UserPermissions;
 }
 
 export default function EquipePage() {
-  const { user } = useAuth();
+  const { user, refreshUserProfile } = useAuth();
+  const router = useRouter();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string; projectCount?: number } | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
-    role: 'cliente',
+    role: 'colaborador',
     phone: '',
-    department: ''
+    department: '',
+    permissions: COLABORADOR_PERMISSIONS // ✅ Preset padrão para colaborador
   });
 
   // Filtrar membros baseado na busca
@@ -106,9 +115,22 @@ export default function EquipePage() {
   };
 
   const handleRoleChange = (value: string) => {
+    // ✅ Aplicar preset de permissões baseado no role
+    const permissions = value === 'admin' || value === 'superadmin'
+      ? ADMIN_PERMISSIONS
+      : COLABORADOR_PERMISSIONS;
+
     setFormData(prev => ({
       ...prev,
-      role: value
+      role: value,
+      permissions
+    }));
+  };
+
+  const handlePermissionsChange = (permissions: UserPermissions) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions
     }));
   };
 
@@ -135,22 +157,30 @@ export default function EquipePage() {
         body: JSON.stringify(formData),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        const result = await response.json();
         if (result.success) {
           toast({
             title: 'Sucesso',
             description: editMode ? 'Membro atualizado com sucesso!' : 'Membro adicionado com sucesso!',
           });
-          
+
           resetForm();
           setOpen(false);
           fetchTeamMembers();
+
+          // ✅ NOVO: Se editou o próprio usuário, atualizar perfil no AuthContext
+          if (editMode && currentUserId === user?.id) {
+            devLog.log('[EquipePage] Atualizando perfil próprio após edição');
+            await refreshUserProfile();
+          }
         } else {
           throw new Error(result.error || 'Erro ao salvar membro');
         }
       } else {
-        throw new Error(`Erro HTTP: ${response.status}`);
+        // ✅ CORREÇÃO: Pegar mensagem de erro do JSON response
+        throw new Error(result.error || `Erro HTTP: ${response.status}`);
       }
     } catch (error: any) {
       devLog.error('[EquipePage] Erro ao salvar membro:', error);
@@ -165,32 +195,70 @@ export default function EquipePage() {
   };
 
   const handleEdit = (member: TeamMember) => {
+    // ✅ Carregar permissions do membro (com fallback baseado no role)
+    const memberPermissions = (member as any).permissions ||
+      (member.role === 'admin' || member.role === 'superadmin' ? ADMIN_PERMISSIONS : COLABORADOR_PERMISSIONS);
+
     setFormData({
       name: member.name,
       email: member.email,
       role: member.role,
       phone: member.phone || '',
-      department: member.department || ''
+      department: member.department || '',
+      permissions: memberPermissions
     });
     setCurrentUserId(member.id);
     setEditMode(true);
     setOpen(true);
   };
 
-  const handleDelete = async (memberId: string) => {
+  const handleDeleteClick = async (memberId: string, memberName: string) => {
     if (!user?.id) return;
-    
-    if (!confirm('Tem certeza que deseja remover este membro da equipe?')) {
-      return;
-    }
 
     try {
       setLoading(true);
-      
+
+      // ✅ Verificar quantos projetos o membro é responsável
       const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
       const headers = await createTenantHeaders(user.id);
-      
+
       const response = await fetch(`/api/admin/team-members/${memberId}`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const projectCount = result.projectCount || 0;
+
+        // Armazenar a contagem para usar no modal
+        setMemberToDelete({ id: memberId, name: memberName, projectCount });
+        setDeleteDialogOpen(true);
+      } else {
+        throw new Error('Erro ao verificar projetos do membro');
+      }
+    } catch (error: any) {
+      devLog.error('[EquipePage] Erro ao verificar projetos:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível verificar os projetos do membro.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!user?.id || !memberToDelete) return;
+
+    try {
+      setLoading(true);
+
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+
+      const response = await fetch(`/api/admin/team-members/${memberToDelete.id}`, {
         method: 'DELETE',
         headers,
       });
@@ -203,6 +271,8 @@ export default function EquipePage() {
             description: 'Membro removido da equipe com sucesso!',
           });
           fetchTeamMembers();
+          setDeleteDialogOpen(false);
+          setMemberToDelete(null);
         } else {
           throw new Error(result.error || 'Erro ao remover membro');
         }
@@ -225,9 +295,10 @@ export default function EquipePage() {
     setFormData({
       name: '',
       email: '',
-      role: 'cliente',
+      role: 'colaborador',
       phone: '',
-      department: ''
+      department: '',
+      permissions: COLABORADOR_PERMISSIONS // ✅ Reset com preset padrão
     });
     setEditMode(false);
     setCurrentUserId(null);
@@ -245,26 +316,38 @@ export default function EquipePage() {
     }
   }, [user]);
 
-  // ✅ CORREÇÃO: Verificar se é admin corretamente
-  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || 
-                  user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+  // ✅ CORREÇÃO: Verificar se é admin completo ou tem permissão de gerenciar equipe
+  const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
+  const isFullAdmin = user?.role === 'admin' || user?.role === 'superadmin' ||
+                      user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+  const canManageTeam = isFullAdmin || userPermissions.can_manage_team === true;
 
-  devLog.log('[Admin Equipe] Resultado da verificação de admin:', {
-    isAdmin,
+  devLog.log('[Admin Equipe] Resultado da verificação de permissões:', {
+    isFullAdmin,
+    canManageTeam,
     userRole: user?.role,
-    profileRole: user?.profile?.role
+    profileRole: user?.profile?.role,
+    permissions: userPermissions
   });
 
-  if (!user || !isAdmin) {
+  if (!user || !canManageTeam) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Acesso Restrito</CardTitle>
             <CardDescription>
-              Você não tem permissão para acessar esta página.
+              Você não tem permissão para gerenciar a equipe.
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => router.push('/admin/painel')}
+              className="mt-4 w-full"
+            >
+              Voltar ao Painel
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -316,8 +399,8 @@ export default function EquipePage() {
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>
                 {editMode ? 'Editar Membro' : 'Adicionar Novo Membro'}
               </DialogTitle>
@@ -325,8 +408,9 @@ export default function EquipePage() {
                 {editMode ? 'Atualize as informações do membro da equipe.' : 'Adicione um novo membro à sua equipe.'}
               </DialogDescription>
             </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 pr-3 py-1 space-y-4 custom-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome</Label>
@@ -363,7 +447,6 @@ export default function EquipePage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="cliente">Cliente</SelectItem>
                       <SelectItem value="colaborador">Colaborador</SelectItem>
                     </SelectContent>
                   </Select>
@@ -371,13 +454,23 @@ export default function EquipePage() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="department">Departamento</Label>
-                  <Input
-                    id="department"
-                    name="department"
+                  <Select
                     value={formData.department}
-                    onChange={handleInputChange}
-                    placeholder="Ex: Vendas, Técnico"
-                  />
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o departamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Engenharia">Engenharia</SelectItem>
+                      <SelectItem value="Financeiro">Financeiro</SelectItem>
+                      <SelectItem value="Administrativo">Administrativo</SelectItem>
+                      <SelectItem value="Diretor">Diretor</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                      <SelectItem value="Comercial">Comercial</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
@@ -391,8 +484,16 @@ export default function EquipePage() {
                   placeholder="(11) 99999-9999"
                 />
               </div>
-              
-              <DialogFooter>
+
+              {/* ✅ Componente de Permissões */}
+              <PermissionsCheckboxes
+                role={formData.role}
+                permissions={formData.permissions}
+                onChange={handlePermissionsChange}
+              />
+              </div>
+
+              <DialogFooter className="flex-shrink-0 mt-4 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
@@ -401,8 +502,8 @@ export default function EquipePage() {
                 >
                   Cancelar
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loading}
                   className="bg-teal-600 hover:bg-teal-700"
                 >
@@ -439,60 +540,188 @@ export default function EquipePage() {
             </Card>
           ))
         ) : filteredMembers.length > 0 ? (
-          filteredMembers.map((member) => (
-            <Card key={member.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{member.name}</CardTitle>
-                    <CardDescription className="capitalize">
-                      {member.role}
-                    </CardDescription>
+          filteredMembers.map((member) => {
+            // ✅ Gerar cor do avatar baseada no nome (hash simples)
+            const getAvatarColor = (name: string) => {
+              const colors = [
+                'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+                'bg-orange-500', 'bg-indigo-500', 'bg-teal-500', 'bg-red-500'
+              ];
+              const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              return colors[hash % colors.length];
+            };
+
+            // ✅ Extrair iniciais do nome
+            const getInitials = (name: string) => {
+              const parts = name.trim().split(' ');
+              if (parts.length >= 2) {
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+              }
+              return name.substring(0, 2).toUpperCase();
+            };
+
+            // ✅ Obter permissões do membro
+            const memberPermissions = (member as any).permissions || {};
+            const isAdmin = member.role === 'admin' || member.role === 'superadmin';
+
+            // ✅ Contar permissões ativas
+            const activePermissions = Object.values(memberPermissions).filter(v => v === true).length;
+            const totalPermissions = 12;
+
+            // ✅ Mapear permissões para labels legíveis
+            const permissionLabels: { [key: string]: string } = {
+              can_view_dashboard: 'Painel',
+              can_view_dashboard_financials: 'Painel Completo',
+              can_create_projects: 'Criar Projetos',
+              can_edit_projects: 'Editar Projetos',
+              can_view_clients: 'Ver Clientes',
+              can_edit_clients: 'Editar Clientes',
+              can_view_financials: 'Financeiro',
+              can_manage_team: 'Gerenciar Equipe',
+              can_edit_preferences: 'Preferências',
+              can_view_dimensionamento: 'Dimensionamento',
+              can_view_assinaturas: 'Assinaturas'
+            };
+
+            // ✅ Obter as 3 primeiras permissões ativas
+            const activePermissionsList = Object.entries(memberPermissions)
+              .filter(([_, value]) => value === true)
+              .map(([key, _]) => permissionLabels[key])
+              .filter(label => label)
+              .slice(0, 3);
+
+            return (
+              <Card key={member.id} className="hover:shadow-lg transition-all duration-200 border-gray-200">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start gap-4">
+                    {/* Avatar */}
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-full ${getAvatarColor(member.name)} flex items-center justify-center text-white font-semibold text-lg shadow-md`}>
+                      {getInitials(member.name)}
+                    </div>
+
+                    {/* Nome e Role */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                          {member.name}
+                        </CardTitle>
+                        {/* Badge de Role */}
+                        {isAdmin ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
+                            Admin
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                            Colaborador
+                          </span>
+                        )}
+                      </div>
+
+                      {member.department && (
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                          {member.department}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Ações */}
+                    <div className="flex space-x-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(member)}
+                        disabled={loading}
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        title="Editar membro"
+                      >
+                        <Edit className="h-4 w-4 text-gray-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(member.id, member.name)}
+                        disabled={loading}
+                        className="h-8 w-8 p-0 hover:bg-red-50 text-red-600 hover:text-red-700"
+                        title="Remover membro"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(member)}
-                      disabled={loading}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(member.id)}
-                      disabled={loading}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                </CardHeader>
+
+                <CardContent className="space-y-4 pt-0">
+                  {/* Informações de Contato */}
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Mail className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                      <span className="truncate">{member.email}</span>
+                    </div>
+
+                    {member.phone && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Phone className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                        {member.phone}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                  {member.email}
-                </div>
-                
-                {member.phone && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                    {member.phone}
+
+                  {/* Seção de Permissões */}
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-700 flex items-center">
+                        🔐 Permissões
+                      </span>
+                      {isAdmin ? (
+                        <span className="text-xs font-semibold text-orange-600">
+                          Acesso Total
+                        </span>
+                      ) : (
+                        <span className="text-xs font-medium text-gray-500">
+                          {activePermissions} de {totalPermissions}
+                        </span>
+                      )}
+                    </div>
+
+                    {isAdmin ? (
+                      <p className="text-xs text-gray-500 italic">
+                        Administradores têm acesso completo a todas as funcionalidades
+                      </p>
+                    ) : activePermissionsList.length > 0 ? (
+                      <>
+                        <div className="flex flex-wrap gap-1.5">
+                          {activePermissionsList.map((label, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-200"
+                            >
+                              ✓ {label}
+                            </span>
+                          ))}
+                          {activePermissions > 3 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                              +{activePermissions - 3} mais
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleEdit(member)}
+                          className="text-xs text-teal-600 hover:text-teal-700 font-medium mt-2 hover:underline"
+                        >
+                          Ver todas as permissões →
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                        ⚠️ Nenhuma permissão ativa
+                      </p>
+                    )}
                   </div>
-                )}
-                
-                {member.department && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Building2 className="h-4 w-4 mr-2 text-gray-400" />
-                    {member.department}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
           <div className="col-span-full">
             <Card className="text-center py-12">
@@ -521,6 +750,46 @@ export default function EquipePage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja remover este membro?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Você está prestes a remover <strong className="text-gray-900 dark:text-gray-100">{memberToDelete?.name}</strong> da equipe.
+              </p>
+
+              {memberToDelete?.projectCount && memberToDelete.projectCount > 0 ? (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 space-y-2">
+                  <p className="font-medium text-amber-900 dark:text-amber-100">
+                    ⚠️ Este membro é responsável por {memberToDelete.projectCount} {memberToDelete.projectCount === 1 ? 'projeto' : 'projetos'}.
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    Ao excluir, {memberToDelete.projectCount === 1 ? 'esse projeto ficará' : 'esses projetos ficarão'} sem responsável.
+                    Você poderá atribuir um novo responsável posteriormente.
+                  </p>
+                </div>
+              ) : null}
+
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Esta ação não pode ser desfeita e o membro perderá acesso imediatamente ao sistema.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {loading ? 'Removendo...' : 'Sim, remover membro'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
