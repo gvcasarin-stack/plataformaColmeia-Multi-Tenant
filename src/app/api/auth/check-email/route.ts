@@ -10,12 +10,18 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    console.log('[check-email] === INÍCIO ===');
+
+    const body = await request.json();
+    console.log('[check-email] Body:', JSON.stringify(body));
+
+    const { email } = body;
 
     // Validação básica
     if (!email || typeof email !== 'string') {
+      console.error('[check-email] Email inválido');
       return NextResponse.json(
-        { error: 'Email é obrigatório' },
+        { error: 'Email é obrigatório', debug: { email, type: typeof email } },
         { status: 400 }
       );
     }
@@ -23,8 +29,9 @@ export async function POST(request: NextRequest) {
     // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.error('[check-email] Formato inválido:', email);
       return NextResponse.json(
-        { error: 'Email inválido' },
+        { error: 'Email inválido', debug: { email } },
         { status: 400 }
       );
     }
@@ -32,28 +39,28 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseServiceRoleClient();
 
     // 🔒 MULTI-TENANT: Obter tenant_id do domínio
-    // Para rotas públicas de cadastro, precisamos inferir o tenant pelo hostname
     const hostname = request.headers.get('host') || '';
-
     console.log('[check-email] Hostname:', hostname);
 
     // Buscar tenant_id pelo domínio
     const { data: orgData, error: orgError } = await supabase
       .from('organizations')
-      .select('id')
+      .select('id, slug, custom_domain')
       .or(`custom_domain.eq.${hostname},slug.eq.${hostname.split('.')[0]}`)
       .maybeSingle();
 
+    console.log('[check-email] OrgData:', orgData, 'Error:', orgError);
+
     if (orgError || !orgData) {
-      console.error('[check-email] Erro ao buscar organização:', orgError);
+      console.error('[check-email] Org não encontrada');
       return NextResponse.json(
-        { error: 'Tenant não identificado' },
+        { error: 'Tenant não identificado', debug: { hostname, slug: hostname.split('.')[0] } },
         { status: 400 }
       );
     }
 
     const tenantId = orgData.id;
-    console.log('[check-email] Tenant ID encontrado:', tenantId);
+    console.log('[check-email] Tenant ID:', tenantId);
 
     // 🔒 SEGURANÇA: Buscar apenas se o email existe e qual o role
     // NÃO retornar dados pessoais, apenas informação mínima necessária
