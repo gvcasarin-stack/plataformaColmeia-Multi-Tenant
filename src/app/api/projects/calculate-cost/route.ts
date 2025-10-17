@@ -116,10 +116,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { potencia } = body;
 
-    if (!potencia || typeof potencia !== 'number' || potencia <= 0) {
+    // ✅ CORREÇÃO: Aceitar potência = 0, rejeitar apenas valores negativos, undefined ou null
+    if (potencia === undefined || potencia === null || typeof potencia !== 'number' || potencia < 0) {
       devLog.error('[API Calculate Cost] Potência inválida:', potencia);
       return NextResponse.json(
-        { error: 'Potência deve ser um número positivo' },
+        { error: 'Potência deve ser um número maior ou igual a zero' },
         { status: 400 }
       );
     }
@@ -259,9 +260,10 @@ export async function GET(request: NextRequest) {
 
     const potencia = parseFloat(potenciaStr);
 
-    if (isNaN(potencia) || potencia <= 0) {
+    // ✅ CORREÇÃO: Aceitar potência = 0, rejeitar apenas valores negativos ou NaN
+    if (isNaN(potencia) || potencia < 0) {
       return NextResponse.json(
-        { error: 'Potência deve ser um número positivo' },
+        { error: 'Potência deve ser um número maior ou igual a zero' },
         { status: 400 }
       );
     }
