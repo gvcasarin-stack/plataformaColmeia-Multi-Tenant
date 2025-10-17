@@ -552,7 +552,7 @@ export async function addCommentAction(
 }> {
   
   // 🚨 [DEBUG CRÍTICO] Capturar usuário que chega na função
-  console.log('🚨 [DEBUG SESSION] addCommentAction - Dados do usuário recebido:', {
+  devLog.log('🚨 [DEBUG SESSION] addCommentAction - Dados do usuário recebido:', {
     userId: user?.id,
     userEmail: user?.email,
     userName: user?.name,
@@ -650,26 +650,26 @@ export async function addCommentAction(
     
     // 🚀 OTIMIZAÇÃO: Buscar APENAS os campos necessários (não o projeto inteiro)
     // ✅ SEGURANÇA: Filtrar por tenant_id para garantir isolamento multi-tenant
-    console.log('🚨 [CRITICAL DEBUG] Buscando projeto para comentário:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Buscando projeto para comentário:', {
       projectId,
       tenantId: userTenantId
     });
     
-    const { data: basicProject, error: fetchError } = await supabase
+    const { data: basicProject, error: fetchError} = await supabase
       .from('projects')
       .select('id, nome_cliente_final, number, created_by, comments, timeline_events')
       .eq('id', projectId)
       .eq('tenant_id', userTenantId)
       .single();
       
-    console.log('🚨 [CRITICAL DEBUG] Resultado busca projeto comentário:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Resultado busca projeto comentário:', {
       project: basicProject,
       fetchError: fetchError?.message,
       hasProject: !!basicProject
     });
 
     if (fetchError || !basicProject) {
-      console.log('🚨 [CRITICAL ERROR] PROJETO NÃO ENCONTRADO PARA COMENTÁRIO:', {
+      devLog.log('🚨 [CRITICAL ERROR] PROJETO NÃO ENCONTRADO PARA COMENTÁRIO:', {
         fetchError: fetchError?.message,
         code: fetchError?.code,
         projectId,
@@ -679,14 +679,14 @@ export async function addCommentAction(
       return { error: 'Project not found' };
     }
     
-    console.log('🚨 [CRITICAL DEBUG] Projeto encontrado para comentário! Continuando...');
+    devLog.log('🚨 [CRITICAL DEBUG] Projeto encontrado para comentário! Continuando...');
 
     // Logs removidos por questões de segurança em produção
     
     const currentComments = basicProject.comments || [];
     const currentTimelineEvents = basicProject.timeline_events || [];
     
-    console.log('🚨 [CRITICAL DEBUG] Iniciando adição de comentário:', { 
+    devLog.log('🚨 [CRITICAL DEBUG] Iniciando adição de comentário:', { 
       projectId, 
       content: comment.text,
       userId: user.id,
@@ -713,7 +713,7 @@ export async function addCommentAction(
       .eq('tenant_id', userTenantId);
 
     if (updateError) {
-      console.log('🚨 [CRITICAL DEBUG] Resultado da operação:', { 
+      devLog.log('🚨 [CRITICAL DEBUG] Resultado da operação:', { 
         success: false, 
         error: updateError.message || updateError,
         projectId,
@@ -723,7 +723,7 @@ export async function addCommentAction(
       return { error: `Failed to add comment: ${updateError.message}` };
     }
 
-    console.log('🚨 [CRITICAL DEBUG] Resultado da operação:', { 
+    devLog.log('🚨 [CRITICAL DEBUG] Resultado da operação:', { 
       success: true, 
       error: null,
       projectId,
@@ -744,14 +744,16 @@ export async function addCommentAction(
       projectId,
       projectName: basicProject.nome_cliente_final,
       projectNumber: basicProject.number,
+      projectCreatedBy: basicProject.created_by,
       projectClientOwnerId: projectClientOwnerId,
       authorId: user.id,
-      authorRole: user.role
+      authorRole: user.role,
+      willNotifyCorrectUser: projectClientOwnerId !== user.id ? '✅ YES - will notify client' : '❌ NO - same user (skip notification)'
     });
 
     // 🔥 CRIAR NOTIFICAÇÃO E ENVIAR E-MAIL
     try {
-      console.log('[addCommentAction] 🔍 CHEGOU ATÉ NOTIFICAÇÕES - REAL APP:', {
+      devLog.log('[addCommentAction] 🔍 CHEGOU ATÉ NOTIFICAÇÕES - REAL APP:', {
         projectId,
         userId: user.id,
         userRole: user.role,
@@ -779,51 +781,54 @@ export async function addCommentAction(
         isAdmin,
         userId: user.id,
         projectClientOwnerId: projectClientOwnerId,
-        shouldNotifyClient: isAdmin && projectClientOwnerId && user.id !== projectClientOwnerId,
-        shouldNotifyAdmins: !isAdmin || user.id === projectClientOwnerId
+        willNotifyClient: isAdmin,
+        willNotifyAdmins: !isAdmin
       });
-      
-      if (isAdmin && projectClientOwnerId && user.id !== projectClientOwnerId) {
-        // ✅ Admin comentou → Notificar cliente (apenas se não for o próprio admin)
-        devLog.log('[addCommentAction] Admin commented - notifying client', { 
-          authorName, 
-          projectClientOwnerId, 
-          projectName: basicProject.nome_cliente_final 
-        });
-        
-        // ✅ DEBUG: Log da query antes de executar
-        devLog.log('[addCommentAction] DEBUG - About to query users table:', {
-          queryTable: 'users',
-          queryField: 'id',
-          queryValue: projectClientOwnerId,
-          selectFields: 'full_name, email'
-        });
-        
-        try {
-          // Buscar dados do cliente para pegar o nome correto (suporta ambos os campos)
-          const { data: clientData, error: clientQueryError } = await supabase
-            .from('users')
-            .select('name, email')
-            .eq('id', projectClientOwnerId)
-            .single();
 
-          devLog.log('[addCommentAction] DEBUG - Client query result:', {
-            clientData,
-            clientQueryError,
-            hasClientData: !!clientData,
-            clientName: clientData?.name || clientData?.email,
-            clientEmail: clientData?.email
+      if (isAdmin) {
+        // ✅ Admin comentou → Notificar CLIENTE (e SOMENTE o cliente)
+        devLog.log('[addCommentAction] Admin commented - notifying client ONLY', {
+          authorName,
+          projectClientOwnerId,
+          projectName: basicProject.nome_cliente_final
+        });
+
+        if (!projectClientOwnerId) {
+          devLog.warn('[addCommentAction] AVISO: Projeto sem cliente dono (created_by). Nenhuma notificação será enviada.');
+        } else {
+          // ✅ DEBUG: Log da query antes de executar
+          devLog.log('[addCommentAction] DEBUG - About to query users table:', {
+            queryTable: 'users',
+            queryField: 'id',
+            queryValue: projectClientOwnerId,
+            selectFields: 'name, email'
           });
 
-          if (clientQueryError) {
-            devLog.error('[addCommentAction] Erro ao buscar dados do cliente:', clientQueryError);
-            throw new Error(`Erro ao buscar cliente: ${clientQueryError.message}`);
-          }
+          try {
+            // Buscar dados do cliente para pegar o nome correto
+            const { data: clientData, error: clientQueryError } = await supabase
+              .from('users')
+              .select('name, email')
+              .eq('id', projectClientOwnerId)
+              .single();
 
-          if (!clientData) {
-            devLog.warn('[addCommentAction] Cliente não encontrado na base:', projectClientOwnerId);
-            throw new Error('Cliente não encontrado');
-          }
+            devLog.log('[addCommentAction] DEBUG - Client query result:', {
+              clientData,
+              clientQueryError,
+              hasClientData: !!clientData,
+              clientName: clientData?.name || clientData?.email,
+              clientEmail: clientData?.email
+            });
+
+            if (clientQueryError) {
+              devLog.error('[addCommentAction] Erro ao buscar dados do cliente:', clientQueryError);
+              throw new Error(`Erro ao buscar cliente: ${clientQueryError.message}`);
+            }
+
+            if (!clientData) {
+              devLog.warn('[addCommentAction] Cliente não encontrado na base:', projectClientOwnerId);
+              throw new Error('Cliente não encontrado');
+            }
 
           devLog.log('[addCommentAction] DEBUG - Calling notifyNewComment...');
           devLog.log('[addCommentAction] DEBUG - Comment data being sent:', {
@@ -850,7 +855,7 @@ export async function addCommentAction(
             commentText: comment.text,
             authorId: user.id,
             authorName,
-            authorRole: user.role || 'admin',
+            authorRole: actualRole, // ✅ CORREÇÃO: Usar actualRole do banco, não user.role da sessão
             clientId: projectClientOwnerId,
             clientName: clientData.name || clientData.email || 'Cliente'
           });
@@ -860,12 +865,13 @@ export async function addCommentAction(
             notificationIds: notificationResult.notificationIds?.length,
             emailSent: notificationResult.emailSent
           });
-          
-        } catch (clientError) {
-          devLog.error('[addCommentAction] Erro na notificação para cliente:', clientError);
-          // Não falha o comentário se a notificação falhar
+
+          } catch (clientError) {
+            devLog.error('[addCommentAction] Erro na notificação para cliente:', clientError);
+            // Não falha o comentário se a notificação falhar
+          }
         }
-        
+
       } else {
         // ✅ Cliente comentou → Notificar todos os admins
         devLog.log('[addCommentAction] Client commented - notifying all admins', { 
@@ -896,7 +902,7 @@ export async function addCommentAction(
             commentText: comment.text,
             authorId: user.id,
             authorName,
-            authorRole: user.role || 'client',
+            authorRole: actualRole, // ✅ CORREÇÃO: Usar actualRole do banco, não user.role da sessão
             clientId: user.id,  // ✅ Cliente que comentou
             clientName: authorName  // ✅ Nome do cliente
           });
@@ -924,7 +930,7 @@ export async function addCommentAction(
       revalidatePath(`/projetos/${projectId}`);
     } catch (error) {
       // Falha silenciosa se não conseguir revalidar (ex: durante build estático)
-      console.log('[revalidatePath] Skipped:', error.message);
+      devLog.log('[revalidatePath] Skipped:', error.message);
     }
 
     // 🔧 CORREÇÃO: Resposta ULTRA OTIMIZADA - apenas dados essenciais
@@ -1584,7 +1590,7 @@ export async function createProjectClientAction(
 
     // ✅ CORREÇÃO CRÍTICA: SEMPRE recalcular valor no servidor usando configurações do tenant
     // Ignorar o valor vindo do frontend e sempre calcular baseado nas configurações
-    if (potencia > 0) {
+    if (potencia >= 0) { // ✅ CORRIGIDO: Aceitar potência = 0
       try {
         // Buscar configurações de faixas de potência do tenant
         const { data: configData } = await supabase
@@ -1592,7 +1598,7 @@ export async function createProjectClientAction(
           .select('value')
           .eq('key', 'faixas_potencia')
           .eq('tenant_id', tenantInfo.tenant_id)
-          .single();
+          .maybeSingle(); // ✅ CORRIGIDO: Usar maybeSingle ao invés de single
 
         if (configData?.value) {
           const faixasPotencia = Array.isArray(configData.value) ? configData.value : JSON.parse(configData.value);
@@ -1603,18 +1609,10 @@ export async function createProjectClientAction(
           
           let faixaCorrespondente = null;
           for (const faixa of faixasOrdenadas) {
-            // Para a primeira faixa (potenciaMin = 0), incluir o limite inferior
-            if (faixa.potenciaMin === 0) {
-              if (potencia >= faixa.potenciaMin && potencia <= faixa.potenciaMax) {
-                faixaCorrespondente = faixa;
-                break;
-              }
-            } else {
-              // Para outras faixas, excluir o limite inferior
-              if (potencia > faixa.potenciaMin && potencia <= faixa.potenciaMax) {
-                faixaCorrespondente = faixa;
-                break;
-              }
+            // ✅ CORRIGIDO: Usar >= para min e < para max (exceto última faixa)
+            if (potencia >= faixa.potenciaMin && potencia < faixa.potenciaMax) {
+              faixaCorrespondente = faixa;
+              break;
             }
           }
           
@@ -1654,11 +1652,13 @@ export async function createProjectClientAction(
       data_entrega: projectDataFromClient.dataEntrega || null,
       lista_materiais: projectDataFromClient.listaMateriais && projectDataFromClient.listaMateriais.trim() !== '' ? projectDataFromClient.listaMateriais : null,
       disjuntor_padrao_entrada: projectDataFromClient.disjuntorPadraoEntrada && projectDataFromClient.disjuntorPadraoEntrada.trim() !== '' ? projectDataFromClient.disjuntorPadraoEntrada : null,
-      status: projectDataFromClient.status || 'Não Iniciado',
+      cpf_cnpj_cliente_final: projectDataFromClient.cpf_cnpj_cliente_final && projectDataFromClient.cpf_cnpj_cliente_final.trim() !== '' ? projectDataFromClient.cpf_cnpj_cliente_final : null,
+      endereco_local: projectDataFromClient.endereco_local && projectDataFromClient.endereco_local.trim() !== '' ? projectDataFromClient.endereco_local : null,
+      status: projectDataFromClient.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: projectDataFromClient.prioridade || 'Baixa',
       valor_projeto: valorProjetoFinal,
       pagamento: projectDataFromClient.pagamento || 'pendente', // ✅ GARANTIR SEMPRE PENDENTE
-      
+
       timeline_events: initialTimelineEvents, // ✅ Agora inclui a checklist inicial
       documents: [],
       files: [],
@@ -1677,6 +1677,8 @@ export async function createProjectClientAction(
     logger.info('[createProjectClientAction] Dados que serão inseridos no banco:', {
       lista_materiais: projectData.lista_materiais,
       disjuntor_padrao_entrada: projectData.disjuntor_padrao_entrada,
+      cpf_cnpj_cliente_final: projectData.cpf_cnpj_cliente_final,
+      endereco_local: projectData.endereco_local,
       nome_cliente_final: projectData.nome_cliente_final,
       distribuidora: projectData.distribuidora,
       potencia: projectData.potencia,
@@ -1981,11 +1983,13 @@ export async function getProjectAction(projectId: string): Promise<{
       dataEntrega: data.data_entrega || '',
       listaMateriais: data.lista_materiais || undefined,
       disjuntorPadraoEntrada: data.disjuntor_padrao_entrada || undefined,
-      status: data.status || 'Não Iniciado',
+      cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final || undefined,
+      endereco_local: data.endereco_local || undefined,
+      status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',
       valorProjeto: data.valor_projeto || null,
       pagamento: data.pagamento || undefined,
-      
+
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       adminResponsibleId: data.admin_responsible_id,
@@ -2047,13 +2051,14 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
     }
 
     const isAdmin = userData?.role === 'admin' || userData?.role === 'superadmin';
-    logger.debug('[getProjectsForUserAction] User role determined:', { userId, role: userData?.role, isAdmin });
+    const isColaborador = userData?.role === 'colaborador';
+    logger.debug('[getProjectsForUserAction] User role determined:', { userId, role: userData?.role, isAdmin, isColaborador });
 
     let projectList: Project[];
 
-    if (isAdmin) {
-      // ✅ SEGURANÇA MULTI-TENANT: Para admins, buscar projetos do MESMO TENANT
-      logger.debug('[getProjectsForUserAction] User is admin, fetching tenant projects');
+    if (isAdmin || isColaborador) {
+      // ✅ SEGURANÇA MULTI-TENANT: Para admins E colaboradores, buscar projetos do MESMO TENANT
+      logger.debug('[getProjectsForUserAction] User is admin or colaborador, fetching tenant projects');
       projectList = await getProjectsWithFilters({ tenantId: userData.tenant_id, limit: 1000 });
     } else {
       // ✅ SEGURANÇA MULTI-TENANT: Para clientes, buscar projetos do usuário no MESMO TENANT
@@ -2219,7 +2224,7 @@ export async function assumeProjectResponsibilityAction(
 ): Promise<{ data?: Project; error?: string; message?: string; refresh?: boolean }> {
   try {
     // ✅ LOGS SERVIDOR: Dados de entrada
-    console.log('[SERVER] assumeProjectResponsibilityAction - INÍCIO:', {
+    devLog.log('[SERVER] assumeProjectResponsibilityAction - INÍCIO:', {
       projectId,
       adminData,
       timestamp: new Date().toISOString(),
@@ -2234,23 +2239,23 @@ export async function assumeProjectResponsibilityAction(
 
     if (!projectId || !adminData.id) {
       const error = 'ID do projeto e dados do admin são obrigatórios';
-      console.log('[SERVER] assumeProjectResponsibilityAction - ERRO VALIDAÇÃO:', error);
+      devLog.log('[SERVER] assumeProjectResponsibilityAction - ERRO VALIDAÇÃO:', error);
       return { error };
     }
 
     // ✅ SUPABASE - Atualizar projeto diretamente sem validação de tenant
     const supabase = createSupabaseServiceRoleClient();
-    console.log('[SERVER] assumeProjectResponsibilityAction - Supabase client criado');
+    devLog.log('[SERVER] assumeProjectResponsibilityAction - Supabase client criado');
     
     // Buscar projeto atual
-    console.log('[SERVER] assumeProjectResponsibilityAction - Buscando projeto:', projectId);
+    devLog.log('[SERVER] assumeProjectResponsibilityAction - Buscando projeto:', projectId);
     const { data: currentProject, error: fetchError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
       .single();
 
-    console.log('[SERVER] assumeProjectResponsibilityAction - Resultado busca projeto:', {
+    devLog.log('[SERVER] assumeProjectResponsibilityAction - Resultado busca projeto:', {
       found: !!currentProject,
       error: fetchError,
       errorCode: fetchError?.code,
@@ -2265,7 +2270,7 @@ export async function assumeProjectResponsibilityAction(
 
     if (fetchError || !currentProject) {
       const errorMsg = `Projeto não encontrado: ${fetchError?.message || 'Unknown error'}`;
-      console.log('[SERVER] assumeProjectResponsibilityAction - ERRO:', errorMsg);
+      devLog.log('[SERVER] assumeProjectResponsibilityAction - ERRO:', errorMsg);
       devLog.error('[assumeProjectResponsibilityAction] Projeto não encontrado:', fetchError);
       return { error: errorMsg };
     }
@@ -2305,7 +2310,7 @@ export async function assumeProjectResponsibilityAction(
       .select()
       .single();
 
-    console.log('[SERVER] assumeProjectResponsibilityAction - Resultado update:', {
+    devLog.log('[SERVER] assumeProjectResponsibilityAction - Resultado update:', {
       success: !!updatedProject,
       error: updateError,
       errorCode: updateError?.code,
@@ -2319,12 +2324,12 @@ export async function assumeProjectResponsibilityAction(
 
     if (updateError) {
       const errorMsg = `Erro ao assumir responsabilidade: ${updateError.message}`;
-      console.log('[SERVER] assumeProjectResponsibilityAction - ERRO UPDATE:', errorMsg);
+      devLog.log('[SERVER] assumeProjectResponsibilityAction - ERRO UPDATE:', errorMsg);
       devLog.error('[assumeProjectResponsibilityAction] Erro ao atualizar:', updateError);
       return { error: errorMsg };
     }
 
-    console.log('[SERVER] assumeProjectResponsibilityAction - SUCESSO!');
+    devLog.log('[SERVER] assumeProjectResponsibilityAction - SUCESSO!');
     devLog.log('[assumeProjectResponsibilityAction] Responsabilidade assumida com sucesso');
 
     // Converter dados do Supabase para formato Project
@@ -2370,7 +2375,7 @@ export async function assumeProjectResponsibilityAction(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro inesperado';
-    console.log('[SERVER] assumeProjectResponsibilityAction - EXCEPTION:', {
+    devLog.log('[SERVER] assumeProjectResponsibilityAction - EXCEPTION:', {
       error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
       type: typeof error,
@@ -2396,7 +2401,7 @@ export async function editProjectAction(
   }
 ): Promise<{ data?: Project; error?: string; message?: string; refresh?: boolean }> {
   try {
-    console.log('[SERVER] editProjectAction - INÍCIO:', {
+    devLog.log('[SERVER] editProjectAction - INÍCIO:', {
       projectId: updatedProject.id,
       adminData,
       updatedFields: Object.keys(updatedProject),
@@ -2405,23 +2410,23 @@ export async function editProjectAction(
 
     if (!updatedProject.id || !adminData.id) {
       const error = 'ID do projeto e dados do admin são obrigatórios';
-      console.log('[SERVER] editProjectAction - ERRO VALIDAÇÃO:', error);
+      devLog.log('[SERVER] editProjectAction - ERRO VALIDAÇÃO:', error);
       return { error };
     }
 
     // ✅ SUPABASE - Atualizar projeto diretamente sem validação de tenant
     const supabase = createSupabaseServiceRoleClient();
-    console.log('[SERVER] editProjectAction - Supabase client criado');
+    devLog.log('[SERVER] editProjectAction - Supabase client criado');
 
     // Buscar projeto atual
-    console.log('[SERVER] editProjectAction - Buscando projeto:', updatedProject.id);
+    devLog.log('[SERVER] editProjectAction - Buscando projeto:', updatedProject.id);
     const { data: currentProject, error: fetchError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', updatedProject.id)
       .single();
 
-    console.log('[SERVER] editProjectAction - Resultado busca projeto:', {
+    devLog.log('[SERVER] editProjectAction - Resultado busca projeto:', {
       found: !!currentProject,
       error: fetchError,
       errorCode: fetchError?.code,
@@ -2430,7 +2435,7 @@ export async function editProjectAction(
 
     if (fetchError || !currentProject) {
       const errorMsg = `Projeto não encontrado: ${fetchError?.message || 'Unknown error'}`;
-      console.log('[SERVER] editProjectAction - ERRO:', errorMsg);
+      devLog.log('[SERVER] editProjectAction - ERRO:', errorMsg);
       return { error: errorMsg };
     }
 
@@ -2453,7 +2458,12 @@ export async function editProjectAction(
     if (updatedProject.files !== undefined) updateData.files = updatedProject.files;
     if (updatedProject.comments !== undefined) updateData.comments = updatedProject.comments;
     if (updatedProject.history !== undefined) updateData.history = updatedProject.history;
-    
+
+    // ✅ CORREÇÃO: Mapear campos de SLA para persistir no banco
+    if (updatedProject.status_changed_at !== undefined) updateData.status_changed_at = updatedProject.status_changed_at;
+    if (updatedProject.sla_expires_at !== undefined) updateData.sla_expires_at = updatedProject.sla_expires_at;
+    if (updatedProject.sla_expired !== undefined) updateData.sla_expired = updatedProject.sla_expired;
+
     // Campos adicionais
     updateData.updated_at = new Date().toISOString();
     updateData.last_update_by = {
@@ -2463,7 +2473,7 @@ export async function editProjectAction(
       timestamp: new Date().toISOString()
     };
 
-    console.log('[SERVER] editProjectAction - Dados de update preparados:', Object.keys(updateData));
+    devLog.log('[SERVER] editProjectAction - Dados de update preparados:', Object.keys(updateData));
 
     // ✅ Atualizar projeto diretamente
     const { data: updatedProjectData, error: updateError } = await supabase
@@ -2473,7 +2483,7 @@ export async function editProjectAction(
       .select()
       .single();
 
-    console.log('[SERVER] editProjectAction - Resultado update:', {
+    devLog.log('[SERVER] editProjectAction - Resultado update:', {
       success: !!updatedProjectData,
       error: updateError,
       errorCode: updateError?.code,
@@ -2482,17 +2492,17 @@ export async function editProjectAction(
 
     if (updateError) {
       const errorMsg = `Erro ao editar projeto: ${updateError.message}`;
-      console.log('[SERVER] editProjectAction - ERRO UPDATE:', errorMsg);
+      devLog.log('[SERVER] editProjectAction - ERRO UPDATE:', errorMsg);
       return { error: errorMsg };
     }
 
-    console.log('[SERVER] editProjectAction - SUCESSO!');
+    devLog.log('[SERVER] editProjectAction - SUCESSO!');
     
     // ✅ CRÍTICO: Adicionar notificações como updateProjectAction
     try {
       // Verificar mudança de status para notificações
       if (updatedProjectData.status && currentProject.status !== updatedProjectData.status) {
-        console.log('[SERVER] editProjectAction - Status mudou, enviando notificações:', {
+        devLog.log('[SERVER] editProjectAction - Status mudou, enviando notificações:', {
           oldStatus: currentProject.status,
           newStatus: updatedProjectData.status
         });
@@ -2518,7 +2528,7 @@ export async function editProjectAction(
             adminId: adminData.id,
             adminName: actualAdminName
           });
-          console.log('[SERVER] editProjectAction - Notificação de status enviada');
+          devLog.log('[SERVER] editProjectAction - Notificação de status enviada');
         }
       }
       
@@ -2530,7 +2540,7 @@ export async function editProjectAction(
       );
       
       if (addedFiles.length > 0) {
-        console.log('[SERVER] editProjectAction - Novos arquivos detectados, enviando notificações:', addedFiles.length);
+        devLog.log('[SERVER] editProjectAction - Novos arquivos detectados, enviando notificações:', addedFiles.length);
         
         // Buscar dados do cliente para notificação
         let clientName = 'Cliente';
@@ -2571,10 +2581,10 @@ export async function editProjectAction(
             clientName: clientName
           });
         }
-        console.log('[SERVER] editProjectAction - Notificações de documento enviadas');
+        devLog.log('[SERVER] editProjectAction - Notificações de documento enviadas');
       }
     } catch (notificationError) {
-      console.log('[SERVER] editProjectAction - Erro nas notificações (não crítico):', notificationError);
+      devLog.log('[SERVER] editProjectAction - Erro nas notificações (não crítico):', notificationError);
       // Não falhar a edição por causa das notificações
     }
 
@@ -2622,7 +2632,7 @@ export async function editProjectAction(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro inesperado';
-    console.log('[SERVER] editProjectAction - EXCEPTION:', {
+    devLog.log('[SERVER] editProjectAction - EXCEPTION:', {
       error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
       type: typeof error,
