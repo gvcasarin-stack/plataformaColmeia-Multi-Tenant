@@ -29,17 +29,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obter tenant_id do header
-    const tenantId = headers().get('x-tenant-id');
+    const supabase = createSupabaseServiceRoleClient();
 
-    if (!tenantId) {
+    // 🔒 MULTI-TENANT: Obter tenant_id do domínio
+    // Para rotas públicas de cadastro, precisamos inferir o tenant pelo hostname
+    const hostname = request.headers.get('host') || '';
+
+    console.log('[check-email] Hostname:', hostname);
+
+    // Buscar tenant_id pelo domínio
+    const { data: orgData, error: orgError } = await supabase
+      .from('organizations')
+      .select('id')
+      .or(`custom_domain.eq.${hostname},slug.eq.${hostname.split('.')[0]}`)
+      .maybeSingle();
+
+    if (orgError || !orgData) {
+      console.error('[check-email] Erro ao buscar organização:', orgError);
       return NextResponse.json(
         { error: 'Tenant não identificado' },
         { status: 400 }
       );
     }
 
-    const supabase = createSupabaseServiceRoleClient();
+    const tenantId = orgData.id;
+    console.log('[check-email] Tenant ID encontrado:', tenantId);
 
     // 🔒 SEGURANÇA: Buscar apenas se o email existe e qual o role
     // NÃO retornar dados pessoais, apenas informação mínima necessária
