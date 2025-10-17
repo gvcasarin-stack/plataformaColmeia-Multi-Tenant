@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server-storage';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
 export const dynamic = 'force-dynamic';
 
