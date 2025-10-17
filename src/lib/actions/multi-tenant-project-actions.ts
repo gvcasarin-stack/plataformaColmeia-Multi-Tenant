@@ -45,6 +45,42 @@ export async function createProjectMultiTenant(
 
     const tenantId = userData.tenant_id
 
+    // ✅ CÁLCULO AUTOMÁTICO: Calcular valor do projeto antes de criar
+    let valorCalculado = projectData.valorProjeto || 0;
+
+    if (projectData.potencia && projectData.potencia >= 0) {
+      try {
+        // Buscar configuração de faixas de potência do tenant
+        const { data: configData } = await supabase
+          .from('configs')
+          .select('value')
+          .eq('key', 'faixas_potencia')
+          .eq('tenant_id', tenantId)
+          .maybeSingle();
+
+        if (configData?.value) {
+          const faixas = Array.isArray(configData.value) ? configData.value : JSON.parse(configData.value);
+
+          // Encontrar faixa correspondente
+          const faixaEncontrada = faixas.find((f: any) =>
+            projectData.potencia! >= f.potenciaMin && projectData.potencia! < f.potenciaMax
+          );
+
+          if (faixaEncontrada) {
+            valorCalculado = faixaEncontrada.valorBase;
+            devLog.log('[createProjectMultiTenant] Valor calculado automaticamente:', {
+              potencia: projectData.potencia,
+              faixa: faixaEncontrada,
+              valorCalculado
+            });
+          }
+        }
+      } catch (calcError) {
+        devLog.error('[createProjectMultiTenant] Erro ao calcular valor automático:', calcError);
+        // Continuar com valor do formulário em caso de erro
+      }
+    }
+
     // 2. Verificar se pode criar projetos (limites + trial)
     const { data: canCreate, error: limitError } = await supabase
       .rpc('can_create_resource', { 
@@ -90,13 +126,17 @@ export async function createProjectMultiTenant(
       distribuidora: projectData.distribuidora || '',
       potencia: projectData.potencia || 0,
       data_entrega: projectData.dataEntrega || null,
-      
+
+      // ✅ NOVOS CAMPOS: CPF/CNPJ e Endereço (opcionais)
+      cpf_cnpj_cliente_final: projectData.cpf_cnpj_cliente_final || null,
+      endereco_local: projectData.endereco_local || null,
+
       // Status e prioridade
-      status: 'Não Iniciado',
+      status: 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: projectData.prioridade || 'Baixa',
       
       // Campos financeiros
-      valor_projeto: projectData.valorProjeto || 0,
+      valor_projeto: valorCalculado, // ✅ USAR VALOR CALCULADO AUTOMATICAMENTE
       pagamento: projectData.pagamento || null,
       
       // Dados técnicos específicos
@@ -120,8 +160,14 @@ export async function createProjectMultiTenant(
         auto_timeline: true,
         require_approval: false
       }
-      
-      // Nota: o campo 'number' será gerado automaticamente pelo trigger do banco
+
+      // ✅ ISOLAMENTO MULTI-TENANT IMPLEMENTADO (2025-01-11)
+      // O campo 'number' é gerado automaticamente pelo trigger do banco:
+      // - Trigger: set_project_number_by_tenant
+      // - Função: generate_project_number_by_tenant()
+      // - Formato: FV-YYYY-NNN (ex: FV-2025-001)
+      // - Isolamento: Cada tenant tem sua própria sequência numérica
+      // - Script: scripts/fix-project-number-by-tenant.sql
     }
 
     // 4. Criar projeto no banco
@@ -165,37 +211,35 @@ export async function createProjectMultiTenant(
       // Não falhar a criação por causa da timeline
     }
 
-    // 6. Criar notificação e enviar email para admins da organização
+    // 6. ✅ NOVO SISTEMA: Criar notificação e enviar email para admins da organização
     try {
-      // Buscar todos os admins do mesmo tenant
-      const adminUsers = await getAllAdminUsersByTenant(tenantId)
-      
-      devLog.log('[createProjectMultiTenant] Notificando admins:', {
-        tenantId,
-        adminCount: adminUsers.length,
-        projectName: newProject.nome_cliente_final || newProject.name
-      })
+      devLog.log('[createProjectMultiTenant] ✅ NOVO SISTEMA: Chamando notifyNewProject');
 
-      // Enviar notificação e email usando a função integrada
-      if (adminUsers.length > 0) {
-        await notifyNewProject({
-          projectId: newProject.id,
-          projectNumber: newProject.number,
-          projectName: newProject.nome_cliente_final || newProject.name || 'Novo Projeto',
-          clientName: user.name || user.email || 'Cliente',
-          clientId: user.id,
-          potencia: projectToCreate.potencia,
-          distribuidora: projectToCreate.distribuidora,
-          senderId: user.id,
-          senderName: user.name || user.email
-        })
-        
-        devLog.log('[createProjectMultiTenant] Notificações e emails enviados com sucesso')
+      // ✅ CORREÇÃO: Remover busca duplicada - notifyNewProject já faz isso internamente
+      const result = await notifyNewProject({
+        projectId: newProject.id,
+        projectNumber: newProject.number,
+        projectName: newProject.nome_cliente_final || newProject.name || 'Novo Projeto',
+        clientName: user.name || user.email || 'Cliente',
+        clientId: user.id,
+        potencia: projectToCreate.potencia,
+        distribuidora: projectToCreate.distribuidora,
+        senderId: user.id,
+        senderName: user.name || user.email
+      });
+
+      devLog.log('[createProjectMultiTenant] ✅ NOVO SISTEMA: Resultado notifyNewProject:', {
+        notificationIds: result.notificationIds.length,
+        emailSent: result.emailSent
+      });
+
+      if (result.notificationIds.length > 0 || result.emailSent) {
+        devLog.log('[createProjectMultiTenant] Notificações e emails enviados com sucesso');
       } else {
-        devLog.warn('[createProjectMultiTenant] Nenhum admin encontrado para notificar')
+        devLog.warn('[createProjectMultiTenant] Nenhuma notificação foi criada - verificar logs');
       }
     } catch (notificationError) {
-      devLog.warn('[createProjectMultiTenant] Erro ao criar notificação/email:', notificationError)
+      devLog.error('[createProjectMultiTenant] ❌ ERRO ao criar notificação/email:', notificationError);
       // Não falhar a criação por causa da notificação
     }
 
