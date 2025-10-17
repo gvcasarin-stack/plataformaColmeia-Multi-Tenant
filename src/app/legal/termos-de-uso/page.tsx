@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   description: 'Termos de uso do sistema de gerenciamento fotovoltaico.',
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function TermosDeUsoPage() {
   return (
     <div className="prose prose-gray max-w-none">

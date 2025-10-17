@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   description: 'Política de privacidade do sistema de gerenciamento fotovoltaico.',
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function PoliticaDePrivacidadePage() {
   return (
     <div className="prose prose-gray max-w-none">

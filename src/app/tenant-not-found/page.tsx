@@ -1,45 +1,98 @@
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+'use client';
 
+import React from 'react';
+import { SearchX, Home, UserPlus, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 export default function TenantNotFoundPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md text-center">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full">
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+          {/* Header com ícone */}
+          <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 p-8 text-center border-b border-white/10">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-500/20 mb-4">
+              <SearchX className="h-10 w-10 text-blue-400" />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Organização Não Encontrada
+            </h1>
+            <p className="text-slate-300 text-lg">
+              Este subdomínio não está cadastrado em nossa plataforma
+            </p>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="p-8 space-y-6">
+            <div className="text-center space-y-4">
+              <p className="text-slate-300 text-base leading-relaxed">
+                A organização que você está tentando acessar <span className="font-semibold text-white">não existe</span> ou nunca foi cadastrada em nosso sistema.
+              </p>
+
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Verifique se você digitou o endereço corretamente. Se você está tentando acessar uma organização existente, entre em contato com o administrador.
+              </p>
+            </div>
+
+            {/* Seção de possíveis causas */}
+            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+              <h2 className="text-lg font-semibold text-white mb-3">
+                Possíveis causas
+              </h2>
+              <ul className="space-y-2 text-slate-300 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 mt-1">•</span>
+                  <span>O endereço foi digitado incorretamente</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 mt-1">•</span>
+                  <span>A organização ainda não foi cadastrada na plataforma</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 mt-1">•</span>
+                  <span>O subdomínio foi alterado pelo administrador</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Seção de ações */}
+            <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 rounded-xl p-6 border border-emerald-500/20">
+              <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-emerald-400" />
+                Quer criar sua própria organização?
+              </h2>
+              <p className="text-slate-300 text-sm mb-4">
+                Se você ainda não possui uma conta, pode se cadastrar gratuitamente e começar seu período de teste:
+              </p>
+              <Link
+                href="https://registro.gerenciamentofotovoltaico.com.br"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg text-sm"
+              >
+                <UserPlus className="h-4 w-4" />
+                Criar conta gratuita
+              </Link>
+            </div>
+
+            {/* Botão de navegação */}
+            <div className="flex justify-center pt-4">
+              <Link
+                href="https://gerenciamentofotovoltaico.com.br"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-all"
+              >
+                <Home className="h-4 w-4" />
+                Página Inicial
+              </Link>
+            </div>
+          </div>
         </div>
-        
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Organização não encontrada
-        </h1>
-        
-        <p className="text-gray-600 mb-6">
-          A organização que você está tentando acessar não existe ou foi desativada.
+
+        {/* Footer */}
+        <p className="text-center text-slate-500 text-sm mt-6">
+          SGF Multi-Tenant © {new Date().getFullYear()}
         </p>
-        
-        <div className="space-y-3">
-          <Button asChild className="w-full">
-            <Link href="https://registro.gerenciamentofotovoltaico.com.br">
-              Criar Nova Organização
-            </Link>
-          </Button>
-          
-          <Button variant="outline" asChild className="w-full">
-            <Link href="https://gerenciamentofotovoltaico.com.br">
-              Voltar ao Site Principal
-            </Link>
-          </Button>
-        </div>
-        
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
-            Precisa de ajuda? Entre em contato com o suporte.
-          </p>
-        </div>
       </div>
     </div>
-  )
+  );
 }

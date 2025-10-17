@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: 'Acesse nossos termos de uso, política de privacidade e outros documentos legais.',
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function LegalPage() {
   return (
     <div className="prose prose-gray max-w-none">
