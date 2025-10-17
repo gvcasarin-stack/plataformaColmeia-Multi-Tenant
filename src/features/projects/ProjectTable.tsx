@@ -11,11 +11,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { 
-  Edit2, 
-  Building2, 
-  User, 
-  Zap, 
+import {
+  Edit2,
+  Building2,
+  User,
+  Zap,
   Calendar,
   Activity,
   AlertTriangle,
@@ -25,7 +25,7 @@ import {
   XCircle
 } from "lucide-react"
 import { devLog } from "@/lib/utils/productionLogger";
-import { getDisplayStatus } from "@/lib/services/kanbanService"
+import { getProjectStatuses, ProjectStatusInfo } from "@/lib/services/kanbanService"
 
 /**
  * Interface para as props do componente ProjectTable
@@ -119,34 +119,23 @@ const getPriorityConfig = (priority: string) => {
  * incluindo status, prioridade e detalhes principais
  */
 export function ProjectTable({ projects, onProjectClick }: ProjectTableProps) {
-  const [statusTitles, setStatusTitles] = useState<Record<string, string>>({});
-  
-  // Carregar os títulos personalizados para todos os projetos
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
+
+  // ✅ CORREÇÃO: Carregar status reais do tenant ao invés de usar getDisplayStatus
   useEffect(() => {
-    const loadStatusTitles = async () => {
+    const loadStatuses = async () => {
       try {
-        // Cria um conjunto de status únicos de todos os projetos
-        const uniqueStatuses = new Set(projects.map(p => p.status).filter(Boolean));
-        
-        // Para cada status único, busca o título personalizado
-        const statusMap: Record<string, string> = {};
-        await Promise.all(
-          Array.from(uniqueStatuses).map(async (status) => {
-            if (status) {
-              const displayStatus = await getDisplayStatus(status);
-              statusMap[status] = displayStatus;
-            }
-          })
-        );
-        
-        setStatusTitles(statusMap);
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[ProjectTable] Status carregados:', statuses.length);
       } catch (error) {
-        devLog.error("Erro ao carregar títulos de status:", error);
+        devLog.error('[ProjectTable] Erro ao carregar status:', error);
+        setAvailableStatuses([]);
       }
     };
-    
-    loadStatusTitles();
-  }, [projects]);
+
+    loadStatuses();
+  }, []);
   
   return (
     <div className="rounded-xl border border-gray-200/60 shadow-sm overflow-hidden bg-white">
@@ -166,12 +155,14 @@ export function ProjectTable({ projects, onProjectClick }: ProjectTableProps) {
         </TableHeader>
         <TableBody>
           {projects.map((project) => {
+            // ✅ CORREÇÃO: Buscar nome real do status do tenant
+            const projectStatus = availableStatuses.find(s => s.slug === project.status);
+            const displayStatus = projectStatus?.name || project.status;
+
             const statusConfig = getStatusConfig(project.status);
             const StatusIcon = statusConfig.icon;
             const priorityConfig = getPriorityConfig(project.prioridade);
             const PriorityIcon = priorityConfig.icon;
-            // ✅ CORRIGIDO: Usar statusTitles do banco (nome real) ao invés do mapa estático
-            const displayStatus = statusTitles[project.status] || statusConfig.name;
 
             return (
               <TableRow
