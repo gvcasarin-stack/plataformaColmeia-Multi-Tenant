@@ -1,161 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
-import { devLog } from '@/lib/utils/productionLogger';
+import { headers } from 'next/headers';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/server-storage';
 
-/**
- * API de teste para verificar se o cálculo de custo está funcionando
- * Acesse: /api/debug/test-calculate-cost?tenantId=SEU_TENANT_ID&potencia=10
- */
+export const dynamic = 'force-dynamic';
+
+interface FaixaPotenciaPreco {
+  valorBase: number;
+  potenciaMin: number;
+  potenciaMax: number;
+}
+
+function calcularValorPorPotencia(potencia: number, faixas: FaixaPotenciaPreco[]): number {
+  console.log(`[calcularValorPorPotencia] Iniciando cálculo para potência: ${potencia}`);
+
+  for (const faixa of faixas) {
+    console.log(`[calcularValorPorPotencia] Verificando faixa:`, faixa);
+    console.log(`[calcularValorPorPotencia] Condições: ${potencia} >= ${faixa.potenciaMin} && ${potencia} < ${faixa.potenciaMax}`);
+
+    if (potencia >= faixa.potenciaMin && potencia < faixa.potenciaMax) {
+      console.log(`[calcularValorPorPotencia] ✅ FAIXA ENCONTRADA! Retornando: ${faixa.valorBase}`);
+      return faixa.valorBase;
+    }
+  }
+
+  console.log(`[calcularValorPorPotencia] ❌ Nenhuma faixa encontrada, retornando 0`);
+  return 0;
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
-    const potenciaStr = searchParams.get('potencia');
+    const tenantId = headers().get('x-tenant-id');
 
     if (!tenantId) {
-      return NextResponse.json({ 
-        error: 'Parâmetro tenantId é obrigatório',
-        usage: '/api/debug/test-calculate-cost?tenantId=SEU_TENANT_ID&potencia=10'
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Tenant ID não encontrado' }, { status: 400 });
     }
 
-    if (!potenciaStr) {
-      return NextResponse.json({ 
-        error: 'Parâmetro potencia é obrigatório',
-        usage: '/api/debug/test-calculate-cost?tenantId=SEU_TENANT_ID&potencia=10'
-      }, { status: 400 });
-    }
-
-    const potencia = parseFloat(potenciaStr);
-
-    devLog.log('[DEBUG Test Calculate Cost] Testando cálculo:', { tenantId, potencia });
+    // Simular potência = 0
+    const potenciaTeste = 0;
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Buscar todas as configurações do tenant
-    const { data: allConfigs, error: allConfigsError } = await supabase
-      .from('configs')
-      .select('*')
-      .eq('tenant_id', tenantId);
-
-    // Buscar configuração específica de faixas de potência
+    // Buscar configuração
     const { data: configData, error: configError } = await supabase
       .from('configs')
-      .select('*')
+      .select('value')
       .eq('key', 'faixas_potencia')
       .eq('tenant_id', tenantId)
-      .single();
+      .maybeSingle();
 
-    // Simular o cálculo diretamente aqui para evitar problemas de import
-    let valorCalculado = 0;
-    let faixasUsadas: any[] = [];
-    let source = 'debug_calculation';
+    console.log('📊 CONFIG DATA:', JSON.stringify(configData, null, 2));
+    console.log('❌ CONFIG ERROR:', configError);
 
-    if (configData?.value) {
-      try {
-        faixasUsadas = Array.isArray(configData.value) ? configData.value : JSON.parse(configData.value);
-        
-        // ✅ CORREÇÃO CRÍTICA: Lógica de faixas inclusivas
-        const faixasOrdenadas = [...faixasUsadas].sort((a: any, b: any) => a.potenciaMin - b.potenciaMin);
-        
-        let faixaCorrespondente = null;
-        for (const faixa of faixasOrdenadas) {
-          // Para a primeira faixa (potenciaMin = 0), incluir o limite inferior
-          if (faixa.potenciaMin === 0) {
-            if (potencia >= faixa.potenciaMin && potencia <= faixa.potenciaMax) {
-              faixaCorrespondente = faixa;
-              break;
-            }
-          } else {
-            // Para outras faixas, excluir o limite inferior
-            if (potencia > faixa.potenciaMin && potencia <= faixa.potenciaMax) {
-              faixaCorrespondente = faixa;
-              break;
-            }
-          }
-        }
-        
-        if (faixaCorrespondente) {
-          valorCalculado = faixaCorrespondente.valorBase;
-          source = 'tenant_config';
-        } else {
-          valorCalculado = 4000; // Fallback
-          source = 'fallback';
-        }
-      } catch (parseError) {
-        valorCalculado = 4000;
-        source = 'parse_error';
-      }
-    } else {
-      // Usar faixas baseadas nos dados fornecidos pelo usuário
-      faixasUsadas = [
-        { valorBase: 400, potenciaMax: 5, potenciaMin: 0 },
-        { valorBase: 600, potenciaMax: 10, potenciaMin: 5 },
-        { valorBase: 700, potenciaMax: 20, potenciaMin: 10 },
-        { valorBase: 800, potenciaMax: 30, potenciaMin: 20 },
-        { valorBase: 1000, potenciaMax: 40, potenciaMin: 30 },
-        { valorBase: 1500, potenciaMax: 50, potenciaMin: 40 },
-        { valorBase: 2000, potenciaMax: 75, potenciaMin: 50 },
-        { valorBase: 2500, potenciaMax: 150, potenciaMin: 75 },
-        { valorBase: 3000, potenciaMax: 300, potenciaMin: 150 },
-        { valorBase: 4000, potenciaMax: 999999, potenciaMin: 300 }
-      ];
-      
-      // ✅ CORREÇÃO CRÍTICA: Lógica de faixas inclusivas
-      const faixasOrdenadas = [...faixasUsadas].sort((a: any, b: any) => a.potenciaMin - b.potenciaMin);
-      
-      let faixaCorrespondente = null;
-      for (const faixa of faixasOrdenadas) {
-        // Para a primeira faixa (potenciaMin = 0), incluir o limite inferior
-        if (faixa.potenciaMin === 0) {
-          if (potencia >= faixa.potenciaMin && potencia <= faixa.potenciaMax) {
-            faixaCorrespondente = faixa;
-            break;
-          }
-        } else {
-          // Para outras faixas, excluir o limite inferior
-          if (potencia > faixa.potenciaMin && potencia <= faixa.potenciaMax) {
-            faixaCorrespondente = faixa;
-            break;
-          }
-        }
-      }
-      
-      if (faixaCorrespondente) {
-        valorCalculado = faixaCorrespondente.valorBase;
-        source = 'default_ranges';
-      } else {
-        valorCalculado = 4000;
-        source = 'ultimate_fallback';
-      }
+    let faixasPotencia: FaixaPotenciaPreco[] = [];
+    let source = 'unknown';
+
+    if (configError || !configData?.value) {
+      return NextResponse.json({
+        erro: 'Configuração não encontrada',
+        tenantId,
+        configError: configError?.message
+      }, { status: 500 });
     }
 
-    const resultData = {
-      valorCalculado,
-      faixasUsadas,
-      source,
-      potencia,
-      tenantId
-    };
+    // Parsear configuração
+    try {
+      faixasPotencia = Array.isArray(configData.value)
+        ? configData.value
+        : JSON.parse(configData.value);
+      source = 'tenant_config';
+    } catch (parseError: any) {
+      return NextResponse.json({
+        erro: 'Erro ao parsear configuração',
+        parseError: parseError?.message
+      }, { status: 500 });
+    }
+
+    console.log('📋 FAIXAS CARREGADAS:', JSON.stringify(faixasPotencia, null, 2));
+
+    // Calcular valor
+    const valorCalculado = calcularValorPorPotencia(potenciaTeste, faixasPotencia);
+
+    // Verificar manualmente qual faixa deveria ser usada
+    const faixaEncontrada = faixasPotencia.find(f =>
+      potenciaTeste >= f.potenciaMin && potenciaTeste < f.potenciaMax
+    );
 
     return NextResponse.json({
-      debug: {
-        tenantId,
-        potencia,
-        allConfigsCount: allConfigs?.length || 0,
-        allConfigs: allConfigs,
-        allConfigsError: allConfigsError?.message,
-        faixasPotenciaConfig: configData,
-        faixasPotenciaError: configError?.message
-      },
-      calculationResult: resultData
+      success: true,
+      tenantId,
+      potenciaTeste,
+      source,
+      faixasCount: faixasPotencia.length,
+      faixas: faixasPotencia,
+      valorCalculado,
+      faixaEncontrada,
+      detalhesCalculo: {
+        primeiraFaixa: faixasPotencia[0],
+        condicaoPrimeiraFaixa: {
+          potenciaMin: faixasPotencia[0]?.potenciaMin,
+          potenciaMax: faixasPotencia[0]?.potenciaMax,
+          potenciaTeste,
+          condicao1: `${potenciaTeste} >= ${faixasPotencia[0]?.potenciaMin}`,
+          resultado1: potenciaTeste >= faixasPotencia[0]?.potenciaMin,
+          condicao2: `${potenciaTeste} < ${faixasPotencia[0]?.potenciaMax}`,
+          resultado2: potenciaTeste < faixasPotencia[0]?.potenciaMax,
+          devePassar: potenciaTeste >= faixasPotencia[0]?.potenciaMin && potenciaTeste < faixasPotencia[0]?.potenciaMax
+        }
+      }
     });
 
-  } catch (error) {
-    devLog.error('[DEBUG Test Calculate Cost] Erro:', error);
+  } catch (error: any) {
+    console.error('❌ ERRO GERAL:', error);
     return NextResponse.json({
-      error: 'Erro interno do servidor',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
+      erro: 'Erro interno',
+      message: error?.message,
+      stack: error?.stack
     }, { status: 500 });
   }
 }
