@@ -25,7 +25,7 @@ export default function ClientLoginPage() {
   const [isAwaitingRecovery, setIsAwaitingRecovery] = useState(false);
   const [currentSession, setCurrentSession] = useState<any>(null);
 
-  const { signInWithPassword } = useAuth();
+  const { signInWithPassword, signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -109,7 +109,7 @@ export default function ClientLoginPage() {
 
         setTenantWarning(
           '⚠️ Atenção: Você está tentando fazer login no domínio da Goiás Solar, mas seu e-mail parece ser da Suprema Solar. ' +
-          'Você deveria fazer login em suprema-solar.gerenciamentofotovoltaico.com.br'
+          'Você deveria fazer login em suprema.gerenciamentofotovoltaico.com.br'
         );
         return true;
       }
@@ -216,7 +216,31 @@ export default function ClientLoginPage() {
       }
       
       if (authUser && authSession) {
-        devLog.log('✅ [ClientLogin] Supabase login successful. User state will update, relying on layout to redirect.');
+        devLog.log('✅ [ClientLogin] Supabase login successful. Verificando permissões...');
+
+        // 🔒 VALIDAÇÃO DE ROLE: Apenas clientes podem acessar área de cliente
+        const userRole = (authUser as any)?.profile?.role || (authUser as any)?.role;
+        devLog.log('🔑 [CLIENT-LOGIN] Role detectado:', userRole);
+
+        if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'colaborador') {
+          devLog.error('🔑 [CLIENT-LOGIN] Acesso negado - usuário não-cliente tentando acessar área de cliente:', { email, role: userRole });
+
+          const mensagemRole = userRole === 'colaborador'
+            ? 'Colaboradores devem usar a área administrativa (/admin/login).'
+            : 'Administradores devem usar a área administrativa (/admin/login).';
+
+          toast.error(`Acesso negado. ${mensagemRole}`, {
+            duration: 6000,
+            position: 'top-center',
+          });
+
+          // Fazer logout imediatamente
+          await signOut();
+          setLoading(false);
+          return;
+        }
+
+        devLog.log('✅ [ClientLogin] Permissão validada! User state will update, relying on layout to redirect.');
         toast.success(AUTH_SUCCESS_MESSAGES.LOGIN.message, {
           duration: 2000,
           position: 'top-center',
