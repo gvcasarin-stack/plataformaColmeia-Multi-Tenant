@@ -42,25 +42,29 @@ export async function POST(request: NextRequest) {
     const hostname = request.headers.get('host') || '';
     console.log('[check-email] Hostname:', hostname);
 
-    // Buscar tenant_id pelo domínio
+    // Extrair slug do hostname (ex: "solar-tech" de "solar-tech.gerenciamentofotovoltaico.com.br")
+    const slug = hostname.split('.')[0];
+    console.log('[check-email] Slug extraído:', slug);
+
+    // Buscar tenant_id pelo slug (não existe custom_domain na tabela)
     const { data: orgData, error: orgError } = await supabase
       .from('organizations')
-      .select('id, slug, custom_domain')
-      .or(`custom_domain.eq.${hostname},slug.eq.${hostname.split('.')[0]}`)
+      .select('id, slug, name')
+      .eq('slug', slug)
       .maybeSingle();
 
     console.log('[check-email] OrgData:', orgData, 'Error:', orgError);
 
     if (orgError || !orgData) {
-      console.error('[check-email] Org não encontrada');
+      console.error('[check-email] Org não encontrada para slug:', slug);
       return NextResponse.json(
-        { error: 'Tenant não identificado', debug: { hostname, slug: hostname.split('.')[0] } },
+        { error: 'Tenant não identificado', debug: { hostname, slug } },
         { status: 400 }
       );
     }
 
     const tenantId = orgData.id;
-    console.log('[check-email] Tenant ID:', tenantId);
+    console.log('[check-email] Tenant encontrado:', { id: tenantId, name: orgData.name });
 
     // 🔒 SEGURANÇA: Buscar apenas se o email existe e qual o role
     // NÃO retornar dados pessoais, apenas informação mínima necessária
