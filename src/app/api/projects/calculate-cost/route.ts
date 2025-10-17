@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       .select('value')
       .eq('key', 'faixas_potencia')
       .eq('tenant_id', tenantId)
-      .single();
+      .maybeSingle();
 
     devLog.log('[API Calculate Cost] [DEBUG] Config faixas_potencia específica:', {
       tenantId,
