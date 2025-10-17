@@ -155,6 +155,11 @@ export function RegisterForm() {
   // Estado para controlar a visibilidade da senha
   const [showPassword, setShowPassword] = useState(false);
 
+  // 🔒 VALIDAÇÃO DE EMAIL: Estados para verificar se email já existe
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+
   // Format phone number as user types
   const formatPhone = (value: string) => {
     // Remove all non-digits
@@ -260,6 +265,66 @@ export function RegisterForm() {
     }));
     if (checked) setErrors(prev => ({...prev, companyName: undefined, cnpj: undefined}));
   };
+
+  // 🔒 VALIDAÇÃO DE EMAIL: Verificar se email já existe no sistema
+  const checkEmailAvailability = async (email: string) => {
+    // Resetar estados
+    setEmailError(null);
+    setEmailAvailable(null);
+
+    // Validação básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return;
+    }
+
+    setEmailCheckLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        devLog.error('[RegisterForm] Erro ao verificar email:', data.error);
+        return;
+      }
+
+      if (data.exists) {
+        setEmailAvailable(false);
+
+        if (data.userType === 'administrative') {
+          setEmailError('Este e-mail já possui cadastro administrativo. Faça login na área administrativa (/admin/login).');
+        } else {
+          setEmailError('Este e-mail já está cadastrado. Faça login ou recupere sua senha.');
+        }
+      } else {
+        setEmailAvailable(true);
+      }
+
+    } catch (error) {
+      devLog.error('[RegisterForm] Erro ao verificar email:', error);
+    } finally {
+      setEmailCheckLoading(false);
+    }
+  };
+
+  // Disparar verificação de email quando usuário terminar de digitar (debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.email) {
+        checkEmailAvailability(formData.email);
+      }
+    }, 800); // Aguarda 800ms após usuário parar de digitar
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.email]);
 
   const isPasswordValid = passwordRequirementsMet.every(Boolean);
 
@@ -398,7 +463,38 @@ export function RegisterForm() {
       // Se o cadastro no Supabase Auth foi bem-sucedido e temos um usuário
       if (authUser) {
         devLog.log("[RegisterForm] handleSubmit: Usuário Auth criado/obtido (aguardando confirmação de e-mail). ID:", authUser.id);
-        devLog.log("[RegisterForm] handleSubmit: O trigger SQL 'handle_new_user' deve ter populado os detalhes do perfil na tabela 'users'.");
+
+        // ✅ CORREÇÃO: Fazer chamada direta à API para salvar dados do usuário
+        try {
+          const profileData = {
+            userId: authUser.id,
+            name: formData.name.trim(),
+            phone: formData.phone.replace(/\D/g, "") || null,
+            cpf: formData.isIndividual ? (formData.cpf?.replace(/\D/g, "") || null) : null,
+            cnpj: formData.isCompany ? (formData.cnpj?.replace(/\D/g, "") || null) : null,
+            isCompany: formData.isCompany,
+            companyName: formData.isCompany ? (formData.companyName?.trim() || null) : null,
+          };
+
+          devLog.log("[RegisterForm] handleSubmit: Salvando dados do perfil via API:", profileData);
+
+          const profileResponse = await fetch('/api/user/profile/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(profileData)
+          });
+
+          if (!profileResponse.ok) {
+            devLog.warn("[RegisterForm] handleSubmit: Falha ao salvar perfil via API, mas continuando...");
+          } else {
+            devLog.log("[RegisterForm] handleSubmit: Perfil salvo com sucesso via API");
+          }
+        } catch (profileError) {
+          devLog.error("[RegisterForm] handleSubmit: Erro ao salvar perfil via API:", profileError);
+          // Não interromper o fluxo por causa desse erro
+        }
 
         // Mensagem de sucesso indicando a necessidade de confirmação de e-mail
         toast({
@@ -460,17 +556,31 @@ export function RegisterForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className={errors.email ? "border-red-500" : ""}
-            />
+            <div className="relative">
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="seu@email.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className={`${errors.email || emailError ? "border-red-500" : ""} ${emailCheckLoading ? "pr-10" : ""}`}
+              />
+              {emailCheckLoading && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <svg className="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
             {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+            {emailError && <p className="text-sm text-red-500 flex items-center gap-1">
+              <X className="h-4 w-4" />
+              {emailError}
+            </p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Telefone</Label>
@@ -631,10 +741,10 @@ export function RegisterForm() {
         </div>
       )}
 
-      <Button 
-        type="submit" 
-        className="w-full bg-orange-600 hover:bg-orange-700" 
-        disabled={loading || !isPasswordValid}
+      <Button
+        type="submit"
+        className="w-full bg-orange-600 hover:bg-orange-700"
+        disabled={loading || !isPasswordValid || emailAvailable === false || emailCheckLoading}
       >
         {loading ? "Criando conta..." : "Criar conta"}
       </Button>
