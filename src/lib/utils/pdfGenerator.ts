@@ -24,7 +24,8 @@ export function generateInvoiceHTML(
     favorecido: string;
     documento: string;
     chavePix: string;
-  }
+  },
+  projectStatusName?: string // ✅ NOVO: Nome real do status do projeto (do tenant)
 ): string {
   // SVG do logo Colmeia (extraído da sidebar)
   const logoSvg = `
@@ -769,7 +770,7 @@ export function generateInvoiceHTML(
                 </tr>
                 <tr>
                   <td>Status do Projeto</td>
-                  <td>${formatProjectStatus(project.status || "N/A")}</td>
+                  <td>${projectStatusName || formatProjectStatus(project.status || "N/A")}</td>
                 </tr>
                 <tr>
                   <td>Situação do Pagamento</td>

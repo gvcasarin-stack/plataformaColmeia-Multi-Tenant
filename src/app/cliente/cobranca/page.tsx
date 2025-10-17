@@ -21,13 +21,31 @@ import { ptBR } from "date-fns/locale";
 // import { formatDistanceToNow } from "date-fns";
 import { getClientProjectsAction } from "@/lib/actions/project-actions";
 import { generateInvoiceHTML, downloadHTMLAsPDF } from "@/lib/utils/pdfGenerator";
-import { getUserDataSupabase } from "@/lib/services/authService.supabase";
-import { getClients } from "@/lib/services/clientService.supabase";
+// ✅ CORREÇÃO: Removido imports de getUserDataSupabase e getClients - agora usa APIs seguras
 import { toSafeDate } from "@/lib/utils/dateHelpers";
-import { getConfig } from "@/lib/services/configService";
 import { devLog } from "@/lib/utils/productionLogger";
 import type { Project } from "@/types/project";
+import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService';
 // import { ProjectWithBilling } from '@/types/billing';
+
+// ✅ Mapa de slugs para nomes legíveis
+const statusSlugToName: Record<string, string> = {
+  'nao-iniciado': 'Não Iniciado',
+  'em-desenvolvimento': 'Em Desenvolvimento',
+  'aguardando-assinaturas': 'Aguardando Assinaturas',
+  'em-homologacao': 'Em Homologação',
+  'projeto-aprovado': 'Projeto Aprovado',
+  'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
+  'projeto-pausado': 'Projeto Pausado',
+  'em-vistoria': 'Em Vistoria',
+  'finalizado': 'Finalizado',
+  'cancelado': 'Cancelado',
+};
+
+// ✅ Função para converter slug em nome legível
+const getStatusDisplayName = (slug: string): string => {
+  return statusSlugToName[slug] || slug;
+};
 
 export default function ClientBillingPage() {
   const router = useRouter();
@@ -36,7 +54,10 @@ export default function ClientBillingPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("todos");
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
 
+  // ✅ CORREÇÃO: useEffect executado apenas UMA vez na montagem inicial
+  // Evita recarregamento desnecessário ao trocar de aba do navegador
   useEffect(() => {
     async function fetchProjects() {
       if (!user) {
@@ -52,7 +73,7 @@ export default function ClientBillingPage() {
       try {
         setLoading(true);
         devLog.log("Fetching projects for user:", user.id);
-        
+
         // Call the server action
         const result = await getClientProjectsAction(user.id);
 
@@ -66,15 +87,15 @@ export default function ClientBillingPage() {
           setProjects([]); // Clear projects or handle as appropriate
           return;
         }
-        
+
         const clientProjects = result.data || [];
         devLog.log("Projects fetched via action:", clientProjects.length);
-        
+
         // The server action should ideally handle filtering by userId if it's a generic getProjects call internally.
         // If getClientProjectsAction is specific to a client, this client-side filter might be redundant but safe.
         const userProjects = clientProjects.filter(project => project.userId === user.id);
         devLog.log("Filtered to user projects (client-side check):", userProjects.length);
-        
+
         const projectsWithInvoiceStatus = userProjects.map((project) => {
           const paymentStatus = project.pagamento || 'pendente';
           let price;
@@ -84,14 +105,14 @@ export default function ClientBillingPage() {
             // Fallback to calculated value based on potencia
             price = '4000';
           }
-          
+
           return {
             ...project,
-            invoiceStatus: paymentStatus, 
+            invoiceStatus: paymentStatus,
             price
           };
         });
-        
+
         devLog.log("Setting projects with actual payment status:", projectsWithInvoiceStatus.length);
         setProjects(projectsWithInvoiceStatus);
       } catch (error) {
@@ -110,7 +131,24 @@ export default function ClientBillingPage() {
     if (user) { // Ensure user is available before fetching
       fetchProjects();
     }
-  }, [user, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ Array vazio - executa apenas uma vez na montagem
+
+  // Carregar status dinâmicos do tenant
+  useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[ClienteCobranca] Status carregados:', statuses.length);
+      } catch (error) {
+        devLog.error('[ClienteCobranca] Erro ao carregar status:', error);
+        setAvailableStatuses([]);
+      }
+    };
+
+    loadStatuses();
+  }, []);
 
   // Function to generate and download invoice
   const handleDownloadInvoice = async (project: any) => {
@@ -128,13 +166,23 @@ export default function ClientBillingPage() {
     
     setIsGeneratingInvoice(true);
     try {
-      // Obter dados completos do usuário, incluindo telefone
-                const userData = await getUserDataSupabase(user.id);
+      // ✅ CORREÇÃO: Substituir chamada direta ao Supabase por API segura
+      const userResponse = await fetch(`/api/user/profile?userId=${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error(`Erro na API do usuário: ${userResponse.status}`);
+      }
+
+      const userData = await userResponse.json();
       devLog.log("User data for invoice:", userData);
-      
-      // Buscar todos os clientes para obter dados completos da empresa
-      const allClients = await getClients();
-      const clientData = allClients.find(c => c.id === user.id);
+
+      // ✅ SEGURANÇA: Usar apenas dados do usuário atual (remover getClients que é inseguro)
+      const clientData = userData; // Usar dados do próprio usuário em vez de buscar todos os clientes
       
       if (!clientData) {
         devLog.warn("Dados completos do cliente não encontrados, usando dados de autenticação");
@@ -145,10 +193,15 @@ export default function ClientBillingPage() {
       const completeUserData = {
         ...(clientData || user),
         userData: userData,
-        // Manter campos esperados pelo gerador com base nas fontes confiáveis
-        companyName: clientData?.companyName || userData?.companyName || "",
+        // Campos do banco (snake_case) - PRIORIDADE
+        is_company: userData?.is_company || clientData?.is_company,
+        company_name: userData?.company_name || clientData?.company_name || "",
+        cpf: userData?.cpf || clientData?.cpf || "",
+        cnpj: userData?.cnpj || clientData?.cnpj || "",
+        // Campos compatibilidade (camelCase)
+        companyName: userData?.company_name || clientData?.companyName || userData?.companyName || "",
         company: clientData?.company || (userData as any)?.company || "",
-        cnpj: clientData?.cnpj || userData?.cnpj || ""
+        isCompany: userData?.is_company || clientData?.is_company || clientData?.isCompany
       };
       
       devLog.log("Complete user data for invoice:", completeUserData);
@@ -177,12 +230,16 @@ export default function ClientBillingPage() {
       // Obter valor como número e também string formatada de forma consistente
       const totalValue = parseFloat(project.valorProjeto || '4000');
       const formattedPrice = totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-      
+
+      // ✅ CORREÇÃO: Buscar nome real do status do tenant antes de gerar PDF
+      const projectStatus = availableStatuses.find(s => s.slug === project.status);
+      const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+
       // Format dates
       const issueDate = new Date().toLocaleDateString('pt-BR');
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 30); // Due in 30 days
-      
+
       // Generate the invoice HTML with complete user data and dados bancários
       const invoiceHTML = generateInvoiceHTML(
         project,
@@ -191,7 +248,8 @@ export default function ClientBillingPage() {
         totalValue, // Mantido para compatibilidade da API
         issueDate,
         dueDate,
-        dadosBancarios // Incluir dados bancários
+        dadosBancarios, // Incluir dados bancários
+        statusName // ✅ NOVO: Passar nome real do status
       );
       
       // Download the invoice as PDF
@@ -373,7 +431,12 @@ export default function ClientBillingPage() {
         <TabsContent value={activeTab} className="space-y-6 animate-in fade-in-50 duration-300">
           {filteredProjects.length > 0 ? (
             <div className="grid grid-cols-1 gap-6">
-              {filteredProjects.map((project) => (
+              {filteredProjects.map((project) => {
+                // Buscar o status real do tenant ao invés de usar o mapa estático
+                const projectStatus = availableStatuses.find(s => s.slug === project.status);
+                const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+
+                return (
                 <Card key={project.id} className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
                   <CardContent className="p-0">
                     <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700">
@@ -391,7 +454,7 @@ export default function ClientBillingPage() {
                           </div>
                           {getInvoiceStatusBadge((project as any).invoiceStatus)}
                         </div>
-                        
+
                         <div className="space-y-3">
                           <div className="flex items-center text-sm">
                             <Building2 className="h-4 w-4 text-gray-400 mr-2" />
@@ -409,7 +472,7 @@ export default function ClientBillingPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Invoice Details */}
                       <div className="p-6">
                         <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Detalhes da Fatura</h4>
@@ -427,7 +490,7 @@ export default function ClientBillingPage() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Status:</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{project.status}</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">{statusName}</span>
                           </div>
                           <div className="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700">
                             <div className="flex justify-between items-center">
@@ -475,7 +538,8 @@ export default function ClientBillingPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">

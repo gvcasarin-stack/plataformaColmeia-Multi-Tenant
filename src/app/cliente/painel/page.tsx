@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Project } from "@/types/project";
-import { getUserDataSupabase, UserData } from "@/lib/services/authService.supabase";
+import { UserData } from "@/lib/services/authService.supabase";
 import { createProjectClientAction } from "@/lib/actions/project-actions";
 import { LazyClientCreateProjectModal } from "@/lib/utils/lazy-components";
 import { calculateProjectCost } from "@/lib/utils/projectUtils";
 import { Button } from "@/components/ui/button";
-import { 
-  Table, 
+import {
+  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -22,6 +22,7 @@ import { useProjects } from "@/lib/hooks/useProjects";
 import { Card, CardContent } from "@/components/ui/card";
 import { devLog } from "@/lib/utils/productionLogger";
 import React from "react";
+import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService';
 
 // Adicionar tipo à interface Window
 declare global {
@@ -43,31 +44,52 @@ type DisplayUserData = {
   uid?: string;
 };
 
-// Function to get status configuration for styling
-const getStatusConfig = (status: string) => {
-  switch (status) {
-    case 'Não Iniciado':
-      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200' };
-    case 'Em Desenvolvimento':
-      return { icon: Icons.Activity, color: 'text-blue-600 bg-blue-50 border-blue-200' };
-    case 'Aguardando':
-      return { icon: Icons.Clock, color: 'text-orange-600 bg-orange-50 border-orange-200' };
-    case 'Homologação':
-      return { icon: Icons.AlertTriangle, color: 'text-purple-600 bg-purple-50 border-purple-200' };
-    case 'Projeto Aprovado':
-      return { icon: Icons.CheckCheck, color: 'text-green-600 bg-green-50 border-green-200' };
-    case 'Aguardando Vistoria':
-      return { icon: Icons.Clock, color: 'text-amber-600 bg-amber-50 border-amber-200' };
-    case 'Projeto Pausado':
-      return { icon: Icons.PauseCircle, color: 'text-yellow-600 bg-yellow-50 border-yellow-200' };
-    case 'Em Vistoria':
-      return { icon: Icons.Activity, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' };
-    case 'Finalizado':
-      return { icon: Icons.CheckCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
-    case 'Cancelado':
-      return { icon: Icons.XCircle, color: 'text-red-600 bg-red-50 border-red-200' };
+// ✅ Mapa de slugs para nomes legíveis
+const statusSlugToName: Record<string, string> = {
+  'nao-iniciado': 'Não Iniciado',
+  'em-desenvolvimento': 'Em Desenvolvimento',
+  'aguardando-assinaturas': 'Aguardando Assinaturas',
+  'em-homologacao': 'Em Homologação',
+  'projeto-aprovado': 'Projeto Aprovado',
+  'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
+  'projeto-pausado': 'Projeto Pausado',
+  'em-vistoria': 'Em Vistoria',
+  'finalizado': 'Finalizado',
+  'cancelado': 'Cancelado',
+};
+
+// ✅ Função para converter slug em nome legível
+const getStatusDisplayName = (slug: string): string => {
+  return statusSlugToName[slug] || slug;
+};
+
+// Function to get status configuration for styling (agora aceita slugs)
+const getStatusConfig = (statusSlug: string) => {
+  const displayName = getStatusDisplayName(statusSlug);
+
+  switch (statusSlug) {
+    case 'nao-iniciado':
+      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
+    case 'em-desenvolvimento':
+      return { icon: Icons.Activity, color: 'text-blue-600 bg-blue-50 border-blue-200', name: displayName };
+    case 'aguardando-assinaturas':
+      return { icon: Icons.Clock, color: 'text-orange-600 bg-orange-50 border-orange-200', name: displayName };
+    case 'em-homologacao':
+      return { icon: Icons.AlertTriangle, color: 'text-purple-600 bg-purple-50 border-purple-200', name: displayName };
+    case 'projeto-aprovado':
+      return { icon: Icons.CheckCheck, color: 'text-green-600 bg-green-50 border-green-200', name: displayName };
+    case 'aguardando-solicitar-vistoria':
+      return { icon: Icons.Clock, color: 'text-amber-600 bg-amber-50 border-amber-200', name: displayName };
+    case 'projeto-pausado':
+      return { icon: Icons.PauseCircle, color: 'text-yellow-600 bg-yellow-50 border-yellow-200', name: displayName };
+    case 'em-vistoria':
+      return { icon: Icons.Activity, color: 'text-cyan-600 bg-cyan-50 border-cyan-200', name: displayName };
+    case 'finalizado':
+      return { icon: Icons.CheckCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200', name: displayName };
+    case 'cancelado':
+      return { icon: Icons.XCircle, color: 'text-red-600 bg-red-50 border-red-200', name: displayName };
     default:
-      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200' };
+      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
   }
 };
 
@@ -78,6 +100,7 @@ export default function ClientDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [showApprovalAlert, setShowApprovalAlert] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
   const { projects, loading: projectsLoading, addProject } = useProjects();
   // Adicionando um ref para controlar duplicação de submissão
   const isSubmitting = React.useRef(false);
@@ -86,7 +109,19 @@ export default function ClientDashboard() {
     async function fetchUserData() {
       if (user?.id) {
         try {
-          const data = await getUserDataSupabase(user.id);
+          // ✅ CORREÇÃO: Substituir chamada direta ao Supabase por API segura
+          const response = await fetch(`/api/user/profile?userId=${user.id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erro na API: ${response.status}`);
+          }
+
+          const data = await response.json();
           setUserData(data);
         } catch (error: any) {
           devLog.error("Error fetching user data:", error);
@@ -103,7 +138,7 @@ export default function ClientDashboard() {
     }
 
     fetchUserData();
-    
+
     // Check if the approval alert has been dismissed before
     if (typeof window !== 'undefined') {
       const alertDismissed = localStorage.getItem('approvalAlertDismissed');
@@ -112,6 +147,22 @@ export default function ClientDashboard() {
       }
     }
   }, [user]);
+
+  // Carregar status dinâmicos do tenant
+  useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[ClientePainel] Status carregados:', statuses.length);
+      } catch (error) {
+        devLog.error('[ClientePainel] Erro ao carregar status:', error);
+        setAvailableStatuses([]);
+      }
+    };
+
+    loadStatuses();
+  }, []);
 
   const handleCreateProject = async (data: any) => {
     const submitId = data._submitId || `painel-${Date.now()}-${Math.random()}`;
@@ -195,6 +246,8 @@ export default function ClientDashboard() {
         number: data.projectNumber, // Será gerado pela action/service se undefined
         empresaIntegradora: data.empresaIntegradora, // Vem do formulário do modal
         nomeClienteFinal: data.nomeClienteFinal,
+        cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final, // ✅ NOVO CAMPO
+        endereco_local: data.endereco_local, // ✅ NOVO CAMPO
         distribuidora: data.distribuidora,
         potencia: data.power, // 'power' é o campo do formulário
         listaMateriais: data.listaMateriais, // ADICIONADO: Lista de materiais
@@ -280,7 +333,7 @@ export default function ClientDashboard() {
 
   // Use either the full userData or the basic user info from auth context
   const displayData: DisplayUserData = userData || user || {};
-  const isPendingApproval = user?.pendingApproval || userData?.pendingApproval;
+  const isPendingApproval = user?.profile?.status === 'pending' || userData?.status === 'pending';
 
   return (
     <div className="space-y-8 p-6">
@@ -293,17 +346,6 @@ export default function ClientDashboard() {
           <p className="mt-2 text-orange-100">
             Acompanhe seus projetos e notificações em um só lugar
           </p>
-          
-          {!isPendingApproval && (
-            <Button 
-              variant="default"
-              className="mt-4 !bg-blue-600 !text-white hover:!bg-blue-700 transition-colors duration-200 shadow-md font-medium"
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              <Icons.PlusCircle className="h-4 w-4 mr-2" />
-              Novo Projeto
-            </Button>
-          )}
         </div>
         
         {/* Decorative elements */}
@@ -513,13 +555,15 @@ export default function ClientDashboard() {
         ) : projects.length === 0 ? (
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
             <p className="text-gray-500 dark:text-gray-400 mb-4">Você ainda não possui projetos.</p>
-            <Button 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium"
-            >
-              <Icons.PlusCircle className="h-4 w-4 mr-2" />
-              Criar Novo Projeto
-            </Button>
+            {!isPendingApproval && (
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium"
+              >
+                <Icons.PlusCircle className="h-4 w-4 mr-2" />
+                Criar Novo Projeto
+              </Button>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-gray-200/60 shadow-sm overflow-hidden bg-white dark:bg-gray-800 dark:border-gray-700">
@@ -537,6 +581,11 @@ export default function ClientDashboard() {
               </TableHeader>
               <TableBody>
                 {projects.map((project, index) => {
+                  // Buscar o status real do tenant ao invés de usar o mapa estático
+                  const projectStatus = availableStatuses.find(s => s.slug === project.status);
+                  const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+                  const statusColor = projectStatus?.color || '#6b7280';
+
                   const statusConfig = getStatusConfig(project.status);
                   const StatusIcon = statusConfig.icon;
 
@@ -576,7 +625,7 @@ export default function ClientDashboard() {
                       <TableCell>
                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${statusConfig.color} dark:bg-opacity-20`}>
                           <StatusIcon className="w-3.5 h-3.5" />
-                          <span className="text-sm font-medium">{project.status}</span>
+                          <span className="text-sm font-medium">{statusName}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right pr-6">

@@ -37,36 +37,57 @@ interface ProjectTableProps {
   onProjectClick: (project: Project) => void
 }
 
+// ✅ Mapa de slugs para nomes legíveis
+const statusSlugToName: Record<string, string> = {
+  'nao-iniciado': 'Não Iniciado',
+  'em-desenvolvimento': 'Em Desenvolvimento',
+  'aguardando-assinaturas': 'Aguardando Assinaturas',
+  'em-homologacao': 'Em Homologação',
+  'projeto-aprovado': 'Projeto Aprovado',
+  'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
+  'projeto-pausado': 'Projeto Pausado',
+  'em-vistoria': 'Em Vistoria',
+  'finalizado': 'Finalizado',
+  'cancelado': 'Cancelado',
+};
+
+// ✅ Função para converter slug em nome legível
+const getStatusDisplayName = (slug: string): string => {
+  return statusSlugToName[slug] || slug;
+};
+
 /**
- * Determina a configuração visual para um status de projeto
- * 
- * @param status Status do projeto
- * @returns Objeto com ícone e classes CSS de cor
+ * Determina a configuração visual para um status de projeto (agora aceita slugs)
+ *
+ * @param statusSlug Status do projeto em formato slug
+ * @returns Objeto com ícone, classes CSS de cor e nome legível
  */
-const getStatusConfig = (status: string) => {
-  switch (status) {
-    case 'Não Iniciado':
-      return { icon: Clock, color: 'text-gray-500 bg-gray-50 border-gray-200' };
-    case 'Em Desenvolvimento':
-      return { icon: Activity, color: 'text-blue-600 bg-blue-50 border-blue-200' };
-    case 'Aguardando':
-      return { icon: Clock, color: 'text-orange-600 bg-orange-50 border-orange-200' };
-    case 'Homologação':
-      return { icon: AlertTriangle, color: 'text-purple-600 bg-purple-50 border-purple-200' };
-    case 'Projeto Aprovado':
-      return { icon: CheckCircle2, color: 'text-green-600 bg-green-50 border-green-200' };
-    case 'Aguardando Vistoria':
-      return { icon: Clock, color: 'text-amber-600 bg-amber-50 border-amber-200' };
-    case 'Projeto Pausado':
-      return { icon: PauseCircle, color: 'text-yellow-600 bg-yellow-50 border-yellow-200' };
-    case 'Em Vistoria':
-      return { icon: Activity, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' };
-    case 'Finalizado':
-      return { icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
-    case 'Cancelado':
-      return { icon: XCircle, color: 'text-red-600 bg-red-50 border-red-200' };
+const getStatusConfig = (statusSlug: string) => {
+  const displayName = getStatusDisplayName(statusSlug);
+
+  switch (statusSlug) {
+    case 'nao-iniciado':
+      return { icon: Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
+    case 'em-desenvolvimento':
+      return { icon: Activity, color: 'text-blue-600 bg-blue-50 border-blue-200', name: displayName };
+    case 'aguardando-assinaturas':
+      return { icon: Clock, color: 'text-orange-600 bg-orange-50 border-orange-200', name: displayName };
+    case 'em-homologacao':
+      return { icon: AlertTriangle, color: 'text-purple-600 bg-purple-50 border-purple-200', name: displayName };
+    case 'projeto-aprovado':
+      return { icon: CheckCircle2, color: 'text-green-600 bg-green-50 border-green-200', name: displayName };
+    case 'aguardando-solicitar-vistoria':
+      return { icon: Clock, color: 'text-amber-600 bg-amber-50 border-amber-200', name: displayName };
+    case 'projeto-pausado':
+      return { icon: PauseCircle, color: 'text-yellow-600 bg-yellow-50 border-yellow-200', name: displayName };
+    case 'em-vistoria':
+      return { icon: Activity, color: 'text-cyan-600 bg-cyan-50 border-cyan-200', name: displayName };
+    case 'finalizado':
+      return { icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-50 border-emerald-200', name: displayName };
+    case 'cancelado':
+      return { icon: XCircle, color: 'text-red-600 bg-red-50 border-red-200', name: displayName };
     default:
-      return { icon: Clock, color: 'text-gray-500 bg-gray-50 border-gray-200' };
+      return { icon: Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
   }
 };
 
@@ -149,8 +170,8 @@ export function ProjectTable({ projects, onProjectClick }: ProjectTableProps) {
             const StatusIcon = statusConfig.icon;
             const priorityConfig = getPriorityConfig(project.prioridade);
             const PriorityIcon = priorityConfig.icon;
-            // Usar o título personalizado se disponível, ou o status original
-            const displayStatus = statusTitles[project.status] || project.status;
+            // ✅ CORRIGIDO: Usar statusTitles do banco (nome real) ao invés do mapa estático
+            const displayStatus = statusTitles[project.status] || statusConfig.name;
 
             return (
               <TableRow

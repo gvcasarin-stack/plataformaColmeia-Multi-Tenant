@@ -6,9 +6,28 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
 import { NotificationType, NotificationResult, BatchNotificationResult } from './types';
-import { createNotification, createNotificationForAllAdmins } from './core';
+import { createNotification, createNotificationForAllAdmins, getOrCreateSenderInfo } from './core';
 import { devLog } from "@/lib/utils/productionLogger";
 import logger from '@/lib/utils/logger';
+
+// ✅ Mapa de slugs para nomes legíveis
+const statusSlugToName: Record<string, string> = {
+  'nao-iniciado': 'Não Iniciado',
+  'em-desenvolvimento': 'Em Desenvolvimento',
+  'aguardando-assinaturas': 'Aguardando Assinaturas',
+  'em-homologacao': 'Em Homologação',
+  'projeto-aprovado': 'Projeto Aprovado',
+  'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
+  'projeto-pausado': 'Projeto Pausado',
+  'em-vistoria': 'Em Vistoria',
+  'finalizado': 'Finalizado',
+  'cancelado': 'Cancelado',
+};
+
+// ✅ Função para converter slug em nome legível
+const getStatusDisplayName = (slug: string): string => {
+  return statusSlugToName[slug] || slug;
+};
 
 /**
  * ✅ FUNÇÃO HELPER PARA E-MAILS usando Server Actions
@@ -64,7 +83,8 @@ async function sendEmailNotification(type: string, params: any): Promise<boolean
           projectName: params.projectName,
           projectNumber: params.projectNumber,
           projectUrl: params.projectUrl,
-          projectId: params.projectId
+          projectId: params.projectId,
+          authorId: params.authorId // ✅ Passar authorId para filtrar
         });
         
       case 'admin_document':
@@ -92,8 +112,8 @@ async function sendEmailNotification(type: string, params: any): Promise<boolean
           clientId: params.clientId,
           projectName: params.projectName,
           projectNumber: params.projectNumber,
-          oldStatus: params.oldStatus,
-          newStatus: params.newStatus,
+          oldStatus: getStatusDisplayName(params.oldStatus),
+          newStatus: getStatusDisplayName(params.newStatus),
           projectUrl: params.projectUrl || `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}`
         });
         
@@ -227,7 +247,7 @@ export async function createNotificationForProjectClient(
       }
     };
     
-    console.log('🔍 [DEBUG-CLIENT-NOTIFICATION] Parâmetros da notificação:', {
+    devLog.log('🔍 [DEBUG-CLIENT-NOTIFICATION] Parâmetros da notificação:', {
       type: notificationParams.type,
       userId: notificationParams.userId,
       projectId: notificationParams.projectId,
@@ -238,7 +258,7 @@ export async function createNotificationForProjectClient(
     
     const result = await createNotification(notificationParams);
     
-    console.log('🔍 [DEBUG-CLIENT-NOTIFICATION] Resultado createNotification:', {
+    devLog.log('🔍 [DEBUG-CLIENT-NOTIFICATION] Resultado createNotification:', {
       success: result.success,
       id: result.id,
       error: result.error,
@@ -268,7 +288,9 @@ export async function createNotificationForProjectClient(
 }
 
 /**
- * ✅ NOVA FUNÇÃO: Notifica sobre novo projeto (in-app + e-mail)
+ * ✅ NOVO SISTEMA DE NOTIFICAÇÕES
+ * Notifica sobre novo projeto (in-app + e-mail)
+ * REGRA: Notifica APENAS admins + superadmin (NÃO colaboradores)
  */
 export async function notifyNewProject(params: {
   projectId: string;
@@ -282,45 +304,153 @@ export async function notifyNewProject(params: {
   senderName?: string;
 }): Promise<{ notificationIds: string[]; emailSent: boolean }> {
   try {
-    logger.info('[notifyNewProject] Notificando novo projeto:', params.projectId);
-    
-    // 1. Criar notificação in-app para todos os admins
-    const notificationIds = await createNotificationForAllAdmins({
-      type: 'new_project',
-      title: `Novo projeto: ${params.projectName}`,
-      message: `${params.clientName} criou o projeto "${params.projectName}" (${params.projectNumber})`,
-      projectId: params.projectId,
-      projectNumber: params.projectNumber,
-      projectName: params.projectName,
-      senderId: params.senderId || params.clientId,
-      senderName: params.senderName || params.clientName,
-      senderType: 'client',
-      link: `/admin/projetos/${params.projectId}`,
-      data: {
-        clientName: params.clientName,
-        clientId: params.clientId,
-        potencia: params.potencia,
-        distribuidora: params.distribuidora
-      }
+    console.log('🔍 [DEBUG notifyNewProject] INÍCIO - Parâmetros:', params);
+    logger.info('[notifyNewProject] ✅ NOVO SISTEMA: Notificando apenas admins+superadmin (excluir colaboradores)');
+
+    const supabase = createSupabaseServiceRoleClient();
+
+    console.log('🔍 [DEBUG notifyNewProject] Buscando tenant_id do projeto:', params.projectId);
+
+    // Buscar tenant_id do projeto
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('tenant_id')
+      .eq('id', params.projectId)
+      .single();
+
+    console.log('🔍 [DEBUG notifyNewProject] Resultado busca projeto:', {
+      projectData,
+      projectError: projectError?.message,
+      hasTenantId: !!projectData?.tenant_id
     });
-    
+
+    if (projectError || !projectData?.tenant_id) {
+      console.error('❌ [DEBUG notifyNewProject] ERRO: Não encontrou tenant_id', projectError);
+      logger.error('[notifyNewProject] Erro ao buscar tenant do projeto:', projectError);
+      return { notificationIds: [], emailSent: false };
+    }
+
+    const tenantId = projectData.tenant_id;
+    console.log('✅ [DEBUG notifyNewProject] Tenant encontrado:', tenantId);
+
+    // ✅ NOVO: Buscar APENAS admins + superadmin (excluir colaboradores)
+    console.log('🔍 [DEBUG notifyNewProject] Buscando admins do tenant...');
+    const { getAdminsAndSuperadminsByTenant } = await import('@/lib/services/userService/core');
+    const adminUsers = await getAdminsAndSuperadminsByTenant(tenantId);
+
+    console.log('🔍 [DEBUG notifyNewProject] Admins encontrados:', {
+      count: adminUsers.length,
+      admins: adminUsers.map(a => ({ id: a.uid, email: a.email, role: a.role }))
+    });
+
+    if (adminUsers.length === 0) {
+      console.warn('⚠️ [DEBUG notifyNewProject] AVISO: Nenhum admin encontrado!');
+      logger.warn('[notifyNewProject] Nenhum admin/superadmin encontrado');
+      return { notificationIds: [], emailSent: false };
+    }
+
+    console.log(`✅ [DEBUG notifyNewProject] Vai notificar ${adminUsers.length} admins/superadmins`);
+    logger.info(`[notifyNewProject] Notificando ${adminUsers.length} admins/superadmins`);
+
+    // Obter informações do remetente
+    const senderInfo = await getOrCreateSenderInfo(
+      params.senderId || params.clientId,
+      params.senderName || params.clientName,
+      'client'
+    );
+
+    const mappedType = { type: 'info', category: 'project' };
+
+    // Criar notificações (excluir autor)
+    console.log('🔍 [DEBUG notifyNewProject] Filtrando autor:', params.senderId || params.clientId);
+    const notifications = adminUsers
+      .filter(admin => admin.uid !== (params.senderId || params.clientId))
+      .map(admin => ({
+        type: mappedType.type,
+        category: mappedType.category,
+        priority: 'normal',
+        title: `Novo projeto: ${params.projectName}`,
+        message: `${params.clientName} criou o projeto "${params.projectName}" (${params.projectNumber})`,
+        user_id: admin.uid,
+        tenant_id: tenantId,
+        read: false,
+        data: {
+          projectId: params.projectId,
+          projectNumber: params.projectNumber,
+          projectName: params.projectName,
+          senderId: senderInfo.id,
+          senderName: senderInfo.name,
+          senderType: senderInfo.type,
+          link: `/admin/projetos/${params.projectId}`,
+          originalType: 'new_project',
+          isAdminNotification: true,
+          clientName: params.clientName,
+          clientId: params.clientId,
+          potencia: params.potencia,
+          distribuidora: params.distribuidora
+        }
+      }));
+
+    console.log('🔍 [DEBUG notifyNewProject] Notificações a inserir:', {
+      count: notifications.length,
+      notifications: notifications.map(n => ({ user_id: n.user_id, title: n.title }))
+    });
+
+    let notificationIds: string[] = [];
+
+    if (notifications.length > 0) {
+      console.log('🔍 [DEBUG notifyNewProject] Inserindo notificações no banco...');
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert(notifications)
+        .select('id');
+
+      console.log('🔍 [DEBUG notifyNewProject] Resultado inserção:', {
+        success: !error,
+        error: error?.message,
+        insertedCount: data?.length || 0
+      });
+
+      if (error) {
+        console.error('❌ [DEBUG notifyNewProject] ERRO ao inserir notificações:', error);
+        logger.error('[notifyNewProject] Erro ao criar notificações:', error);
+      } else {
+        notificationIds = data?.map(n => n.id) || [];
+        console.log('✅ [DEBUG notifyNewProject] Notificações inseridas:', notificationIds);
+      }
+    } else {
+      console.warn('⚠️ [DEBUG notifyNewProject] AVISO: Nenhuma notificação para inserir (todos filtrados?)');
+    }
+
     // 2. Enviar e-mail para admins
+    console.log('🔍 [DEBUG notifyNewProject] Enviando e-mails...');
     const emailSent = await sendEmailNotification('new_project', {
       ...params,
       projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/projetos/${params.projectId}`
     });
-    
+
+    console.log('✅ [DEBUG notifyNewProject] FIM - Resultado:', {
+      notificationIds: notificationIds.length,
+      emailSent
+    });
     logger.info('[notifyNewProject] Resultado:', { notificationIds: notificationIds.length, emailSent });
-    
+
     return { notificationIds, emailSent };
   } catch (error) {
+    console.error('❌ [DEBUG notifyNewProject] EXCEPTION:', error);
     logger.error('[notifyNewProject] Erro:', error);
     return { notificationIds: [], emailSent: false };
   }
 }
 
 /**
- * ✅ NOVA FUNÇÃO: Notifica sobre novo comentário (in-app + e-mail)
+ * ✅ NOVO SISTEMA DE NOTIFICAÇÕES
+ * Notifica sobre novo comentário (in-app + e-mail)
+ * REGRAS:
+ * - Admin comenta: notifica cliente
+ * - Cliente comenta SEM responsável: notifica apenas admins + superadmin (NÃO colaboradores)
+ * - Cliente comenta COM responsável: notifica APENAS o responsável
+ * - Outro admin comenta: notifica responsável + cliente
  */
 export async function notifyNewComment(params: {
   projectId: string;
@@ -334,27 +464,45 @@ export async function notifyNewComment(params: {
   clientName?: string;
 }): Promise<{ notificationIds: string[]; emailSent: boolean }> {
   try {
-    // 🔍 DEBUG CRÍTICO: Log entrada da função
-    // Logs removidos por questões de segurança em produção
-    
-    logger.info('[notifyNewComment] Notificando novo comentário:', params.projectId);
-    
-    const isAdminComment = ['admin', 'superadmin'].includes(params.authorRole);
+    logger.info('[notifyNewComment] ✅ NOVO SISTEMA: Verificando responsável do projeto');
+
+    const supabase = createSupabaseServiceRoleClient();
+
+    // Buscar informações do projeto (tenant_id e responsável)
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('tenant_id, admin_responsible_id, created_by')
+      .eq('id', params.projectId)
+      .single();
+
+    if (projectError || !projectData) {
+      logger.error('[notifyNewComment] Erro ao buscar projeto:', projectError);
+      return { notificationIds: [], emailSent: false };
+    }
+
+    const tenantId = projectData.tenant_id;
+    const responsibleId = projectData.admin_responsible_id;
+    const projectClientId = projectData.created_by;
+    const hasResponsible = !!responsibleId;
+
+    const isAdminComment = ['admin', 'superadmin', 'colaborador'].includes(params.authorRole);
     let notificationIds: string[] = [];
     let emailSent = false;
-    
-    console.log('🔍 [DEBUG-COMMENT-FLOW] Determinando fluxo:', {
-      authorRole: params.authorRole,
-      isAdminComment,
-      hasClientId: !!params.clientId,
-      clientId: params.clientId
-    });
-    
+
+    logger.info(`[notifyNewComment] Projeto ${hasResponsible ? 'TEM' : 'NÃO TEM'} responsável`, { responsibleId });
+
     if (isAdminComment) {
-      // Admin comentou - notificar cliente
-      console.log('🔍 [DEBUG-COMMENT-FLOW] FLUXO: Admin comentou → notificar cliente');
-      if (params.clientId) {
-        console.log('🔍 [DEBUG-COMMENT-FLOW] Chamando createNotificationForProjectClient...');
+      // ═══════════════════════════════════════════════════════════════
+      // ADMIN/COLABORADOR COMENTOU
+      // ═══════════════════════════════════════════════════════════════
+
+      // Verificar se quem comentou é o responsável ou outro admin
+      const isResponsible = hasResponsible && params.authorId === responsibleId;
+
+      if (isResponsible) {
+        // RESPONSÁVEL comentou → notificar APENAS cliente
+        logger.info('[notifyNewComment] Responsável comentou → notificar apenas cliente');
+
         const clientResult = await createNotificationForProjectClient(
           params.projectId,
           params.projectNumber,
@@ -366,19 +514,77 @@ export async function notifyNewComment(params: {
             authorId: params.authorId,
             authorName: params.authorName,
             isFromAdmin: true,
-            link: `/cliente/projetos/${params.projectId}?tab=comments` // ✅ URL correta para cliente
+            link: `/cliente/projetos/${params.projectId}?tab=comments`
           }
         );
-        
+
         if (clientResult.success && clientResult.id) {
           notificationIds.push(clientResult.id);
         }
-        
-        // Logs removidos por questões de segurança em produção
-        
-        // Enviar e-mail para cliente
+
         emailSent = await sendEmailNotification('admin_comment', {
-          clientId: params.clientId,
+          clientId: projectClientId,
+          projectName: params.projectName,
+          projectNumber: params.projectNumber,
+          authorName: params.authorName,
+          commentText: params.commentText,
+          projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}?tab=comments`,
+          projectId: params.projectId
+        });
+
+      } else {
+        // OUTRO admin comentou → notificar responsável + cliente
+        logger.info('[notifyNewComment] Outro admin comentou → notificar responsável + cliente');
+
+        // Notificar cliente
+        const clientResult = await createNotificationForProjectClient(
+          params.projectId,
+          params.projectNumber,
+          'new_comment',
+          `Novo comentário no projeto ${params.projectNumber}`,
+          `${params.authorName} comentou: "${params.commentText.substring(0, 50)}..."`,
+          {
+            commentText: params.commentText,
+            authorId: params.authorId,
+            authorName: params.authorName,
+            isFromAdmin: true,
+            link: `/cliente/projetos/${params.projectId}?tab=comments`
+          }
+        );
+
+        if (clientResult.success && clientResult.id) {
+          notificationIds.push(clientResult.id);
+        }
+
+        // Se tem responsável, notificá-lo também
+        if (hasResponsible && responsibleId !== params.authorId) {
+          const responsibleResult = await createNotification({
+            type: 'new_comment',
+            title: `Comentário no seu projeto: ${params.projectName}`,
+            message: `${params.authorName} comentou no projeto ${params.projectNumber}: "${params.commentText.substring(0, 50)}..."`,
+            userId: responsibleId,
+            projectId: params.projectId,
+            projectNumber: params.projectNumber,
+            projectName: params.projectName,
+            senderId: params.authorId,
+            senderName: params.authorName,
+            senderType: 'admin',
+            link: `/admin/projetos/${params.projectId}?tab=comments`,
+            data: {
+              commentText: params.commentText,
+              authorId: params.authorId,
+              authorName: params.authorName,
+              isCollaborationComment: true
+            }
+          });
+
+          if (responsibleResult.success && responsibleResult.id) {
+            notificationIds.push(responsibleResult.id);
+          }
+        }
+
+        emailSent = await sendEmailNotification('admin_comment', {
+          clientId: projectClientId,
           projectName: params.projectName,
           projectNumber: params.projectNumber,
           authorName: params.authorName,
@@ -387,34 +593,97 @@ export async function notifyNewComment(params: {
           projectId: params.projectId
         });
       }
+
     } else {
-      // Cliente comentou - notificar admins
-      const adminIds = await createNotificationForAllAdmins({
-        type: 'new_comment',
-        title: `Novo comentário do cliente: ${params.projectName}`,
-        message: `${params.authorName} comentou no projeto ${params.projectNumber}: "${params.commentText.substring(0, 50)}..."`,
-        projectId: params.projectId,
-        projectNumber: params.projectNumber,
-        projectName: params.projectName,
-        senderId: params.authorId,
-        senderName: params.authorName,
-        senderType: 'client',
-        link: `/admin/projetos/${params.projectId}?tab=comments`,
-        data: {
-          commentText: params.commentText,
-          commentFull: params.commentText,
-          commentSnippet: params.commentText.substring(0, 150) + (params.commentText.length > 150 ? "..." : ""),
-          authorId: params.authorId,
-          authorName: params.authorName,
-          isFromClient: true
+      // ═══════════════════════════════════════════════════════════════
+      // CLIENTE COMENTOU
+      // ═══════════════════════════════════════════════════════════════
+
+      if (hasResponsible) {
+        // TEM responsável → notificar APENAS o responsável
+        logger.info('[notifyNewComment] Cliente comentou COM responsável → notificar apenas responsável');
+
+        const responsibleResult = await createNotification({
+          type: 'new_comment',
+          title: `Novo comentário do cliente: ${params.projectName}`,
+          message: `${params.authorName} comentou no projeto ${params.projectNumber}: "${params.commentText.substring(0, 50)}..."`,
+          userId: responsibleId,
+          projectId: params.projectId,
+          projectNumber: params.projectNumber,
+          projectName: params.projectName,
+          senderId: params.authorId,
+          senderName: params.authorName,
+          senderType: 'client',
+          link: `/admin/projetos/${params.projectId}?tab=comments`,
+          data: {
+            commentText: params.commentText,
+            commentFull: params.commentText,
+            commentSnippet: params.commentText.substring(0, 150) + (params.commentText.length > 150 ? "..." : ""),
+            authorId: params.authorId,
+            authorName: params.authorName,
+            isFromClient: true
+          }
+        });
+
+        if (responsibleResult.success && responsibleResult.id) {
+          notificationIds.push(responsibleResult.id);
         }
-      });
-      
-      notificationIds = adminIds;
-      
-      // Logs removidos por questões de segurança em produção
-      
-      // Enviar e-mail para admins
+
+      } else {
+        // NÃO tem responsável → notificar apenas admins + superadmin (NÃO colaboradores)
+        logger.info('[notifyNewComment] Cliente comentou SEM responsável → notificar apenas admins + superadmin');
+
+        const { getAdminsAndSuperadminsByTenant } = await import('@/lib/services/userService/core');
+        const allAdmins = await getAdminsAndSuperadminsByTenant(tenantId);
+
+        if (allAdmins.length > 0) {
+          const senderInfo = await getOrCreateSenderInfo(params.authorId, params.authorName, 'client');
+          const mappedType = { type: 'info', category: 'project' };
+
+          const notifications = allAdmins
+            .filter(admin => admin.uid !== params.authorId)
+            .map(admin => ({
+              type: mappedType.type,
+              category: mappedType.category,
+              priority: 'normal',
+              title: `Novo comentário do cliente: ${params.projectName}`,
+              message: `${params.authorName} comentou no projeto ${params.projectNumber}: "${params.commentText.substring(0, 50)}..."`,
+              user_id: admin.uid,
+              tenant_id: tenantId,
+              read: false,
+              data: {
+                projectId: params.projectId,
+                projectNumber: params.projectNumber,
+                projectName: params.projectName,
+                senderId: senderInfo.id,
+                senderName: senderInfo.name,
+                senderType: senderInfo.type,
+                link: `/admin/projetos/${params.projectId}?tab=comments`,
+                originalType: 'new_comment',
+                isAdminNotification: true,
+                commentText: params.commentText,
+                commentFull: params.commentText,
+                commentSnippet: params.commentText.substring(0, 150) + (params.commentText.length > 150 ? "..." : ""),
+                authorId: params.authorId,
+                authorName: params.authorName,
+                isFromClient: true
+              }
+            }));
+
+          if (notifications.length > 0) {
+            const { data, error } = await supabase
+              .from('notifications')
+              .insert(notifications)
+              .select('id');
+
+            if (!error && data) {
+              notificationIds = data.map(n => n.id);
+            }
+          }
+        }
+      }
+
+      // E-mail para admins
       emailSent = await sendEmailNotification('client_comment', {
         commentText: params.commentText,
         clientName: params.clientName || params.authorName,
@@ -422,12 +691,13 @@ export async function notifyNewComment(params: {
         projectName: params.projectName,
         projectNumber: params.projectNumber,
         projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/projetos/${params.projectId}?tab=comments`,
-        projectId: params.projectId
+        projectId: params.projectId,
+        authorId: params.authorId
       });
     }
-    
+
     logger.info('[notifyNewComment] Resultado:', { notificationIds: notificationIds.length, emailSent });
-    
+
     return { notificationIds, emailSent };
   } catch (error) {
     logger.error('[notifyNewComment] Erro:', error);
@@ -436,7 +706,13 @@ export async function notifyNewComment(params: {
 }
 
 /**
- * ✅ NOVA FUNÇÃO: Notifica sobre novo documento (in-app + e-mail)
+ * ✅ NOVO SISTEMA DE NOTIFICAÇÕES
+ * Notifica sobre novo documento (in-app + e-mail)
+ * REGRAS:
+ * - Admin envia: notifica cliente
+ * - Cliente envia SEM responsável: notifica apenas admins + superadmin (NÃO colaboradores)
+ * - Cliente envia COM responsável: notifica APENAS o responsável
+ * - Outro admin envia: notifica responsável + cliente
  */
 export async function notifyNewDocument(params: {
   projectId: string;
@@ -450,38 +726,45 @@ export async function notifyNewDocument(params: {
   clientName?: string;
 }): Promise<{ notificationIds: string[]; emailSent: boolean }> {
   try {
-    logger.info('[notifyNewDocument] Notificando novo documento:', params.projectId);
-    
-    // 🔍 DEBUG DETALHADO: Log dos parâmetros recebidos
-    devLog.log('🔍 [DEBUG notifyNewDocument] Parâmetros recebidos:', {
-      projectId: params.projectId,
-      documentName: params.documentName,
-      uploaderId: params.uploaderId,
-      uploaderName: params.uploaderName,
-      uploaderRole: params.uploaderRole,
-      clientId: params.clientId,
-      clientName: params.clientName,
-      hasClientId: !!params.clientId
-    });
-    
-    const isAdminUpload = ['admin', 'superadmin'].includes(params.uploaderRole);
+    logger.info('[notifyNewDocument] ✅ NOVO SISTEMA: Verificando responsável do projeto');
+
+    const supabase = createSupabaseServiceRoleClient();
+
+    // Buscar informações do projeto (tenant_id e responsável)
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('tenant_id, admin_responsible_id, created_by')
+      .eq('id', params.projectId)
+      .single();
+
+    if (projectError || !projectData) {
+      logger.error('[notifyNewDocument] Erro ao buscar projeto:', projectError);
+      return { notificationIds: [], emailSent: false };
+    }
+
+    const tenantId = projectData.tenant_id;
+    const responsibleId = projectData.admin_responsible_id;
+    const projectClientId = projectData.created_by;
+    const hasResponsible = !!responsibleId;
+
+    const isAdminUpload = ['admin', 'superadmin', 'colaborador'].includes(params.uploaderRole);
     let notificationIds: string[] = [];
     let emailSent = false;
-    
-    // 🔍 DEBUG: Log da decisão de fluxo
-    devLog.log('🔍 [DEBUG notifyNewDocument] Decisão de fluxo:', {
-      uploaderRole: params.uploaderRole,
-      isAdminUpload,
-      hasClientId: !!params.clientId,
-      willNotifyClient: isAdminUpload && !!params.clientId,
-      willNotifyAdmins: !isAdminUpload
-    });
-    
+
+    logger.info(`[notifyNewDocument] Projeto ${hasResponsible ? 'TEM' : 'NÃO TEM'} responsável`, { responsibleId });
+
     if (isAdminUpload) {
-      // Admin fez upload - notificar cliente
-      if (params.clientId) {
-        devLog.log('🔍 [DEBUG notifyNewDocument] FLUXO: Admin fez upload → Notificando cliente:', params.clientId);
-        
+      // ═══════════════════════════════════════════════════════════════
+      // ADMIN/COLABORADOR FEZ UPLOAD
+      // ═══════════════════════════════════════════════════════════════
+
+      // Verificar se quem fez upload é o responsável ou outro admin
+      const isResponsible = hasResponsible && params.uploaderId === responsibleId;
+
+      if (isResponsible) {
+        // RESPONSÁVEL fez upload → notificar APENAS cliente
+        logger.info('[notifyNewDocument] Responsável fez upload → notificar apenas cliente');
+
         const clientResult = await createNotificationForProjectClient(
           params.projectId,
           params.projectNumber,
@@ -493,75 +776,182 @@ export async function notifyNewDocument(params: {
             uploaderId: params.uploaderId,
             uploaderName: params.uploaderName,
             isFromAdmin: true,
-            link: `/cliente/projetos/${params.projectId}?tab=documents` // ✅ URL correta para cliente
+            link: `/cliente/projetos/${params.projectId}?tab=documents`
           }
         );
-        
+
         if (clientResult.success && clientResult.id) {
           notificationIds.push(clientResult.id);
         }
-        
-              // Enviar e-mail para cliente
-      devLog.log('🔍 [DEBUG notifyNewDocument] Enviando email para cliente...');
-      emailSent = await sendEmailNotification('admin_document', {
-        clientId: params.clientId,
-        projectName: params.projectName,
-        projectNumber: params.projectNumber,
-        documentName: params.documentName,
-        projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}?tab=documents`,
-        projectId: params.projectId  // ✅ ADICIONADO COOLDOWN
-      });
-        devLog.log('🔍 [DEBUG notifyNewDocument] Email para cliente enviado:', emailSent);
-      } else {
-        devLog.log('🔍 [DEBUG notifyNewDocument] ERRO: Admin fez upload mas não tem clientId!');
-      }
-    } else {
-      // Cliente fez upload - notificar admins
-      devLog.log('🔍 [DEBUG notifyNewDocument] FLUXO: Cliente fez upload → Notificando admins');
-      
-      const adminIds = await createNotificationForAllAdmins({
-        type: 'document_upload',
-        title: `Novo documento do cliente: ${params.documentName}`,
-        message: `${params.uploaderName} adicionou "${params.documentName}" ao projeto ${params.projectNumber}`,
-        projectId: params.projectId,
-        projectNumber: params.projectNumber,
-        projectName: params.projectName,
-        senderId: params.uploaderId,
-        senderName: params.uploaderName,
-        senderType: 'client',
-        link: `/admin/projetos/${params.projectId}?tab=documents`,
-        data: {
+
+        emailSent = await sendEmailNotification('admin_document', {
+          clientId: projectClientId,
+          projectName: params.projectName,
+          projectNumber: params.projectNumber,
           documentName: params.documentName,
-          uploaderId: params.uploaderId,
-          uploaderName: params.uploaderName,
-          isFromClient: true
+          projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}?tab=documents`,
+          projectId: params.projectId
+        });
+
+      } else {
+        // OUTRO admin fez upload → notificar responsável + cliente
+        logger.info('[notifyNewDocument] Outro admin fez upload → notificar responsável + cliente');
+
+        // Notificar cliente
+        const clientResult = await createNotificationForProjectClient(
+          params.projectId,
+          params.projectNumber,
+          'document_upload',
+          `Novo documento: ${params.documentName}`,
+          `${params.uploaderName} adicionou "${params.documentName}" ao projeto ${params.projectNumber}`,
+          {
+            documentName: params.documentName,
+            uploaderId: params.uploaderId,
+            uploaderName: params.uploaderName,
+            isFromAdmin: true,
+            link: `/cliente/projetos/${params.projectId}?tab=documents`
+          }
+        );
+
+        if (clientResult.success && clientResult.id) {
+          notificationIds.push(clientResult.id);
         }
-      });
-      
-      notificationIds = adminIds;
-      
-      // Enviar e-mail para admins
-      devLog.log('🔍 [DEBUG notifyNewDocument] Enviando email para admins...');
+
+        // Se tem responsável, notificá-lo também
+        if (hasResponsible && responsibleId !== params.uploaderId) {
+          const responsibleResult = await createNotification({
+            type: 'document_upload',
+            title: `Documento no seu projeto: ${params.projectName}`,
+            message: `${params.uploaderName} adicionou "${params.documentName}" ao projeto ${params.projectNumber}`,
+            userId: responsibleId,
+            projectId: params.projectId,
+            projectNumber: params.projectNumber,
+            projectName: params.projectName,
+            senderId: params.uploaderId,
+            senderName: params.uploaderName,
+            senderType: 'admin',
+            link: `/admin/projetos/${params.projectId}?tab=documents`,
+            data: {
+              documentName: params.documentName,
+              uploaderId: params.uploaderId,
+              uploaderName: params.uploaderName,
+              isCollaborationDocument: true
+            }
+          });
+
+          if (responsibleResult.success && responsibleResult.id) {
+            notificationIds.push(responsibleResult.id);
+          }
+        }
+
+        emailSent = await sendEmailNotification('admin_document', {
+          clientId: projectClientId,
+          projectName: params.projectName,
+          projectNumber: params.projectNumber,
+          documentName: params.documentName,
+          projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}?tab=documents`,
+          projectId: params.projectId
+        });
+      }
+
+    } else {
+      // ═══════════════════════════════════════════════════════════════
+      // CLIENTE FEZ UPLOAD
+      // ═══════════════════════════════════════════════════════════════
+
+      if (hasResponsible) {
+        // TEM responsável → notificar APENAS o responsável
+        logger.info('[notifyNewDocument] Cliente fez upload COM responsável → notificar apenas responsável');
+
+        const responsibleResult = await createNotification({
+          type: 'document_upload',
+          title: `Novo documento do cliente: ${params.documentName}`,
+          message: `${params.uploaderName} adicionou "${params.documentName}" ao projeto ${params.projectNumber}`,
+          userId: responsibleId,
+          projectId: params.projectId,
+          projectNumber: params.projectNumber,
+          projectName: params.projectName,
+          senderId: params.uploaderId,
+          senderName: params.uploaderName,
+          senderType: 'client',
+          link: `/admin/projetos/${params.projectId}?tab=documents`,
+          data: {
+            documentName: params.documentName,
+            uploaderId: params.uploaderId,
+            uploaderName: params.uploaderName,
+            isFromClient: true
+          }
+        });
+
+        if (responsibleResult.success && responsibleResult.id) {
+          notificationIds.push(responsibleResult.id);
+        }
+
+      } else {
+        // NÃO tem responsável → notificar apenas admins + superadmin (NÃO colaboradores)
+        logger.info('[notifyNewDocument] Cliente fez upload SEM responsável → notificar apenas admins + superadmin');
+
+        const { getAdminsAndSuperadminsByTenant } = await import('@/lib/services/userService/core');
+        const allAdmins = await getAdminsAndSuperadminsByTenant(tenantId);
+
+        if (allAdmins.length > 0) {
+          const senderInfo = await getOrCreateSenderInfo(params.uploaderId, params.uploaderName, 'client');
+          const mappedType = { type: 'info', category: 'project' };
+
+          const notifications = allAdmins
+            .filter(admin => admin.uid !== params.uploaderId)
+            .map(admin => ({
+              type: mappedType.type,
+              category: mappedType.category,
+              priority: 'normal',
+              title: `Novo documento do cliente: ${params.documentName}`,
+              message: `${params.uploaderName} adicionou "${params.documentName}" ao projeto ${params.projectNumber}`,
+              user_id: admin.uid,
+              tenant_id: tenantId,
+              read: false,
+              data: {
+                projectId: params.projectId,
+                projectNumber: params.projectNumber,
+                projectName: params.projectName,
+                senderId: senderInfo.id,
+                senderName: senderInfo.name,
+                senderType: senderInfo.type,
+                link: `/admin/projetos/${params.projectId}?tab=documents`,
+                originalType: 'document_upload',
+                isAdminNotification: true,
+                documentName: params.documentName,
+                uploaderId: params.uploaderId,
+                uploaderName: params.uploaderName,
+                isFromClient: true
+              }
+            }));
+
+          if (notifications.length > 0) {
+            const { data, error } = await supabase
+              .from('notifications')
+              .insert(notifications)
+              .select('id');
+
+            if (!error && data) {
+              notificationIds = data.map(n => n.id);
+            }
+          }
+        }
+      }
+
+      // E-mail para admins
       emailSent = await sendEmailNotification('client_document', {
         documentName: params.documentName,
         clientName: params.clientName || params.uploaderName,
         projectName: params.projectName,
         projectNumber: params.projectNumber,
         projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/projetos/${params.projectId}?tab=documents`,
-        projectId: params.projectId  // ✅ ADICIONADO COOLDOWN
+        projectId: params.projectId
       });
-      devLog.log('🔍 [DEBUG notifyNewDocument] Email para admins enviado:', emailSent);
     }
-    
-    devLog.log('🔍 [DEBUG notifyNewDocument] Resultado final:', { 
-      notificationIds: notificationIds.length, 
-      emailSent,
-      isAdminUpload,
-      clientId: params.clientId
-    });
-    
+
     logger.info('[notifyNewDocument] Resultado:', { notificationIds: notificationIds.length, emailSent });
-    
+
     return { notificationIds, emailSent };
   } catch (error) {
     logger.error('[notifyNewDocument] Erro:', error);
@@ -571,50 +961,119 @@ export async function notifyNewDocument(params: {
 
 /**
  * ✅ NOVA FUNÇÃO: Notifica sobre mudança de status (in-app + e-mail)
+ * IMPORTANTE: Os parâmetros oldStatus e newStatus devem ser SLUGS
+ * Esta função busca os nomes reais (name) da tabela project_statuses
  */
 export async function notifyStatusChange(params: {
   projectId: string;
   projectNumber: string;
   projectName: string;
-  oldStatus: string;
-  newStatus: string;
+  oldStatus: string;  // SLUG do status antigo
+  newStatus: string;  // SLUG do status novo
   clientId: string;
   adminId?: string;
   adminName?: string;
 }): Promise<{ notificationIds: string[]; emailSent: boolean }> {
   try {
     logger.info('[notifyStatusChange] Notificando mudança de status:', params.projectId);
-    
+
+    // ✅ CORREÇÃO: Buscar nomes reais dos status do tenant ao invés de usar mapa estático
+    const supabase = createSupabaseServiceRoleClient();
+
+    // Buscar tenant_id do projeto
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('tenant_id')
+      .eq('id', params.projectId)
+      .single();
+
+    if (projectError || !projectData?.tenant_id) {
+      logger.error('[notifyStatusChange] Erro ao buscar tenant do projeto:', projectError);
+      // Fallback para mapa estático em caso de erro
+      const oldStatusName = getStatusDisplayName(params.oldStatus);
+      const newStatusName = getStatusDisplayName(params.newStatus);
+
+      const clientResult = await createNotificationForProjectClient(
+        params.projectId,
+        params.projectNumber,
+        'status_change',
+        `Status atualizado: ${newStatusName}`,
+        `O projeto ${params.projectNumber} mudou de "${oldStatusName}" para "${newStatusName}"`,
+        {
+          oldStatus: params.oldStatus,
+          newStatus: params.newStatus,
+          updatedBy: params.adminName || 'Administração',
+          link: `/cliente/projetos/${params.projectId}`
+        }
+      );
+
+      const notificationIds = clientResult.success && clientResult.id ? [clientResult.id] : [];
+      const emailSent = await sendEmailNotification('status_change', {
+        clientId: params.clientId,
+        projectName: params.projectName,
+        projectNumber: params.projectNumber,
+        oldStatus: oldStatusName,
+        newStatus: newStatusName,
+        projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}`,
+        projectId: params.projectId
+      });
+
+      return { notificationIds, emailSent };
+    }
+
+    // Buscar os status reais do tenant
+    const { data: statusesData } = await supabase
+      .from('project_statuses')
+      .select('slug, name')
+      .eq('tenant_id', projectData.tenant_id)
+      .in('slug', [params.oldStatus, params.newStatus]);
+
+    // Mapear slugs para nomes
+    const oldStatusObj = statusesData?.find(s => s.slug === params.oldStatus);
+    const newStatusObj = statusesData?.find(s => s.slug === params.newStatus);
+
+    const oldStatusName = oldStatusObj?.name || getStatusDisplayName(params.oldStatus);
+    const newStatusName = newStatusObj?.name || getStatusDisplayName(params.newStatus);
+
+    logger.info('[notifyStatusChange] Status mapeados:', {
+      oldSlug: params.oldStatus,
+      oldName: oldStatusName,
+      newSlug: params.newStatus,
+      newName: newStatusName
+    });
+
     // 1. Criar notificação in-app para o cliente
     const clientResult = await createNotificationForProjectClient(
       params.projectId,
       params.projectNumber,
       'status_change',
-      `Status atualizado: ${params.newStatus}`,
-      `O projeto ${params.projectNumber} mudou de "${params.oldStatus}" para "${params.newStatus}"`,
+      `Status atualizado: ${newStatusName}`,
+      `O projeto ${params.projectNumber} mudou de "${oldStatusName}" para "${newStatusName}"`,
       {
         oldStatus: params.oldStatus,
         newStatus: params.newStatus,
+        oldStatusName,
+        newStatusName,
         updatedBy: params.adminName || 'Administração',
         link: `/cliente/projetos/${params.projectId}` // ✅ URL correta para cliente
       }
     );
-    
+
     const notificationIds = clientResult.success && clientResult.id ? [clientResult.id] : [];
-    
-    // 2. Enviar e-mail para o cliente
+
+    // 2. Enviar e-mail para o cliente com nomes reais
     const emailSent = await sendEmailNotification('status_change', {
       clientId: params.clientId,
       projectName: params.projectName,
       projectNumber: params.projectNumber,
-      oldStatus: params.oldStatus,
-      newStatus: params.newStatus,
+      oldStatus: oldStatusName,  // ✅ Nome real do status
+      newStatus: newStatusName,  // ✅ Nome real do status
       projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/cliente/projetos/${params.projectId}`,
       projectId: params.projectId  // ✅ ADICIONADO COOLDOWN
     });
-    
+
     logger.info('[notifyStatusChange] Resultado:', { notificationIds: notificationIds.length, emailSent });
-    
+
     return { notificationIds, emailSent };
   } catch (error) {
     logger.error('[notifyStatusChange] Erro:', error);

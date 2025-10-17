@@ -40,14 +40,31 @@ const Icons = {
   Calendar: ArrowUpDown
 };
 
-import { 
-  getProjectsWithBilling, 
+import {
+  getProjectsWithBilling,
   updateProjectPayment
 } from '@/lib/services/unifiedProjectService';
 import { Project } from '@/types/project';
 import { generateInvoiceHTML, downloadHTMLAsPDF, generateConsolidatedInvoiceHTML } from '@/lib/utils/pdfGenerator';
 import { getConfiguracaoGeral } from '@/lib/services/configService.supabase';
 import { getUserDataAdminSupabase } from '@/lib/services/authService.supabase';
+
+// ✅ Mapa de slugs para nomes legíveis (fallback se status não for encontrado em availableStatuses)
+const statusSlugToName: Record<string, string> = {
+  'nao-iniciado': 'Não Iniciado',
+  'em-desenvolvimento': 'Em Desenvolvimento',
+  'aguardando-assinaturas': 'Aguardando Assinaturas',
+  'em-homologacao': 'Em Homologação',
+  'projeto-aprovado': 'Projeto Aprovado',
+  'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
+  'projeto-pausado': 'Projeto Pausado',
+  'em-vistoria': 'Em Vistoria',
+  'finalizado': 'Finalizado',
+  'cancelado': 'Cancelado',
+};
+
+const getStatusDisplayName = (slug: string): string => statusSlugToName[slug] || slug;
+import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService';
 import {
   Table,
   TableBody,
@@ -182,6 +199,13 @@ const isProjectFromCurrentMonth = (project: any): boolean => {
 export default function AdminBillingPage() {
   const router = useRouter();
   const { user } = useAuth();
+
+  // ✅ Verificar permissão de acesso
+  const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
+  const isFullAdmin = user?.role === 'admin' || user?.role === 'superadmin' ||
+                      user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+  const canViewFinancials = isFullAdmin || userPermissions.can_view_financials === true;
+
   const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,6 +213,8 @@ export default function AdminBillingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
+  const [statusLoading, setStatusLoading] = useState(true);
 
   const [metrics, setMetrics] = useState({
     totalPendingAmount: 0,
@@ -240,6 +266,26 @@ export default function AdminBillingPage() {
       [clientKey]: new Set()
     }));
   };
+
+  // Carregar status dinâmicos do tenant
+  useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        setStatusLoading(true);
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[AdminFinanceiro] Status carregados:', statuses.length);
+      } catch (error) {
+        devLog.error('[AdminFinanceiro] Erro ao carregar status:', error);
+        // Em caso de erro, manter vazio para usar fallback
+        setAvailableStatuses([]);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    loadStatuses();
+  }, []);
   
   useEffect(() => {
     if (projects.length === 0) return;
@@ -587,16 +633,25 @@ export default function AdminBillingPage() {
         name: clientProfile?.name || project.client_name || 'Cliente',
         email: clientProfile?.email || project.client_email || 'N/A',
         phone: clientProfile?.phone || project.client_phone || 'N/A',
-        isCompany: clientProfile?.isCompany,
-        companyName: clientProfile?.companyName,
+        // Campos do banco (snake_case)
+        is_company: clientProfile?.is_company,
+        company_name: clientProfile?.company_name,
         cnpj: clientProfile?.cnpj,
         cpf: clientProfile?.cpf,
+        // Campos compatibilidade (camelCase)
+        isCompany: clientProfile?.is_company || clientProfile?.isCompany,
+        companyName: clientProfile?.company_name || clientProfile?.companyName,
         userData: clientProfile // incluir estrutura completa para o gerador
       };
       
       const formattedPrice = formatCurrency(project.valor_projeto || project.valorProjeto || 0);
       const issueDate = new Date().toISOString().split('T')[0];
       const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 dias
+
+      // ✅ CORREÇÃO: Buscar nome real do status do tenant antes de gerar PDF
+      const projectStatus = availableStatuses.find(s => s.slug === project.status);
+      const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+
       // Carregar dados bancários via API admin (espelha preferências)
       let dadosBancarios: any = undefined;
       try {
@@ -618,7 +673,8 @@ export default function AdminBillingPage() {
         project.valor_projeto || project.valorProjeto || 0,
         issueDate,
         dueDate,
-        dadosBancarios
+        dadosBancarios,
+        statusName // ✅ NOVO: Passar nome real do status
       );
       
       await downloadHTMLAsPDF(invoiceHTML, `fatura-${project.number}.pdf`);
@@ -814,10 +870,34 @@ export default function AdminBillingPage() {
     loadData();
   }, [isTrialExpired]);
 
+  // ✅ Verificar permissão ANTES de verificar trial
+  if (!canViewFinancials) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Acesso Restrito</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Você não tem permissão para acessar a página de Financeiro.
+            </p>
+            <Button
+              onClick={() => router.push('/admin/painel')}
+              className="mt-4 w-full"
+            >
+              Voltar ao Painel
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Se trial expirado, mostrar bloqueio leve
   if (isTrialExpired) {
     return (
-      <TrialExpiredTabBlocker 
+      <TrialExpiredTabBlocker
         tabName="Financeiro"
         description="Os dados financeiros estão bloqueados durante o período de trial expirado"
       />
@@ -1144,9 +1224,32 @@ export default function AdminBillingPage() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge className="bg-blue-50 text-blue-700 border-blue-200">
-                                  {safeString(project.status)}
-                                </Badge>
+                                {statusLoading ? (
+                                  <Badge className="bg-gray-50 text-gray-500 border-gray-200">
+                                    Carregando...
+                                  </Badge>
+                                ) : (() => {
+                                  const currentStatus = availableStatuses.find(s => s.slug === project.status);
+                                  if (currentStatus) {
+                                    return (
+                                      <div className="flex items-center gap-2">
+                                        <div
+                                          className="w-2 h-2 rounded-full"
+                                          style={{ backgroundColor: currentStatus.color }}
+                                        />
+                                        <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                                          {currentStatus.name}
+                                        </Badge>
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <Badge className="bg-gray-50 text-gray-700 border-gray-200">
+                                        {getStatusDisplayName(safeString(project.status))}
+                                      </Badge>
+                                    );
+                                  }
+                                })()}
                               </TableCell>
                               <TableCell className="font-medium">
                                 {formatCurrency(project.valor_projeto || project.valorProjeto || 0)}

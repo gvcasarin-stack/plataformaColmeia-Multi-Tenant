@@ -7,7 +7,7 @@ import { toast } from "@/components/ui/use-toast";
 import { LazyClientCreateProjectModal } from "@/lib/utils/lazy-components";
 import { useState, useEffect, useRef } from "react";
 import { createProjectClientAction } from "@/lib/actions/project-actions";
-import { getUserDataSupabase } from "@/lib/services/authService.supabase";
+// ✅ CORREÇÃO: Removido import de getUserDataSupabase - agora usa API segura
 import { calculateProjectCost } from "@/lib/utils/projectUtils";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useProjects } from "@/lib/hooks/useProjects";
@@ -26,6 +26,7 @@ import { devLog } from "@/lib/utils/productionLogger";
 import { Card, CardContent } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createTenantHeaders } from "@/lib/utils/tenant-helper";
+import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService';
 
 // Adicionar tipo à interface Window
 declare global {
@@ -34,42 +35,65 @@ declare global {
   }
 }
 
-// Function to get status configuration for styling
-const getStatusConfig = (status: string) => {
-  switch (status) {
-    case 'Não Iniciado':
-      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200' };
-    case 'Em Desenvolvimento':
-      return { icon: Icons.Activity, color: 'text-blue-600 bg-blue-50 border-blue-200' };
-    case 'Aguardando':
-      return { icon: Icons.Clock, color: 'text-orange-600 bg-orange-50 border-orange-200' };
-    case 'Homologação':
-      return { icon: Icons.AlertTriangle, color: 'text-purple-600 bg-purple-50 border-purple-200' };
-    case 'Projeto Aprovado':
-      return { icon: Icons.CheckCircle2, color: 'text-green-600 bg-green-50 border-green-200' };
-    case 'Aguardando Vistoria':
-      return { icon: Icons.Clock, color: 'text-amber-600 bg-amber-50 border-amber-200' };
-    case 'Projeto Pausado':
-      return { icon: Icons.PauseCircle, color: 'text-yellow-600 bg-yellow-50 border-yellow-200' };
-    case 'Em Vistoria':
-      return { icon: Icons.Activity, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' };
-    case 'Finalizado':
-      return { icon: Icons.CheckCircle2, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
-    case 'Cancelado':
-      return { icon: Icons.XCircle, color: 'text-red-600 bg-red-50 border-red-200' };
+// ✅ Mapa de slugs para nomes legíveis
+const statusSlugToName: Record<string, string> = {
+  'nao-iniciado': 'Não Iniciado',
+  'em-desenvolvimento': 'Em Desenvolvimento',
+  'aguardando-assinaturas': 'Aguardando Assinaturas',
+  'em-homologacao': 'Em Homologação',
+  'projeto-aprovado': 'Projeto Aprovado',
+  'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
+  'projeto-pausado': 'Projeto Pausado',
+  'em-vistoria': 'Em Vistoria',
+  'finalizado': 'Finalizado',
+  'cancelado': 'Cancelado',
+};
+
+// ✅ Função para converter slug em nome legível
+const getStatusDisplayName = (slug: string): string => {
+  return statusSlugToName[slug] || slug;
+};
+
+// Function to get status configuration for styling (agora aceita slugs)
+const getStatusConfig = (statusSlug: string) => {
+  const displayName = getStatusDisplayName(statusSlug);
+
+  switch (statusSlug) {
+    case 'nao-iniciado':
+      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
+    case 'em-desenvolvimento':
+      return { icon: Icons.Activity, color: 'text-blue-600 bg-blue-50 border-blue-200', name: displayName };
+    case 'aguardando-assinaturas':
+      return { icon: Icons.Clock, color: 'text-orange-600 bg-orange-50 border-orange-200', name: displayName };
+    case 'em-homologacao':
+      return { icon: Icons.AlertTriangle, color: 'text-purple-600 bg-purple-50 border-purple-200', name: displayName };
+    case 'projeto-aprovado':
+      return { icon: Icons.CheckCircle2, color: 'text-green-600 bg-green-50 border-green-200', name: displayName };
+    case 'aguardando-solicitar-vistoria':
+      return { icon: Icons.Clock, color: 'text-amber-600 bg-amber-50 border-amber-200', name: displayName };
+    case 'projeto-pausado':
+      return { icon: Icons.PauseCircle, color: 'text-yellow-600 bg-yellow-50 border-yellow-200', name: displayName };
+    case 'em-vistoria':
+      return { icon: Icons.Activity, color: 'text-cyan-600 bg-cyan-50 border-cyan-200', name: displayName };
+    case 'finalizado':
+      return { icon: Icons.CheckCircle2, color: 'text-emerald-600 bg-emerald-50 border-emerald-200', name: displayName };
+    case 'cancelado':
+      return { icon: Icons.XCircle, color: 'text-red-600 bg-red-50 border-red-200', name: displayName };
     default:
-      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200' };
+      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
   }
 };
 
 export default function ClientProjects() {
   const router = useRouter();
   const [filter, setFilter] = useState("all");
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
+  const [statusLoading, setStatusLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const { user } = useAuth();
-  const { projects: allProjects, loading: projectsLoading } = useProjects();
+  const { projects: allProjects, loading: projectsLoading, addProject } = useProjects();
   const isMobile = useIsMobile();
   
   // Adicionar estado para o modal de diagnóstico
@@ -89,7 +113,19 @@ export default function ClientProjects() {
     async function fetchUserData() {
       if (user?.id) {
         try {
-          const data = await getUserDataSupabase(user.id);
+          // ✅ CORREÇÃO: Substituir chamada direta ao Supabase por API segura
+          const response = await fetch(`/api/user/profile?userId=${user.id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erro na API: ${response.status}`);
+          }
+
+          const data = await response.json();
           setUserData(data);
           // Add debug logs to check user status
           devLog.log("User data:", {
@@ -107,7 +143,26 @@ export default function ClientProjects() {
 
     fetchUserData();
   }, [user]);
-  
+
+  // Carregar status dinâmicos do tenant
+  useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        setStatusLoading(true);
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[ClienteProjetos] Status carregados:', statuses.length);
+      } catch (error) {
+        devLog.error('[ClienteProjetos] Erro ao carregar status:', error);
+        setAvailableStatuses([]);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    loadStatuses();
+  }, []);
+
   // Make sure we have a valid user ID before filtering
   const currentUserId = user?.id;
   
@@ -115,15 +170,17 @@ export default function ClientProjects() {
   // This is a double-safety measure in case the backend filtering fails
   const projects = allProjects.filter(project => project.userId === currentUserId);
   
-  // Filter projects based on selected status filter
+  // Filter projects based on selected status filter (usando slugs)
   const filteredProjects = projects.filter(project => {
     if (filter === "all") return true;
-    return project.status === filter;
+    // Se o filtro for um nome de status, encontrar o slug correspondente
+    const statusInfo = availableStatuses.find(s => s.name === filter || s.slug === filter);
+    return statusInfo ? project.status === statusInfo.slug : project.status === filter;
   });
   
   devLog.log("Filtered projects:", filteredProjects);
   
-  const isPendingApproval = user?.pendingApproval || userData?.pendingApproval;
+  const isPendingApproval = user?.profile?.status === 'pending' || userData?.status === 'pending';
   
   // Adicionando um ref para controlar duplicação de submissão
   const isSubmitting = useRef(false);
@@ -267,7 +324,7 @@ export default function ClientProjects() {
       let valorCalculado = 0;
       let calculationSource = 'unknown';
       
-      console.log(`🚀 [${submitId}] INICIANDO CÁLCULO DE VALOR:`, {
+      devLog.log(`🚀 [${submitId}] INICIANDO CÁLCULO DE VALOR:`, {
         potencia: data.power,
         userId: user.id,
         timestamp: new Date().toISOString()
@@ -277,7 +334,7 @@ export default function ClientProjects() {
         // Obter headers com tenant_id
         const headers = await createTenantHeaders(user.id);
         
-        console.log(`📋 [${submitId}] HEADERS PREPARADOS:`, { 
+        devLog.log(`📋 [${submitId}] HEADERS PREPARADOS:`, { 
           headers, 
           userId: user.id,
           potencia: data.power 
@@ -289,7 +346,7 @@ export default function ClientProjects() {
           body: JSON.stringify({ potencia: data.power })
         });
         
-        console.log(`📡 [${submitId}] RESPOSTA DA API:`, {
+        devLog.log(`📡 [${submitId}] RESPOSTA DA API:`, {
           ok: calcResponse.ok,
           status: calcResponse.status,
           statusText: calcResponse.statusText
@@ -300,7 +357,7 @@ export default function ClientProjects() {
           valorCalculado = calcResult.valorCalculado || 0;
           calculationSource = calcResult.source || 'api_success';
           
-          console.log(`✅ [${submitId}] SUCESSO - VALOR DA API:`, { 
+          devLog.log(`✅ [${submitId}] SUCESSO - VALOR DA API:`, { 
             potencia: data.power, 
             valorCalculado, 
             source: calcResult.source,
@@ -310,7 +367,7 @@ export default function ClientProjects() {
           });
         } else {
           const responseText = await calcResponse.text();
-          console.error(`❌ [${submitId}] ERRO NA API:`, {
+          devLog.error(`❌ [${submitId}] ERRO NA API:`, {
             status: calcResponse.status,
             statusText: calcResponse.statusText,
             responseText: responseText
@@ -320,20 +377,20 @@ export default function ClientProjects() {
           valorCalculado = calculateProjectCost(data.power);
           calculationSource = 'fallback_api_error';
           
-          console.log(`🔄 [${submitId}] USANDO FALLBACK LOCAL:`, {
+          devLog.log(`🔄 [${submitId}] USANDO FALLBACK LOCAL:`, {
             potencia: data.power,
             valorCalculadoFallback: valorCalculado,
             source: calculationSource
           });
         }
       } catch (calcError) {
-        console.error(`💥 [${submitId}] EXCEÇÃO NO CÁLCULO:`, calcError);
+        devLog.error(`💥 [${submitId}] EXCEÇÃO NO CÁLCULO:`, calcError);
         
         // Fallback para valor padrão se houver exceção
         valorCalculado = calculateProjectCost(data.power);
         calculationSource = 'fallback_exception';
         
-        console.log(`🔄 [${submitId}] FALLBACK APÓS EXCEÇÃO:`, {
+        devLog.log(`🔄 [${submitId}] FALLBACK APÓS EXCEÇÃO:`, {
           potencia: data.power,
           valorCalculado,
           source: calculationSource,
@@ -341,7 +398,7 @@ export default function ClientProjects() {
         });
       }
       
-      console.log(`🎯 [${submitId}] VALOR FINAL DEFINIDO:`, {
+      devLog.log(`🎯 [${submitId}] VALOR FINAL DEFINIDO:`, {
         valorCalculado,
         calculationSource,
         potencia: data.power
@@ -479,94 +536,35 @@ export default function ClientProjects() {
           <span className="text-sm sm:text-base">Filtrar por status:</span>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button 
-            variant={filter === "all" ? "default" : "outline"} 
-            size="sm" 
+          <Button
+            variant={filter === "all" ? "default" : "outline"}
+            size="sm"
             onClick={() => setFilter("all")}
             className="rounded-full shadow-sm text-xs sm:text-sm"
           >
             Todos
           </Button>
-          <Button 
-            variant={filter === "Não Iniciado" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Não Iniciado")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Não Iniciados
-          </Button>
-          <Button 
-            variant={filter === "Em Desenvolvimento" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Em Desenvolvimento")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Em Desenvolvimento
-          </Button>
-          <Button 
-            variant={filter === "Aguardando" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Aguardando")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Aguardando
-          </Button>
-          <Button 
-            variant={filter === "Homologação" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Homologação")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Homologação
-          </Button>
-          <Button 
-            variant={filter === "Projeto Aprovado" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Projeto Aprovado")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Aprovado
-          </Button>
-          <Button 
-            variant={filter === "Aguardando Vistoria" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Aguardando Vistoria")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Aguardando Vistoria
-          </Button>
-          <Button 
-            variant={filter === "Projeto Pausado" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Projeto Pausado")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Pausado
-          </Button>
-          <Button 
-            variant={filter === "Em Vistoria" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Em Vistoria")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Em Vistoria
-          </Button>
-          <Button 
-            variant={filter === "Finalizado" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Finalizado")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Finalizado
-          </Button>
-          <Button 
-            variant={filter === "Cancelado" ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setFilter("Cancelado")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Cancelado
-          </Button>
+          {statusLoading ? (
+            <div className="text-sm text-gray-500">Carregando status...</div>
+          ) : (
+            availableStatuses
+              .sort((a, b) => a.order - b.order)
+              .map((status) => (
+                <Button
+                  key={status.id}
+                  variant={filter === status.name ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilter(status.name)}
+                  className="rounded-full shadow-sm text-xs sm:text-sm flex items-center gap-1"
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: status.color }}
+                  />
+                  {status.name}
+                </Button>
+              ))
+          )}
         </div>
       </div>
 
@@ -586,6 +584,11 @@ export default function ClientProjects() {
           // Layout de cards para mobile
           <div className="space-y-4">
             {filteredProjects.map((project, index) => {
+              // Buscar o status real do tenant ao invés de usar o mapa estático
+              const projectStatus = availableStatuses.find(s => s.slug === project.status);
+              const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+              const statusColor = projectStatus?.color || '#6b7280';
+
               const statusConfig = getStatusConfig(project.status);
               const StatusIcon = statusConfig.icon;
 
@@ -606,7 +609,7 @@ export default function ClientProjects() {
                         </div>
                         <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm`}>
                           <StatusIcon className="w-3 h-3" />
-                          <span className="text-xs font-medium">{project.status}</span>
+                          <span className="text-xs font-medium">{statusName}</span>
                         </div>
                       </div>
 
@@ -663,6 +666,11 @@ export default function ClientProjects() {
               </TableHeader>
               <TableBody>
                 {filteredProjects.map((project, index) => {
+                  // Buscar o status real do tenant ao invés de usar o mapa estático
+                  const projectStatus = availableStatuses.find(s => s.slug === project.status);
+                  const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+                  const statusColor = projectStatus?.color || '#6b7280';
+
                   const statusConfig = getStatusConfig(project.status);
                   const StatusIcon = statusConfig.icon;
 
@@ -702,7 +710,7 @@ export default function ClientProjects() {
                       <TableCell>
                         <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm`}>
                           <StatusIcon className="w-3.5 h-3.5" />
-                          <span className="text-sm font-medium">{project.status}</span>
+                          <span className="text-sm font-medium">{statusName}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right pr-6">
