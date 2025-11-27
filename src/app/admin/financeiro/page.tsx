@@ -11,22 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  DollarSign, 
-  Building2, 
-  Users, 
-  CheckCircle, 
-  Printer,
-  Download,
-  Search,
-  Zap,
-  ChevronsUpDown,
-  ArrowUpDown
-} from 'lucide-react';
-
-const Icons = {
+import {
   DollarSign,
-  Building2, 
+  Building2,
   Users,
   CheckCircle,
   Printer,
@@ -35,9 +22,34 @@ const Icons = {
   Zap,
   ChevronsUpDown,
   ArrowUpDown,
-  TrendingUp: ArrowUpDown,
-  BarChart3: ArrowUpDown,
-  Calendar: ArrowUpDown
+  X,
+  FileSpreadsheet,
+  AlertCircle,
+  TrendingUp,
+  FileText,
+  CircleDollarSign,
+  CalendarCheck
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
+
+const Icons = {
+  DollarSign,
+  Building2,
+  Users,
+  CheckCircle,
+  Printer,
+  Download,
+  Search,
+  Zap,
+  ChevronsUpDown,
+  ArrowUpDown,
+  X,
+  FileSpreadsheet,
+  AlertCircle,
+  TrendingUp,
+  FileText,
+  CircleDollarSign,
+  CalendarCheck
 };
 
 import {
@@ -80,6 +92,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import FinancialHistoryPanel from '@/components/financial/FinancialHistoryPanel';
 
 interface ProjectWithBilling extends Project {
@@ -126,74 +145,77 @@ const formatCurrency = (value: any): string => {
   });
 };
 
+// 🆕 CORREÇÃO: Verificar se projeto foi criado no mês atual (para Faturamento Mensal Estimado)
 const isProjectFromCurrentMonth = (project: any): boolean => {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-  
-  // ✅ CORREÇÃO: Usar created_at (snake_case) ao invés de createdAt (camelCase)
+
   const createdAt = project?.created_at || project?.createdAt;
-  
+
   if (!project || !createdAt) {
-    devLog.log('[isProjectFromCurrentMonth] Projeto sem data:', { 
-      id: project?.id, 
-      created_at: project?.created_at, 
-      createdAt: project?.createdAt 
-    });
     return false;
   }
-  
+
   try {
     // Para Firestore (formato com seconds)
     if (createdAt.seconds) {
       const date = new Date(createdAt.seconds * 1000);
-      const isCurrentMonth = date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-      devLog.log('[isProjectFromCurrentMonth] Firestore format:', { 
-        projectId: project.id, 
-        date: date.toISOString(), 
-        isCurrentMonth 
-      });
-      return isCurrentMonth;
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     }
-    
+
     // Para Supabase (formato string ISO)
     if (typeof createdAt === 'string') {
       const date = new Date(createdAt);
-      const isCurrentMonth = date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-      devLog.log('[isProjectFromCurrentMonth] String format:', { 
-        projectId: project.id, 
-        date: date.toISOString(), 
-        isCurrentMonth,
-        currentMonth: currentMonth + 1, // +1 porque getMonth() retorna 0-11
-        projectMonth: date.getMonth() + 1
-      });
-      return isCurrentMonth;
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     }
-    
+
     // Para Date object
     if (createdAt instanceof Date) {
-      const isCurrentMonth = createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear;
-      devLog.log('[isProjectFromCurrentMonth] Date object:', { 
-        projectId: project.id, 
-        date: createdAt.toISOString(), 
-        isCurrentMonth 
-      });
-      return isCurrentMonth;
+      return createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear;
     }
   } catch (e) {
-    devLog.error('[isProjectFromCurrentMonth] Erro ao processar data:', e, { 
-      projectId: project?.id, 
-      createdAt 
-    });
+    devLog.error('[isProjectFromCurrentMonth] Erro ao processar data:', e);
     return false;
   }
-  
-  devLog.log('[isProjectFromCurrentMonth] Formato de data não reconhecido:', { 
-    projectId: project?.id, 
-    createdAt, 
-    type: typeof createdAt 
-  });
+
   return false;
+};
+
+// 🆕 CORREÇÃO: Verificar se pagamento foi realizado no mês atual (para Faturamento Mensal Real)
+const isPaymentFromCurrentMonth = (project: any): boolean => {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const paymentStatus = project.pagamento || 'pendente';
+
+  // Não contabilizar projetos pendentes
+  if (paymentStatus === 'pendente') {
+    return false;
+  }
+
+  // Verificar data do pagamento conforme o status
+  let paymentDate = null;
+
+  if (paymentStatus === 'pago' && project.data_pagamento_integral) {
+    paymentDate = project.data_pagamento_integral;
+  } else if (paymentStatus === 'parcela1' && project.data_pagamento_parcela1) {
+    paymentDate = project.data_pagamento_parcela1;
+  }
+
+  // Se não tem data de pagamento registrada, não contabilizar
+  if (!paymentDate) {
+    return false;
+  }
+
+  try {
+    const date = new Date(paymentDate);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  } catch (e) {
+    devLog.error('[isPaymentFromCurrentMonth] Erro ao processar data de pagamento:', e);
+    return false;
+  }
 };
 
 export default function AdminBillingPage() {
@@ -208,13 +230,28 @@ export default function AdminBillingPage() {
 
   const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]); // Transações do mês atual
+  const [allTransactions, setAllTransactions] = useState<any[]>([]); // Todas as transações históricas
+  const [fixedCosts, setFixedCosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'cobrancas' | 'historico'>('cobrancas');
+  const [billingModeTab, setBillingModeTab] = useState<'avulsos' | 'pacotes' | 'assinaturas'>('avulsos');
   const [searchTerm, setSearchTerm] = useState('');
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
   const [statusLoading, setStatusLoading] = useState(true);
+
+  // ✅ ESTADOS PARA PACOTES E ASSINATURAS
+  const [clientePacotes, setClientePacotes] = useState<any[]>([]);
+  const [clienteAssinaturas, setClienteAssinaturas] = useState<any[]>([]);
+  const [loadingPacotes, setLoadingPacotes] = useState(false);
+  const [loadingAssinaturas, setLoadingAssinaturas] = useState(false);
+
+  // ✅ NOVOS FILTROS
+  const [selectedClient, setSelectedClient] = useState<string>('');
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
 
   const [metrics, setMetrics] = useState({
     totalPendingAmount: 0,
@@ -267,6 +304,44 @@ export default function AdminBillingPage() {
     }));
   };
 
+  // ✅ Buscar pacotes de clientes
+  const loadClientePacotes = async () => {
+    try {
+      setLoadingPacotes(true);
+      const response = await fetch('/api/admin/cliente-pacotes');
+      const result = await response.json();
+
+      if (result.success) {
+        setClientePacotes(result.data || []);
+        devLog.log('[AdminFinanceiro] Pacotes carregados:', result.data?.length || 0);
+      }
+    } catch (error) {
+      devLog.error('[AdminFinanceiro] Erro ao carregar pacotes:', error);
+      setClientePacotes([]);
+    } finally {
+      setLoadingPacotes(false);
+    }
+  };
+
+  // ✅ Buscar assinaturas de clientes
+  const loadClienteAssinaturas = async () => {
+    try {
+      setLoadingAssinaturas(true);
+      const response = await fetch('/api/admin/cliente-assinaturas');
+      const result = await response.json();
+
+      if (result.success) {
+        setClienteAssinaturas(result.data || []);
+        devLog.log('[AdminFinanceiro] Assinaturas carregadas:', result.data?.length || 0);
+      }
+    } catch (error) {
+      devLog.error('[AdminFinanceiro] Erro ao carregar assinaturas:', error);
+      setClienteAssinaturas([]);
+    } finally {
+      setLoadingAssinaturas(false);
+    }
+  };
+
   // Carregar status dinâmicos do tenant
   useEffect(() => {
     const loadStatuses = async () => {
@@ -286,21 +361,33 @@ export default function AdminBillingPage() {
 
     loadStatuses();
   }, []);
-  
+
+  // ✅ Carregar dados de pacotes/assinaturas quando trocar de tab
+  useEffect(() => {
+    if (billingModeTab === 'pacotes' && clientePacotes.length === 0) {
+      loadClientePacotes();
+    } else if (billingModeTab === 'assinaturas' && clienteAssinaturas.length === 0) {
+      loadClienteAssinaturas();
+    }
+  }, [billingModeTab]);
+
   useEffect(() => {
     if (projects.length === 0) return;
-    
+
     // ✅ LOG: Debug para verificar status de pagamento
     devLog.log('[AdminFinanceiro] Calculando métricas - Projetos recebidos:', {
       total: projects.length,
-      samplePayments: projects.slice(0, 3).map(p => ({ 
-        id: p.id, 
-        number: p.number, 
+      samplePayments: projects.slice(0, 3).map(p => ({
+        id: p.id,
+        number: p.number,
         pagamento: p.pagamento,
-        valorProjeto: p.valor_projeto || p.valorProjeto || 0 
-      }))
+        valorProjeto: p.valor_projeto || p.valorProjeto || 0
+      })),
+      allTransactionsCount: allTransactions.length,
+      transactionsThisMonthCount: transactions.length,
+      fixedCostsCount: fixedCosts.length
     });
-    
+
     let totalPending = 0;
     let totalPaid = 0;
     let monthlyEstimated = 0;
@@ -311,14 +398,14 @@ export default function AdminBillingPage() {
     let parcela1Count = 0;
     let currentMonthCount = 0;
     let paidCurrentMonthCount = 0;
-    
+
     projects.forEach(project => {
-              const price = project.valor_projeto || project.valorProjeto || 0;
+      const price = project.valor_projeto || project.valorProjeto || 0;
       const isCurrentMonth = isProjectFromCurrentMonth(project);
-      
+
       // ✅ CORREÇÃO: Considerar null/undefined como pendente
       const paymentStatus = project.pagamento || 'pendente';
-      
+
       if (paymentStatus === 'pendente') {
         pendingCount++;
         totalPending += price;
@@ -334,11 +421,16 @@ export default function AdminBillingPage() {
         paidCount++;
         totalPaid += price;
       }
-      
+
+      // 🆕 CORREÇÃO: Faturamento Mensal Estimado baseado em projetos criados este mês
       if (isCurrentMonth) {
         currentMonthCount++;
         monthlyEstimated += price;
-        
+      }
+
+      // 🆕 CORREÇÃO: Faturamento Mensal Real baseado em pagamentos realizados este mês
+      const isPaymentThisMonth = isPaymentFromCurrentMonth(project);
+      if (isPaymentThisMonth) {
         if (paymentStatus === 'pago') {
           paidCurrentMonthCount++;
           monthlyPaid += price;
@@ -347,19 +439,52 @@ export default function AdminBillingPage() {
         }
       }
     });
-    
+
+    // 🆕 ADICIONAR: Receitas de transações históricas ao Histórico de Faturamento
+    const historicalTransactionRevenue = allTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+    totalPaid += historicalTransactionRevenue;
+
+    // 🆕 ADICIONAR: Receitas de transações do mês atual ao Faturamento Mensal Real
+    const monthlyTransactionRevenue = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+    monthlyPaid += monthlyTransactionRevenue;
+
+    // 🆕 SUBTRAIR: Despesas variáveis do mês atual do Faturamento Mensal Real
+    const monthlyVariableExpenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+    monthlyPaid -= monthlyVariableExpenses;
+
+    // 🆕 SUBTRAIR: Custos fixos do mês atual do Faturamento Mensal Real
+    const monthlyFixedExpenses = fixedCosts
+      .reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+    monthlyPaid -= monthlyFixedExpenses;
+
     // ✅ LOG: Debug dos resultados finais
     devLog.log('[AdminFinanceiro] Métricas calculadas:', {
       totalPendingAmount: totalPending,
       pendingProjects: pendingCount,
       paidProjects: paidCount,
-      parcela1Projects: parcela1Count
+      parcela1Projects: parcela1Count,
+      historicalPaidAmount: totalPaid,
+      historicalTransactionRevenue,
+      monthlyActualRevenue: monthlyPaid,
+      monthlyTransactionRevenue,
+      monthlyVariableExpenses,
+      monthlyFixedExpenses
     });
-    
+
     setMetrics({
       totalPendingAmount: totalPending,
       historicalPaidAmount: totalPaid,
-      monthlyEstimatedRevenue: monthlyEstimated, 
+      monthlyEstimatedRevenue: monthlyEstimated,
       monthlyActualRevenue: monthlyPaid,
       pendingProjects: pendingCount,
       pendingClients: pendingClientIds.size,
@@ -368,50 +493,73 @@ export default function AdminBillingPage() {
       projectsThisMonth: currentMonthCount,
       paidProjectsThisMonth: paidCurrentMonthCount
     });
-  }, [projects]);
+  }, [projects, transactions, allTransactions, fixedCosts]);
 
   const filteredProjects = useMemo(() => {
     let filtered = [...projects];
-    
+
+    // ✅ Filtro por modalidade de cobrança (billing mode)
+    if (billingModeTab === 'avulsos') {
+      // Mostrar apenas projetos avulsos (billing_mode null, undefined ou 'avulso')
+      filtered = filtered.filter(project =>
+        !project.billing_mode || project.billing_mode === 'avulso'
+      );
+    } else if (billingModeTab === 'pacotes') {
+      // Mostrar apenas projetos de pacotes
+      filtered = filtered.filter(project => project.billing_mode === 'pacote');
+    } else if (billingModeTab === 'assinaturas') {
+      // Mostrar apenas projetos de assinaturas
+      filtered = filtered.filter(project => project.billing_mode === 'assinatura');
+    }
+
+    // Filtro de busca por texto
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(project => 
+      filtered = filtered.filter(project =>
         project.number?.toString().toLowerCase().includes(term) ||
         project.empresaIntegradora?.toLowerCase().includes(term) ||
         project.nomeClienteFinal?.toLowerCase().includes(term)
       );
     }
-    
+
+    // ✅ Filtro por cliente
+    if (selectedClient && selectedClient !== 'all') {
+      filtered = filtered.filter(project => {
+        const clientKey = project.empresaIntegradora || project.userId || 'sem-cliente';
+        return clientKey === selectedClient;
+      });
+    }
+
+    // ✅ Filtro por situação de pagamento
+    if (selectedPaymentStatus && selectedPaymentStatus !== 'all') {
+      filtered = filtered.filter(project => {
+        const paymentStatus = project.pagamento || 'pendente';
+        return paymentStatus === selectedPaymentStatus;
+      });
+    }
+
+    // ✅ Filtro por status do projeto
+    if (selectedStatus && selectedStatus !== 'all') {
+      filtered = filtered.filter(project => project.status === selectedStatus);
+    }
+
     return filtered;
-  }, [projects, searchTerm]);
+  }, [projects, searchTerm, selectedClient, selectedPaymentStatus, selectedStatus, billingModeTab]);
 
-  const projectsByClient = useMemo(() => {
-    const grouped: Record<string, ProjectWithBilling[]> = {};
-    
-    filteredProjects.forEach(project => {
-      const clientKey = project.empresaIntegradora || project.userId || 'sem-cliente';
-      if (!grouped[clientKey]) {
-        grouped[clientKey] = [];
-      }
-      grouped[clientKey].push(project);
-    });
-    
-    return grouped;
-  }, [filteredProjects]);
-
+  // ✅ Função para obter nome do cliente (precisa estar antes dos useMemo que a usam)
   const getClientName = (clientKey: string): string => {
     // ✅ CORREÇÃO: Garantir que sempre retorne uma string
     if (!clientKey || clientKey === 'undefined' || clientKey === 'sem-cliente') {
       return 'Cliente Não Identificado';
     }
-    
+
     // Se o clientKey já é o nome da empresa integradora, retorna diretamente
     if (clientKey !== 'sem-cliente' && !clientKey.includes('-') && clientKey.length > 8) {
       return safeString(clientKey);
     }
-    
+
     const client = clients.find(c => c.id === clientKey);
-    
+
     if (client) {
       if (client.name && client.name.trim() !== '' && !client.name.includes('@')) {
         return safeString(client.name);
@@ -420,17 +568,133 @@ export default function AdminBillingPage() {
         return safeString(client.companyName);
       }
     }
-    
+
     const projectsForClient = projects.filter(p => p.userId === clientKey);
-    
+
     if (projectsForClient.length > 0) {
       const empresaIntegradora = projectsForClient[0].empresaIntegradora;
       if (empresaIntegradora && empresaIntegradora.trim() !== '') {
         return safeString(empresaIntegradora);
       }
     }
-    
+
     return 'Cliente #' + safeString(clientKey).slice(0, 8);
+  };
+
+  const projectsByClient = useMemo(() => {
+    const grouped: Record<string, ProjectWithBilling[]> = {};
+
+    filteredProjects.forEach(project => {
+      const clientKey = project.empresaIntegradora || project.userId || 'sem-cliente';
+      if (!grouped[clientKey]) {
+        grouped[clientKey] = [];
+      }
+      grouped[clientKey].push(project);
+    });
+
+    return grouped;
+  }, [filteredProjects]);
+
+  // ✅ Obter lista única de clientes para o filtro
+  const uniqueClients = useMemo(() => {
+    const clientMap = new Map<string, string>();
+
+    projects.forEach(project => {
+      const clientKey = project.empresaIntegradora || project.userId || 'sem-cliente';
+      if (!clientMap.has(clientKey)) {
+        clientMap.set(clientKey, getClientName(clientKey));
+      }
+    });
+
+    return Array.from(clientMap.entries()).map(([key, name]) => ({ key, name }));
+  }, [projects]);
+
+  // ✅ Função para limpar todos os filtros
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSelectedClient('');
+    setSelectedPaymentStatus('');
+    setSelectedStatus('');
+  };
+
+  // ✅ Verificar se há algum filtro ativo
+  const hasActiveFilters = searchTerm || selectedClient || selectedPaymentStatus || selectedStatus;
+
+  // ✅ Função para exportar dados para Excel
+  const exportToExcel = () => {
+    try {
+      // Obter dados filtrados
+      const dataToExport = filteredProjects.map(project => {
+        // Buscar o status real
+        const projectStatus = availableStatuses.find(s => s.slug === project.status);
+        const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+
+        // Normalizar status de pagamento
+        const paymentStatus = project.pagamento || 'pendente';
+        let situacao = '';
+        if (paymentStatus === 'pago') {
+          situacao = 'Pago';
+        } else if (paymentStatus === 'parcela1') {
+          situacao = '1ª Parcela Paga';
+        } else {
+          situacao = 'Pendente';
+        }
+
+        return {
+          'Número': safeString(project.number),
+          'Empresa Integradora': safeString(project.empresaIntegradora) || 'N/A',
+          'Cliente Final': safeString(project.nomeClienteFinal) || 'N/A',
+          'Potência (kWp)': safeString(project.potencia),
+          'Status': statusName,
+          'Valor': formatCurrency(project.valor_projeto || project.valorProjeto || 0),
+          'Situação': situacao
+        };
+      });
+
+      // Criar worksheet
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+      // Ajustar largura das colunas
+      const columnWidths = [
+        { wch: 15 }, // Número
+        { wch: 30 }, // Empresa Integradora
+        { wch: 30 }, // Cliente Final
+        { wch: 15 }, // Potência
+        { wch: 20 }, // Status
+        { wch: 15 }, // Valor
+        { wch: 20 }  // Situação
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Criar workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Dados Financeiros');
+
+      // Obter tenant name do usuário
+      const tenantName = user?.profile?.company_name || user?.profile?.name || 'tenant';
+      const sanitizedTenantName = tenantName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+
+      // Gerar nome do arquivo com data
+      const date = new Date().toISOString().split('T')[0];
+      const fileName = `financeiro_${sanitizedTenantName}_${date}.xlsx`;
+
+      // Download do arquivo
+      XLSX.writeFile(workbook, fileName);
+
+      toast({
+        title: 'Exportação concluída',
+        description: `${dataToExport.length} registros exportados com sucesso.`,
+        variant: 'default',
+      });
+
+    } catch (error) {
+      devLog.error('[exportToExcel] Erro:', error);
+      toast({
+        title: 'Erro na exportação',
+        description: 'Ocorreu um erro ao exportar os dados para Excel.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const markAsPaid = async (projectId: string) => {
@@ -532,10 +796,216 @@ export default function AdminBillingPage() {
     }
   };
 
+  // 🆕 FUNÇÕES DE PAGAMENTO PARA PACOTES
+  const markPacoteAsPaid = async (pacoteId: string) => {
+    try {
+      toast({
+        title: 'Processando pagamento...',
+        description: 'Aguarde enquanto atualizamos o status para Pago (integral).',
+        variant: 'default',
+      });
+
+      const response = await fetch(`/api/admin/cliente-pacotes/${pacoteId}/payment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'pago' })
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar status');
+
+      toast({
+        title: 'Pagamento integral registrado',
+        description: 'O pacote foi marcado como pago integralmente.',
+        variant: 'default',
+      });
+
+      await loadClientePacotes();
+
+    } catch (error) {
+      devLog.error('[MarkPacoteAsPaid] Error:', error);
+      toast({
+        title: 'Erro ao processar pagamento',
+        description: 'Ocorreu um erro ao atualizar o status. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const markPacoteAsParcela1 = async (pacoteId: string) => {
+    try {
+      toast({
+        title: 'Processando parcela...',
+        description: 'Aguarde enquanto registramos a primeira parcela.',
+        variant: 'default',
+      });
+
+      const response = await fetch(`/api/admin/cliente-pacotes/${pacoteId}/payment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'parcela1' })
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar status');
+
+      toast({
+        title: '1ª Parcela registrada',
+        description: 'A primeira parcela foi marcada como paga.',
+        variant: 'default',
+      });
+
+      await loadClientePacotes();
+
+    } catch (error) {
+      devLog.error('[MarkPacoteAsParcela1] Error:', error);
+      toast({
+        title: 'Erro ao processar parcela',
+        description: 'Ocorreu um erro ao registrar a parcela. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const resetPacotePaymentStatus = async (pacoteId: string) => {
+    try {
+      toast({
+        title: 'Resetando status...',
+        description: 'Aguarde enquanto redefinimos o status para pendente.',
+        variant: 'default',
+      });
+
+      const response = await fetch(`/api/admin/cliente-pacotes/${pacoteId}/payment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'pendente' })
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar status');
+
+      toast({
+        title: 'Status resetado',
+        description: 'O pacote foi marcado como pendente.',
+        variant: 'default',
+      });
+
+      await loadClientePacotes();
+
+    } catch (error) {
+      devLog.error('[ResetPacotePaymentStatus] Error:', error);
+      toast({
+        title: 'Erro ao resetar status',
+        description: 'Ocorreu um erro ao redefinir o status. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // 🆕 FUNÇÕES DE PAGAMENTO PARA ASSINATURAS
+  const markAssinaturaAsPaid = async (assinaturaId: string) => {
+    try {
+      toast({
+        title: 'Processando pagamento...',
+        description: 'Aguarde enquanto atualizamos o status para Pago (integral).',
+        variant: 'default',
+      });
+
+      const response = await fetch(`/api/admin/cliente-assinaturas/${assinaturaId}/payment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'pago' })
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar status');
+
+      toast({
+        title: 'Pagamento integral registrado',
+        description: 'A assinatura foi marcada como paga integralmente.',
+        variant: 'default',
+      });
+
+      await fetchAssinaturas();
+
+    } catch (error) {
+      devLog.error('[MarkAssinaturaAsPaid] Error:', error);
+      toast({
+        title: 'Erro ao processar pagamento',
+        description: 'Ocorreu um erro ao atualizar o status. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const markAssinaturaAsParcela1 = async (assinaturaId: string) => {
+    try {
+      toast({
+        title: 'Processando parcela...',
+        description: 'Aguarde enquanto registramos a primeira parcela.',
+        variant: 'default',
+      });
+
+      const response = await fetch(`/api/admin/cliente-assinaturas/${assinaturaId}/payment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'parcela1' })
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar status');
+
+      toast({
+        title: '1ª Parcela registrada',
+        description: 'A primeira parcela foi marcada como paga.',
+        variant: 'default',
+      });
+
+      await fetchAssinaturas();
+
+    } catch (error) {
+      devLog.error('[MarkAssinaturaAsParcela1] Error:', error);
+      toast({
+        title: 'Erro ao processar parcela',
+        description: 'Ocorreu um erro ao registrar a parcela. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const resetAssinaturaPaymentStatus = async (assinaturaId: string) => {
+    try {
+      toast({
+        title: 'Resetando status...',
+        description: 'Aguarde enquanto redefinimos o status para pendente.',
+        variant: 'default',
+      });
+
+      const response = await fetch(`/api/admin/cliente-assinaturas/${assinaturaId}/payment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_status: 'pendente' })
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar status');
+
+      toast({
+        title: 'Status resetado',
+        description: 'A assinatura foi marcada como pendente.',
+        variant: 'default',
+      });
+
+      await fetchAssinaturas();
+
+    } catch (error) {
+      devLog.error('[ResetAssinaturaPaymentStatus] Error:', error);
+      toast({
+        title: 'Erro ao resetar status',
+        description: 'Ocorreu um erro ao redefinir o status. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getPaymentStatusBadge = (project: ProjectWithBilling) => {
     // ✅ CORREÇÃO: Considerar null/undefined como pendente
     const paymentStatus = project.pagamento || 'pendente';
-    
+
     if (paymentStatus === 'pago') {
       return (
         <Badge className="bg-green-100 text-green-700 border-green-200">
@@ -560,16 +1030,16 @@ export default function AdminBillingPage() {
   const fetchData = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      
+
       devLog.log('[fetchData] Iniciando busca de dados financeiros...');
-      
+
       // Buscar projetos
       const projectsData = await getProjectsWithBilling();
       devLog.log('[fetchData] Projetos recebidos:', projectsData?.length || 0);
-      
+
       if (projectsData) {
         setProjects(projectsData);
-        
+
         // Extrair clientes únicos dos projetos
         const uniqueClients = projectsData.reduce((acc: any[], project) => {
           if (project.client_id && !acc.find(c => c.id === project.client_id)) {
@@ -581,11 +1051,56 @@ export default function AdminBillingPage() {
           }
           return acc;
         }, []);
-        
+
         devLog.log('[fetchData] Clientes únicos extraídos:', uniqueClients.length);
         setClients(uniqueClients);
       }
-      
+
+      // Buscar transações e custos fixos via API financial/dashboard
+      if (user?.id) {
+        try {
+          const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+          const headers = await createTenantHeaders(user.id);
+
+          // Buscar dados do mês atual
+          const currentDate = new Date();
+          const currentMonth = currentDate.getMonth() + 1;
+          const currentYear = currentDate.getFullYear();
+
+          const response = await fetch(`/api/financial/dashboard?month=${currentMonth}&year=${currentYear}`, {
+            headers
+          });
+
+          if (response.ok) {
+            const financialData = await response.json();
+            devLog.log('[fetchData] Dados financeiros do mês atual recebidos:', {
+              transactions: financialData.transactions?.length || 0,
+              fixedCosts: financialData.fixedCosts?.length || 0
+            });
+
+            setTransactions(financialData.transactions || []);
+            setFixedCosts(financialData.fixedCosts || []);
+          }
+
+          // Buscar TODAS as transações históricas (sem filtro de data) via API direta
+          const allTransactionsResponse = await fetch('/api/financial/transactions', {
+            headers
+          });
+
+          if (allTransactionsResponse.ok) {
+            const allTransactionsData = await allTransactionsResponse.json();
+            devLog.log('[fetchData] Todas as transações históricas recebidas:', allTransactionsData?.length || 0);
+            setAllTransactions(allTransactionsData || []);
+          }
+        } catch (error) {
+          devLog.error('[fetchData] Erro ao buscar dados financeiros:', error);
+          // Não bloquear se falhar, apenas não terá dados extras
+          setTransactions([]);
+          setAllTransactions([]);
+          setFixedCosts([]);
+        }
+      }
+
     } catch (error) {
       devLog.error('[fetchData] Error:', error);
       toast({
@@ -690,6 +1205,192 @@ export default function AdminBillingPage() {
       toast({
         title: 'Erro ao gerar fatura',
         description: 'Ocorreu um erro ao gerar a fatura.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+  };
+
+  // 🆕 FUNÇÃO DE GERAÇÃO DE FATURA PARA PACOTES
+  const handleDownloadPacoteInvoice = async (pacote: any) => {
+    try {
+      setIsGeneratingInvoice(true);
+
+      const normalizeDadosBancarios = (raw: any) => {
+        const src = raw?.dados_bancarios || raw?.dadosBancarios || raw || {};
+        return {
+          banco: src.banco || src.bank || '',
+          agencia: src.agencia || src.agency || '',
+          conta: src.conta || src.account || '',
+          favorecido: src.favorecido || src.beneficiario || src.titular || '',
+          documento: src.documento || src.cnpj || src.cpf || '',
+          chavePix: src.chavePix || src.pix || src.pix_key || ''
+        } as any;
+      };
+
+      const cliente = pacote.users;
+      const pacoteDefinicao = pacote.pacotes_definicoes;
+
+      const userData = {
+        name: cliente?.name || 'Cliente',
+        email: cliente?.email || 'N/A',
+        phone: cliente?.phone || 'N/A',
+        is_company: cliente?.is_company,
+        company_name: cliente?.company_name,
+        cnpj: cliente?.cnpj,
+        cpf: cliente?.cpf,
+        isCompany: cliente?.is_company || cliente?.isCompany,
+        companyName: cliente?.company_name || cliente?.companyName,
+        userData: cliente
+      };
+
+      const formattedPrice = formatCurrency(pacoteDefinicao?.valor || 0);
+      const issueDate = new Date().toISOString().split('T')[0];
+      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 dias
+
+      // Carregar dados bancários (mesma fonte que projetos avulsos)
+      let dadosBancarios: any = undefined;
+      try {
+        const res = await fetch('/api/admin/config');
+        const json = await res.json();
+        if (json?.success && (json?.data?.dados_bancarios || json?.data?.dadosBancarios)) {
+          dadosBancarios = normalizeDadosBancarios(json.data);
+        }
+      } catch {}
+      if (!dadosBancarios) {
+        const adminConfig = await getConfiguracaoGeral();
+        dadosBancarios = normalizeDadosBancarios(adminConfig);
+      }
+
+      // Criar objeto fake de "projeto" para reutilizar o gerador de invoice
+      const fakePacoteProject = {
+        number: `PACOTE-${pacote.id.substring(0, 8).toUpperCase()}`,
+        empresaIntegradora: cliente?.company_name || cliente?.name || 'Cliente',
+        nomeClienteFinal: pacoteDefinicao?.nome || 'Pacote de Projetos',
+        potenciakWp: `${pacote.projetos_inclusos} projetos inclusos`,
+        status: pacote.status,
+        valorProjeto: pacoteDefinicao?.valor || 0,
+        valor_projeto: pacoteDefinicao?.valor || 0,
+      };
+
+      const invoiceHTML = generateInvoiceHTML(
+        fakePacoteProject,
+        userData,
+        formattedPrice,
+        pacoteDefinicao?.valor || 0,
+        issueDate,
+        dueDate,
+        dadosBancarios,
+        'Pacote de Projetos'
+      );
+
+      await downloadHTMLAsPDF(invoiceHTML, `fatura-pacote-${pacote.id.substring(0, 8)}.pdf`);
+
+      toast({
+        title: 'Fatura gerada',
+        description: 'A fatura do pacote foi baixada com sucesso.',
+        variant: 'default',
+      });
+
+    } catch (error) {
+      devLog.error('[handleDownloadPacoteInvoice] Error:', error);
+      toast({
+        title: 'Erro ao gerar fatura',
+        description: 'Ocorreu um erro ao gerar a fatura do pacote.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+  };
+
+  // 🆕 FUNÇÃO DE GERAÇÃO DE FATURA PARA ASSINATURAS
+  const handleDownloadAssinaturaInvoice = async (assinatura: any) => {
+    try {
+      setIsGeneratingInvoice(true);
+
+      const normalizeDadosBancarios = (raw: any) => {
+        const src = raw?.dados_bancarios || raw?.dadosBancarios || raw || {};
+        return {
+          banco: src.banco || src.bank || '',
+          agencia: src.agencia || src.agency || '',
+          conta: src.conta || src.account || '',
+          favorecido: src.favorecido || src.beneficiario || src.titular || '',
+          documento: src.documento || src.cnpj || src.cpf || '',
+          chavePix: src.chavePix || src.pix || src.pix_key || ''
+        } as any;
+      };
+
+      const cliente = assinatura.users;
+      const plano = assinatura.planos_assinatura;
+
+      const userData = {
+        name: cliente?.name || 'Cliente',
+        email: cliente?.email || 'N/A',
+        phone: cliente?.phone || 'N/A',
+        is_company: cliente?.is_company,
+        company_name: cliente?.company_name,
+        cnpj: cliente?.cnpj,
+        cpf: cliente?.cpf,
+        isCompany: cliente?.is_company || cliente?.isCompany,
+        companyName: cliente?.company_name || cliente?.companyName,
+        userData: cliente
+      };
+
+      const formattedPrice = formatCurrency(plano?.valor_mensal || 0);
+      const issueDate = new Date().toISOString().split('T')[0];
+      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 dias
+
+      // Carregar dados bancários (mesma fonte que projetos avulsos)
+      let dadosBancarios: any = undefined;
+      try {
+        const res = await fetch('/api/admin/config');
+        const json = await res.json();
+        if (json?.success && (json?.data?.dados_bancarios || json?.data?.dadosBancarios)) {
+          dadosBancarios = normalizeDadosBancarios(json.data);
+        }
+      } catch {}
+      if (!dadosBancarios) {
+        const adminConfig = await getConfiguracaoGeral();
+        dadosBancarios = normalizeDadosBancarios(adminConfig);
+      }
+
+      // Criar objeto fake de "projeto" para reutilizar o gerador de invoice
+      const fakeAssinaturaProject = {
+        number: `ASSINATURA-${assinatura.id.substring(0, 8).toUpperCase()}`,
+        empresaIntegradora: cliente?.company_name || cliente?.name || 'Cliente',
+        nomeClienteFinal: plano?.nome || 'Assinatura Mensal',
+        potenciakWp: `${assinatura.projetos_mensais} projetos/mês`,
+        status: assinatura.status,
+        valorProjeto: plano?.valor_mensal || 0,
+        valor_projeto: plano?.valor_mensal || 0,
+      };
+
+      const invoiceHTML = generateInvoiceHTML(
+        fakeAssinaturaProject,
+        userData,
+        formattedPrice,
+        plano?.valor_mensal || 0,
+        issueDate,
+        dueDate,
+        dadosBancarios,
+        'Assinatura Mensal'
+      );
+
+      await downloadHTMLAsPDF(invoiceHTML, `fatura-assinatura-${assinatura.id.substring(0, 8)}.pdf`);
+
+      toast({
+        title: 'Fatura gerada',
+        description: 'A fatura da assinatura foi baixada com sucesso.',
+        variant: 'default',
+      });
+
+    } catch (error) {
+      devLog.error('[handleDownloadAssinaturaInvoice] Error:', error);
+      toast({
+        title: 'Erro ao gerar fatura',
+        description: 'Ocorreu um erro ao gerar a fatura da assinatura.',
         variant: 'destructive',
       });
     } finally {
@@ -866,9 +1567,23 @@ export default function AdminBillingPage() {
         await fetchData();
       }
     }
-    
+
     loadData();
   }, [isTrialExpired]);
+
+  // ✅ Listener para atualizar dados quando transações/custos forem modificados
+  useEffect(() => {
+    const handleFinancialDataUpdate = () => {
+      devLog.log('[FinanceiroPage] Evento financial-data-updated recebido, atualizando dados...');
+      fetchData(true);
+    };
+
+    window.addEventListener('financial-data-updated', handleFinancialDataUpdate);
+
+    return () => {
+      window.removeEventListener('financial-data-updated', handleFinancialDataUpdate);
+    };
+  }, []);
 
   // ✅ Verificar permissão ANTES de verificar trial
   if (!canViewFinancials) {
@@ -920,24 +1635,24 @@ export default function AdminBillingPage() {
         <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-indigo-500/30"></div>
       </div>
 
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+      <div className="mb-8">
+        <nav className="flex space-x-2" aria-label="Tabs">
           <button
             onClick={() => setActiveTab('cobrancas')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+            className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
               activeTab === 'cobrancas'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             Cobranças
           </button>
           <button
             onClick={() => setActiveTab('historico')}
-            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+            className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
               activeTab === 'historico'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             Histórico Financeiro
@@ -947,150 +1662,323 @@ export default function AdminBillingPage() {
 
       {activeTab === 'cobrancas' && (
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Icons.DollarSign className="h-5 w-5 mr-2 text-green-500 dark:text-green-400" />
-                  Total Pendente
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(metrics.totalPendingAmount)}
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {safeString(metrics.pendingProjects)} cobranças pendentes
-                  {metrics.parcela1Projects > 0 && 
-                    ` + ${safeString(metrics.parcela1Projects)} com 1ª parcela paga`}
-                </p>
-              </CardContent>
-            </Card>
+          {loading ? (
+            <div className="space-y-8">
+              {/* Skeleton para cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                        <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-9 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                      <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <div className="border-t-2 border-gray-200 dark:border-gray-700"></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                        <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-9 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                      <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+          {/* Bloco de Métricas Principais */}
+          <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900/50 rounded-2xl p-6 mb-8 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-red-500 rounded-full">
+                      <Icons.AlertCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Total Pendente</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(metrics.totalPendingAmount)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(metrics.pendingProjects)} cobranças pendentes
+                    {metrics.parcela1Projects > 0 &&
+                      ` + ${safeString(metrics.parcela1Projects)} com 1ª parcela paga`}
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Icons.DollarSign className="h-5 w-5 mr-2 text-blue-500 dark:text-blue-400" />
-                  Clientes com Pendências
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {safeString(metrics.pendingClients)}
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  De um total de {safeString(clients.length || 0)} clientes
-                </p>
-              </CardContent>
-            </Card>
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-purple-500 rounded-full">
+                      <Icons.Users className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Clientes com Pendências</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {safeString(metrics.pendingClients)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    De um total de {safeString(clients.length || 0)} clientes
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center whitespace-nowrap">
-                  <Icons.DollarSign className="h-5 w-5 mr-2 text-teal-500 dark:text-teal-400" />
-                  Cobranças Pagas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {safeString(metrics.paidProjects + metrics.parcela1Projects)}
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {formatCurrency(
-                    projects
-                    .filter(p => {
-                      const paymentStatus = p.pagamento || 'pendente';
-                      return paymentStatus === 'pago';
-                    })
-                      .reduce((total, project) => total + (project.valor_projeto || project.valorProjeto || 0), 0) +
-                    projects
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3 whitespace-nowrap">
+                    <div className="p-3 bg-green-500 rounded-full">
+                      <Icons.CircleDollarSign className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Cobranças Pagas</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {safeString(metrics.paidProjects + metrics.parcela1Projects)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {formatCurrency(
+                      projects
                       .filter(p => {
                         const paymentStatus = p.pagamento || 'pendente';
-                        return paymentStatus === 'parcela1';
+                        return paymentStatus === 'pago';
                       })
-                      .reduce((total, project) => total + (project.valor_projeto || project.valorProjeto || 0) / 2, 0)
-                  )}
-                  {metrics.parcela1Projects > 0 && (
-                    <span className="block mt-1 text-xs text-blue-500">
-                      {safeString(metrics.paidProjects)} projetos integrais + {safeString(metrics.parcela1Projects)} com parcela paga
-                    </span>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                        .reduce((total, project) => total + (project.valor_projeto || project.valorProjeto || 0), 0) +
+                      projects
+                        .filter(p => {
+                          const paymentStatus = p.pagamento || 'pendente';
+                          return paymentStatus === 'parcela1';
+                        })
+                        .reduce((total, project) => total + (project.valor_projeto || project.valorProjeto || 0) / 2, 0)
+                    )}
+                    {metrics.parcela1Projects > 0 && (
+                      <span className="block mt-1 text-xs text-blue-500">
+                        {safeString(metrics.paidProjects)} projetos integrais + {safeString(metrics.parcela1Projects)} com parcela paga
+                      </span>
+                    )}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Icons.DollarSign className="h-5 w-5 mr-2 text-purple-500 dark:text-purple-400" />
-                  Histórico de Faturamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(metrics.historicalPaidAmount)}
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Total de {safeString(metrics.paidProjects + metrics.parcela1Projects)} projetos com pagamentos ({safeString(metrics.paidProjects)} integrais + {safeString(metrics.parcela1Projects)} parciais)
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-blue-500 rounded-full">
+                      <Icons.FileText className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Histórico de Faturamento</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(metrics.historicalPaidAmount)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Total de {safeString(metrics.paidProjects + metrics.parcela1Projects)} projetos com pagamentos ({safeString(metrics.paidProjects)} integrais + {safeString(metrics.parcela1Projects)} parciais)
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Icons.DollarSign className="h-5 w-5 mr-2 text-blue-500 dark:text-blue-400" />
-                  Faturamento Mensal Estimado
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(metrics.monthlyEstimatedRevenue)}
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Baseado em {safeString(metrics.projectsThisMonth)} projetos deste mês
-                </p>
-              </CardContent>
-            </Card>
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-orange-500 rounded-full">
+                      <Icons.TrendingUp className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Faturamento Mensal Estimado</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(metrics.monthlyEstimatedRevenue)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Baseado em {safeString(metrics.projectsThisMonth)} projetos deste mês
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Icons.DollarSign className="h-5 w-5 mr-2 text-green-500 dark:text-green-400" />
-                  Faturamento Mensal Real
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(metrics.monthlyActualRevenue)}
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {safeString(metrics.paidProjectsThisMonth)} projetos com pagamentos neste mês ({safeString(metrics.paidProjectsThisMonth)} integrais + {safeString(metrics.parcela1Projects)} parciais)
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por cliente, número do projeto..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-teal-500 rounded-full">
+                      <Icons.Zap className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Faturamento Mensal Real</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(metrics.monthlyActualRevenue)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(metrics.paidProjectsThisMonth)} projetos com pagamentos neste mês ({safeString(metrics.paidProjectsThisMonth)} integrais + {safeString(metrics.parcela1Projects)} parciais)
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          {/* Tabs de Modalidades de Cobrança */}
+          <div className="mb-8">
+            <nav className="flex space-x-2" aria-label="Billing Mode Tabs">
+              <button
+                onClick={() => setBillingModeTab('avulsos')}
+                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  billingModeTab === 'avulsos'
+                    ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Avulsos
+              </button>
+              <button
+                onClick={() => setBillingModeTab('pacotes')}
+                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  billingModeTab === 'pacotes'
+                    ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Pacotes
+              </button>
+              <button
+                onClick={() => setBillingModeTab('assinaturas')}
+                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  billingModeTab === 'assinaturas'
+                    ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Assinaturas
+              </button>
+            </nav>
+          </div>
+
+          {/* Bloco de Filtros */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-8 border-2 border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex flex-col gap-4">
+              {/* ✅ Linha 1: Campo de busca */}
+              <div className="relative flex-1">
+                <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por cliente, número do projeto..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              {/* ✅ Linha 2: Filtros de seleção + Botão limpar + Botão Exportar */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Filtro por Cliente */}
+                <Select value={selectedClient} onValueChange={setSelectedClient}>
+                  <SelectTrigger className="w-full sm:w-[240px]">
+                    <SelectValue placeholder="Todos os clientes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os clientes</SelectItem>
+                    {uniqueClients.map(({ key, name }) => (
+                      <SelectItem key={key} value={key}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Filtro por Situação de Pagamento */}
+                <Select value={selectedPaymentStatus} onValueChange={setSelectedPaymentStatus}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Situação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as situações</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="parcela1">1ª Parcela Paga</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Filtro por Status */}
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    {availableStatuses.map((status) => (
+                      <SelectItem key={status.slug} value={status.slug}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: status.color }}
+                          />
+                          {status.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Botão Exportar para Excel */}
+                <Button
+                  size="default"
+                  onClick={exportToExcel}
+                  disabled={loading || filteredProjects.length === 0}
+                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <Icons.FileSpreadsheet className="h-4 w-4" />
+                  Exportar Excel
+                </Button>
+
+                {/* Botão Limpar Filtros */}
+                {hasActiveFilters && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={clearAllFilters}
+                    className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 dark:hover:border-red-800/50 transition-all duration-200"
+                  >
+                    <Icons.X className="h-4 w-4" />
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
             </div>
-          ) : Object.keys(projectsByClient).length === 0 ? (
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
+          </div>
+
+          {/* Conteúdo baseado na tab de modalidade selecionada */}
+          {billingModeTab === 'avulsos' && (
+            <>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+              ) : Object.keys(projectsByClient).length === 0 ? (
+            <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl">
               <CardContent className="p-12 text-center">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6 mt-2">
                   <Icons.DollarSign className="h-10 w-10 text-gray-400 dark:text-gray-300" />
@@ -1104,10 +1992,10 @@ export default function AdminBillingPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {Object.entries(projectsByClient).map(([clientKey, clientProjects]) => (
-                <Card key={clientKey} className="bg-white dark:bg-gray-800 border-0 shadow-md mb-6">
-                  <CardHeader className="bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-800/80 dark:to-transparent border-b border-gray-200 dark:border-gray-700">
+                <Card key={clientKey} className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/20 dark:to-transparent border-b-2 border-gray-200 dark:border-gray-700 p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full">
@@ -1170,29 +2058,29 @@ export default function AdminBillingPage() {
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 dark:bg-gray-700/50 dark:hover:bg-gray-700/50">
-                            <TableHead className="font-semibold text-gray-700 dark:text-gray-300 w-[100px]">
+                          <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200 w-[100px]">
                               Número
                             </TableHead>
-                            <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Empresa Integradora
                             </TableHead>
-                            <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Cliente Final
                             </TableHead>
-                            <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Potência
                             </TableHead>
-                            <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Status
                             </TableHead>
-                            <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Valor
                             </TableHead>
-                            <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Situação
                             </TableHead>
-                            <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300">Ações</TableHead>
+                            <TableHead className="text-right font-bold text-gray-800 dark:text-gray-200">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1266,10 +2154,10 @@ export default function AdminBillingPage() {
                                       className="data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
                                     />
                                   )}
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="flex items-center gap-1.5 px-3 py-1.5 h-8 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800/50 transition-all duration-200"
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 h-8 bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300 hover:border-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 dark:border-gray-600 dark:hover:border-gray-500 transition-all duration-200"
                                     onClick={() => handleDownloadInvoice(project)}
                                     disabled={isGeneratingInvoice}
                                     title="Baixar fatura individual"
@@ -1277,11 +2165,15 @@ export default function AdminBillingPage() {
                                     <Icons.Printer className="h-4 w-4" />
                                     <span className="text-xs font-medium">Fatura</span>
                                   </Button>
-                                  
+
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="outline" size="sm">
-                                        <Icons.DollarSign className="h-4 w-4 mr-1" /> 
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 hover:border-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 dark:hover:border-green-700 transition-all duration-200"
+                                      >
+                                        <Icons.DollarSign className="h-4 w-4 mr-1" />
                                         Pagamento <Icons.ChevronsUpDown className="h-4 w-4 ml-1" />
                                       </Button>
                                     </DropdownMenuTrigger>
@@ -1327,11 +2219,489 @@ export default function AdminBillingPage() {
               ))}
             </div>
           )}
+          </>
+          )}
+
+          {/* Tab Pacotes */}
+          {billingModeTab === 'pacotes' && (
+            <>
+              {loadingPacotes ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                </div>
+              ) : clientePacotes.length === 0 ? (
+                <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl">
+                  <CardContent className="p-12 text-center">
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6 mt-2">
+                      <Icons.FileText className="h-10 w-10 text-gray-400 dark:text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Nenhum pacote encontrado
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                      Não há pacotes de projetos ativos ou históricos para exibir.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  {clientePacotes.map((pacote) => {
+                    const cliente = pacote.users;
+                    const pacoteDefinicao = pacote.pacotes_definicoes;
+                    const dataExpiracao = pacote.data_expiracao ? new Date(pacote.data_expiracao) : null;
+                    const hoje = new Date();
+                    const diasRestantes = dataExpiracao ? Math.ceil((dataExpiracao.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                    const estaExpirado = diasRestantes <= 0;
+                    const estaProximoExpirar = diasRestantes > 0 && diasRestantes <= 30;
+                    const estaQuaseExpirar = diasRestantes > 0 && diasRestantes <= 7;
+                    const percentualUsado = pacote.projetos_inclusos > 0 ? ((pacote.projetos_usados || 0) / pacote.projetos_inclusos) * 100 : 0;
+                    const quaseEsgotado = percentualUsado >= 80 && percentualUsado < 100;
+                    const esgotado = percentualUsado >= 100;
+
+                    return (
+                      <Card key={pacote.id} className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/20 dark:to-transparent border-b-2 border-gray-200 dark:border-gray-700 p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-full">
+                                <Icons.FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-xl flex items-center gap-2">
+                                  {cliente?.company_name || cliente?.name || 'Cliente não identificado'}
+                                </CardTitle>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {pacoteDefinicao?.nome || 'Pacote'} • {pacote.projetos_usados || 0} de {pacote.projetos_inclusos} projetos utilizados
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              {pacote.status === 'ativo' ? (
+                                <>
+                                  <Badge className={
+                                    esgotado ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                                    quaseEsgotado ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                                    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                  }>
+                                    {esgotado ? 'Esgotado' : quaseEsgotado ? 'Quase esgotado' : 'Ativo'}
+                                  </Badge>
+                                  {dataExpiracao && (
+                                    <span className={`text-xs ${
+                                      estaExpirado ? 'text-red-600 dark:text-red-400 font-semibold' :
+                                      estaQuaseExpirar ? 'text-red-600 dark:text-red-400' :
+                                      estaProximoExpirar ? 'text-yellow-600 dark:text-yellow-400' :
+                                      'text-gray-500 dark:text-gray-400'
+                                    }`}>
+                                      {estaExpirado ? 'Expirado' : `${diasRestantes} dias restantes`}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+                                  {pacote.status === 'expirado' ? 'Expirado' : pacote.status === 'cancelado' ? 'Cancelado' : 'Inativo'}
+                                </Badge>
+                              )}
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {formatCurrency(pacoteDefinicao?.valor || 0)}
+                              </span>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          {/* 🆕 BOTÕES DE AÇÃO DO PACOTE */}
+                          <div className="flex items-center justify-end gap-2 mb-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1.5 px-3 py-1.5 h-8 bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300 hover:border-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 dark:border-gray-600 dark:hover:border-gray-500 transition-all duration-200"
+                              onClick={() => handleDownloadPacoteInvoice(pacote)}
+                              disabled={isGeneratingInvoice}
+                              title="Baixar fatura do pacote"
+                            >
+                              <Icons.Printer className="h-4 w-4" />
+                              <span className="text-xs font-medium">Fatura</span>
+                            </Button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 hover:border-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 dark:hover:border-green-700 transition-all duration-200"
+                                >
+                                  <Icons.DollarSign className="h-4 w-4 mr-1" />
+                                  Pagamento <Icons.ChevronsUpDown className="h-4 w-4 ml-1" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                {(() => {
+                                  const paymentStatus = pacote.payment_status || 'pendente';
+                                  return (
+                                    <>
+                                      {paymentStatus !== 'parcela1' && paymentStatus !== 'pago' && (
+                                        <DropdownMenuItem onClick={() => markPacoteAsParcela1(pacote.id)}>
+                                          Marcar 1ª Parcela como Paga
+                                        </DropdownMenuItem>
+                                      )}
+                                      {paymentStatus === 'parcela1' && (
+                                        <DropdownMenuItem onClick={() => markPacoteAsPaid(pacote.id)}>
+                                          Marcar 2ª Parcela como Paga
+                                        </DropdownMenuItem>
+                                      )}
+                                      {paymentStatus !== 'pago' && (
+                                        <DropdownMenuItem onClick={() => markPacoteAsPaid(pacote.id)}>
+                                          Marcar como Pago (Integral)
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => resetPacotePaymentStatus(pacote.id)}>
+                                  Redefinir para Pendente
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* 🆕 BADGE DE STATUS DE PAGAMENTO */}
+                            {(() => {
+                              const paymentStatus = pacote.payment_status || 'pendente';
+                              if (paymentStatus === 'pago') {
+                                return (
+                                  <Badge className="bg-green-100 text-green-700 border-green-200">
+                                    Pago
+                                  </Badge>
+                                );
+                              } else if (paymentStatus === 'parcela1') {
+                                return (
+                                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                                    1ª Parcela Paga
+                                  </Badge>
+                                );
+                              } else {
+                                return (
+                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                                    Pendente
+                                  </Badge>
+                                );
+                              }
+                            })()}
+                          </div>
+
+                          {(!pacote.projetos || pacote.projetos.length === 0) && (pacote.projetos_usados || 0) === 0 ? (
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                              Nenhum projeto neste pacote ainda
+                            </div>
+                          ) : (!pacote.projetos || pacote.projetos.length === 0) && (pacote.projetos_usados || 0) > 0 ? (
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                              {pacote.projetos_usados} {pacote.projetos_usados === 1 ? 'projeto vinculado' : 'projetos vinculados'} a este pacote
+                              <div className="text-xs mt-2 text-gray-400">
+                                (Detalhes dos projetos temporariamente indisponíveis)
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="border-b border-gray-200 dark:border-gray-700">
+                                    <TableHead className="text-left">Projeto</TableHead>
+                                    <TableHead className="text-left">Cliente Final</TableHead>
+                                    <TableHead className="text-left">Potência</TableHead>
+                                    <TableHead className="text-left">Status</TableHead>
+                                    <TableHead className="text-left">Data</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {pacote.projetos.map((projeto: any) => (
+                                    <TableRow key={projeto.id} className="border-b border-gray-100 dark:border-gray-800">
+                                      <TableCell className="font-medium">#{projeto.number}</TableCell>
+                                      <TableCell>{projeto.nomeClienteFinal || '-'}</TableCell>
+                                      <TableCell>{projeto.potenciakWp ? `${projeto.potenciakWp} kWp` : '-'}</TableCell>
+                                      <TableCell>
+                                        {statusLoading ? (
+                                          <Badge className="bg-gray-50 text-gray-500 border-gray-200">...</Badge>
+                                        ) : (() => {
+                                          const currentStatus = availableStatuses.find(s => s.slug === projeto.status);
+                                          if (currentStatus) {
+                                            return (
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentStatus.color }} />
+                                                <Badge className="bg-blue-50 text-blue-700 border-blue-200">{currentStatus.name}</Badge>
+                                              </div>
+                                            );
+                                          }
+                                          return <Badge className="bg-gray-50 text-gray-700 border-gray-200">{getStatusDisplayName(projeto.status)}</Badge>;
+                                        })()}
+                                      </TableCell>
+                                      <TableCell className="text-sm text-gray-500">
+                                        {new Date(projeto.created_at).toLocaleDateString('pt-BR')}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Tab Assinaturas */}
+          {billingModeTab === 'assinaturas' && (
+            <>
+              {loadingAssinaturas ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                </div>
+              ) : clienteAssinaturas.length === 0 ? (
+                <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl">
+                  <CardContent className="p-12 text-center">
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6 mt-2">
+                      <Icons.CalendarCheck className="h-10 w-10 text-gray-400 dark:text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Nenhuma assinatura encontrada
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                      Não há assinaturas mensais ativas ou históricas para exibir.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  {clienteAssinaturas.map((assinatura) => {
+                    const cliente = assinatura.users;
+                    const plano = assinatura.planos_assinatura;
+                    const proximoReset = assinatura.proximo_reset ? new Date(assinatura.proximo_reset) : null;
+                    const hoje = new Date();
+                    const diasParaRenovacao = proximoReset ? Math.ceil((proximoReset.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                    const proximoRenovar = diasParaRenovacao > 0 && diasParaRenovacao <= 5;
+                    const projetosDoMes = assinatura.projetosDoMesAtual?.length || 0;
+                    const percentualUsado = assinatura.projetos_mensais > 0 ? (projetosDoMes / assinatura.projetos_mensais) * 100 : 0;
+                    const quaseEsgotado = percentualUsado >= 80 && percentualUsado < 100;
+                    const esgotado = percentualUsado >= 100;
+
+                    return (
+                      <Card key={assinatura.id} className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-900/20 dark:to-transparent border-b-2 border-gray-200 dark:border-gray-700 p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-full">
+                                <Icons.CalendarCheck className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-xl flex items-center gap-2">
+                                  {cliente?.company_name || cliente?.name || 'Cliente não identificado'}
+                                </CardTitle>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {plano?.nome || 'Plano'} • {projetosDoMes} de {assinatura.projetos_mensais} projetos este mês
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              {assinatura.status === 'ativa' ? (
+                                <>
+                                  <Badge className={
+                                    esgotado ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                                    quaseEsgotado ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                                    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                  }>
+                                    {esgotado ? 'Limite excedido' : quaseEsgotado ? 'Quase no limite' : 'Ativa'}
+                                  </Badge>
+                                  {proximoReset && (
+                                    <span className={`text-xs ${
+                                      proximoRenovar ? 'text-purple-600 dark:text-purple-400 font-medium' :
+                                      'text-gray-500 dark:text-gray-400'
+                                    }`}>
+                                      Renova em {diasParaRenovacao} {diasParaRenovacao === 1 ? 'dia' : 'dias'}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+                                  {assinatura.status === 'cancelada' ? 'Cancelada' : assinatura.status === 'suspensa' ? 'Suspensa' : 'Inativa'}
+                                </Badge>
+                              )}
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {formatCurrency(plano?.valor_mensal || 0)}/mês
+                              </span>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          {/* 🆕 BOTÕES DE AÇÃO DA ASSINATURA */}
+                          <div className="flex items-center justify-end gap-2 mb-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1.5 px-3 py-1.5 h-8 bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300 hover:border-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 dark:border-gray-600 dark:hover:border-gray-500 transition-all duration-200"
+                              onClick={() => handleDownloadAssinaturaInvoice(assinatura)}
+                              disabled={isGeneratingInvoice}
+                              title="Baixar fatura da assinatura"
+                            >
+                              <Icons.Printer className="h-4 w-4" />
+                              <span className="text-xs font-medium">Fatura</span>
+                            </Button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 hover:border-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 dark:hover:border-green-700 transition-all duration-200"
+                                >
+                                  <Icons.DollarSign className="h-4 w-4 mr-1" />
+                                  Pagamento <Icons.ChevronsUpDown className="h-4 w-4 ml-1" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                {(() => {
+                                  const paymentStatus = assinatura.payment_status || 'pendente';
+                                  return (
+                                    <>
+                                      {paymentStatus !== 'parcela1' && paymentStatus !== 'pago' && (
+                                        <DropdownMenuItem onClick={() => markAssinaturaAsParcela1(assinatura.id)}>
+                                          Marcar 1ª Parcela como Paga
+                                        </DropdownMenuItem>
+                                      )}
+                                      {paymentStatus === 'parcela1' && (
+                                        <DropdownMenuItem onClick={() => markAssinaturaAsPaid(assinatura.id)}>
+                                          Marcar 2ª Parcela como Paga
+                                        </DropdownMenuItem>
+                                      )}
+                                      {paymentStatus !== 'pago' && (
+                                        <DropdownMenuItem onClick={() => markAssinaturaAsPaid(assinatura.id)}>
+                                          Marcar como Pago (Integral)
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => resetAssinaturaPaymentStatus(assinatura.id)}>
+                                  Redefinir para Pendente
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* 🆕 BADGE DE STATUS DE PAGAMENTO */}
+                            {(() => {
+                              const paymentStatus = assinatura.payment_status || 'pendente';
+                              if (paymentStatus === 'pago') {
+                                return (
+                                  <Badge className="bg-green-100 text-green-700 border-green-200">
+                                    Pago
+                                  </Badge>
+                                );
+                              } else if (paymentStatus === 'parcela1') {
+                                return (
+                                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                                    1ª Parcela Paga
+                                  </Badge>
+                                );
+                              } else {
+                                return (
+                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                                    Pendente
+                                  </Badge>
+                                );
+                              }
+                            })()}
+                          </div>
+
+                          <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                              Projetos do Mês Atual
+                            </h4>
+                            {projetosDoMes === 0 ? (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Nenhum projeto criado neste mês ainda
+                              </p>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow className="border-b border-gray-200 dark:border-gray-700">
+                                      <TableHead className="text-left">Projeto</TableHead>
+                                      <TableHead className="text-left">Cliente Final</TableHead>
+                                      <TableHead className="text-left">Potência</TableHead>
+                                      <TableHead className="text-left">Status</TableHead>
+                                      <TableHead className="text-left">Data</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {assinatura.projetosDoMesAtual?.map((projeto: any) => (
+                                      <TableRow key={projeto.id} className="border-b border-gray-100 dark:border-gray-800">
+                                        <TableCell className="font-medium">#{projeto.number}</TableCell>
+                                        <TableCell>{projeto.nomeClienteFinal || '-'}</TableCell>
+                                        <TableCell>{projeto.potenciakWp ? `${projeto.potenciakWp} kWp` : '-'}</TableCell>
+                                        <TableCell>
+                                          {statusLoading ? (
+                                            <Badge className="bg-gray-50 text-gray-500 border-gray-200">...</Badge>
+                                          ) : (() => {
+                                            const currentStatus = availableStatuses.find(s => s.slug === projeto.status);
+                                            if (currentStatus) {
+                                              return (
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentStatus.color }} />
+                                                  <Badge className="bg-blue-50 text-blue-700 border-blue-200">{currentStatus.name}</Badge>
+                                                </div>
+                                              );
+                                            }
+                                            return <Badge className="bg-gray-50 text-gray-700 border-gray-200">{getStatusDisplayName(projeto.status)}</Badge>;
+                                          })()}
+                                        </TableCell>
+                                        <TableCell className="text-sm text-gray-500">
+                                          {new Date(projeto.created_at).toLocaleDateString('pt-BR')}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </div>
+                          {assinatura.projetos && assinatura.projetos.length > projetosDoMes && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Histórico Total ({assinatura.projetos.length - projetosDoMes} projetos anteriores)
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Total de {assinatura.projetos.length} projetos desde o início da assinatura
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+          </>
+          )}
         </div>
       )}
 
       {activeTab === 'historico' && (
-        <FinancialHistoryPanel />
+        <FinancialHistoryPanel
+          initialLoading={loading}
+          preloadedData={{
+            transactions: transactions,
+            fixedCosts: fixedCosts,
+            projects: projects
+          }}
+        />
       )}
     </div>
   );
