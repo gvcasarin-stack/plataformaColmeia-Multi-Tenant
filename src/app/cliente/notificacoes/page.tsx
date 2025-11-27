@@ -12,30 +12,7 @@ import { useNotifications } from '@/lib/contexts/NotificationContext'
 import { NotificacaoPadronizada } from '@/lib/services/notificationService/types'
 import { devLog } from "@/lib/utils/productionLogger";
 import { formatSafeDate } from '@/lib/utils/dateHelpers'
-
-
-const MessageIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-  </svg>
-);
-
-const FileIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14,2 14,8 20,8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
-    <polyline points="10,9 9,9 8,9"/>
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <polyline points="12,6 12,12 16,14"/>
-  </svg>
-);
+import { getNotificationIcon } from '@/lib/utils/notificationIcons'
 
 // Ícones customizados usando componentes
 const BellIcon = Bell;
@@ -78,9 +55,17 @@ export default function ClientNotificationsPage() {
     setError(null);
     
     try {
+      // 🔍 DEBUG: Verificar se user.id está sendo truncado
+      devLog.log('🔍 [ClientNotifications] DEBUG - User object:', {
+        userId: user.id,
+        userIdLength: user.id?.length,
+        fullUser: user
+      });
+
       devLog.log('🔍 [ClientNotifications] Buscando notificações via API...');
-      
-      const response = await fetch(`/api/notifications/user?limit=50`, {
+
+      // ✅ SEGURANÇA MULTI-TENANT: Passar userId na query
+      const response = await fetch(`/api/notifications/user?userId=${encodeURIComponent(user.id)}&limit=50`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -128,27 +113,7 @@ export default function ClientNotificationsPage() {
   // O polling inteligente já atualiza as notificações automaticamente
   // Não precisamos forçar reload a cada mudança de aba
 
-  // Obter ícone com base no tipo de notificação
-  const getNotificationIcon = (type: NotificacaoPadronizada['type']) => {
-    switch (type) {
-      case 'new_comment':
-        return <div className="text-blue-500"><MessageIcon /></div>;
-      case 'document_upload':
-        return <div className="text-orange-500"><FileIcon /></div>;
-      case 'status_change':
-        return <div className="text-purple-500"><ClockIcon /></div>;
-      case 'deadline_approaching':
-        return <div className="text-amber-500"><ClockIcon /></div>;
-      case 'project_completed':
-        return <div className="text-emerald-500"><CheckIcon className="h-5 w-5" /></div>;
-      case 'new_project':
-        return <div className="text-green-500"><FileIcon /></div>;
-      case 'payment':
-        return <div className="text-green-500"><BellIcon className="h-5 w-5" /></div>;
-      default:
-        return <div className="text-gray-500 dark:text-gray-400"><BellIcon className="h-5 w-5" /></div>;
-    }
-  };
+  // Função removida - agora usa getNotificationIcon do utilitário centralizado
 
   // Lidar com clique na notificação
   const handleNotificationClick = useCallback(async (notification: NotificacaoPadronizada) => {
@@ -199,7 +164,10 @@ export default function ClientNotificationsPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ notificationId: notification.id }),
+          body: JSON.stringify({
+            notificationId: notification.id,
+            userId: user?.id
+          }),
         });
         
         if (response.ok) {
@@ -287,7 +255,10 @@ export default function ClientNotificationsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ notificationId }),
+        body: JSON.stringify({
+          notificationId,
+          userId: user?.id
+        }),
       });
       
       if (response.ok) {
@@ -468,9 +439,7 @@ export default function ClientNotificationsPage() {
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700">
-                      {getNotificationIcon(notification.type)}
-                    </div>
+                    {getNotificationIcon((notification.data?.originalType || notification.type) as any)}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">

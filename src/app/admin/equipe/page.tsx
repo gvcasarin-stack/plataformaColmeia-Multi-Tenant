@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
-import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2 } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2, Loader2, Check, X } from "lucide-react";
 import { devLog } from "@/lib/utils/productionLogger";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -56,6 +56,11 @@ export default function EquipePage() {
     permissions: COLABORADOR_PERMISSIONS // ✅ Preset padrão para colaborador
   });
 
+  // 🔒 VALIDAÇÃO DE EMAIL: Estados para verificar se email já existe
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+
   // Filtrar membros baseado na busca
   const filteredMembers = teamMembers.filter(member =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,6 +73,62 @@ export default function EquipePage() {
       fetchTeamMembers();
     }
   }, [user]);
+
+  // 🔒 VALIDAÇÃO DE EMAIL: Verificar se email já existe no sistema
+  const checkEmailAvailability = async (email: string) => {
+    // Resetar estados
+    setEmailError(null);
+    setEmailAvailable(null);
+
+    // Validação básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return;
+    }
+
+    setEmailCheckLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        devLog.error('[EquipePage] Erro ao verificar email:', data.error);
+        return;
+      }
+
+      if (data.exists) {
+        setEmailAvailable(false);
+        setEmailError('Este e-mail já está cadastrado no sistema. Use outro e-mail.');
+      } else {
+        setEmailAvailable(true);
+      }
+
+    } catch (error) {
+      devLog.error('[EquipePage] Erro ao verificar email:', error);
+    } finally {
+      setEmailCheckLoading(false);
+    }
+  };
+
+  // Disparar verificação de email quando usuário terminar de digitar (debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Apenas verificar se não estiver em modo de edição
+      if (formData.email && !editMode) {
+        checkEmailAvailability(formData.email);
+      }
+    }, 800); // Aguarda 800ms após usuário parar de digitar
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.email, editMode]);
 
   const fetchTeamMembers = async () => {
     if (!user?.id) return;
@@ -136,8 +197,25 @@ export default function EquipePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user?.id) return;
+
+    // ✅ VERIFICAÇÃO GLOBAL: Verificar email antes de submeter (apenas para novos membros)
+    if (!editMode) {
+      devLog.log("[EquipePage] handleSubmit: Verificando disponibilidade do email...");
+      await checkEmailAvailability(formData.email);
+
+      // Se o email não estiver disponível, bloquear submissão
+      if (emailAvailable === false || emailError) {
+        devLog.warn("[EquipePage] handleSubmit: Email não disponível, bloqueando submissão");
+        toast({
+          title: "Email já cadastrado",
+          description: emailError || "Este email já está em uso no sistema.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     try {
       setLoading(true);
@@ -302,6 +380,10 @@ export default function EquipePage() {
     });
     setEditMode(false);
     setCurrentUserId(null);
+    // Resetar estados de validação de email
+    setEmailCheckLoading(false);
+    setEmailError(null);
+    setEmailAvailable(null);
   };
 
   // ✅ Função para abrir modal de adicionar (usado pelos botões "Adicionar Membro")
@@ -432,15 +514,49 @@ export default function EquipePage() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="email@exemplo.com"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="email@exemplo.com"
+                      required
+                      disabled={editMode}
+                      className={`${editMode ? 'bg-gray-100 cursor-not-allowed' : ''} ${emailError ? 'border-red-500' : emailAvailable ? 'border-green-500' : ''}`}
+                    />
+                    {!editMode && emailCheckLoading && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                      </div>
+                    )}
+                    {!editMode && emailAvailable === true && !emailCheckLoading && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Check className="w-5 h-5 text-green-500" />
+                      </div>
+                    )}
+                    {!editMode && emailAvailable === false && !emailCheckLoading && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <X className="w-5 h-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
+                  {editMode && (
+                    <p className="text-xs text-gray-500">O email não pode ser alterado</p>
+                  )}
+                  {!editMode && emailError && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <X className="h-4 w-4" />
+                      {emailError}
+                    </p>
+                  )}
+                  {!editMode && emailAvailable === true && !emailCheckLoading && (
+                    <p className="text-sm text-green-600 flex items-center gap-1">
+                      <Check className="h-4 w-4" />
+                      Email disponível!
+                    </p>
+                  )}
                 </div>
               </div>
               
@@ -510,7 +626,7 @@ export default function EquipePage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (!editMode && (emailAvailable === false || emailCheckLoading))}
                   className="bg-teal-600 hover:bg-teal-700"
                 >
                   {loading ? 'Salvando...' : editMode ? 'Atualizar' : 'Adicionar'}

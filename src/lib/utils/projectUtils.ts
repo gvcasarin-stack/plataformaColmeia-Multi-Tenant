@@ -81,11 +81,11 @@ export const getProjectPriceRangesSync = (): FaixaPotenciaPreco[] => {
 
 // Função principal para calcular o custo do projeto com base na potência
 export const calculateProjectCost = (potencia: number): number => {
-  console.log(`🔧 [FALLBACK LOCAL] Calculando valor localmente para potência:`, potencia);
+  devLog.log(`🔧 [FALLBACK LOCAL] Calculando valor localmente para potência:`, potencia);
   
   const faixasPotencia = getProjectPriceRangesSync();
   
-  console.log(`📊 [FALLBACK LOCAL] Faixas disponíveis:`, faixasPotencia);
+  devLog.log(`📊 [FALLBACK LOCAL] Faixas disponíveis:`, faixasPotencia);
   
   // ✅ CORREÇÃO CRÍTICA: Aplicar a mesma lógica de faixas inclusivas
   // Ordenar faixas por potenciaMin para garantir ordem correta
@@ -103,14 +103,14 @@ export const calculateProjectCost = (potencia: number): number => {
       condicaoAtendida = potencia > faixa.potenciaMin && potencia <= faixa.potenciaMax;
     }
     
-    console.log(`🧮 [FALLBACK LOCAL] Testando faixa ${i + 1}:`, {
+    devLog.log(`🧮 [FALLBACK LOCAL] Testando faixa ${i + 1}:`, {
       faixa,
       condicaoAtendida,
       potencia
     });
     
     if (condicaoAtendida) {
-      console.log(`✅ [FALLBACK LOCAL] Faixa encontrada! Valor:`, faixa.valorBase);
+      devLog.log(`✅ [FALLBACK LOCAL] Faixa encontrada! Valor:`, faixa.valorBase);
       return faixa.valorBase;
     }
   }
@@ -122,7 +122,7 @@ export const calculateProjectCost = (potencia: number): number => {
   );
   
   const valorFinal = maiorFaixa?.valorBase || 4000;
-  console.log(`❌ [FALLBACK LOCAL] Nenhuma faixa encontrada! Usando fallback:`, valorFinal);
+  devLog.log(`❌ [FALLBACK LOCAL] Nenhuma faixa encontrada! Usando fallback:`, valorFinal);
   
   return valorFinal; // Valor de fallback
 }; 

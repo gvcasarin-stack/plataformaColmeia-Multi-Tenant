@@ -85,64 +85,140 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
     }
   }
 
-  const links = useMemo(() => [
-    {
-      href: "/admin/painel",
-      label: "Painel",
-      icon: LucideIcons.BarChart3,
-      color: "bg-orange-100 text-orange-700 border-orange-200/50 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50"
-    },
-    {
-      href: "/admin/projetos",
-      label: "Projetos",
-      icon: LucideIcons.Lightbulb,
-      color: "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50"
-    },
-    {
-      href: "/admin/equipe",
-      label: "Equipe",
-      icon: LucideIcons.Users,
-      color: "bg-teal-50 text-teal-700 border-teal-200/50 dark:bg-teal-900/20 dark:text-teal-400 dark:border-teal-800/50"
-    },
-    {
-      href: "/admin/clientes",
-      label: "Clientes",
-      icon: LucideIcons.Building2,
-      color: "bg-cyan-50 text-cyan-700 border-cyan-200/50 dark:bg-cyan-900/20 dark:text-cyan-400 dark:border-cyan-800/50",
-      badge: pendingRequests > 0 ? pendingRequests : null
-    },
-    {
-      href: "/admin/financeiro",
-      label: "Financeiro",
-      icon: LucideIcons.DollarSign,
-      color: "bg-green-50 text-green-700 border-green-200/50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50"
-    },
-    {
-      href: "/admin/dimensionamento",
-      label: "Dimensionamento",
-      icon: LucideIcons.Calculator,
-      color: "bg-sky-50 text-sky-700 border-sky-200/50 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800/50"
-    },
-    {
-      href: "/admin/notificacoes",
-      label: "Notificações",
-      icon: LucideIcons.Bell,
-      badge: totalUnreadNotifications > 0 ? totalUnreadNotifications : null,
-      color: "bg-purple-50 text-purple-700 border-purple-200/50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50"
-    },
-    {
-      href: "/admin/assinaturas",
-      label: "Assinaturas",
-      icon: LucideIcons.CreditCard,
-      color: "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50"
-    },
-    {
-      href: "/admin/preferencias",
-      label: "Preferências",
-      icon: LucideIcons.Settings,
-      color: "bg-rose-50 text-rose-700 border-rose-200/50 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800/50"
-    },
-  ], [totalUnreadNotifications, pendingRequests, pathname])
+  // ✅ Obter permissões do usuário (com fallback para admin completo)
+  const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
+  const isFullAdmin = user?.role === 'admin' || user?.role === 'superadmin' ||
+                      user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+
+  // ✅ DEBUG: Log para verificar permissions
+  useEffect(() => {
+    if (user) {
+      devLog.log('[AdminSidebar] ===== DEBUG PERMISSIONS =====');
+      devLog.log('[AdminSidebar] User ID:', user.id);
+      devLog.log('[AdminSidebar] User role:', user.role);
+      devLog.log('[AdminSidebar] User.permissions:', user.permissions);
+      devLog.log('[AdminSidebar] User.profile:', user.profile);
+      devLog.log('[AdminSidebar] User.profile?.role:', user.profile?.role);
+      devLog.log('[AdminSidebar] User.profile?.permissions:', (user.profile as any)?.permissions);
+      devLog.log('[AdminSidebar] Merged userPermissions:', userPermissions);
+      devLog.log('[AdminSidebar] isFullAdmin:', isFullAdmin);
+      devLog.log('[AdminSidebar] Individual permission checks:', {
+        can_view_dashboard: userPermissions.can_view_dashboard,
+        can_edit_preferences: userPermissions.can_edit_preferences,
+        can_view_dimensionamento: userPermissions.can_view_dimensionamento,
+        can_view_clients: userPermissions.can_view_clients,
+        can_manage_team: userPermissions.can_manage_team,
+        can_view_financials: userPermissions.can_view_financials
+      });
+      devLog.log('[AdminSidebar] Visibility results:', {
+        painelVisible: isFullAdmin || userPermissions.can_view_dashboard === true,
+        preferenciasVisible: isFullAdmin || userPermissions.can_edit_preferences === true,
+        dimensionamentoVisible: isFullAdmin || userPermissions.can_view_dimensionamento === true,
+        clientesVisible: isFullAdmin || userPermissions.can_view_clients === true,
+        equipeVisible: isFullAdmin || userPermissions.can_manage_team === true,
+        financeiroVisible: isFullAdmin || userPermissions.can_view_financials === true
+      });
+      devLog.log('[AdminSidebar] =============================');
+    }
+  }, [user, userPermissions, isFullAdmin]);
+
+  const links = useMemo(() => {
+    const allLinks = [
+      {
+        href: "/admin/painel",
+        label: "Painel",
+        icon: LucideIcons.LayoutDashboard,
+        color: "bg-orange-100 text-orange-700 border-orange-200/50 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50",
+        visible: isFullAdmin || userPermissions.can_view_dashboard === true || userPermissions.can_view_dashboard_financials === true // ✅ Visível para ambas as permissões de painel
+      },
+      {
+        href: "/admin/projetos",
+        label: "Projetos",
+        icon: LucideIcons.Zap,
+        color: "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50",
+        visible: isFullAdmin || userPermissions.can_create_projects === true || userPermissions.can_edit_projects === true // ✅ Visível se pode criar OU editar projetos (visualização é implícita)
+      },
+      {
+        href: "/admin/leads",
+        label: "Leads",
+        icon: LucideIcons.UserPlus,
+        color: "bg-indigo-50 text-indigo-700 border-indigo-200/50 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50",
+        badge: null,
+        comingSoon: true,
+        visible: isFullAdmin // ✅ Apenas admin por enquanto (fase inicial)
+      },
+      {
+        href: "/admin/funil-vendas",
+        label: "Funil de Vendas",
+        icon: LucideIcons.TrendingUp,
+        color: "bg-violet-50 text-violet-700 border-violet-200/50 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800/50",
+        badge: null,
+        comingSoon: true,
+        visible: isFullAdmin // ✅ Apenas admin por enquanto (fase inicial)
+      },
+      {
+        href: "/admin/equipe",
+        label: "Equipe",
+        icon: LucideIcons.Users,
+        color: "bg-teal-50 text-teal-700 border-teal-200/50 dark:bg-teal-900/20 dark:text-teal-400 dark:border-teal-800/50",
+        visible: isFullAdmin || userPermissions.can_manage_team === true // ✅ Controlado por permissão
+      },
+      {
+        href: "/admin/clientes",
+        label: "Clientes",
+        icon: LucideIcons.Building2,
+        color: "bg-cyan-50 text-cyan-700 border-cyan-200/50 dark:bg-cyan-900/20 dark:text-cyan-400 dark:border-cyan-800/50",
+        badge: pendingRequests > 0 ? pendingRequests : null,
+        visible: isFullAdmin || userPermissions.can_view_clients === true // ✅ Controlado por permissão estrita
+      },
+      {
+        href: "/admin/financeiro",
+        label: "Financeiro",
+        icon: LucideIcons.DollarSign,
+        color: "bg-green-50 text-green-700 border-green-200/50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50",
+        visible: isFullAdmin || userPermissions.can_view_financials === true // ✅ Controlado por permissão
+      },
+      {
+        href: "/admin/dimensionamento",
+        label: "Dimensionamento",
+        icon: LucideIcons.Calculator,
+        color: "bg-sky-50 text-sky-700 border-sky-200/50 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800/50",
+        visible: isFullAdmin || userPermissions.can_view_dimensionamento === true // ✅ Controlado por permissão
+      },
+      {
+        href: "/admin/notificacoes",
+        label: "Notificações",
+        icon: LucideIcons.Bell,
+        badge: totalUnreadNotifications > 0 ? totalUnreadNotifications : null,
+        color: "bg-purple-50 text-purple-700 border-purple-200/50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50",
+        visible: true // ✅ Sempre visível (notificações são essenciais)
+      },
+      {
+        href: "/admin/assinaturas",
+        label: "Assinaturas",
+        icon: LucideIcons.CreditCard,
+        color: "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50",
+        visible: isFullAdmin || userPermissions.can_view_assinaturas === true // ✅ Controlado por permissão
+      },
+      {
+        href: "/admin/preferencias",
+        label: "Preferências",
+        icon: LucideIcons.Settings,
+        color: "bg-rose-50 text-rose-700 border-rose-200/50 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800/50",
+        visible: isFullAdmin || userPermissions.can_edit_preferences === true // ✅ Controlado por permissão
+      },
+      {
+        href: "/admin/arquivados",
+        label: "Arquivados",
+        icon: LucideIcons.Archive,
+        color: "bg-gray-50 text-gray-700 border-gray-200/50 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/50",
+        visible: isFullAdmin // ✅ Apenas admin e superadmin
+      },
+    ];
+
+    // ✅ Filtrar apenas links visíveis
+    return allLinks.filter(link => link.visible);
+  }, [totalUnreadNotifications, pendingRequests, pathname, userPermissions, isFullAdmin])
 
   return (
     <>
@@ -200,8 +276,8 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
 
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {links.map((link) => {
-            const isActive = pathname === link.href || 
-                            (link.href === '/admin/projetos' && pathname?.startsWith('/admin/projetos/')) ||
+            const isActive = pathname === link.href ||
+                            (link.href === '/admin/projetos' && (pathname?.startsWith('/admin/projetos/') || pathname?.startsWith('/projetos/'))) ||
                             (link.href === '/admin/clientes' && pathname?.startsWith('/admin/clientes/'));
             const Icon = link.icon;
             
@@ -234,8 +310,14 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
                     {link.label}
                   </span>
                 )}
-                
-                {!collapsed && link.badge && (
+
+                {!collapsed && (link as any).comingSoon && (
+                  <span className="ml-auto bg-blue-500 text-white text-xs font-semibold h-5 px-2 rounded-full flex items-center justify-center whitespace-nowrap">
+                    Em Breve
+                  </span>
+                )}
+
+                {!collapsed && link.badge && !(link as any).comingSoon && (
                   <span className="ml-auto bg-red-500 text-white text-xs font-semibold h-5 min-w-[20px] rounded-full flex items-center justify-center px-1">
                     {link.badge}
                   </span>

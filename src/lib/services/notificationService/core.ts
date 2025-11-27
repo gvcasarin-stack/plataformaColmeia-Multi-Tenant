@@ -4,6 +4,7 @@ import { getUserById, getAllAdminUsers, getAllAdminUsersByTenant } from '@/lib/s
 
 import { CreateNotificationParams, NotificationResult, BatchNotificationResult } from './types';
 import logger from '@/lib/utils/logger';
+import { devLog } from '@/lib/utils/productionLogger'; // ✅ CORRIGIDO: Import adicionado para usar nos logs de debug
 
 /**
  * ✅ MIGRADO PARA SUPABASE
@@ -56,7 +57,7 @@ export async function createNotificationDirectly(
       .single();
     
     if (userError || !userData?.tenant_id) {
-      console.log('❌ [DEBUG-NOTIFICATION] ERRO ao buscar tenant_id:', {
+      devLog.log('❌ [DEBUG-NOTIFICATION] ERRO ao buscar tenant_id:', {
         userId: notificationData.userId,
         userError: userError?.message,
         userData,
@@ -69,7 +70,7 @@ export async function createNotificationDirectly(
       };
     }
     
-    console.log('✅ [DEBUG-NOTIFICATION] Tenant_id obtido:', {
+    devLog.log('✅ [DEBUG-NOTIFICATION] Tenant_id obtido:', {
       userId: notificationData.userId,
       tenantId: userData.tenant_id
     });
@@ -99,7 +100,7 @@ export async function createNotificationDirectly(
       }
     };
 
-    console.log('🔍 [DEBUG-NOTIFICATION] Tentando inserir notificação:', {
+    devLog.log('🔍 [DEBUG-NOTIFICATION] Tentando inserir notificação:', {
       type: notificationToInsert.type,
       category: notificationToInsert.category,
       userId: notificationToInsert.user_id,
@@ -114,7 +115,7 @@ export async function createNotificationDirectly(
       .single();
 
     if (error) {
-      console.log('❌ [DEBUG-NOTIFICATION] ERRO ao inserir notificação:', {
+      devLog.log('❌ [DEBUG-NOTIFICATION] ERRO ao inserir notificação:', {
         error: error.message,
         code: error.code,
         details: error.details,
@@ -125,7 +126,7 @@ export async function createNotificationDirectly(
       return { success: false, error: error.message };
     }
     
-    console.log('✅ [DEBUG-NOTIFICATION] Notificação criada com sucesso:', {
+    devLog.log('✅ [DEBUG-NOTIFICATION] Notificação criada com sucesso:', {
       id: data.id,
       type: data.type,
       category: data.category,
@@ -226,19 +227,9 @@ export async function createNotificationForAllAdmins(
       adminUsers = adminUsersWithTenant.map(u => ({ id: u.uid }));
       logger.info('[createNotificationForAllAdmins] Admins encontrados para tenant:', { adminCount: adminUsers.length, tenantId });
     } else {
-      // Fallback: buscar todos os admins (comportamento antigo - deve ser evitado)
-      logger.warn('[createNotificationForAllAdmins] AVISO: Sem tenant_id, buscando TODOS os admins do sistema');
-      const { data: allAdmins, error: adminError } = await supabase
-        .from('users')
-        .select('id')
-        .in('role', ['admin', 'superadmin']);
-
-      if (adminError) {
-        logger.error('[createNotificationForAllAdmins] Erro ao buscar admins:', adminError);
-        return [];
-      }
-      
-      adminUsers = allAdmins || [];
+      // ✅ CORREÇÃO MULTI-TENANT: Remover fallback perigoso que viola isolamento
+      logger.error('[createNotificationForAllAdmins] ERRO CRÍTICO: tenant_id é obrigatório para proteger isolamento entre organizações. Cancelando criação de notificações.');
+      return [];
     }
 
     if (!adminUsers || adminUsers.length === 0) {
@@ -269,8 +260,24 @@ export async function createNotificationForAllAdmins(
     
     const mappedType = typeMapping[notificationData.type] || { type: 'info', category: 'system' };
 
-    // Criar notificações para cada admin
-    const notifications = adminUsers.map(admin => ({
+    // ✅ CORREÇÃO: Filtrar o autor para não notificar ele mesmo
+    const adminsToNotify = adminUsers.filter(admin => {
+      // Se há senderId, excluir o autor da notificação
+      if (notificationData.senderId && notificationData.senderId !== 'system') {
+        return admin.id !== notificationData.senderId;
+      }
+      return true; // Se não há senderId, notificar todos
+    });
+
+    logger.info('[createNotificationForAllAdmins] Admins após filtrar autor:', {
+      totalAdmins: adminUsers.length,
+      adminsToNotify: adminsToNotify.length,
+      senderId: notificationData.senderId,
+      filtered: adminUsers.length - adminsToNotify.length
+    });
+
+    // Criar notificações para cada admin (exceto o autor)
+    const notifications = adminsToNotify.map(admin => ({
       type: mappedType.type,
       category: mappedType.category,
       priority: 'normal',
@@ -296,7 +303,7 @@ export async function createNotificationForAllAdmins(
       }
     }));
 
-    console.log('🔍 [DEBUG-ADMIN-NOTIFICATION] Tentando inserir notificações para admins:', {
+    devLog.log('🔍 [DEBUG-ADMIN-NOTIFICATION] Tentando inserir notificações para admins:', {
       count: notifications.length,
       tenantId,
       firstNotification: notifications[0]
@@ -308,7 +315,7 @@ export async function createNotificationForAllAdmins(
       .select('id');
 
     if (error) {
-      console.log('❌ [DEBUG-ADMIN-NOTIFICATION] ERRO ao inserir notificações:', {
+      devLog.log('❌ [DEBUG-ADMIN-NOTIFICATION] ERRO ao inserir notificações:', {
         error: error.message,
         code: error.code,
         details: error.details,
@@ -319,7 +326,7 @@ export async function createNotificationForAllAdmins(
       return [];
     }
     
-    console.log('✅ [DEBUG-ADMIN-NOTIFICATION] Notificações criadas com sucesso:', {
+    devLog.log('✅ [DEBUG-ADMIN-NOTIFICATION] Notificações criadas com sucesso:', {
       count: data?.length || 0,
       ids: data?.map(n => n.id) || []
     });

@@ -876,14 +876,15 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
       // ✅ PHASE 1: fetchUserProfileInternal já tem retry logic robusto e gerencia cache automaticamente
       const profile = await fetchUserProfileInternal(signInData.user.id);
-      
+
       logger.auth.profileFetch(signInData.user.id, !!profile, profile ? 'database' : 'failed', { context: 'sign-in' });
-      
+
       if (!profile) {
         logger.warn('Profile not found for user, continuing without profile', { userId: signInData.user.id }, 'Auth');
       }
 
-      const enrichedUser = { ...signInData.user, profile: profile || undefined };
+      const enrichedUser = createSanitizedAuthUser(signInData.user, profile || undefined);
+
       setUser(enrichedUser);
       setSession(signInData.session);
       setAuthState('authenticated'); // ✅ CRÍTICO: Marcar como autenticado após login

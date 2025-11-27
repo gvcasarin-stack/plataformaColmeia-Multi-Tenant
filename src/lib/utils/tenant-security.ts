@@ -95,9 +95,9 @@ export async function getTenantFromUser(userId: string): Promise<TenantInfo | nu
       return null
     }
 
-    // ✅ CORREÇÃO: Permitir usuários com status null/undefined (podem ser novos)
-    if (userData.status && userData.status !== 'active') {
-      devLog.error('[getTenantFromUser] Usuário não está ativo:', { userId, status: userData.status })
+    // ✅ CORREÇÃO: Permitir usuários pending para fluxo de aprovação
+    if (userData.status && userData.status !== 'active' && userData.status !== 'pending') {
+      devLog.error('[getTenantFromUser] Usuário com status inválido:', { userId, status: userData.status })
       return null
     }
 

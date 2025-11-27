@@ -113,7 +113,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         {isChangingPage && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500 animate-pulse z-50" />
         )}
-        
+
+
         {/* Conteúdo */}
         <div className={isChangingPage ? 'opacity-50 transition-opacity duration-200' : 'opacity-100 transition-opacity duration-200'}>
           {children}

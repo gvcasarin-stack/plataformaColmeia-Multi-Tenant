@@ -29,14 +29,14 @@ SELECT
   p.deleted_at,
   p.empresa_integradora,
   p.nome_cliente_final,
-  p.potencia_kwp,
+  p.potencia,
   p.status,
   p.payment_status,
   p.created_at,
   -- Verificar se as colunas existem
   CASE WHEN p.empresa_integradora IS NULL THEN '⚠️ NULL' ELSE '✅ OK' END as empresa_check,
   CASE WHEN p.nome_cliente_final IS NULL THEN '⚠️ NULL' ELSE '✅ OK' END as cliente_check,
-  CASE WHEN p.potencia_kwp IS NULL THEN '⚠️ NULL' ELSE '✅ OK' END as potencia_check
+  CASE WHEN p.potencia IS NULL THEN '⚠️ NULL' ELSE '✅ OK' END as potencia_check
 FROM projects p
 WHERE p.tenant_id = '061ff77b-8b3a-4732-9158-a574c1f1690a'
   AND p.user_id = (SELECT id FROM users WHERE email = 'gvcasarin@gmail.com')
@@ -71,7 +71,7 @@ BEGIN
       number,
       empresa_integradora,
       nome_cliente_final,
-      potencia_kwp,
+      potencia,
       status,
       payment_status,
       created_at

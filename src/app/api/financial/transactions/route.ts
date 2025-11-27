@@ -188,26 +188,34 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
     const body = await request.json();
-    
+
     devLog.log('[API Financial Transactions] Atualizando transação:', body);
-    
-    const { id, description, amount, category } = body;
-    
+
+    const { id, description, amount, category, date } = body;
+
     if (!id || !description || !amount || !category) {
       return NextResponse.json(
         { error: 'Campos obrigatórios: id, description, amount, category' },
         { status: 400 }
       );
     }
-    
+
+    // Preparar dados para atualização
+    const updateData: any = {
+      description,
+      amount: parseFloat(amount),
+      category
+    };
+
+    // Incluir data se fornecida
+    if (date) {
+      updateData.transaction_date = date;
+    }
+
     // ✅ SEGURANÇA: Atualizar apenas transações do tenant atual
     const { data, error } = await supabase
       .from('financial_transactions')
-      .update({
-        description,
-        amount: parseFloat(amount),
-        category
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
       .select()

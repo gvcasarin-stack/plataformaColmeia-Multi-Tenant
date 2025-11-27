@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devLog } from "@/lib/utils/productionLogger";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
 /**
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (error || !userData?.tenant_id) {
-      console.error('[API /user/tenant-id] Erro ao buscar tenant:', error);
+      devLog.error('[API /user/tenant-id] Erro ao buscar tenant:', error);
       return NextResponse.json(
         { error: 'Usuário não encontrado ou sem tenant' },
         { status: 404 }
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[API /user/tenant-id] Erro inesperado:', error);
+    devLog.error('[API /user/tenant-id] Erro inesperado:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

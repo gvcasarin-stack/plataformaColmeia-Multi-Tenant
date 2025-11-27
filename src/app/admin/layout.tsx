@@ -1,5 +1,7 @@
 "use client"
 
+import { devLog } from "@/lib/utils/productionLogger";
+
 import React, { useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, usePathname } from 'next/navigation'
@@ -38,10 +40,9 @@ const LoadingSpinner = () => (
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  // ✅ CRÍTICO: Rotas de login NÃO PRECISAM de autenticação
-  if (pathname === '/admin/login') {
-    console.log('🔑 [ADMIN-LAYOUT] Rota de login - ACESSO LIVRE sem autenticação');
-    console.log('🔑 [ADMIN-LAYOUT] Renderizando LOGIN ADMIN direto');
+  // ✅ CRÍTICO: Rotas de login e definição de senha NÃO PRECISAM de autenticação
+  if (pathname === '/admin/login' || pathname === '/admin/nova-senha') {
+    devLog.log(`🔑 [ADMIN-LAYOUT] Rota ${pathname} - ACESSO LIVRE sem autenticação`);
     return <>{children}</>;
   }
 
@@ -49,11 +50,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
-  // ✅ Verificação de admin para rotas protegidas
+  // ✅ Verificação de admin/colaborador para rotas protegidas
   const isAdmin = useMemo(() => {
     if (!user) return false;
-    return user.role === 'admin' || user.role === 'superadmin' || 
-           user.profile?.role === 'admin' || user.profile?.role === 'superadmin';
+    // ✅ Aceita: admin, superadmin, colaborador
+    return user.role === 'admin' || user.role === 'superadmin' || user.role === 'colaborador' ||
+           user.profile?.role === 'admin' || user.profile?.role === 'superadmin' || user.profile?.role === 'colaborador';
   }, [user]);
   
   // ✅ Log apenas para rotas protegidas
@@ -69,7 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // ✅ Redirecionamento apenas para rotas protegidas
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
-      console.log('🔑 [ADMIN-LAYOUT] Usuário não autenticado, redirecionando para login');
+      devLog.log('🔑 [ADMIN-LAYOUT] Usuário não autenticado, redirecionando para login');
       router.replace('/admin/login');
     }
   }, [user, isAdmin, isLoading, pathname, router]);

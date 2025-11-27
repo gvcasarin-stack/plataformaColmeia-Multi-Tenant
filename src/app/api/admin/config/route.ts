@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { devLog } from "@/lib/utils/productionLogger";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
+import { handleTempTenant } from '@/lib/utils/temp-tenant-handler';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +18,12 @@ export async function GET(request: NextRequest) {
         { error: 'Acesso negado: tenant não identificado' },
         { status: 403 }
       );
+    }
+
+    // 🛠️ FALLBACK: Lidar com tenants temporários
+    const tempTenantResponse = handleTempTenant(tenantId, 'object', 'Config');
+    if (tempTenantResponse) {
+      return tempTenantResponse;
     }
 
     // ✅ PRODUÇÃO - Verificar se estamos em contexto de build
@@ -118,10 +125,14 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       // ✅ SEGURANÇA: Atualizar configuração apenas do tenant atual
+      // ✅ CORREÇÃO: Para strings simples (como checklist_message), salvar diretamente
+      // Para objetos/arrays, o Supabase já converte automaticamente para JSONB
+      const valueToSave = typeof value === 'string' ? value : value;
+
       const { error } = await supabase
         .from('configs')
         .update({
-          value,
+          value: valueToSave,
           description,
           updated_at: new Date().toISOString()
         })
@@ -139,11 +150,14 @@ export async function POST(request: NextRequest) {
       devLog.log('[API] [Config] Configuração atualizada:', key);
     } else {
       // ✅ SEGURANÇA: Criar nova configuração com tenant_id
+      // ✅ CORREÇÃO: Para strings simples (como checklist_message), salvar diretamente
+      const valueToSave = typeof value === 'string' ? value : value;
+
       const { error } = await supabase
         .from('configs')
         .insert([{
           key,
-          value,
+          value: valueToSave,
           description: description || `Configuração ${key}`,
           category: key.includes('preco') || key.includes('potencia') ? 'pricing' : 'business',
           is_active: true,

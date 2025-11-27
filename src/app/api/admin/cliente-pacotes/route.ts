@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       (clientePacotes || []).map(async (pacote) => {
         const { data: projetos, error: projetosError } = await supabase
           .from('projects')
-          .select('id, number, empresa_integradora, nome_cliente_final, potencia_kwp, status, payment_status, created_at')
+          .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, payment_status, created_at')
           .eq('cliente_pacote_id', pacote.id)
           .eq('tenant_id', tenantId)
           .order('created_at', { ascending: false });

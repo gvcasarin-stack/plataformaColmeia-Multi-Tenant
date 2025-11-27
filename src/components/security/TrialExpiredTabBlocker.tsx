@@ -24,12 +24,37 @@ interface TrialExpiredTabBlockerProps {
   description?: string;
 }
 
-export function TrialExpiredTabBlocker({ 
+export function TrialExpiredTabBlocker({
   tabName,
   description = "Esta funcionalidade está temporariamente bloqueada"
 }: TrialExpiredTabBlockerProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const [basicPlanPrice, setBasicPlanPrice] = useState<string>('299');
+
+  useEffect(() => {
+    // Buscar preço do plano básico do banco de dados
+    const fetchBasicPlanPrice = async () => {
+      try {
+        const response = await fetch('/api/plans');
+        if (!response.ok) throw new Error('Erro ao buscar planos');
+
+        const plans = await response.json();
+        const basicPlan = plans.find((plan: any) => plan.plan_code === 'basico');
+
+        if (basicPlan && basicPlan.price) {
+          // Converte "199.00" para "199"
+          const price = parseFloat(basicPlan.price).toFixed(0);
+          setBasicPlanPrice(price);
+        }
+      } catch (error) {
+        devLog.error('[TrialExpiredTabBlocker] Erro ao buscar preço do plano básico:', error);
+        // Mantém o valor padrão se houver erro
+      }
+    };
+
+    fetchBasicPlanPrice();
+  }, []);
 
   const handleGoToSubscriptions = () => {
     devLog.log(`[TrialExpiredTabBlocker] Redirecionando de ${tabName} para assinaturas`);
@@ -92,7 +117,7 @@ export function TrialExpiredTabBlocker({
           </div>
 
           <div className="text-center text-xs text-gray-500">
-            Apenas R$ 299/mês para reativar todas as funcionalidades
+            Apenas R$ {basicPlanPrice}/mês para reativar todas as funcionalidades
           </div>
         </CardContent>
       </Card>

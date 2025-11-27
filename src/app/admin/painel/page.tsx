@@ -10,6 +10,7 @@ import { eachMonthOfInterval } from 'date-fns/eachMonthOfInterval'
 import { ptBR } from 'date-fns/locale/pt-BR'
 
 import { getProjectsWithBilling } from '@/lib/services/billingService.api'
+import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 import {
   BarChart,
   Bar,
@@ -50,6 +51,8 @@ import {
   Users,
   Users2,
   Bell,
+  Layers,
+  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -112,8 +115,29 @@ export default function AdminPainelPage() {
   const fetchedDashboardDataRef = useRef(false)
   const [currentMonthProjectsCount, setCurrentMonthProjectsCount] = useState(0)
   const [newProjectsThisMonth, setNewProjectsThisMonth] = useState(0)
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([])
+  const [statusLoading, setStatusLoading] = useState(true)
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#AF19FF', '#FF5733']
+
+  // Carregar status dinâmicos do tenant
+  useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        setStatusLoading(true);
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[AdminPainel] Status carregados:', statuses.length);
+      } catch (error) {
+        devLog.error('[AdminPainel] Erro ao carregar status:', error);
+        setAvailableStatuses([]);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    loadStatuses();
+  }, []);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -263,14 +287,24 @@ export default function AdminPainelPage() {
       }))
       setMonthlyRevenueData(monthlyRevenueChartDataCalc)
 
+      // Contar projetos por status usando slugs e mapear para nomes dinâmicos
       const statusCounts: { [key: string]: number } = {}
       allProjects.forEach(p => {
-        const statusKey = p.status || 'Indefinido'
-        statusCounts[statusKey] = (statusCounts[statusKey] || 0) + 1
+        const statusSlug = p.status || 'indefinido'
+        statusCounts[statusSlug] = (statusCounts[statusSlug] || 0) + 1
       })
+
       const projectsByStatusChartDataCalc = Object.entries(statusCounts)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a,b) => b.value - a.value)
+        .map(([statusSlug, value]) => {
+          // Encontrar o status correspondente para obter o nome correto
+          const statusInfo = availableStatuses.find(s => s.slug === statusSlug);
+          return {
+            name: statusInfo?.name || statusSlug,
+            value,
+            color: statusInfo?.color || '#8884d8'
+          };
+        })
+        .sort((a, b) => b.value - a.value)
       setProjectsByStatusData(projectsByStatusChartDataCalc)
 
       const monthlyPowerChartDataCalc = monthsInterval.map(month => ({
@@ -389,33 +423,35 @@ export default function AdminPainelPage() {
     )
   }
   
-  const renderProjectStatusBadge = (status: ProjectStatus | string | undefined) => {
-    let badgeVariant: "default" | "secondary" | "destructive" | "outline" = "outline"
-    const lowerStatus = status?.toLowerCase()
+  const renderProjectStatusBadge = (statusSlug: ProjectStatus | string | undefined) => {
+    const statusInfo = availableStatuses.find(s => s.slug === statusSlug);
 
-    switch (lowerStatus) {
-      case 'não iniciado':
-      case 'em desenvolvimento':
-      case 'aguardando assinaturas':
-      case 'em homologação':
-      case 'aguardando solicitar vistoria':
-      case 'em vistoria':
-        badgeVariant = 'default'
-        break
-      case 'projeto pausado':
-        badgeVariant = 'secondary'
-        break
-      case 'projeto aprovado':
-      case 'finalizado':
-        badgeVariant = 'default'
-        break
-      case 'cancelado':
-        badgeVariant = 'destructive'
-        break
-      default:
-        badgeVariant = 'outline'
+    // Definir variante baseada em alguns status conhecidos ou usar default
+    let badgeVariant: "default" | "secondary" | "destructive" | "outline" = "default";
+
+    if (statusSlug === 'cancelado') {
+      badgeVariant = 'destructive';
+    } else if (statusSlug === 'projeto-pausado') {
+      badgeVariant = 'secondary';
+    } else if (statusSlug === 'finalizado') {
+      badgeVariant = 'default';
     }
-    return <Badge variant={badgeVariant} className="capitalize whitespace-nowrap">{status || 'N/A'}</Badge>
+
+    const displayName = statusInfo?.name || statusSlug || 'N/A';
+
+    return (
+      <div className="flex items-center gap-2">
+        {statusInfo && (
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: statusInfo.color }}
+          />
+        )}
+        <Badge variant={badgeVariant} className="capitalize whitespace-nowrap">
+          {displayName}
+        </Badge>
+      </div>
+    );
   }
 
   const getGreeting = () => {
@@ -424,17 +460,23 @@ export default function AdminPainelPage() {
     if (hour < 12) greeting = "Bom dia"
     else if (hour < 18) greeting = "Boa tarde"
     else greeting = "Boa noite"
-    
+
     // Adicionar o nome do usuário usando user.profile.name
     const userName = user?.profile?.name || user?.email?.split('@')[0] || "Admin"
     return `${greeting}, ${userName}`
   }
 
+  // ✅ NOVO: Verificar permissões do usuário
+  const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
+  const isFullAdmin = user?.role === 'admin' || user?.role === 'superadmin' ||
+                      user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
 
+  // ✅ NOVO: Verificar se pode ver dados financeiros no painel
+  const canViewDashboardFinancials = isFullAdmin || userPermissions.can_view_dashboard_financials === true;
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900">
-      <header className="bg-blue-600 text-white p-6 shadow-lg rounded-lg mt-6 mr-6">
+      <header className="bg-blue-600 text-white p-6 shadow-lg rounded-lg mt-2 mr-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-semibold">{getGreeting()}</h1>
@@ -457,56 +499,82 @@ export default function AdminPainelPage() {
         </div>
       </header>
 
-      <main className="flex-grow bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mt-6 mr-6">
+      <main className="flex-grow bg-white dark:bg-gray-800 shadow-xl rounded-lg border-2 border-gray-200 dark:border-gray-700 p-6 mt-6 mr-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-2 md:w-[400px]">
-            <TabsTrigger value="dashboard">
+          <div className="flex space-x-2 mb-6">
+            <button
+              onClick={() => handleTabChange('dashboard')}
+              className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center ${
+                activeTab === 'dashboard'
+                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
               <LucideLineChart className="mr-2 h-4 w-4" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="atividade_recente">
-              {/* Ícone removido temporariamente */} Atividade Recente
+            </button>
+            <button
+              onClick={() => handleTabChange('atividade_recente')}
+              className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center ${
+                activeTab === 'atividade_recente'
+                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              Atividade Recente
               {contextUnreadCount > 0 && (
                 <Badge className="ml-2 bg-red-500 text-white">{contextUnreadCount}</Badge>
               )}
-            </TabsTrigger>
-          </TabsList>
+            </button>
+          </div>
 
           <TabsContent value="dashboard">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total de Projetos</CardTitle>
-                  <LucideBarChart className="h-5 w-5 text-green-500" />
+              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-green-500 rounded-full">
+                      <Layers className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Total de Projetos</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{projectCount}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{projectCount}</div>
+                  <p className="text-sm text-muted-foreground mt-1">
                     +{newProjectsThisMonth} neste mês
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Potência Total (kWp)</CardTitle>
-                  <Lightbulb className="h-5 w-5 text-yellow-500" />
+              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-yellow-500 rounded-full">
+                      <Zap className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Potência Total (kWp)</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{totalPower.toFixed(2)}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalPower.toFixed(2)}</div>
+                  <p className="text-sm text-muted-foreground mt-1">
                     {projectCount > 0 ? (totalPower / projectCount).toFixed(2) : 0} kWp em média
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Clientes Registrados</CardTitle>
-                  <Users2 className="h-5 w-5 text-blue-500" />
+              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-blue-500 rounded-full">
+                      <Users2 className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Clientes Registrados</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{clientCountState}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{clientCountState}</div>
+                  <p className="text-sm text-muted-foreground mt-1">
                      {clientCountState > 0 ? (projectCount / clientCountState).toFixed(1) : 0} projetos/cliente
                   </p>
                 </CardContent>
@@ -516,7 +584,7 @@ export default function AdminPainelPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-              <Card className="lg:col-span-1">
+              <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
                 <CardHeader>
                   <CardTitle>Projetos por Mês</CardTitle>
                   <CardDescription>Evolução dos últimos 6 meses</CardDescription>
@@ -529,11 +597,11 @@ export default function AdminPainelPage() {
                       <YAxis fontSize={12} tickLine={false} axisLine={true} allowDecimals={false} />
                       <Tooltip
                         cursor={{ fill: 'rgba(200, 200, 200, 0.2)'}}
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)', 
+                        contentStyle={{
+                          backgroundColor: 'var(--background)',
                           border: '1px solid var(--border)',
-                          borderRadius: '0.5rem', 
-                          padding: '8px', 
+                          borderRadius: '0.5rem',
+                          padding: '8px',
                           fontSize: '12px',
                           color: 'var(--foreground)'
                         }}
@@ -544,42 +612,7 @@ export default function AdminPainelPage() {
                 </CardContent>
               </Card>
 
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>Faturamento Mensal Estimado</CardTitle>
-                  <CardDescription>Receita estimada (R$)</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={monthlyRevenueData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                      <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
-                      <YAxis 
-                        fontSize={12} 
-                        tickLine={false} 
-                        axisLine={true} 
-                        tickFormatter={(value) => formatCurrency(value).replace('R$', '')}
-                      />
-                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)', 
-                          border: '1px solid var(--border)',
-                          borderRadius: '0.5rem', 
-                          padding: '8px', 
-                          fontSize: '12px',
-                          color: 'var(--foreground)'
-                        }}
-                      />
-                      <Area type="monotone" dataKey="receita" stroke="#22c55e" fill="#86efac" fillOpacity={0.4} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 mt-6">
-              <Card className="lg:col-span-1">
+              <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
                 <CardHeader>
                   <CardTitle>Distribuição por Status</CardTitle>
                   <CardDescription>Projetos por estágio</CardDescription>
@@ -598,10 +631,10 @@ export default function AdminPainelPage() {
                         label={false}
                       >
                         {projectsByStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0];
@@ -617,27 +650,27 @@ export default function AdminPainelPage() {
                           return null;
                         }}
                       />
-                       <Legend 
-                         layout="horizontal" 
-                         verticalAlign="bottom" 
-                         align="center" 
+                       <Legend
+                         layout="horizontal"
+                         verticalAlign="bottom"
+                         align="center"
                          wrapperStyle={{fontSize: "10px", lineHeight: "1.2"}}
                          content={({ payload }) => (
                            <div className="flex flex-wrap justify-center gap-2 mt-2">
                              {payload?.map((entry, index) => {
                                const words = entry.value.split(' ');
                                const shouldBreak = words.length > 3;
-                               
+
                                // Calcular percentual baseado nos dados do gráfico
                                const totalValue = projectsByStatusData.reduce((sum, item) => sum + item.value, 0);
                                const currentData = projectsByStatusData.find(item => item.name === entry.value);
                                const percentage = currentData ? Math.round((currentData.value / totalValue) * 100) : 0;
-                               
+
                                return (
                                  <div key={`legend-${index}`} className="flex items-center gap-1 text-xs">
-                                   <div 
-                                     className="w-3 h-3 rounded-sm" 
-                                     style={{ backgroundColor: entry.color }}
+                                   <div
+                                     className="w-3 h-3 rounded-sm"
+                                     style={{ backgroundColor: projectsByStatusData.find(item => item.name === entry.value)?.color || entry.color }}
                                    ></div>
                                    <span className={shouldBreak ? "text-center leading-tight" : ""}>
                                      {shouldBreak ? (
@@ -657,40 +690,78 @@ export default function AdminPainelPage() {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>Potência Instalada por Mês</CardTitle>
-                  <CardDescription>kWp por mês</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={monthlyPowerData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                      <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
-                      <YAxis 
-                        fontSize={12} 
-                        tickLine={false} 
-                        axisLine={true} 
-                        tickFormatter={(value) => `${value} kWp`}
-                      />
-                       <Tooltip
-                        formatter={(value: number) => `${value.toFixed(2)} kWp`}
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)', 
-                          border: '1px solid var(--border)',
-                          borderRadius: '0.5rem', 
-                          padding: '8px', 
-                          fontSize: '12px',
-                          color: 'var(--foreground)'
-                        }}
-                      />
-                      <Area type="monotone" dataKey="potenciaInstalada" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
             </div>
+
+            {/* ✅ NOVO: Seção de gráficos financeiros (só aparece se tiver permissão) */}
+            {canViewDashboardFinancials && (
+              <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 mt-6">
+                <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+                  <CardHeader>
+                    <CardTitle>Faturamento Mensal Estimado</CardTitle>
+                    <CardDescription>Receita estimada (R$)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={monthlyRevenueData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                        <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
+                        <YAxis
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={true}
+                          tickFormatter={(value) => formatCurrency(value).replace('R$', '')}
+                        />
+                         <Tooltip
+                          formatter={(value: number) => formatCurrency(value)}
+                          contentStyle={{
+                            backgroundColor: 'var(--background)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '0.5rem',
+                            padding: '8px',
+                            fontSize: '12px',
+                            color: 'var(--foreground)'
+                          }}
+                        />
+                        <Area type="monotone" dataKey="receita" stroke="#22c55e" fill="#86efac" fillOpacity={0.4} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+                  <CardHeader>
+                    <CardTitle>Potência Instalada por Mês</CardTitle>
+                    <CardDescription>kWp por mês</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={monthlyPowerData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                        <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
+                        <YAxis
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={true}
+                          tickFormatter={(value) => `${value} kWp`}
+                        />
+                         <Tooltip
+                          formatter={(value: number) => `${value.toFixed(2)} kWp`}
+                          contentStyle={{
+                            backgroundColor: 'var(--background)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '0.5rem',
+                            padding: '8px',
+                            fontSize: '12px',
+                            color: 'var(--foreground)'
+                          }}
+                        />
+                        <Area type="monotone" dataKey="potenciaInstalada" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="atividade_recente">

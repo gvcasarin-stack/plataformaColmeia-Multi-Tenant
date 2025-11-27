@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('id, email, name, phone, status, created_at, updated_at')
       .eq('tenant_id', tenantId)
-      .eq('role', 'cliente')
+      .eq('role', 'client')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 

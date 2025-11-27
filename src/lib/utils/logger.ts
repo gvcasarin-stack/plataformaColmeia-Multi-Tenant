@@ -309,7 +309,7 @@ class Logger {
 
     switch (entry.level) {
       case 'debug':
-        console.debug(`${prefix} 🐛 ${entry.message}`, logData);
+        devLog.debug(`${prefix} 🐛 ${entry.message}`, logData);
         break;
       case 'info':
         devLog.info(`${prefix} ℹ️ ${entry.message}`, logData);

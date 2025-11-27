@@ -1,6 +1,8 @@
+"use client"
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { User, Mail, Phone } from "lucide-react";
+import { User, Mail, Phone, UserPlus } from "lucide-react";
 import { Project } from "@/types/project";
 import { AssumeResponsibilityDialog } from "./assume-responsibility-dialog";
 
@@ -17,17 +19,17 @@ interface ProjectResponsibleAdminProps {
 }
 
 export function ProjectResponsibleAdmin({ project, currentUser, onUpdate }: ProjectResponsibleAdminProps) {
-  // Estado para controlar a abertura do diálogo de confirmação
+  // Estado para controlar a abertura do diálogo de seleção
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
-  // Verificar se o usuário atual é um admin
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
-  
+
+  // ✅ Verificar se o usuário é admin completo (não colaborador)
+  const isFullAdmin = currentUser?.role === 'admin' ||
+                      currentUser?.role === 'superadmin' ||
+                      currentUser?.profile?.role === 'admin' ||
+                      currentUser?.profile?.role === 'superadmin';
+
   // Verificar se o projeto já tem um admin responsável
   const hasResponsible = !!project.adminResponsibleId;
-  
-  // Verificar se o usuário atual é o admin responsável
-  const isCurrentUserResponsible = project.adminResponsibleId === currentUser?.uid;
 
   return (
     <div className="mb-4 md:mb-6">
@@ -44,7 +46,7 @@ export function ProjectResponsibleAdmin({ project, currentUser, onUpdate }: Proj
                 {project.adminResponsibleName || "Admin"}
               </span>
             </div>
-            
+
             {project.adminResponsibleEmail && (
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-blue-500" />
@@ -53,7 +55,7 @@ export function ProjectResponsibleAdmin({ project, currentUser, onUpdate }: Proj
                 </span>
               </div>
             )}
-            
+
             {project.adminResponsiblePhone && (
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-blue-500" />
@@ -63,17 +65,30 @@ export function ProjectResponsibleAdmin({ project, currentUser, onUpdate }: Proj
               </div>
             )}
           </div>
+
+          {/* ✅ Botão para admin redefinir responsável */}
+          {isFullAdmin && (
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="w-full mt-3 bg-blue-500 hover:bg-blue-600 text-white"
+              size="sm"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Redefinir Responsável
+            </Button>
+          )}
         </div>
-      ) : isAdmin ? (
+      ) : isFullAdmin ? (
         <>
-          <Button 
+          <Button
             onClick={() => setIsDialogOpen(true)}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white"
           >
-            Assumir Responsabilidade
+            <UserPlus className="h-4 w-4 mr-2" />
+            Definir Responsável
           </Button>
-          
-          {/* Diálogo de confirmação */}
+
+          {/* Diálogo de seleção de membro */}
           <AssumeResponsibilityDialog
             open={isDialogOpen}
             onOpenChange={setIsDialogOpen}
@@ -85,6 +100,16 @@ export function ProjectResponsibleAdmin({ project, currentUser, onUpdate }: Proj
         <div className="text-sm text-gray-500 border rounded-md p-3 bg-gray-50 dark:bg-gray-800">
           Nenhum administrador responsável definido.
         </div>
+      )}
+
+      {/* ✅ Dialog sempre disponível quando aberto */}
+      {isDialogOpen && (
+        <AssumeResponsibilityDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          project={project}
+          currentUser={currentUser}
+        />
       )}
     </div>
   );

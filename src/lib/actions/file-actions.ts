@@ -24,7 +24,7 @@ export async function uploadProjectFileAction(
 }> {
   try {
     // 🚨 [DEBUG CRÍTICO] Capturar usuário que chega na função
-    console.log('🚨 [DEBUG SESSION] uploadProjectFileAction - Dados do usuário recebido:', {
+    devLog.log('🚨 [DEBUG SESSION] uploadProjectFileAction - Dados do usuário recebido:', {
       userId: user?.id,
       userEmail: user?.email,
       userName: user?.name,
@@ -88,7 +88,7 @@ export async function uploadProjectFileAction(
       };
     }
 
-    console.log('🚨 [CRITICAL DEBUG] Acesso autorizado, continuando...', {
+    devLog.log('🚨 [CRITICAL DEBUG] Acesso autorizado, continuando...', {
       projectId,
       userTenantId: userInfo.tenant_id
     });
@@ -101,7 +101,7 @@ export async function uploadProjectFileAction(
       .eq('id', user.id)
       .single();
     
-    console.log('🚨 [CRITICAL DEBUG] Resultado da busca do perfil:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Resultado da busca do perfil:', {
       userProfile,
       profileError: profileError?.message,
       hasProfile: !!userProfile
@@ -123,7 +123,7 @@ export async function uploadProjectFileAction(
     devLog.log('🔍 [URGENT DEBUG] Perfil final a ser usado:', finalProfile);
     
     // ✅ SEGURANÇA: Buscar projeto verificando tenant (redundante mas seguro)
-    console.log('🚨 [CRITICAL DEBUG] Buscando projeto na base:', projectId);
+    devLog.log('🚨 [CRITICAL DEBUG] Buscando projeto na base:', projectId);
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('id, created_by, nome_cliente_final, number')
@@ -131,7 +131,7 @@ export async function uploadProjectFileAction(
       .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
       .single();
 
-    console.log('🚨 [CRITICAL DEBUG] Resultado da busca do projeto:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Resultado da busca do projeto:', {
       project,
       projectError: projectError?.message,
       hasProject: !!project
@@ -148,7 +148,7 @@ export async function uploadProjectFileAction(
     const isOwner = project.created_by === user.id;
     const isAdmin = finalProfile.role === 'admin' || finalProfile.role === 'superadmin';
     
-    console.log('🚨 [CRITICAL DEBUG] Verificação de permissões:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Verificação de permissões:', {
       userId: user.id,
       projectCreatedBy: project.created_by,
       userRole: finalProfile.role,
@@ -170,7 +170,7 @@ export async function uploadProjectFileAction(
     });
     
     if (!isOwner && !isAdmin) {
-      console.log('🚨 [CRITICAL ERROR] PERMISSÃO NEGADA:', {
+      devLog.log('🚨 [CRITICAL ERROR] PERMISSÃO NEGADA:', {
         userId: user.id,
         projectCreatedBy: project.created_by,
         userRole: finalProfile.role,
@@ -183,30 +183,30 @@ export async function uploadProjectFileAction(
       };
     }
     
-    console.log('🚨 [CRITICAL DEBUG] Permissão autorizada, continuando...');
+    devLog.log('🚨 [CRITICAL DEBUG] Permissão autorizada, continuando...');
 
     // Extrair arquivo do FormData
-    console.log('🚨 [CRITICAL DEBUG] Extraindo arquivo do FormData...');
+    devLog.log('🚨 [CRITICAL DEBUG] Extraindo arquivo do FormData...');
     const file = formData.get('file') as File;
     if (!file) {
-      console.log('🚨 [CRITICAL ERROR] ARQUIVO NÃO FORNECIDO');
+      devLog.log('🚨 [CRITICAL ERROR] ARQUIVO NÃO FORNECIDO');
       return {
         success: false,
         error: 'Nenhum arquivo fornecido'
       };
     }
     
-    console.log('🚨 [CRITICAL DEBUG] Arquivo extraído:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Arquivo extraído:', {
       name: file.name,
       size: file.size,
       type: file.type
     });
 
     // Validar arquivo
-    console.log('🚨 [CRITICAL DEBUG] Validando arquivo...');
+    devLog.log('🚨 [CRITICAL DEBUG] Validando arquivo...');
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      console.log('🚨 [CRITICAL ERROR] ARQUIVO MUITO GRANDE:', {
+      devLog.log('🚨 [CRITICAL ERROR] ARQUIVO MUITO GRANDE:', {
         fileSize: file.size,
         maxSize,
         fileName: file.name
@@ -219,7 +219,7 @@ export async function uploadProjectFileAction(
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) {
-      console.log('🚨 [CRITICAL ERROR] TIPO DE ARQUIVO NÃO PERMITIDO:', {
+      devLog.log('🚨 [CRITICAL ERROR] TIPO DE ARQUIVO NÃO PERMITIDO:', {
         fileType: file.type,
         allowedTypes,
         fileName: file.name
@@ -230,7 +230,7 @@ export async function uploadProjectFileAction(
       };
     }
     
-    console.log('🚨 [CRITICAL DEBUG] Arquivo validado com sucesso!');
+    devLog.log('🚨 [CRITICAL DEBUG] Arquivo validado com sucesso!');
 
     // Gerar nome único
     const uniqueFileName = generateUniqueFileName(file.name);
@@ -238,7 +238,7 @@ export async function uploadProjectFileAction(
     devLog.log(`[uploadProjectFileAction] Uploading file: ${uniqueFileName} for project: ${projectId}`);
 
     // Fazer upload usando server storage
-    console.log('🚨 [CRITICAL DEBUG] Iniciando upload do arquivo:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Iniciando upload do arquivo:', {
       projectId,
       fileName: uniqueFileName,
       fileType: file.type,
@@ -252,14 +252,14 @@ export async function uploadProjectFileAction(
       file.type
     );
     
-    console.log('🚨 [CRITICAL DEBUG] Resultado do upload:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Resultado do upload:', {
       success: uploadResult.success,
       error: uploadResult.error,
       data: uploadResult.data
     });
 
     if (!uploadResult.success) {
-      console.log('🚨 [CRITICAL ERROR] UPLOAD FALHOU COMPLETAMENTE:', {
+      devLog.log('🚨 [CRITICAL ERROR] UPLOAD FALHOU COMPLETAMENTE:', {
         uploadError: uploadResult.error,
         projectId,
         fileName: uniqueFileName,
@@ -272,7 +272,7 @@ export async function uploadProjectFileAction(
       };
     }
     
-    console.log('🚨 [CRITICAL DEBUG] Upload bem-sucedido! Continuando...');
+    devLog.log('🚨 [CRITICAL DEBUG] Upload bem-sucedido! Continuando...');
 
     // Atualizar projeto com novo arquivo
     const newFile = {
@@ -313,7 +313,7 @@ export async function uploadProjectFileAction(
     };
 
     // Atualizar projeto
-    console.log('🚨 [CRITICAL DEBUG] Atualizando projeto no banco:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Atualizando projeto no banco:', {
       projectId,
       newFileName: newFile.name,
       currentFilesCount: currentFiles.length,
@@ -335,14 +335,14 @@ export async function uploadProjectFileAction(
       })
       .eq('id', projectId);
       
-    console.log('🚨 [CRITICAL DEBUG] Resultado da atualização do projeto:', {
+    devLog.log('🚨 [CRITICAL DEBUG] Resultado da atualização do projeto:', {
       updateError: updateError?.message,
       hasError: !!updateError,
       projectId
     });
 
     if (updateError) {
-      console.log('🚨 [CRITICAL ERROR] FALHOU AO ATUALIZAR PROJETO:', {
+      devLog.log('🚨 [CRITICAL ERROR] FALHOU AO ATUALIZAR PROJETO:', {
         updateError: updateError.message,
         code: updateError.code,
         details: updateError.details,
@@ -356,7 +356,7 @@ export async function uploadProjectFileAction(
       };
     }
     
-    console.log('🚨 [CRITICAL DEBUG] Projeto atualizado com sucesso!');
+    devLog.log('🚨 [CRITICAL DEBUG] Projeto atualizado com sucesso!');
 
     // ✅ CORREÇÃO: Só revalidar em runtime, não durante build/static generation
     try {
@@ -364,7 +364,7 @@ export async function uploadProjectFileAction(
       revalidatePath(`/projetos/${projectId}`);
     } catch (error) {
       // Falha silenciosa se não conseguir revalidar (ex: durante build estático)
-      console.log('[revalidatePath] Skipped:', error.message);
+      devLog.log('[revalidatePath] Skipped:', error.message);
     }
 
     devLog.log(`[uploadProjectFileAction] File uploaded successfully: ${uniqueFileName}`);
@@ -455,7 +455,7 @@ export async function uploadProjectFileAction(
       // Não falha o upload se houver erro de notificação
     }
 
-    console.log('🚨 [CRITICAL DEBUG] UPLOAD COMPLETO - SUCESSO TOTAL!');
+    devLog.log('🚨 [CRITICAL DEBUG] UPLOAD COMPLETO - SUCESSO TOTAL!');
     
     return {
       success: true,
@@ -468,9 +468,135 @@ export async function uploadProjectFileAction(
     };
 
   } catch (error) {
-    console.log('🚨 [CRITICAL ERROR] uploadProjectFileAction FALHOU:', error);
-    console.log('🚨 [CRITICAL ERROR] Stack trace:', error?.stack);
+    devLog.log('🚨 [CRITICAL ERROR] uploadProjectFileAction FALHOU:', error);
+    devLog.log('🚨 [CRITICAL ERROR] Stack trace:', error?.stack);
     devLog.error(`[uploadProjectFileAction] Error:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro interno'
+    };
+  }
+}
+
+/**
+ * 🎨 Server Action para upload de imagens inline em comentários
+ * Diferente do uploadProjectFileAction, esta função:
+ * - NÃO cria evento de documento na timeline
+ * - NÃO adiciona o arquivo à lista de arquivos do projeto
+ * - Apenas faz upload e retorna a URL pública
+ */
+export async function uploadCommentImageAction(
+  projectId: string,
+  formData: FormData,
+  user: { id: string; email?: string; role?: string }
+): Promise<{
+  success: boolean;
+  data?: { publicUrl: string };
+  error?: string;
+}> {
+  try {
+    // Extrair arquivo do FormData
+    const imageFile = formData.get('file') as File;
+
+    if (!imageFile) {
+      return {
+        success: false,
+        error: 'Nenhum arquivo fornecido'
+      };
+    }
+
+    devLog.log('🎨 [uploadCommentImageAction] Iniciando upload de imagem inline:', {
+      projectId,
+      fileName: imageFile.name,
+      fileSize: imageFile.size,
+      fileType: imageFile.type,
+      userId: user.id
+    });
+
+    // Validar que é uma imagem
+    if (!imageFile.type.startsWith('image/')) {
+      return {
+        success: false,
+        error: 'Apenas arquivos de imagem são permitidos'
+      };
+    }
+
+    // Validar tamanho (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (imageFile.size > maxSize) {
+      return {
+        success: false,
+        error: 'Imagem muito grande. Máximo 10MB.'
+      };
+    }
+
+    const supabase = createSupabaseServiceRoleClient();
+
+    // Verificar acesso ao projeto (segurança multi-tenant)
+    const { data: userInfo, error: userError } = await supabase
+      .from('users')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userInfo?.tenant_id) {
+      devLog.error('[uploadCommentImageAction] Usuário não encontrado:', userError?.message);
+      return {
+        success: false,
+        error: 'Usuário não encontrado'
+      };
+    }
+
+    // Verificar se projeto pertence ao mesmo tenant
+    const { data: projectExists, error: projectError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('tenant_id', userInfo.tenant_id)
+      .single();
+
+    if (projectError || !projectExists) {
+      devLog.error('[uploadCommentImageAction] Projeto não encontrado no tenant:', projectError?.message);
+      return {
+        success: false,
+        error: 'Projeto não encontrado'
+      };
+    }
+
+    // Gerar nome único para a imagem
+    const uniqueFileName = generateUniqueFileName(imageFile.name);
+
+    devLog.log('🎨 [uploadCommentImageAction] Fazendo upload:', uniqueFileName);
+
+    // Fazer upload APENAS ao Storage (sem criar evento ou adicionar ao projeto)
+    const uploadResult = await uploadProjectFile(
+      projectId,
+      imageFile,
+      uniqueFileName,
+      imageFile.type
+    );
+
+    if (!uploadResult.success || !uploadResult.data?.publicUrl) {
+      devLog.error('🎨 [uploadCommentImageAction] Erro no upload:', uploadResult.error);
+      return {
+        success: false,
+        error: uploadResult.error || 'Erro ao fazer upload da imagem'
+      };
+    }
+
+    devLog.log('🎨 [uploadCommentImageAction] Upload bem-sucedido:', {
+      publicUrl: uploadResult.data.publicUrl
+    });
+
+    return {
+      success: true,
+      data: {
+        publicUrl: uploadResult.data.publicUrl
+      }
+    };
+
+  } catch (error) {
+    devLog.error('🎨 [uploadCommentImageAction] Erro:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno'

@@ -3,9 +3,9 @@ import { getUserDataAdminSupabase } from '@/lib/services/authService.supabase';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { AWS_CONFIG } from "@/lib/aws/config";
 import logger from "@/lib/utils/logger";
+import { devLog } from '@/lib/utils/productionLogger';
 import { getProject } from "./projectService/supabase";
 import { getUserById, getAllAdminUsers, getAllAdminUsersByTenant } from "./userService/core"; // Atualizado com função por tenant
-import { devLog } from "@/lib/utils/productionLogger";
 import { User } from "@/types/user";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 // ✅ MIGRADO PARA SUPABASE - Firebase removido
@@ -374,6 +374,33 @@ export const emailTemplates = {
         </p>
       </div>
     </div>
+  `,
+
+  // ✅ NOVO: Template para boas-vindas de membro da equipe
+  teamMemberWelcome: (userName: string, setPasswordLink: string) => `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #10b981; padding: 20px; text-align: center;">
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
+      </div>
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
+        <h2 style="color: #10b981;">Bem-vindo à Equipe!</h2>
+        <p>Olá <strong>${userName}</strong>,</p>
+        <p>Você foi adicionado como membro da equipe no Sistema de Gerenciamento Fotovoltaico!</p>
+        <p>Para acessar a plataforma, você precisa definir sua senha clicando no botão abaixo:</p>
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="${setPasswordLink}" style="background-color: #10b981; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Definir Minha Senha</a>
+        </div>
+        <p style="color: #6b7280; font-size: 0.9rem;">Se o botão acima não funcionar, copie e cole o link abaixo no seu navegador:</p>
+        <p style="background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 0.85rem; word-break: break-all;">${setPasswordLink}</p>
+        <p style="color: #ef4444; font-size: 0.9rem; margin-top: 20px;">
+          ⚠️ <strong>Importante:</strong> Este link é válido por 24 horas e só pode ser usado uma vez.
+        </p>
+        <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+          Este é um e-mail automático, por favor não responda.<br>
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
+        </p>
+      </div>
+    </div>
   `
 };
 
@@ -571,7 +598,13 @@ export async function sendEmailNotificationForComment(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     if (authorRole === 'client' || authorRole === 'user') {
-      const adminUsers = await getAllAdminUsers();
+      // ✅ CORREÇÃO MULTI-TENANT: Buscar apenas admins da mesma organização
+      if (!project.tenant_id) {
+        logger.error(`[EmailService/Comment] Projeto ${projectId} sem tenant_id. Não é possível determinar admins corretos.`);
+        return;
+      }
+
+      const adminUsers = await getAllAdminUsersByTenant(project.tenant_id);
       validAdmins = adminUsers.filter(admin => admin.uid !== authorId && admin.email);
       recipients = validAdmins.map(admin => admin.email as string);
         
@@ -673,7 +706,13 @@ export async function sendEmailNotificationForDocument(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     if (uploaderRole === 'client' || uploaderRole === 'user') {
-      const adminUsers = await getAllAdminUsers();
+      // ✅ CORREÇÃO MULTI-TENANT: Buscar apenas admins da mesma organização
+      if (!project.tenant_id) {
+        logger.error(`[EmailService/Document] Projeto ${projectId} sem tenant_id. Não é possível determinar admins corretos.`);
+        return;
+      }
+
+      const adminUsers = await getAllAdminUsersByTenant(project.tenant_id);
       validAdminsDoc = adminUsers.filter(admin => admin.uid !== uploaderId && admin.email);
       recipients = validAdminsDoc.map(admin => admin.email as string);
 
@@ -859,136 +898,157 @@ export async function notifyUserOfNewComment(
   }
 }
 
+// ✅ NOVO SISTEMA DE NOTIFICAÇÕES
 // Função para notificar administradores sobre um novo comentário
+// REGRAS:
+// - Cliente comenta SEM responsável: notifica TODOS (admins + colaboradores + superadmin)
+// - Cliente comenta COM responsável: notifica APENAS o responsável
 export async function notifyAdminAboutComment(
   commentText: string,
-  clientName: string, // Nome do cliente dono do projeto
+  clientName: string,
   commentAuthorName: string,
   projectName: string,
   projectNumber: string,
   projectUrlForAdmin: string,
-  projectId?: string
+  projectId?: string,
+  authorId?: string
 ): Promise<boolean> {
-  devLog.log(`[EmailService] Notificando administradores sobre novo comentário no projeto ${projectNumber} (Cliente: ${clientName}) por ${commentAuthorName}`);
+  devLog.log(`[EmailService] ✅ NOVO SISTEMA: Verificando responsável do projeto para notificar`);
 
   try {
-    // Obter tenant_id do projeto se disponível
-    let adminUsers: any[] = [];
-    
-    if (projectId) {
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('tenant_id')
-        .eq('id', projectId)
-        .single();
-        
-      if (!projectError && projectData?.tenant_id) {
-        adminUsers = await getAllAdminUsersByTenant(projectData.tenant_id);
-        logger.info(`[notifyAdminAboutComment] Usando ${adminUsers.length} admins do tenant ${projectData.tenant_id}`);
+    if (!projectId) {
+      logger.error('[notifyAdminAboutComment] ERRO: projectId é obrigatório');
+      return false;
+    }
+
+    // Buscar tenant_id e responsável do projeto
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('tenant_id, admin_responsible_id')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError || !projectData) {
+      logger.error('[notifyAdminAboutComment] ERRO ao buscar projeto:', projectError);
+      return false;
+    }
+
+    const tenantId = projectData.tenant_id;
+    const responsibleId = projectData.admin_responsible_id;
+    const hasResponsible = !!responsibleId;
+
+    logger.info(`[notifyAdminAboutComment] Projeto ${hasResponsible ? 'TEM' : 'NÃO TEM'} responsável`, { responsibleId });
+
+    let adminsToEmail: any[] = [];
+
+    if (hasResponsible) {
+      // TEM responsável → enviar e-mail APENAS para o responsável
+      logger.info('[notifyAdminAboutComment] COM responsável → notificar apenas responsável');
+
+      const { getUserById } = await import('@/lib/services/userService/core');
+      const responsibleUser = await getUserById(responsibleId);
+
+      if (responsibleUser && responsibleUser.email && responsibleUser.uid !== authorId) {
+        adminsToEmail = [responsibleUser];
       }
+
+    } else {
+      // NÃO tem responsável → enviar para TODOS (admins + colaboradores + superadmin)
+      logger.info('[notifyAdminAboutComment] SEM responsável → notificar TODOS');
+
+      const { getAllAdministrativeRolesByTenant } = await import('@/lib/services/userService/core');
+      const allAdmins = await getAllAdministrativeRolesByTenant(tenantId);
+
+      // Filtrar o autor
+      adminsToEmail = allAdmins.filter(admin => admin.uid !== authorId);
     }
-    
-    // Fallback para todos os admins se não conseguir tenant_id
-    if (adminUsers.length === 0) {
-      logger.warn('[notifyAdminAboutComment] Sem tenant_id, usando todos os admins (comportamento legado)');
-      adminUsers = await getAllAdminUsers();
+
+    if (adminsToEmail.length === 0) {
+      logger.info('[notifyAdminAboutComment] Nenhum admin para notificar');
+      return true;
     }
-    
-    if (!adminUsers || adminUsers.length === 0) {
-      devLog.warn('[EmailService] Nenhum administrador encontrado para notificação de comentário.');
-      return false; 
-    }
-    
+
+    logger.info(`[notifyAdminAboutComment] Enviando e-mail para ${adminsToEmail.length} admin(s)`);
+
     let allEmailsSentSuccessfully = true;
 
-    for (const admin of adminUsers) {
+    for (const admin of adminsToEmail) {
       if (!admin.email) continue;
-      
+
       const emailHtml = emailTemplates.commentAdded(
         projectName,
         projectNumber,
-        commentAuthorName, // Quem comentou
-        commentText,       // O comentário
-        projectUrlForAdmin // URL para o admin ver o comentário
+        commentAuthorName,
+        commentText,
+        projectUrlForAdmin
       );
 
       const subject = `Novo Comentário de ${commentAuthorName} no Projeto ${projectNumber} (${clientName})`;
-      
-      // Adicionar informação sobre o cliente no corpo do e-mail para o admin
+
       const adminEmailHtml = `
         <p style="font-size: 0.9rem; color: #333;">Este comentário é referente ao projeto do cliente: <strong>${clientName}</strong>.</p>
         ${emailHtml}
       `;
-      
-      // Logs removidos por questões de segurança em produção
-      
-      // Usar cooldown se projectId foi fornecido
-      const result = projectId 
-        ? await sendEmailWithCooldown(admin.uid, projectId, admin.email, subject, adminEmailHtml)
-        : await sendEmail(admin.email, subject, adminEmailHtml);
-      
-      // Logs removidos por questões de segurança em produção
+
+      const result = await sendEmailWithCooldown(admin.uid, projectId, admin.email, subject, adminEmailHtml);
 
       if (result) {
-        devLog.log(`[EmailService] Email de novo comentário (para admin) enviado com sucesso para ${admin.email}`);
+        devLog.log(`[EmailService] Email enviado para ${admin.email}`);
       } else {
-        devLog.error(`[EmailService] Falha ao enviar email de novo comentário (para admin) para ${admin.email}`);
+        devLog.error(`[EmailService] Falha ao enviar para ${admin.email}`);
         allEmailsSentSuccessfully = false;
       }
     }
     return allEmailsSentSuccessfully;
 
   } catch (error: any) {
-    devLog.error(`[EmailService] Erro ao enviar notificação de novo comentário para administradores:`, error);
+    devLog.error(`[EmailService] Erro ao enviar notificação de comentário:`, error);
     return false;
   }
 }
 
+// ✅ NOVO SISTEMA DE NOTIFICAÇÕES
 // Função para notificar administradores sobre um novo projeto criado por um cliente
+// REGRA: Notifica APENAS admins + superadmin (NÃO colaboradores)
 export async function notifyAdminAboutNewProject(
   clientName: string,
-  projectName: string, 
+  projectName: string,
   projectNumber: string,
   projectPotencia: string | number | undefined,
   projectDistribuidora: string | undefined,
   projectUrlForAdmin: string,
   projectId?: string
 ): Promise<boolean> {
-  devLog.log(`[EmailService] Notificando administradores sobre novo projeto ${projectNumber} (Cliente: ${clientName})`);
+  devLog.log(`[EmailService] ✅ NOVO SISTEMA: Notificando apenas admins+superadmin sobre novo projeto ${projectNumber}`);
 
   try {
-    // Obter tenant_id do projeto se disponível
     let adminUsers: any[] = [];
-    
+
     if (projectId) {
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select('tenant_id')
         .eq('id', projectId)
         .single();
-        
+
       if (!projectError && projectData?.tenant_id) {
-        adminUsers = await getAllAdminUsersByTenant(projectData.tenant_id);
-        logger.info(`[notifyAdminAboutNewProject] Usando ${adminUsers.length} admins do tenant ${projectData.tenant_id}`);
+        // ✅ NOVO: Buscar APENAS admins + superadmin (excluir colaboradores)
+        const { getAdminsAndSuperadminsByTenant } = await import('@/lib/services/userService/core');
+        adminUsers = await getAdminsAndSuperadminsByTenant(projectData.tenant_id);
+        logger.info(`[notifyAdminAboutNewProject] ✅ NOVO SISTEMA: ${adminUsers.length} admins/superadmins (colaboradores excluídos)`);
       }
     }
-    
-    // Fallback para todos os admins se não conseguir tenant_id
+
     if (adminUsers.length === 0) {
-      logger.warn('[notifyAdminAboutNewProject] Sem tenant_id, usando todos os admins (comportamento legado)');
-      adminUsers = await getAllAdminUsers();
+      logger.error('[notifyAdminAboutNewProject] ERRO: Nenhum admin/superadmin encontrado');
+      return false;
     }
 
-    if (!adminUsers || adminUsers.length === 0) {
-      devLog.warn('[EmailService] Nenhum administrador encontrado para notificação de novo projeto.');
-      return false; 
-    }
-    
     let allEmailsSentSuccessfully = true;
 
     for (const admin of adminUsers) {
       if (!admin.email) continue;
-      
+
       const emailHtml = emailTemplates.newProject(
         projectName,
         projectNumber,
@@ -999,23 +1059,22 @@ export async function notifyAdminAboutNewProject(
       );
 
       const subject = `Novo Projeto Criado: ${projectName} (${projectNumber}) por ${clientName}`;
-      
-      // Usar cooldown se projectId foi fornecido
-      const result = projectId 
+
+      const result = projectId
         ? await sendEmailWithCooldown(admin.uid, projectId, admin.email, subject, emailHtml)
         : await sendEmail(admin.email, subject, emailHtml);
 
       if (result) {
-        devLog.log(`[EmailService] Email de novo projeto (para admin) enviado com sucesso para ${admin.email}`);
+        devLog.log(`[EmailService] Email de novo projeto enviado para ${admin.email}`);
       } else {
-        devLog.error(`[EmailService] Falha ao enviar email de novo projeto (para admin) para ${admin.email}`);
+        devLog.error(`[EmailService] Falha ao enviar email para ${admin.email}`);
         allEmailsSentSuccessfully = false;
       }
     }
     return allEmailsSentSuccessfully;
 
   } catch (error: any) {
-    devLog.error(`[EmailService] Erro ao enviar notificação de novo projeto para administradores:`, error);
+    devLog.error(`[EmailService] Erro ao enviar notificação de novo projeto:`, error);
     return false;
   }
 }
@@ -1071,81 +1130,143 @@ export async function notifyUserOfNewDocument(
   }
 }
 
+// ✅ NOVO SISTEMA DE NOTIFICAÇÕES
 // Função para notificar administradores sobre um novo documento adicionado
+// REGRAS:
+// - Cliente envia SEM responsável: notifica TODOS (admins + colaboradores + superadmin)
+// - Cliente envia COM responsável: notifica APENAS o responsável
 export async function notifyAdminAboutDocument(
   documentName: string,
-  clientName: string, // Nome do cliente dono do projeto
+  clientName: string,
   projectName: string,
   projectNumber: string,
   projectUrlForAdmin: string,
   projectId?: string
 ): Promise<boolean> {
-  devLog.log(`[EmailService] Notificando administradores sobre novo documento "${documentName}" no projeto ${projectNumber} (Cliente: ${clientName})`);
+  devLog.log(`[EmailService] ✅ NOVO SISTEMA: Verificando responsável do projeto para notificar sobre documento`);
 
   try {
-    // Obter tenant_id do projeto se disponível
-    let adminUsers: any[] = [];
-    
-    if (projectId) {
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('tenant_id')
-        .eq('id', projectId)
-        .single();
-        
-      if (!projectError && projectData?.tenant_id) {
-        adminUsers = await getAllAdminUsersByTenant(projectData.tenant_id);
-        logger.info(`[notifyAdminAboutDocument] Usando ${adminUsers.length} admins do tenant ${projectData.tenant_id}`);
-      }
-    }
-    
-    // Fallback para todos os admins se não conseguir tenant_id
-    if (adminUsers.length === 0) {
-      logger.warn('[notifyAdminAboutDocument] Sem tenant_id, usando todos os admins (comportamento legado)');
-      adminUsers = await getAllAdminUsers();
+    if (!projectId) {
+      logger.error('[notifyAdminAboutDocument] ERRO: projectId é obrigatório');
+      return false;
     }
 
-    if (!adminUsers || adminUsers.length === 0) {
-      devLog.warn('[EmailService] Nenhum administrador encontrado para notificação de novo documento.');
-      return false; 
+    // Buscar tenant_id e responsável do projeto
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('tenant_id, admin_responsible_id')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError || !projectData) {
+      logger.error('[notifyAdminAboutDocument] ERRO ao buscar projeto:', projectError);
+      return false;
     }
-    
+
+    const tenantId = projectData.tenant_id;
+    const responsibleId = projectData.admin_responsible_id;
+    const hasResponsible = !!responsibleId;
+
+    logger.info(`[notifyAdminAboutDocument] Projeto ${hasResponsible ? 'TEM' : 'NÃO TEM'} responsável`, { responsibleId });
+
+    let adminsToEmail: any[] = [];
+
+    if (hasResponsible) {
+      // TEM responsável → enviar e-mail APENAS para o responsável
+      logger.info('[notifyAdminAboutDocument] COM responsável → notificar apenas responsável');
+
+      const { getUserById } = await import('@/lib/services/userService/core');
+      const responsibleUser = await getUserById(responsibleId);
+
+      if (responsibleUser && responsibleUser.email) {
+        adminsToEmail = [responsibleUser];
+      }
+
+    } else {
+      // NÃO tem responsável → enviar para TODOS (admins + colaboradores + superadmin)
+      logger.info('[notifyAdminAboutDocument] SEM responsável → notificar TODOS');
+
+      const { getAllAdministrativeRolesByTenant } = await import('@/lib/services/userService/core');
+      adminsToEmail = await getAllAdministrativeRolesByTenant(tenantId);
+    }
+
+    if (adminsToEmail.length === 0) {
+      logger.info('[notifyAdminAboutDocument] Nenhum admin para notificar');
+      return true;
+    }
+
+    logger.info(`[notifyAdminAboutDocument] Enviando e-mail para ${adminsToEmail.length} admin(s)`);
+
     let allEmailsSentSuccessfully = true;
 
-    for (const admin of adminUsers) {
+    for (const admin of adminsToEmail) {
       if (!admin.email) continue;
-      
+
       const emailHtml = emailTemplates.documentAdded(
         projectName,
         projectNumber,
         documentName,
-        projectUrlForAdmin 
+        projectUrlForAdmin
       );
 
       const subject = `Novo Documento: "${documentName}" adicionado ao Projeto ${projectNumber} (${clientName})`;
-      
-      // Adicionar informação sobre o cliente no corpo do e-mail para o admin
+
       const adminEmailHtml = `
         <p style="font-size: 0.9rem; color: #333;">O documento "${documentName}" foi adicionado ao projeto do cliente: <strong>${clientName}</strong>.</p>
         ${emailHtml}
       `;
-      
-      // Usar cooldown se projectId foi fornecido
-      const result = projectId 
-        ? await sendEmailWithCooldown(admin.uid, projectId, admin.email, subject, adminEmailHtml)
-        : await sendEmail(admin.email, subject, adminEmailHtml);
+
+      const result = await sendEmailWithCooldown(admin.uid, projectId, admin.email, subject, adminEmailHtml);
 
       if (result) {
-        devLog.log(`[EmailService] Email de novo documento (para admin) enviado com sucesso para ${admin.email}`);
+        devLog.log(`[EmailService] Email enviado para ${admin.email}`);
       } else {
-        devLog.error(`[EmailService] Falha ao enviar email de novo documento (para admin) para ${admin.email}`);
+        devLog.error(`[EmailService] Falha ao enviar para ${admin.email}`);
         allEmailsSentSuccessfully = false;
       }
     }
     return allEmailsSentSuccessfully;
 
   } catch (error: any) {
-    devLog.error(`[EmailService] Erro ao enviar notificação de novo documento para administradores:`, error);
+    devLog.error(`[EmailService] Erro ao enviar notificação de documento:`, error);
+    return false;
+  }
+}
+
+/**
+ * ✅ NOVO: Envia email de boas-vindas para novo membro da equipe com link para definir senha
+ */
+export async function sendTeamMemberWelcomeEmail(
+  email: string,
+  name: string,
+  setPasswordLink: string
+): Promise<boolean> {
+  devLog.log(`[EmailService] Enviando email de boas-vindas para ${email}`);
+
+  try {
+    if (!setPasswordLink) {
+      devLog.error('[EmailService] Link de definir senha não fornecido');
+      return false;
+    }
+
+    const emailHtml = emailTemplates.teamMemberWelcome(
+      name,
+      setPasswordLink
+    );
+
+    const subject = `Bem-vindo à Equipe - Defina sua Senha`;
+
+    const result = await sendEmail(email, subject, emailHtml);
+
+    if (result) {
+      devLog.log(`[EmailService] Email de boas-vindas enviado com sucesso para ${email}`);
+      return true;
+    } else {
+      devLog.error(`[EmailService] Falha ao enviar email de boas-vindas para ${email}`);
+      return false;
+    }
+  } catch (error: any) {
+    devLog.error(`[EmailService] Erro ao enviar email de boas-vindas para ${email}:`, error);
     return false;
   }
 }

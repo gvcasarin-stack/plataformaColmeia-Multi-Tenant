@@ -70,6 +70,11 @@ export function RegistrationForm() {
     suggestions: []
   })
 
+  // 🔒 VALIDAÇÃO DE EMAIL: Estados para verificar se email já existe
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null)
+
   // 🛠️ CAMPOS INDEPENDENTES: Nome da empresa e URL são totalmente independentes
 
   // Função para gerar slug automaticamente
@@ -130,6 +135,61 @@ export function RegistrationForm() {
 
     return () => clearTimeout(timer)
   }, [formData.slug])
+
+  // 🔒 VALIDAÇÃO DE EMAIL: Verificar se email já existe no sistema
+  const checkEmailAvailability = async (email: string) => {
+    // Resetar estados
+    setEmailError(null)
+    setEmailAvailable(null)
+
+    // Validação básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email || !emailRegex.test(email)) {
+      return
+    }
+
+    setEmailCheckLoading(true)
+
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        devLog.error('[RegistrationForm] Erro ao verificar email:', data.error)
+        return
+      }
+
+      if (data.exists) {
+        setEmailAvailable(false)
+        setEmailError('Este e-mail já está cadastrado no sistema. Faça login ou recupere sua senha.')
+      } else {
+        setEmailAvailable(true)
+      }
+
+    } catch (error) {
+      devLog.error('[RegistrationForm] Erro ao verificar email:', error)
+    } finally {
+      setEmailCheckLoading(false)
+    }
+  }
+
+  // Disparar verificação de email quando usuário terminar de digitar (debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.adminEmail) {
+        checkEmailAvailability(formData.adminEmail)
+      }
+    }, 800) // Aguarda 800ms após usuário parar de digitar
+
+    return () => clearTimeout(timeoutId)
+  }, [formData.adminEmail])
 
   // 🛠️ CORRIGIDO: DESABILITAR AUTO-PREENCHIMENTO COMPLETAMENTE
   // Campos Nome da Empresa e URL são agora totalmente independentes
@@ -235,6 +295,23 @@ export function RegistrationForm() {
 
   // Próximo passo
   const nextStep = async () => {
+    // ✅ VERIFICAÇÃO EXTRA: Se estamos no passo 2, verificar email antes de avançar
+    if (currentStep === 2) {
+      setIsNextStepLoading(true)
+      await checkEmailAvailability(formData.adminEmail)
+      setIsNextStepLoading(false)
+
+      // Se o email não estiver disponível, bloquear avanço
+      if (emailAvailable === false || emailError) {
+        toast({
+          title: "Email já cadastrado",
+          description: emailError || "Este email já está em uso no sistema.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     if (validateForm()) {
       setIsNextStepLoading(true)
 
@@ -256,7 +333,22 @@ export function RegistrationForm() {
   // Submissão do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
+    // ✅ VERIFICAÇÃO GLOBAL FINAL: Verificar email antes de submeter
+    devLog.log("[RegistrationForm] handleSubmit: Verificando disponibilidade do email...")
+    await checkEmailAvailability(formData.adminEmail)
+
+    // Se o email não estiver disponível, bloquear submissão
+    if (emailAvailable === false || emailError) {
+      devLog.warn("[RegistrationForm] handleSubmit: Email não disponível, bloqueando submissão")
+      toast({
+        title: "Email já cadastrado",
+        description: emailError || "Este email já está em uso no sistema.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!validateForm()) {
       return
     }
@@ -501,16 +593,45 @@ export function RegistrationForm() {
 
             <div>
               <Label htmlFor="adminEmail" className="text-sm font-medium text-gray-700">Email *</Label>
-              <Input
-                id="adminEmail"
-                type="email"
-                value={formData.adminEmail}
-                onChange={(e) => setFormData(prev => ({ ...prev, adminEmail: e.target.value }))}
-                placeholder="joao@empresa.com"
-                className={`mt-1 h-12 ${errors.adminEmail ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
-              />
+              <div className="relative">
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  value={formData.adminEmail}
+                  onChange={(e) => setFormData(prev => ({ ...prev, adminEmail: e.target.value }))}
+                  placeholder="joao@empresa.com"
+                  className={`mt-1 h-12 ${errors.adminEmail || emailError ? 'border-red-500' : emailAvailable ? 'border-green-500' : 'border-gray-300 focus:border-blue-500'}`}
+                />
+                {emailCheckLoading && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  </div>
+                )}
+                {emailAvailable === true && !emailCheckLoading && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Check className="w-5 h-5 text-green-500" />
+                  </div>
+                )}
+                {emailAvailable === false && !emailCheckLoading && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <X className="w-5 h-5 text-red-500" />
+                  </div>
+                )}
+              </div>
               {errors.adminEmail && (
                 <p className="text-sm text-red-500 mt-1">{errors.adminEmail}</p>
+              )}
+              {emailError && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <X className="h-4 w-4" />
+                  {emailError}
+                </p>
+              )}
+              {emailAvailable === true && !emailCheckLoading && (
+                <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                  <Check className="h-4 w-4" />
+                  Email disponível!
+                </p>
               )}
             </div>
 

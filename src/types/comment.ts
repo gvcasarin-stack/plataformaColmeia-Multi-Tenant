@@ -35,4 +35,10 @@ export interface Comment {
   
   /** Data e hora da última atualização no formato ISO */
   updatedAt?: string;
+
+  /** Visibilidade do comentário: 'all' (todos) ou 'internal' (apenas equipe interna) */
+  visibility?: 'all' | 'internal';
+
+  /** 🎨 URLs de imagens inline no comentário */
+  images?: string[];
 } 

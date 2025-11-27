@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
     devLog.log('[API Financial Dashboard] Cliente Supabase criado');
     devLog.log('[API Financial Dashboard] Parâmetros:', { month, year, tenantId });
 
-    // Buscar projetos do mês
+    // Buscar TODOS os projetos do tenant (filtraremos por data de pagamento depois)
     devLog.log('[API Financial Dashboard] Buscando projetos...');
-    const { data: projects, error: projectsError } = await supabase
+    const { data: allProjects, error: projectsError } = await supabase
       .from('projects')
       .select(`
         id,
@@ -50,21 +50,60 @@ export async function GET(request: NextRequest) {
         price,
         pagamento,
         empresa_integradora,
-        created_at
+        created_at,
+        data_pagamento_integral,
+        data_pagamento_parcela1
       `)
-      .eq('tenant_id', tenantId)
-      .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`)
-      .lt('created_at', `${month === 12 ? year + 1 : year}-${(month === 12 ? 1 : month + 1).toString().padStart(2, '0')}-01`);
-    
+      .eq('tenant_id', tenantId);
+
     if (projectsError) {
       devLog.error('[API Financial Dashboard] Erro ao buscar projetos:', projectsError);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Erro ao buscar projetos',
-        details: projectsError.message 
+        details: projectsError.message
       }, { status: 500 });
     }
-    
-    devLog.log('[API Financial Dashboard] Projetos encontrados:', projects?.length || 0);
+
+    // ✅ FILTRAR projetos pela data de PAGAMENTO (não criação)
+    const projects = (allProjects || []).filter(project => {
+      const paymentStatus = project.pagamento || 'pendente';
+
+      // Não contabilizar projetos pendentes
+      if (paymentStatus === 'pendente') {
+        return false;
+      }
+
+      // Verificar data do pagamento conforme o status
+      let paymentDate = null;
+
+      if (paymentStatus === 'pago' && project.data_pagamento_integral) {
+        paymentDate = project.data_pagamento_integral;
+      } else if (paymentStatus === 'parcela1' && project.data_pagamento_parcela1) {
+        paymentDate = project.data_pagamento_parcela1;
+      }
+
+      // Se não tem data de pagamento registrada, não contabilizar
+      if (!paymentDate) {
+        return false;
+      }
+
+      try {
+        const date = new Date(paymentDate);
+        const paymentMonth = date.getMonth() + 1;
+        const paymentYear = date.getFullYear();
+
+        return paymentMonth === month && paymentYear === year;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    devLog.log('[API Financial Dashboard] Projetos filtrados por data de pagamento:', {
+      total: allProjects?.length || 0,
+      filtered: projects.length,
+      month,
+      year
+    });
     
     // Buscar transações financeiras do mês
     devLog.log('[API Financial Dashboard] Buscando transações financeiras...');

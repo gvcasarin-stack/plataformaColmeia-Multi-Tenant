@@ -22,7 +22,9 @@ import {
 } from "@/components/ui/dialog"
 import { format } from 'date-fns/format'
 import { ptBR } from 'date-fns/locale'
-import { Building2, Users, Check, X, Shield } from 'lucide-react'
+import { Building2, Users, Check, X, Shield, Search, Download, LayoutGrid, LayoutList, ChevronDown, ChevronUp, Mail, Phone, Calendar, Edit, DollarSign } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from '@/lib/hooks/useAuth'
 import { BlockUserModal } from '@/components/modals/BlockUserModal'
@@ -31,6 +33,9 @@ import { BlockStatusBadge } from '@/components/ui/block-status-badge'
 import { useClients, Client } from '@/hooks/useClients'
 import { devLog } from "@/lib/utils/productionLogger";
 import { useBlockUser } from '@/hooks/useBlockUser'
+import { EditClientModal } from '@/components/admin/EditClientModal'
+import { ClientBillingModal } from '@/components/admin/ClientBillingModal'
+import { ClientSubscriptionsTab } from '@/components/admin/ClientSubscriptionsTab'
 
 export default function ClientesPage() {
   const { user } = useAuth()
@@ -58,6 +63,22 @@ export default function ClientesPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false)
   const [isUnblockModalOpen, setIsUnblockModalOpen] = useState(false)
+
+  // ✅ Novos estados para melhorias de UX
+  const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards') // Toggle entre cards e tabela
+  const [isRequestsCollapsed, setIsRequestsCollapsed] = useState(false) // Colapsar seção de solicitações
+
+  // Estados para edição de cliente
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [clientToEdit, setClientToEdit] = useState<Client | null>(null)
+
+  // Estados para gerenciamento de faturamento
+  const [isBillingModalOpen, setIsBillingModalOpen] = useState(false)
+  const [clientForBilling, setClientForBilling] = useState<Client | null>(null)
+
+  // Estado para controle de abas
+  const [activeTab, setActiveTab] = useState<'cadastros' | 'assinaturas'>('cadastros')
 
   const fetchRequests = async () => {
     setLoading(true)
@@ -155,11 +176,9 @@ export default function ClientesPage() {
         title: "Cadastro aprovado",
         description: "O usuário será notificado por email",
       })
-      
-      // Atualizar lista de solicitações, contador e clientes ativos
-      fetchRequests()
-      refreshClients() // ✅ Atualiza lista de clientes ativos automaticamente
-      setTimeout(() => refreshPendingCount(), 500)
+
+      // Refresh explícito da página para garantir dados atualizados
+      window.location.reload()
     } catch (error: any) {
       devLog.error('Error approving request:', error)
       
@@ -238,9 +257,84 @@ export default function ClientesPage() {
     await unblockUser(selectedClient)
   }
 
+  // Função para abrir modal de edição
+  const handleEditClient = (client: Client) => {
+    devLog.log('[ClientesPage] Abrindo modal de edição para cliente:', client)
+    setClientToEdit(client)
+    setIsEditModalOpen(true)
+  }
+
+  // Callback após sucesso na edição
+  const handleEditSuccess = () => {
+    devLog.log('[ClientesPage] Cliente editado com sucesso, atualizando lista')
+    refreshClients() // Atualiza lista de clientes
+  }
+
+  // Função para abrir modal de gerenciamento de faturamento
+  const handleManageBilling = (client: Client) => {
+    devLog.log('[ClientesPage] Abrindo modal de faturamento para cliente:', client)
+    setClientForBilling(client)
+    setIsBillingModalOpen(true)
+  }
+
   // Combinar loading states
   const isLoading = loading || clientsLoading
   const displayError = error || clientsError
+
+  // ✅ Filtrar clientes baseado na busca
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.phone && client.phone.includes(searchQuery))
+  )
+
+  // ✅ Função para exportar clientes como CSV
+  const handleExportCSV = () => {
+    const headers = ['Nome', 'Email', 'Telefone', 'Tipo', 'Status', 'Data de Cadastro']
+    const rows = filteredClients.map(client => [
+      client.name,
+      client.email,
+      client.phone || '',
+      client.isCompany ? 'Empresa' : 'Pessoa Física',
+      client.isBlocked ? 'Bloqueado' : 'Ativo',
+      format(new Date(client.createdAt), "dd/MM/yyyy", { locale: ptBR })
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `clientes_${format(new Date(), 'yyyy-MM-dd')}.csv`
+    link.click()
+
+    toast({
+      title: "CSV exportado",
+      description: `${filteredClients.length} clientes exportados com sucesso`,
+    })
+  }
+
+  // ✅ Função para gerar avatar colorido
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+      'bg-orange-500', 'bg-indigo-500', 'bg-teal-500', 'bg-red-500'
+    ];
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
+  // ✅ Função para extrair iniciais
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   if (isLoading) {
     return (
@@ -315,18 +409,70 @@ export default function ClientesPage() {
         <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-indigo-500/30"></div>
       </div>
 
-      <div className="p-6 bg-white dark:bg-gray-900">
-        {/* Pending Requests Section */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Solicitações de Cadastro</h2>
-              <p className="text-gray-600 dark:text-gray-400">Gerencie as solicitações de novos clientes</p>
-            </div>
-          </div>
+      <div className="mb-8">
+        <nav className="flex space-x-2" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab('cadastros')}
+            className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+              activeTab === 'cadastros'
+                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Cadastros
+          </button>
+          <button
+            onClick={() => setActiveTab('assinaturas')}
+            className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+              activeTab === 'assinaturas'
+                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Assinaturas
+          </button>
+        </nav>
+      </div>
 
-          {requests.length > 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 shadow-sm mb-8">
+      {activeTab === 'cadastros' && (
+        <div>
+          <>
+        {/* Pending Requests Section - Colapsável */}
+        <div className="mb-8">
+          <button
+            onClick={() => setIsRequestsCollapsed(!isRequestsCollapsed)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg border border-amber-200 dark:border-amber-800 hover:shadow-md transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold">
+                {requests.length}
+              </div>
+              <div className="text-left">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Solicitações de Cadastro
+                  {requests.length > 0 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500 text-white">
+                      {requests.length} pendente{requests.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {requests.length > 0
+                    ? 'Clique para ver solicitações pendentes de aprovação'
+                    : 'Nenhuma solicitação aguardando aprovação'}
+                </p>
+              </div>
+            </div>
+            {isRequestsCollapsed ? (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            )}
+          </button>
+
+          {/* Conteúdo colapsável */}
+          {!isRequestsCollapsed && requests.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 shadow-sm mt-4">
               <Table>
                 <TableHeader>
                   <TableRow className="dark:border-gray-700">
@@ -385,56 +531,240 @@ export default function ClientesPage() {
                 </TableBody>
               </Table>
             </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 shadow-sm p-8 text-center mb-8">
-              <div className="flex flex-col items-center gap-2">
-                <Users className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Nenhuma solicitação pendente</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Não há solicitações de cadastro aguardando aprovação.
-                </p>
-              </div>
-            </div>
           )}
         </div>
 
         {/* Existing Clients Section */}
         <div>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Clientes Ativos</h2>
-              <p className="text-gray-600 dark:text-gray-400">Gerencie os clientes já cadastrados na plataforma</p>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={refreshClients}
-              disabled={clientsLoading}
-              className="gap-2"
-            >
-              {clientsLoading ? (
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
-              ) : null}
-              Atualizar
-            </Button>
+          {/* Header com título */}
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Clientes Ativos</h2>
+            <p className="text-gray-600 dark:text-gray-400">Gerencie os clientes já cadastrados na plataforma</p>
           </div>
 
-          {clients.length > 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 shadow-sm">
-              <Table>
-                <TableHeader>
-                  <TableRow className="dark:border-gray-700">
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data de Cadastro</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clients.map((client) => (
+          {/* ✅ Barra de Ferramentas: Busca, Filtros, Toggle View, Export CSV */}
+          <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/80 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              {/* Busca */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Buscar por nome, email ou telefone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Ações */}
+              <div className="flex items-center gap-2">
+                {/* Estatísticas */}
+                <div className="hidden md:flex items-center gap-4 px-4 py-2 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                  <div className="text-sm">
+                    <span className="font-semibold text-gray-900 dark:text-white">{filteredClients.length}</span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-1">
+                      {filteredClients.length === 1 ? 'cliente' : 'clientes'}
+                    </span>
+                  </div>
+                  <div className="w-px h-4 bg-gray-300 dark:bg-gray-600" />
+                  <div className="text-sm">
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      {filteredClients.filter(c => !c.isBlocked).length}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-1">ativos</span>
+                  </div>
+                </div>
+
+                {/* Toggle View */}
+                <div className="flex items-center bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('cards')}
+                    className={`rounded-r-none ${viewMode === 'cards' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : ''}`}
+                    title="Visualização em Cards"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('table')}
+                    className={`rounded-l-none ${viewMode === 'table' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : ''}`}
+                    title="Visualização em Tabela"
+                  >
+                    <LayoutList className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Export CSV */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  disabled={filteredClients.length === 0}
+                  className="gap-2"
+                  title="Exportar como CSV"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Exportar</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Resultado da busca */}
+            {searchQuery && (
+              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                {filteredClients.length === 0 ? (
+                  <span>Nenhum cliente encontrado para "{searchQuery}"</span>
+                ) : (
+                  <span>
+                    Exibindo {filteredClients.length} de {clients.length} cliente{clients.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {filteredClients.length > 0 ? (
+            <>
+              {/* ✅ VIEW MODE: CARDS */}
+              {viewMode === 'cards' && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredClients.map((client) => (
+                    <Card key={client.id} className="hover:shadow-lg transition-all duration-200 border-gray-200">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-start gap-4">
+                          {/* Avatar */}
+                          <div className={`flex-shrink-0 w-12 h-12 rounded-full ${getAvatarColor(client.name)} flex items-center justify-center text-white font-semibold text-lg shadow-md`}>
+                            {getInitials(client.name)}
+                          </div>
+
+                          {/* Nome e Tipo */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                                {client.name}
+                              </CardTitle>
+                            </div>
+
+                            {/* Badge de Tipo */}
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                              {client.isCompany ? (
+                                <>
+                                  <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                                  <span>Empresa</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Users className="h-3.5 w-3.5 text-purple-500" />
+                                  <span>Pessoa Física</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Botões de Ação */}
+                          <div className="flex items-center gap-1">
+                            {/* Botão Editar */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditClient(client)}
+                              className="h-8 w-8 p-0 hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                              title="Editar Cliente"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+
+                            {/* Botão de Bloqueio/Desbloqueio */}
+                            {client.isBlocked ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUnblockUser(client)}
+                                disabled={isBlockingUser}
+                                className="h-8 w-8 p-0 hover:bg-green-50 text-green-600 hover:text-green-700"
+                                title="Desbloquear Cliente"
+                              >
+                                {isBlockingUser ? (
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Shield className="h-4 w-4" />
+                                )}
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleBlockUser(client)}
+                                disabled={isBlockingUser}
+                                className="h-8 w-8 p-0 hover:bg-red-50 text-red-600 hover:text-red-700"
+                                title="Bloquear Cliente"
+                              >
+                                {isBlockingUser ? (
+                                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Shield className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="space-y-4 pt-0">
+                        {/* Informações de Contato */}
+                        <div className="space-y-2">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Mail className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{client.email}</span>
+                          </div>
+
+                          {client.phone && (
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Phone className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                              {client.phone}
+                            </div>
+                          )}
+
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Calendar className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                            {format(new Date(client.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                          </div>
+                        </div>
+
+                        {/* Status */}
+                        <div className="border-t pt-4">
+                          <BlockStatusBadge
+                            isBlocked={client.isBlocked || false}
+                            size="md"
+                            variant="default"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* ✅ VIEW MODE: TABLE */}
+              {viewMode === 'table' && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 shadow-sm">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="dark:border-gray-700">
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Contato</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Data de Cadastro</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClients.map((client) => (
                     <TableRow key={client.id} className="group dark:border-gray-700">
                       <TableCell className="font-medium">{client.name}</TableCell>
                       <TableCell>
@@ -479,6 +809,18 @@ export default function ClientesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* Botão Editar */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                            onClick={() => handleEditClient(client)}
+                          >
+                            <Edit className="w-4 h-4" />
+                            Editar
+                          </Button>
+
+                          {/* Botão Bloquear/Desbloquear */}
                           {client.isBlocked ? (
                             <Button
                               size="sm"
@@ -513,10 +855,12 @@ export default function ClientesPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 shadow-sm p-8 text-center">
               <div className="flex flex-col items-center gap-2">
@@ -529,6 +873,15 @@ export default function ClientesPage() {
             </div>
           )}
         </div>
+          </>
+        </div>
+      )}
+
+      {activeTab === 'assinaturas' && (
+        <div>
+          <ClientSubscriptionsTab />
+        </div>
+      )}
 
         <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
           <DialogContent>
@@ -632,7 +985,22 @@ export default function ClientesPage() {
             />
           </>
         )}
-      </div>
+
+        {/* Modal de Edição de Cliente */}
+        <EditClientModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          client={clientToEdit}
+          onSuccess={handleEditSuccess}
+        />
+
+      {/* Modal de Gerenciamento de Faturamento */}
+      <ClientBillingModal
+        open={isBillingModalOpen}
+        onOpenChange={setIsBillingModalOpen}
+        clientId={clientForBilling?.id || null}
+        clientName={clientForBilling?.name || null}
+      />
     </div>
   )
 } 

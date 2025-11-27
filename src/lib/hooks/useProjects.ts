@@ -95,8 +95,23 @@ export function useProjects() {
     // O debounce atrasava o carregamento inicial e causava badges não aparecerem
     fetchProjects();
 
-    // Cleanup se necessário
-    return () => {};
+    // 🗑️ Listener para remover projeto arquivado da lista
+    const handleProjectArchived = (event: CustomEvent) => {
+      const { projectId } = event.detail;
+      logger.debug('[useProjects] Projeto arquivado, removendo da lista:', projectId);
+      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('project-archived', handleProjectArchived as EventListener);
+    }
+
+    // Cleanup
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('project-archived', handleProjectArchived as EventListener);
+      }
+    };
   }, [user?.id, user?.role]);
 
   const updateProject = useCallback(async (updatedProjectData: UpdatedProject): Promise<Project | undefined> => {

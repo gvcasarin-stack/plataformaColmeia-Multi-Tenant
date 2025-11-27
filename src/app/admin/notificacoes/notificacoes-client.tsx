@@ -13,15 +13,12 @@ import { ptBR } from 'date-fns/locale'
 
 // Utilities
 import { formatSafeDate } from '@/lib/utils/dateHelpers'
+import { getNotificationIcon } from '@/lib/utils/notificationIcons'
 
 // Icons
 import AlertIcon from '@/components/icons/alert'
 import BellIcon from '@/components/icons/bell'
-import MessageIcon from '@/components/icons/message'
-import FileIcon from '@/components/icons/file'
 import CheckIcon from '@/components/icons/check'
-import ClockIcon from '@/components/icons/clock'
-import RefreshIcon from '@/components/icons/refresh'
 
 // Use the dateHelpers version instead
 const safelyFormatDate = formatSafeDate
@@ -35,18 +32,48 @@ export default function NotificacoesClient() {
   const [error, setError] = useState<string | null>(null)
   const [actionFeedback, setActionFeedback] = useState<{id: string, action: string} | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
+  const itemsPerPage = 10
 
   // Calculate if there are any unread notifications
   const hasUnreadNotifications = notifications.some(notification => !notification.read)
-  
-  // Filter notifications based on active tab
+
+  // Filter notifications based on active tab, type filter, and search query
   const filteredNotifications = notifications.filter(notification => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'unread') return !notification.read;
-    if (activeTab === 'read') return notification.read;
+    // Tab filter
+    if (activeTab === 'unread' && notification.read) return false;
+    if (activeTab === 'read' && !notification.read) return false;
+
+    // Type filter
+    if (typeFilter !== 'all') {
+      const notifType = notification.data?.originalType || notification.type;
+      if (notifType !== typeFilter) return false;
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const titleMatch = notification.title?.toLowerCase().includes(query);
+      const messageMatch = notification.message?.toLowerCase().includes(query);
+      const projectMatch = notification.data?.projectName?.toLowerCase().includes(query);
+      const clientMatch = notification.data?.clientName?.toLowerCase().includes(query);
+
+      if (!titleMatch && !messageMatch && !projectMatch && !clientMatch) return false;
+    }
+
     return true;
   });
-  
+
+  // Pagination
+  const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
+  const paginatedNotifications = filteredNotifications.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   // Count notifications by status
   const unreadCount = notifications.filter(n => !n.read).length;
   const readCount = notifications.filter(n => n.read).length;
@@ -54,12 +81,17 @@ export default function NotificacoesClient() {
   useEffect(() => {
     if (authLoading) return
 
-    // Check if user has admin privileges
-    const isAdmin = user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin'
+    // ✅ CORREÇÃO: Permitir acesso para admin, superadmin E colaborador
+    const isAdminOrColaborador = user?.profile?.role === 'admin' ||
+                                  user?.profile?.role === 'superadmin' ||
+                                  user?.profile?.role === 'colaborador' ||
+                                  user?.role === 'admin' ||
+                                  user?.role === 'superadmin' ||
+                                  user?.role === 'colaborador'
 
-    if (!user || !isAdmin) {
-      devLog.log('[Notifications] No admin privileges, redirecting to /admin')
-      router.replace('/admin')
+    if (!user || !isAdminOrColaborador) {
+      devLog.log('[Notifications] No admin/colaborador privileges, redirecting to /admin/painel')
+      router.replace('/admin/painel')
       return
     }
 
@@ -78,8 +110,9 @@ export default function NotificacoesClient() {
       }
       
       devLog.log('🔍 [AdminNotifications] Buscando notificações via API...');
-      
-      const response = await fetch(`/api/notifications/user?limit=50`, {
+
+      // ✅ SOLUÇÃO ALTERNATIVA: Usar nova API passando userId
+      const response = await fetch(`/api/notifications/admin-user?limit=50&userId=${user.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -111,34 +144,7 @@ export default function NotificacoesClient() {
     }
   }
 
-  const getNotificationIcon = (type: NotificacaoPadrao['type']) => {
-    switch (type) {
-      case 'new_comment':
-        return <MessageIcon className="h-5 w-5 text-blue-500" />
-      case 'document_upload':
-        return <FileIcon className="h-5 w-5 text-orange-500" />
-      case 'status_change':
-        return <RefreshIcon className="h-5 w-5 text-purple-500" />
-      case 'deadline_approaching':
-        return <ClockIcon className="h-5 w-5 text-amber-500" />
-      case 'project_completed':
-        return <CheckIcon className="h-5 w-5 text-emerald-500" />
-      case 'new_project':
-        return <FileIcon className="h-5 w-5 text-green-500" />
-      case 'new_client_registration':
-        return <BellIcon className="h-5 w-5 text-blue-500" />
-      case 'payment':
-        return <BellIcon className="h-5 w-5 text-green-500" />
-      case 'client_approval':
-        return <CheckIcon className="h-5 w-5 text-blue-500" />
-      case 'reminder':
-        return <ClockIcon className="h-5 w-5 text-orange-500" />
-      case 'system_message':
-        return <AlertIcon className="h-5 w-5 text-gray-500" />
-      default:
-        return <BellIcon className="h-5 w-5 text-gray-500" />
-    }
-  }
+  // Função removida - agora usa getNotificationIcon do utilitário centralizado
 
   const handleNotificationClick = async (notification: NotificacaoPadrao) => {
     try {
@@ -180,8 +186,8 @@ export default function NotificacoesClient() {
         // 🚀 ATUALIZAÇÃO IMEDIATA: Decrementar contador antes da API
         updateCounterOptimistic(-1);
         
-        // Usar rota de API para marcar como lida
-        const response = await fetch('/api/notifications/mark-read', {
+        // ✅ SOLUÇÃO ALTERNATIVA: Usar nova API para admin
+        const response = await fetch('/api/notifications/admin-mark-read', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -274,8 +280,8 @@ export default function NotificacoesClient() {
       // 🚀 ATUALIZAÇÃO IMEDIATA: Decrementar contador antes da API
       updateCounterOptimistic(-1);
       
-      // Usar rota de API para marcar como lida
-      const response = await fetch('/api/notifications/mark-read', {
+      // ✅ SOLUÇÃO ALTERNATIVA: Usar nova API para admin
+      const response = await fetch('/api/notifications/admin-mark-read', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -322,8 +328,8 @@ export default function NotificacoesClient() {
         updateCounterOptimistic(-1);
       }
       
-      // Usar rota de API para deletar
-      const response = await fetch('/api/notifications/delete', {
+      // ✅ SOLUÇÃO ALTERNATIVA: Usar nova API para admin
+      const response = await fetch('/api/notifications/admin-delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -358,16 +364,16 @@ export default function NotificacoesClient() {
 
   const markAllAsRead = async () => {
     if (!user) return
-    
+
     const unreadNotifications = notifications.filter(n => !n.read)
-    
+
     if (unreadNotifications.length === 0) return
-    
+
     try {
       // 🚀 ATUALIZAÇÃO IMEDIATA: Zerar contador antes da API
       updateCounterOptimistic(-unreadNotifications.length);
-      
-      // Usar rota de API para marcar todas como lidas
+
+      // ✅ CORREÇÃO: Usar mesma API do cliente (já funciona) enviando userId
       const response = await fetch('/api/notifications/mark-all-read', {
         method: 'POST',
         headers: {
@@ -375,10 +381,10 @@ export default function NotificacoesClient() {
         },
         body: JSON.stringify({ userId: user.id }),
       });
-      
+
       if (response.ok) {
         // Update local state
-        setNotifications(notifications.map(n => 
+        setNotifications(notifications.map(n =>
           !n.read ? { ...n, read: true } : n
         ))
         // 🚀 GARANTIR SINCRONIZAÇÃO: Atualizar contador com dados reais
@@ -392,6 +398,123 @@ export default function NotificacoesClient() {
       devLog.error('[AdminNotifications] Error marking all notifications as read:', error)
       // 🚀 ROLLBACK: Reverter contador se deu erro
       updateCounterOptimistic(unreadNotifications.length);
+    }
+  }
+
+  // Marcar como não lida
+  const handleMarkAsUnread = async (e: React.MouseEvent, notification: NotificacaoPadrao) => {
+    e.stopPropagation()
+
+    try {
+      setActionFeedback({id: notification.id, action: 'unread'})
+
+      if (!notification.read) {
+        setTimeout(() => setActionFeedback(null), 1500)
+        return
+      }
+
+      updateCounterOptimistic(1);
+
+      const response = await fetch('/api/notifications/admin-mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notificationId: notification.id, markAsUnread: true }),
+      });
+
+      if (response.ok) {
+        setNotifications(notifications.map(n =>
+          n.id === notification.id ? { ...n, read: false } : n
+        ))
+        setTimeout(() => refreshUnreadCount(), 500);
+      } else {
+        updateCounterOptimistic(-1);
+      }
+
+      setTimeout(() => setActionFeedback(null), 1500)
+    } catch (error) {
+      devLog.error('[AdminNotifications] Error marking notification as unread:', error)
+      updateCounterOptimistic(-1);
+      setActionFeedback(null)
+    }
+  }
+
+  // Ações em lote
+  const handleSelectAll = () => {
+    if (selectedNotifications.length === paginatedNotifications.length) {
+      setSelectedNotifications([])
+    } else {
+      setSelectedNotifications(paginatedNotifications.map(n => n.id))
+    }
+  }
+
+  const handleSelectNotification = (notificationId: string) => {
+    setSelectedNotifications(prev =>
+      prev.includes(notificationId)
+        ? prev.filter(id => id !== notificationId)
+        : [...prev, notificationId]
+    )
+  }
+
+  const handleBulkMarkAsRead = async () => {
+    if (selectedNotifications.length === 0) return
+
+    try {
+      const notificationsToMark = notifications.filter(n =>
+        selectedNotifications.includes(n.id) && !n.read
+      )
+
+      updateCounterOptimistic(-notificationsToMark.length);
+
+      for (const notifId of selectedNotifications) {
+        const notif = notifications.find(n => n.id === notifId);
+        if (notif && !notif.read) {
+          await fetch('/api/notifications/admin-mark-read', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ notificationId: notifId }),
+          });
+        }
+      }
+
+      setNotifications(notifications.map(n =>
+        selectedNotifications.includes(n.id) ? { ...n, read: true } : n
+      ))
+      setSelectedNotifications([])
+      setTimeout(() => refreshUnreadCount(), 500);
+    } catch (error) {
+      devLog.error('[AdminNotifications] Error bulk marking as read:', error)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedNotifications.length === 0) return
+
+    try {
+      const notificationsToDelete = notifications.filter(n =>
+        selectedNotifications.includes(n.id) && !n.read
+      )
+
+      updateCounterOptimistic(-notificationsToDelete.length);
+
+      for (const notifId of selectedNotifications) {
+        await fetch('/api/notifications/admin-delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ notificationId: notifId }),
+        });
+      }
+
+      setNotifications(notifications.filter(n => !selectedNotifications.includes(n.id)))
+      setSelectedNotifications([])
+      setTimeout(() => refreshUnreadCount(), 500);
+    } catch (error) {
+      devLog.error('[AdminNotifications] Error bulk deleting:', error)
     }
   }
 
@@ -479,12 +602,54 @@ export default function NotificacoesClient() {
         </div>
 
         <div className="p-6">
+          {/* Filtros e Busca */}
+          <div className="mb-6 space-y-4">
+            <div className="flex gap-4 flex-wrap">
+              {/* Campo de Busca */}
+              <div className="flex-1 min-w-[300px]">
+                <div className="relative">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Buscar por título, projeto ou cliente..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Filtro por Tipo */}
+              <select
+                value={typeFilter}
+                onChange={(e) => {
+                  setTypeFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="all">Todos os tipos</option>
+                <option value="new_comment">Comentários</option>
+                <option value="document_upload">Uploads</option>
+                <option value="new_project">Novos Projetos</option>
+                <option value="status_change">Mudanças de Status</option>
+                <option value="new_client_registration">Cadastros</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Ações */}
           <div className="flex items-center justify-between mb-6">
-            <div>
+            <div className="flex gap-2">
               {activeTab !== 'read' && hasUnreadNotifications && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="gap-2"
                   onClick={markAllAsRead}
                 >
@@ -492,23 +657,76 @@ export default function NotificacoesClient() {
                   Marcar todas como lidas
                 </Button>
               )}
+
+              {selectedNotifications.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                    onClick={handleBulkMarkAsRead}
+                  >
+                    <CheckIcon className="h-4 w-4" />
+                    Marcar selecionadas como lidas ({selectedNotifications.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+                    onClick={handleBulkDelete}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Excluir selecionadas ({selectedNotifications.length})
+                  </Button>
+                </>
+              )}
             </div>
+
+            {paginatedNotifications.length > 0 && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedNotifications.length === paginatedNotifications.length && paginatedNotifications.length > 0}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Selecionar todos
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Notifications List */}
           <div className="space-y-2">
-            {filteredNotifications.length > 0 ? (
-              filteredNotifications.map((notification) => (
+            {paginatedNotifications.length > 0 ? (
+              paginatedNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md transition-all duration-200 cursor-pointer ${
-                    !notification.read ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/50' : ''
+                  className={`bg-white dark:bg-gray-800 rounded-lg border-2 p-4 hover:shadow-lg transition-all duration-200 cursor-pointer shadow-md ${
+                    !notification.read
+                      ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-300 dark:border-blue-600'
+                      : 'border-gray-300 dark:border-gray-600'
                   }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700">
-                      {getNotificationIcon(notification.type)}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedNotifications.includes(notification.id)}
+                        onChange={() => handleSelectNotification(notification.id)}
+                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                      />
+                    </div>
+                    <div className={`flex-shrink-0 p-1.5 rounded-full ${
+                      !notification.read
+                        ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 ring-offset-1'
+                        : 'bg-gray-100 dark:bg-gray-700'
+                    }`}>
+                      {getNotificationIcon((notification.data?.originalType || notification.type) as any)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -613,38 +831,57 @@ export default function NotificacoesClient() {
                           {safelyFormatDate(notification.createdAt)}
                         </p>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`h-7 px-2 transition-all duration-300 ${
-                              actionFeedback?.id === notification.id && actionFeedback?.action === 'read'
-                                ? 'bg-green-100 dark:bg-green-900/30 font-medium scale-105' 
-                                : 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                            }`}
-                            onClick={(e) => handleMarkAsRead(e, notification)}
-                            disabled={actionFeedback?.id === notification.id}
-                          >
-                            <CheckIcon className="h-4 w-4 mr-1" />
-                            {actionFeedback?.id === notification.id && actionFeedback?.action === 'read' 
-                              ? 'Notificação lida!' 
-                              : notification.read 
-                                ? 'Lida' 
+                          {!notification.read ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`h-7 px-2 transition-all duration-300 ${
+                                actionFeedback?.id === notification.id && actionFeedback?.action === 'read'
+                                  ? 'bg-green-100 dark:bg-green-900/30 font-medium scale-105'
+                                  : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                              }`}
+                              onClick={(e) => handleMarkAsRead(e, notification)}
+                              disabled={actionFeedback?.id === notification.id}
+                            >
+                              <CheckIcon className="h-4 w-4 mr-1" />
+                              {actionFeedback?.id === notification.id && actionFeedback?.action === 'read'
+                                ? 'Notificação lida!'
                                 : 'Marcar como lida'}
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`h-7 px-2 transition-all duration-300 ${
+                                actionFeedback?.id === notification.id && actionFeedback?.action === 'unread'
+                                  ? 'bg-blue-100 dark:bg-blue-900/30 font-medium scale-105'
+                                  : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                              }`}
+                              onClick={(e) => handleMarkAsUnread(e, notification)}
+                              disabled={actionFeedback?.id === notification.id}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
+                              </svg>
+                              {actionFeedback?.id === notification.id && actionFeedback?.action === 'unread'
+                                ? 'Marcada como não lida!'
+                                : 'Marcar como não lida'}
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className={`h-7 px-2 transition-all duration-300 ${
                               actionFeedback?.id === notification.id && actionFeedback?.action === 'delete'
-                                ? 'bg-red-100 dark:bg-red-900/30 font-medium scale-105' 
+                                ? 'bg-red-100 dark:bg-red-900/30 font-medium scale-105'
                                 : 'text-red-600 hover:text-red-700 hover:bg-red-50'
                             }`}
                             onClick={(e) => handleDeleteNotification(e, notification.id)}
                             disabled={actionFeedback?.id === notification.id}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1 text-red-600 dark:text-red-400"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                            {actionFeedback?.id === notification.id && actionFeedback?.action === 'delete' 
-                              ? 'Excluindo...' 
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1 text-red-600 dark:text-red-400"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                            {actionFeedback?.id === notification.id && actionFeedback?.action === 'delete'
+                              ? 'Excluindo...'
                               : 'Excluir'}
                           </Button>
                         </div>
@@ -671,6 +908,67 @@ export default function NotificacoesClient() {
               </div>
             )}
           </div>
+
+          {/* Paginação */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredNotifications.length)} de {filteredNotifications.length} notificações
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-2 text-gray-500">...</span>
+                    }
+                    return null
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="gap-2"
+                >
+                  Próxima
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -14,7 +14,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Colmeia Projetos",
   description: "Plataforma de gerenciamento de projetos",
-  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/lightning-icon.svg", type: "image/svg+xml" },
@@ -89,6 +88,18 @@ export default function RootLayout({
         {/* DNS Prefetch para recursos que serão necessários */}
         <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
         <link rel="dns-prefetch" href="https://www.gstatic.com" />
+
+        {/* Otimização de carregamento do player VTURB */}
+        <script dangerouslySetInnerHTML={{
+          __html: `!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);`
+        }} />
+        <link rel="preload" href="https://scripts.converteai.net/068d8d22-b205-4211-8cde-5fd27a22efa0/players/68f627a74b986c64f63e492b/v4/player.js" as="script" />
+        <link rel="preload" href="https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js" as="script" />
+        <link rel="preload" href="https://cdn.converteai.net/068d8d22-b205-4211-8cde-5fd27a22efa0/68f626db019e17c093bd4510/main.m3u8" as="fetch" />
+        <link rel="dns-prefetch" href="https://cdn.converteai.net" />
+        <link rel="dns-prefetch" href="https://scripts.converteai.net" />
+        <link rel="dns-prefetch" href="https://images.converteai.net" />
+        <link rel="dns-prefetch" href="https://api.vturb.com.br" />
       </head>
       <body className={`${inter.className} bg-white dark:bg-gray-900`}>
         <Providers>{children}</Providers>

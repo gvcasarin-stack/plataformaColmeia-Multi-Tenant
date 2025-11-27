@@ -77,6 +77,7 @@ export async function sendClientCommentEmail(params: {
   projectNumber: string;
   projectUrl: string;
   projectId?: string;
+  authorId?: string; // ✅ NOVO: ID do autor para filtrar
 }): Promise<boolean> {
   try {
     return await notifyAdminAboutComment(
@@ -86,7 +87,8 @@ export async function sendClientCommentEmail(params: {
       params.projectName,
       params.projectNumber,
       params.projectUrl,
-      params.projectId
+      params.projectId,
+      params.authorId // ✅ Passar authorId
     );
   } catch (error) {
     logger.error('[sendClientCommentEmail] Erro:', error);

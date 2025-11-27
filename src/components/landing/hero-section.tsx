@@ -22,20 +22,19 @@ export default function HeroSection() {
     const script = document.createElement("script")
     script.id = "vturb-script-hero"
     script.src =
-      "https://scripts.converteai.net/068d8d22-b205-4211-8cde-5fd27a22efa0/players/681b49cd7d0049256a569f66/player.js"
+      "https://scripts.converteai.net/068d8d22-b205-4211-8cde-5fd27a22efa0/players/68f627a74b986c64f63e492b/v4/player.js"
     script.async = true
-    script.defer = true
     script.onload = () => {
-      if (process.env.NODE_ENV !== "production") console.log("Script VTURB carregado na hero section")
+      if (process.env.NODE_ENV !== "production") devLog.log("Script VTURB carregado na hero section")
       setIsPlayerLoaded(true)
     }
-    document.body.appendChild(script)
+    document.head.appendChild(script)
 
     return () => {
       // Limpar o script quando o componente for desmontado
       const scriptToRemove = document.getElementById("vturb-script-hero")
       if (scriptToRemove) {
-        document.body.removeChild(scriptToRemove)
+        document.head.removeChild(scriptToRemove)
       }
     }
   }, [])
@@ -49,9 +48,9 @@ export default function HeroSection() {
 
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-green-400 to-yellow-400"></div>
 
-      <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-7xl">
+      <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-7xl overflow-x-hidden">
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_600px] lg:gap-12 xl:grid-cols-[1fr_700px] items-center">
-          <div className="flex flex-col justify-center space-y-4 order-1 lg:order-1">
+          <div className="flex flex-col justify-center space-y-4 order-1 lg:order-1 w-full">
             <div className="space-y-2">
               <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100/80 text-blue-600 text-sm font-medium mb-2 backdrop-blur-sm border border-blue-200 shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-blue-600 mr-2 animate-pulse"></span>
@@ -63,13 +62,14 @@ export default function HeroSection() {
                   </span>
                 </span>
               </div>
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-slate-900">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-blue-700">
                 Sistema de Gerenciamento Fotovoltaico
               </h1>
-              <p className="max-w-[600px] text-slate-600 md:text-xl mt-4">
-                A plataforma definitiva para empresas e profissionais de homologação de projetos fotovoltaicos. Centralize a gestão de ponta a ponta: organize arquivos, automatize notificações e emita ordens de serviço impecáveis. O resultado: agilidade para acelerar aprovações, controle total do fluxo de trabalho e a máxima credibilidade no mercado.
+              <p className="max-w-[600px] text-slate-600 md:text-xl mt-8 leading-relaxed">
+                A plataforma <span className="text-blue-700 font-semibold">definitiva</span> para empresas e profissionais de homologação de projetos fotovoltaicos. <span className="text-blue-700 font-semibold">Centralize</span> a gestão de ponta a ponta: organize arquivos, <span className="text-blue-700 font-semibold">automatize</span> notificações e emita ordens de serviço <span className="text-blue-700 font-semibold">impecáveis</span>. O resultado: <span className="text-blue-700 font-semibold">agilidade</span> para acelerar aprovações, <span className="text-blue-700 font-semibold">controle total</span> do fluxo de trabalho e a <span className="text-blue-700 font-semibold">máxima credibilidade</span> no mercado.
               </p>
             </div>
+
 
             {/* Botões apenas para desktop (lg e acima) */}
             <div className="hidden lg:flex flex-col gap-2 min-[400px]:flex-row mt-6">
@@ -96,12 +96,14 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* Player de vídeo VTURB - tamanho aumentado para desktop */}
-          <div className="flex items-center justify-center order-2 lg:order-2 mt-2 lg:mt-0">
-            {/* Container com tamanho maior para desktop */}
-            <div className="w-full max-w-[500px] lg:max-w-[600px] xl:max-w-[700px] aspect-video rounded-lg overflow-hidden shadow-lg">
-              {/* Div para o player VTURB */}
-              <div id="vid_681b49cd7d0049256a569f66" className="vturb-player"></div>
+          {/* Player de vídeo VTURB - Aparece após texto no mobile, lado direito no desktop */}
+          <div className="flex items-center justify-center order-2 lg:order-2 mt-6 lg:mt-2 w-full lg:w-auto">
+            <div className="w-full max-w-[500px] lg:max-w-[600px] xl:max-w-[700px] aspect-video rounded-lg overflow-hidden shadow-lg relative">
+              {/* Player VTURB usando Web Component */}
+              <vturb-smartplayer
+                id="vid-68f627a74b986c64f63e492b"
+                style={{ display: 'block', margin: '0 auto', width: '100%' }}
+              ></vturb-smartplayer>
 
               {/* Loader enquanto o player não carrega */}
               {!isPlayerLoaded && (
@@ -113,7 +115,7 @@ export default function HeroSection() {
           </div>
 
           {/* Botões apenas para mobile (abaixo de lg) */}
-          <div className="flex lg:hidden flex-col sm:flex-row gap-2 order-3 mt-4">
+          <div className="flex lg:hidden flex-col sm:flex-row gap-2 order-3 mt-4 w-full">
             <Button
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 relative overflow-hidden group shadow-lg shadow-blue-500/20 w-full sm:w-auto"

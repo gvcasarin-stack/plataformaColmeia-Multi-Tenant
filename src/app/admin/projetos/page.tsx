@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { User, AlertCircle, Users, CheckCircle2 } from 'lucide-react'
+import { User, AlertCircle, Users, CheckCircle2, PlusCircle, RotateCcw } from 'lucide-react'
 
 import { ProjectTable } from "@/features/projects"
 import { useProjects } from '@/lib/hooks/useProjects'
@@ -19,6 +19,7 @@ import { devLog } from "@/lib/utils/productionLogger";
 import React from 'react'
 import { TrialExpiredBlocker } from '@/components/security/TrialExpiredBlocker'
 import { canViewProjects } from '@/lib/utils/check-permissions'
+import { saveProjectFilters, getProjectFilters, resetProjectFilters, type ProjectFiltersPreference } from '@/lib/services/userPreferencesService'
 
 // ✅ CORREÇÃO: Importar KanbanBoard diretamente (sem lazy loading)
 // O lazy loading com ssr:false estava causando race condition na exibição dos badges
@@ -29,6 +30,9 @@ const AddColumnDialog = dynamic(() => import("@/components/kanban").then(mod => 
 {
   ssr: false
 });
+
+// 🆕 Importar modal de criação de projeto
+import { ClientCreateProjectModal } from '@/components/client/create-project-modal';
 
 
 
@@ -58,6 +62,15 @@ export default function ProjetosPage() {
   const [selectedResponsible, setSelectedResponsible] = useState<string>('')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+
+  // ✅ Estado para ordenação do Kanban
+  const [sortBy, setSortBy] = useState<string>('manual')
+
+  // 🆕 Estado para controlar se preferências já foram carregadas
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+
+  // 🆕 Estado para modal de criação de projeto
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false)
 
   const viewKanbanRef = React.useRef<{ reloadColumnTitles: () => Promise<boolean> }>(null)
 
@@ -107,6 +120,33 @@ export default function ProjetosPage() {
 
     checkTrialStatus()
   }, [user?.id])
+
+  // 🆕 Carregar preferências salvas ao montar o componente
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!user?.id || !organization?.id) return
+
+      try {
+        const savedPreferences = await getProjectFilters(user.id, organization.id)
+
+        if (savedPreferences) {
+          devLog.log('[ProjetosPage] Preferências carregadas:', savedPreferences)
+          setFilterType(savedPreferences.filterType || 'todos')
+          setSelectedResponsible(savedPreferences.selectedResponsible || '')
+          setSortBy(savedPreferences.sortBy || 'manual')
+          if (savedPreferences.viewMode) {
+            setViewMode(savedPreferences.viewMode)
+          }
+        }
+      } catch (error) {
+        devLog.error('[ProjetosPage] Erro ao carregar preferências:', error)
+      } finally {
+        setPreferencesLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [user?.id, organization?.id])
 
   // ✅ Buscar membros da equipe para o filtro
   useEffect(() => {
@@ -172,6 +212,30 @@ export default function ProjetosPage() {
     semResponsavel: projects.filter(p => !p.adminResponsibleId).length
   }), [projects, user?.id]);
 
+  // 🆕 Salvar preferências automaticamente quando mudarem
+  useEffect(() => {
+    // Não salvar antes de carregar as preferências iniciais
+    if (!preferencesLoaded || !user?.id || !organization?.id) return
+
+    const savePreferences = async () => {
+      try {
+        const preferences: ProjectFiltersPreference = {
+          filterType,
+          selectedResponsible: selectedResponsible || undefined,
+          sortBy: sortBy as any,
+          viewMode
+        }
+
+        await saveProjectFilters(preferences, user.id, organization.id)
+        devLog.log('[ProjetosPage] Preferências salvas:', preferences)
+      } catch (error) {
+        devLog.error('[ProjetosPage] Erro ao salvar preferências:', error)
+      }
+    }
+
+    savePreferences()
+  }, [filterType, selectedResponsible, sortBy, viewMode, preferencesLoaded, user?.id, organization?.id])
+
   // ✅ Handlers dos filtros
   const handleFilterTypeChange = (type: FilterType) => {
     setFilterType(type)
@@ -188,8 +252,57 @@ export default function ProjetosPage() {
     }
   }
 
+  // 🆕 Handler para resetar filtros
+  const handleResetFilters = async () => {
+    try {
+      setFilterType('todos')
+      setSelectedResponsible('')
+      setSortBy('manual')
+
+      if (user?.id && organization?.id) {
+        await resetProjectFilters(user.id, organization.id)
+        devLog.log('[ProjetosPage] Filtros resetados')
+      }
+
+      toast({
+        title: "Filtros resetados",
+        description: "Os filtros foram redefinidos para o padrão.",
+        className: "bg-blue-500 text-white"
+      })
+    } catch (error) {
+      devLog.error('[ProjetosPage] Erro ao resetar filtros:', error)
+    }
+  }
+
   const handleProjectClick = (project: Project) => {
     router.push(`/projetos/${project.id}`);
+  }
+
+  // 🆕 Handler para criar projeto (admin)
+  const { addProject } = useProjects()
+
+  const handleCreateProject = async (data: any) => {
+    try {
+      devLog.log('[ProjetosPage] Criando projeto como admin:', data)
+
+      const result = await addProject(data)
+
+      if (result) {
+        toast({
+          title: "Projeto criado!",
+          description: `Projeto ${result.number} criado com sucesso.`,
+          className: "bg-green-500 text-white"
+        })
+        setShowCreateProjectModal(false)
+      }
+    } catch (error: any) {
+      devLog.error('[ProjetosPage] Erro ao criar projeto:', error)
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao criar projeto",
+        variant: "destructive"
+      })
+    }
   }
 
 
@@ -271,7 +384,7 @@ export default function ProjetosPage() {
                 </Button>
               </div>
             </div>
-            <div className="mt-2">
+            <div className="mt-2 flex items-center gap-3">
               <AddColumnDialog
                 onColumnAdded={async (columnId, columnName) => {
                   // Mostrar toast de sucesso
@@ -288,6 +401,18 @@ export default function ProjetosPage() {
                   window.location.reload()
                 }}
               />
+
+              {/* 🆕 Botão Novo Projeto (apenas admin/superadmin) */}
+              {(user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin') && (
+                <Button
+                  onClick={() => setShowCreateProjectModal(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+                  size="default"
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Novo Projeto
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -306,7 +431,19 @@ export default function ProjetosPage() {
         <div className="mt-6 space-y-4 z-10 relative">
           {/* Chips de filtro rápido */}
           <div>
-            <p className="text-sm text-blue-100 mb-2">Filtrar por:</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-blue-100">Filtrar por:</p>
+              {/* 🆕 Botão Resetar Filtros */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="text-blue-100 hover:text-white hover:bg-white/10 transition-all duration-200"
+              >
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                Resetar Filtros
+              </Button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {/* Chip: Todos */}
               <button
@@ -440,6 +577,79 @@ export default function ProjetosPage() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* ✅ Dropdown de ordenação */}
+          <div>
+            <p className="text-sm text-blue-100 mb-2">Ordenar por:</p>
+            <Select
+              value={sortBy}
+              onValueChange={setSortBy}
+            >
+              <SelectTrigger className="w-full max-w-md bg-white/10 border-white/20 text-white hover:bg-white/20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                side="bottom"
+                align="start"
+                sideOffset={5}
+                avoidCollisions={false}
+                position="popper"
+                className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
+              >
+                <SelectItem value="manual">
+                  <span className="font-medium">Ordenação Manual</span>
+                </SelectItem>
+                <SelectItem value="delivery-date-asc">
+                  <span>Data de Entrega (Mais Próxima)</span>
+                </SelectItem>
+                <SelectItem value="delivery-date-desc">
+                  <span>Data de Entrega (Mais Distante)</span>
+                </SelectItem>
+                <SelectItem value="priority-desc">
+                  <span>Prioridade (Maior para Menor)</span>
+                </SelectItem>
+                <SelectItem value="priority-asc">
+                  <span>Prioridade (Menor para Maior)</span>
+                </SelectItem>
+                <SelectItem value="sla-asc">
+                  <span>SLA (Expira Primeiro)</span>
+                </SelectItem>
+                <SelectItem value="sla-desc">
+                  <span>SLA (Expira Depois)</span>
+                </SelectItem>
+                <SelectItem value="created-asc">
+                  <span>Data de Criação (Mais Antigos)</span>
+                </SelectItem>
+                <SelectItem value="created-desc">
+                  <span>Data de Criação (Mais Recentes)</span>
+                </SelectItem>
+                <SelectItem value="updated-desc">
+                  <span>Última Atualização (Mais Recentes)</span>
+                </SelectItem>
+                <SelectItem value="updated-asc">
+                  <span>Última Atualização (Mais Antigas)</span>
+                </SelectItem>
+                <SelectItem value="value-desc">
+                  <span>Valor do Projeto (Maior para Menor)</span>
+                </SelectItem>
+                <SelectItem value="value-asc">
+                  <span>Valor do Projeto (Menor para Maior)</span>
+                </SelectItem>
+                <SelectItem value="client-asc">
+                  <span>Cliente (A-Z)</span>
+                </SelectItem>
+                <SelectItem value="client-desc">
+                  <span>Cliente (Z-A)</span>
+                </SelectItem>
+                <SelectItem value="time-in-status-desc">
+                  <span>Tempo na Etapa (Mais Tempo)</span>
+                </SelectItem>
+                <SelectItem value="time-in-status-asc">
+                  <span>Tempo na Etapa (Menos Tempo)</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Decorative elements */}
@@ -453,6 +663,7 @@ export default function ProjetosPage() {
           <KanbanBoard
             projects={filteredProjects}
             onProjectUpdate={updateProject}
+            sortBy={sortBy}
             ref={viewKanbanRef}
           />
         )}
@@ -466,8 +677,8 @@ export default function ProjetosPage() {
       </div>
       
       {/* Project Form Modal - O botão abaixo será comentado para removê-lo da UI */}
-      {/* 
-      <Button 
+      {/*
+      <Button
         className="fixed right-5 bottom-5 rounded-full h-12 w-12 shadow-lg bg-orange-500 hover:bg-orange-600"
         onClick={() => setIsCreateModalOpen(true)}
       >
@@ -477,7 +688,15 @@ export default function ProjetosPage() {
         </svg>
       </Button>
       */}
-      
+
+      {/* 🆕 Modal de Criação de Projeto (Admin) */}
+      <ClientCreateProjectModal
+        open={showCreateProjectModal}
+        onOpenChange={setShowCreateProjectModal}
+        onSubmit={handleCreateProject}
+        isAdmin={true}
+        currentUserId={user?.id}
+      />
 
     </div>
   )

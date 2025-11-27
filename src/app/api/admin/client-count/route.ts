@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
 import { headers } from 'next/headers';
+import { handleTempTenant } from '@/lib/utils/temp-tenant-handler';
 
 /**
  * API PARA CONTAR CLIENTES NO PAINEL ADMIN
@@ -21,6 +22,20 @@ export async function GET(request: NextRequest) {
       tenantSlug
     });
 
+    if (!tenantId) {
+      devLog.error('[API] [Admin] [ClientCount] Tenant ID não encontrado nos headers');
+      return NextResponse.json(
+        { error: 'Acesso negado: tenant não identificado' },
+        { status: 403 }
+      );
+    }
+
+    // 🛠️ FALLBACK: Lidar com tenants temporários
+    const tempTenantResponse = handleTempTenant(tenantId, 'object', 'ClientCount');
+    if (tempTenantResponse) {
+      return tempTenantResponse;
+    }
+
     // Verificar se Service Role Key está disponível
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       devLog.warn('[API] [Admin] [ClientCount] Service Role Key não disponível');
@@ -37,7 +52,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .eq('role', 'cliente');
+      .eq('role', 'client'); // 🔧 CORREÇÃO: role correto é 'client' (inglês)
 
     // Aplicar filtro de tenant se disponível
     if (tenantId && tenantId !== 'null') {

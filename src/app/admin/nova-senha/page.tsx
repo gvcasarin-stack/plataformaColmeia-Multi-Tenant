@@ -149,31 +149,26 @@ function NovaSenhaContent() {
       setSuccess(true);
       toast.success("Senha definida com sucesso!");
 
-      // ✅ CORREÇÃO: Redirecionar para o domínio correto do tenant
+      // ✅ CORREÇÃO: Redirecionar para o domínio correto do tenant usando API segura
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-        if (user?.id) {
-          // Buscar tenant_id do usuário
-          const { data: userData } = await supabase
-            .from('users')
-            .select('tenant_id')
-            .eq('id', user.id)
-            .single();
+        if (currentSession?.access_token) {
+          // Chamar API segura para obter slug do tenant
+          const response = await fetch('/api/user/tenant-slug', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${currentSession.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          });
 
-          if (userData?.tenant_id) {
-            // Buscar slug da organização
-            const { data: orgData } = await supabase
-              .from('organizations')
-              .select('slug')
-              .eq('id', userData.tenant_id)
-              .single();
+          if (response.ok) {
+            const result = await response.json();
 
-            const slug = orgData?.slug;
-
-            if (slug) {
+            if (result.success && result.slug) {
               // Redirecionar para o domínio correto do tenant
-              const tenantDomain = `https://${slug}.gerenciamentofotovoltaico.com.br/admin/painel`;
+              const tenantDomain = `https://${result.slug}.gerenciamentofotovoltaico.com.br/admin/painel`;
               setTimeout(() => {
                 window.location.href = tenantDomain;
               }, 2000);

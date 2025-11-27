@@ -214,6 +214,10 @@ export function ProjectPageClient({ projectId }: ProjectPageClientProps) {
             title: 'Sucesso',
             description: result.message || 'Projeto atualizado com sucesso',
           });
+
+          // 🆕 Recarregar projeto para refletir mudanças (especialmente transferência de propriedade)
+          devLog.log('[AdminProjectPage] Recarregando projeto após atualização bem-sucedida');
+          await fetchProject();
         }
       } catch (actionError) {
         devLog.error('[AdminProjectPage] Error during updateProjectAction call:', actionError);

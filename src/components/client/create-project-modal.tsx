@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useForm, Controller } from "react-hook-form"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { getUserDataSupabase, UserData as AuthUserData } from "@/lib/services/authService.supabase"
+import { UserData as AuthUserData } from "@/lib/services/authService.supabase"
 import { devLog } from "@/lib/utils/productionLogger";
 import logger from '@/lib/utils/logger'
 
@@ -41,14 +41,19 @@ declare global {
 interface ClientCreateProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ClientFormData) => Promise<void>;
+  onSubmit: (data: ClientFormData & { owner_id?: string }) => Promise<void>;
+  isAdmin?: boolean;  // 🆕 Se true, mostra campo de proprietário
+  currentUserId?: string;  // 🆕 ID do usuário atual (admin)
 }
 
 interface ClientFormData {
   nomeClienteFinal: string;
+  cpf_cnpj_cliente_final?: string;  // ✅ NOVO CAMPO: CPF/CNPJ (opcional)
+  endereco_local?: string;           // ✅ NOVO CAMPO: Endereço (opcional)
   distribuidora: string;
   distribuidoraOutro?: string;
   power: number;
+  havera_beneficiarias?: boolean;    // ✅ NOVO CAMPO: Compensação de Créditos (opcional)
   listaMateriais?: string;
   disjuntorPadraoEntrada?: string;
   empresaIntegradora?: string;
@@ -57,21 +62,32 @@ interface ClientFormData {
   valorProjeto?: number;
 }
 
-export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: ClientCreateProjectModalProps) {
-  devLog.log('ClientCreateProjectModal rendered with props:', { open, hasOnOpenChange: !!onOpenChange, hasOnSubmit: !!onSubmit });
-  
+export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin = false, currentUserId }: ClientCreateProjectModalProps) {
+  devLog.log('ClientCreateProjectModal rendered with props:', { open, hasOnOpenChange: !!onOpenChange, hasOnSubmit: !!onSubmit, isAdmin });
+
   const { user } = useAuth();
   const [userData, setUserData] = useState<AuthUserData | null>(null);
   const [loading, setLoading] = useState(false);
   const [showOutroInput, setShowOutroInput] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 🆕 Estados para admin: lista de clientes e proprietário selecionado
+  const [clients, setClients] = useState<Array<{ id: string; name: string; email: string; companyName?: string; isCompany?: boolean }>>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string>(currentUserId || '');
+  const [selectedOwnerData, setSelectedOwnerData] = useState<{ name: string; companyName?: string } | null>(null); // 🆕 Dados do cliente selecionado
+  const [organizationName, setOrganizationName] = useState<string>(''); // Nome da organização/tenant
+  const [clientSearchQuery, setClientSearchQuery] = useState<string>(''); // 🆕 Query de busca de clientes
   
   const { register, handleSubmit, reset, formState: { errors }, setValue, control, watch } = useForm<ClientFormData>({
     defaultValues: {
       nomeClienteFinal: "",
+      cpf_cnpj_cliente_final: "",     // ✅ NOVO CAMPO
+      endereco_local: "",              // ✅ NOVO CAMPO
       distribuidora: "",
       distribuidoraOutro: "",
       power: 0,
+      havera_beneficiarias: false,     // ✅ NOVO CAMPO
       listaMateriais: "",
       disjuntorPadraoEntrada: "",
       empresaIntegradora: "",
@@ -83,17 +99,102 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
   
   // Observar mudanças no campo distribuidora para mostrar o campo "Outro" quando necessário
   const distribuidoraSelecionada = watch("distribuidora");
-  
+
   useEffect(() => {
     setShowOutroInput(distribuidoraSelecionada === "Outro");
   }, [distribuidoraSelecionada]);
-  
+
+  // 🆕 Buscar lista de clientes E nome da organização (apenas para admin)
+  useEffect(() => {
+    async function fetchAdminData() {
+      if (!isAdmin || !open) return;
+
+      setLoadingClients(true);
+      try {
+        // Buscar clientes
+        const clientsResponse = await fetch('/api/admin/clients', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (clientsResponse.ok) {
+          const clientsResult = await clientsResponse.json();
+          // 🆕 Mapear company_name (snake_case) para companyName (camelCase)
+          const mappedClients = (clientsResult.data || []).map((client: any) => ({
+            id: client.id,
+            name: client.name,
+            email: client.email,
+            companyName: client.company_name, // Mapear de snake_case para camelCase
+            isCompany: client.is_company // 🔧 Incluir is_company
+          }));
+          setClients(mappedClients);
+          devLog.log('[CreateProjectModal] Clientes carregados:', mappedClients.length);
+        }
+
+        // 🆕 Buscar nome da organização
+        const orgResponse = await fetch('/api/tenant/organization', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (orgResponse.ok) {
+          const orgResult = await orgResponse.json();
+          if (orgResult.success && orgResult.data?.name) {
+            setOrganizationName(orgResult.data.name);
+            devLog.log('[CreateProjectModal] Nome da organização:', orgResult.data.name);
+          }
+        }
+      } catch (error) {
+        devLog.error('[CreateProjectModal] Erro ao buscar dados:', error);
+      } finally {
+        setLoadingClients(false);
+      }
+    }
+
+    fetchAdminData();
+  }, [isAdmin, open]);
+
+  // 🆕 Efeito para atualizar dados do proprietário selecionado
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    if (selectedOwnerId === currentUserId) {
+      // Admin selecionou a si mesmo - usar nome da organização
+      setSelectedOwnerData(null);
+    } else {
+      // Admin selecionou um cliente - buscar dados do cliente
+      const selectedClient = clients.find(c => c.id === selectedOwnerId);
+      if (selectedClient) {
+        setSelectedOwnerData({
+          name: selectedClient.name || selectedClient.email,
+          companyName: selectedClient.companyName
+        });
+      }
+    }
+  }, [selectedOwnerId, clients, currentUserId, isAdmin]);
+
   // Efeito para carregar dados do usuário
   useEffect(() => {
     async function fetchUserData() {
       if (user?.id) {
         try {
-          const data: AuthUserData = await getUserDataSupabase(user.id);
+          // ✅ CORREÇÃO: Substituir chamada direta ao Supabase por API segura
+          const response = await fetch(`/api/user/profile?userId=${user.id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erro na API: ${response.status}`);
+          }
+
+          const data: AuthUserData = await response.json();
           setUserData(data);
           if (data?.isCompany && data?.companyName && !watch('empresaIntegradora')) {
             setValue('empresaIntegradora', data.companyName || '');
@@ -136,15 +237,36 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
       const currentDisplayUser = userData || (user ? { name: user.profile?.full_name || user.email, email: user.email, uid: user.id } : {});
 
       const distribuidoraFinal = data.distribuidora === "Outro" ? data.distribuidoraOutro : data.distribuidora;
-      
-      const projectPayload: ClientFormData = {
+
+      // 🆕 CORRIGIDO: Determinar empresa integradora com base no proprietário selecionado
+      let empresaIntegradoraFinal = data.empresaIntegradora;
+
+      if (!empresaIntegradoraFinal) {
+        if (isAdmin) {
+          // Admin criando projeto
+          if (selectedOwnerId === currentUserId) {
+            // Admin é o proprietário - usar nome da organização
+            empresaIntegradoraFinal = organizationName || 'Cliente Individual';
+          } else {
+            // Cliente é o proprietário - usar dados do cliente selecionado
+            empresaIntegradoraFinal = selectedOwnerData?.companyName || selectedOwnerData?.name || 'Cliente Individual';
+          }
+        } else {
+          // Cliente criando seu próprio projeto
+          empresaIntegradoraFinal = (currentDisplayUser as AuthUserData)?.companyName || (currentDisplayUser as any)?.name || 'Cliente Individual';
+        }
+      }
+
+      const projectPayload = {
         ...data,
         distribuidora: distribuidoraFinal || '',
-        empresaIntegradora: data.empresaIntegradora || (currentDisplayUser as AuthUserData)?.companyName || (currentDisplayUser as any)?.name || 'Cliente Individual',
+        empresaIntegradora: empresaIntegradoraFinal,
+        // 🆕 Adicionar owner_id: se admin, usa selecionado; se cliente, usa próprio userId
+        ...(isAdmin && { owner_id: selectedOwnerId })
       };
-      
+
       devLog.log(`[${submitId}] Dados do formulário para onSubmit:`, projectPayload);
-      
+
       await onSubmit(projectPayload);
       devLog.log(`[${submitId}] Submissão (chamada a onSubmit) concluída com sucesso`);
       reset();
@@ -175,21 +297,21 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {(() => { devLog.log('Dialog rendering with open:', open); return null; })()}
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-[500px] max-h-[90vh] p-4 sm:p-6 rounded-lg border border-gray-200 shadow-lg">
-        <DialogHeader className="space-y-3 pb-5 border-b border-gray-100 flex-shrink-0">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[500px] max-h-[90vh] p-0 rounded-lg border border-gray-200 shadow-lg flex flex-col">
+        <DialogHeader className="space-y-3 p-4 sm:p-6 pb-4 border-b border-gray-100 flex-shrink-0">
           <DialogTitle className="text-xl sm:text-2xl font-semibold text-gray-800">Criar Novo Projeto</DialogTitle>
           <p className="text-xs sm:text-sm text-gray-500">Preencha os detalhes abaixo para criar um novo projeto solar.</p>
         </DialogHeader>
-        
+
         {/* Exibir mensagem de erro detalhada se houver */}
         {error && (
-          <div className="bg-red-50 p-4 rounded-md my-5 border-l-4 border-red-400">
+          <div className="bg-red-50 p-4 mx-4 sm:mx-6 rounded-md my-3 border-l-4 border-red-400 flex-shrink-0">
             <Label className="text-sm font-medium text-red-600">Diagnóstico do Erro</Label>
             <pre className="whitespace-pre-wrap text-xs font-mono mt-2 text-red-700 max-h-40 overflow-auto">
               {error}
             </pre>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="mt-2"
               onClick={() => setError(null)}
             >
@@ -197,9 +319,9 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
             </Button>
           </div>
         )}
-        
-        <ScrollArea className="max-h-[60vh] sm:max-h-none overflow-y-auto flex-1">
-          <form id="project-form" onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 sm:space-y-5 mt-2 pr-4">
+
+        <div className="overflow-y-auto flex-1 px-4 sm:px-6">
+          <form id="project-form" onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 sm:space-y-5 py-4">
           <div className="space-y-2">
             <Label htmlFor="nomeClienteFinal" className="text-xs sm:text-sm font-medium text-gray-700">
               Nome Cliente Final <span className="text-red-500">*</span>
@@ -218,6 +340,33 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
                 Nome do cliente é obrigatório
               </p>
             )}
+          </div>
+
+          {/* ✅ NOVO CAMPO: CPF/CNPJ do Cliente Final (opcional) */}
+          <div className="space-y-2">
+            <Label htmlFor="cpf_cnpj_cliente_final" className="text-xs sm:text-sm font-medium text-gray-700">
+              CPF/CNPJ do Cliente Final
+            </Label>
+            <Input
+              id="cpf_cnpj_cliente_final"
+              {...register("cpf_cnpj_cliente_final")}
+              placeholder="Ex: 000.000.000-00 ou 00.000.000/0000-00"
+              maxLength={20}
+              className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+            />
+          </div>
+
+          {/* ✅ NOVO CAMPO: Endereço do Local (opcional) */}
+          <div className="space-y-2">
+            <Label htmlFor="endereco_local" className="text-xs sm:text-sm font-medium text-gray-700">
+              Endereço do Local
+            </Label>
+            <Input
+              id="endereco_local"
+              {...register("endereco_local")}
+              placeholder="Ex: Rua das Flores, 123 - Centro - Florianópolis/SC"
+              className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+            />
           </div>
 
           <div className="space-y-2">
@@ -317,6 +466,54 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="havera_beneficiarias" className="text-xs sm:text-sm font-medium text-gray-700">
+              Haverá Compensação de Créditos?
+            </Label>
+            <Controller
+              name="havera_beneficiarias"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  onValueChange={(value) => field.onChange(value === "true")}
+                  value={field.value ? "true" : "false"}
+                >
+                  <SelectTrigger className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={4}
+                    avoidCollisions={false}
+                    collisionPadding={20}
+                  >
+                    <SelectItem value="false">Não</SelectItem>
+                    <SelectItem value="true">Sim</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+
+            {/* Mensagem de aviso quando Sim for selecionado */}
+            {watch("havera_beneficiarias") && (
+              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-600 text-lg flex-shrink-0">⚡</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-purple-900 mb-1">
+                      Atenção: Este projeto possui compensação de créditos
+                    </p>
+                    <p className="text-xs text-purple-700">
+                      Envie as <strong>Faturas das Unidades Beneficiárias</strong> na Linha do Tempo do Projeto no campo adequado após a criação.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="listaMateriais" className="text-xs sm:text-sm font-medium text-gray-700">
               Lista de Materiais
             </Label>
@@ -341,20 +538,134 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit }: Clien
             />
           </div>
 
+          {/* 🆕 CAMPO APENAS PARA ADMIN: Proprietário do Projeto */}
+          {isAdmin && (
+            <div className="space-y-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <Label className="text-sm font-semibold text-gray-800">
+                  Proprietário do Projeto
+                </Label>
+              </div>
+
+              <Select
+                value={selectedOwnerId}
+                onValueChange={setSelectedOwnerId}
+                disabled={loadingClients}
+              >
+                <SelectTrigger className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-blue-400 focus:ring focus:ring-blue-200 transition-all">
+                  <SelectValue placeholder={loadingClients ? "Carregando..." : "Selecione o proprietário"} />
+                </SelectTrigger>
+                <SelectContent
+                  position="popper"
+                  side="bottom"
+                  align="start"
+                  sideOffset={4}
+                  avoidCollisions={false}
+                  collisionPadding={20}
+                  className="max-h-[300px] overflow-y-auto"
+                >
+                  {/* Opção: Minha conta (admin) */}
+                  <SelectItem value={currentUserId || ''}>
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <div>
+                        <p className="font-medium">Minha conta</p>
+                        <p className="text-xs text-gray-500">O projeto ficará na sua lista</p>
+                      </div>
+                    </div>
+                  </SelectItem>
+
+                  {/* Clientes existentes */}
+                  {clients.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">
+                        Atribuir a um cliente
+                      </div>
+
+                      {/* 🆕 Campo de busca */}
+                      <div className="px-2 py-2 sticky top-0 bg-white border-b border-gray-200">
+                        <div className="relative">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <Input
+                            type="text"
+                            placeholder="Buscar por empresa ou cliente..."
+                            value={clientSearchQuery}
+                            onChange={(e) => setClientSearchQuery(e.target.value)}
+                            className="h-9 pl-9 pr-3 text-xs border-gray-300 focus:border-blue-400 focus:ring focus:ring-blue-200"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Lista de clientes filtrada */}
+                      {clients
+                        .filter((client) => {
+                          const query = clientSearchQuery.toLowerCase().trim();
+                          if (!query) return true;
+
+                          const nameMatch = client.name?.toLowerCase().includes(query);
+                          const companyMatch = client.companyName?.toLowerCase().includes(query);
+
+                          return nameMatch || companyMatch;
+                        })
+                        .map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            <div className="flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              <div>
+                                <p className="font-medium">
+                                  {/* 🆕 INVERSÃO: Empresa primeiro, Nome entre parênteses */}
+                                  {client.isCompany && client.companyName ? (
+                                    <>
+                                      {client.companyName}
+                                      <span className="text-gray-600"> ({client.name})</span>
+                                    </>
+                                  ) : (
+                                    client.name
+                                  )}
+                                </p>
+                                <p className="text-xs text-gray-500">{client.email}</p>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+
+              {/* Dica útil */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  💡 <strong>Dica:</strong> Se o cliente ainda não tem conta, crie na sua conta. Depois você pode transferir usando o botão "Transferir Propriedade" na tela do projeto.
+                </p>
+              </div>
+            </div>
+          )}
+
           </form>
-        </ScrollArea>
-        
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-gray-100 mt-4 flex-shrink-0">
-          <Button 
-            type="button" 
-            variant="outline" 
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 p-4 sm:p-6 pt-4 border-t border-gray-100 flex-shrink-0">
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => onOpenChange(false)}
             className="w-full sm:w-auto h-10 px-4 sm:px-5 text-sm text-gray-700 border-gray-300 hover:bg-gray-50"
           >
             Cancelar
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             form="project-form"
             className="w-full sm:w-auto h-10 px-4 sm:px-5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all text-sm"
             disabled={loading || (typeof window !== 'undefined' && window._isCreatingProject)}

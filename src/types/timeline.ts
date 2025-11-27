@@ -85,4 +85,10 @@ export interface TimelineEvent {
   
   /** Metadados adicionais do evento */
   metadata?: Record<string, any>;
+
+  /** Visibilidade do comentário: 'all' (todos) ou 'internal' (apenas equipe interna) */
+  visibility?: 'all' | 'internal';
+
+  /** 🎨 URLs de imagens inline no comentário */
+  images?: string[];
 } 

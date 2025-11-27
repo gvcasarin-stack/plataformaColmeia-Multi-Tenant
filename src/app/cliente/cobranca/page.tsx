@@ -91,10 +91,10 @@ export default function ClientBillingPage() {
         const clientProjects = result.data || [];
         devLog.log("Projects fetched via action:", clientProjects.length);
 
-        // The server action should ideally handle filtering by userId if it's a generic getProjects call internally.
-        // If getClientProjectsAction is specific to a client, this client-side filter might be redundant but safe.
-        const userProjects = clientProjects.filter(project => project.userId === user.id);
-        devLog.log("Filtered to user projects (client-side check):", userProjects.length);
+        // ✅ CORREÇÃO: Server action já filtra por owner_id, não precisa filtrar novamente
+        // Filtro client-side removido para usar owner_id do backend
+        const userProjects = clientProjects;
+        devLog.log("User projects:", userProjects.length);
 
         const projectsWithInvoiceStatus = userProjects.map((project) => {
           const paymentStatus = project.pagamento || 'pendente';

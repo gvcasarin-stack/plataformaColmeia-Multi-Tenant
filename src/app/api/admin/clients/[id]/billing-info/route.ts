@@ -10,6 +10,7 @@ export async function GET(
 ) {
   try {
     const clientId = params.id;
+
     devLog.log('[API /admin/clients/[id]/billing-info] Buscando billing info para cliente:', clientId);
 
     const hdrs = headers();
@@ -46,16 +47,34 @@ export async function GET(
 
     // Se for pacote, buscar informações do pacote
     if (billingMode === 'pacote') {
-      // Primeiro, tentar buscar pacote ATIVO
-      const { data: pacoteAtivo, error: erroAtivo } = await supabase
+      // Primeiro, tentar buscar pacote ATIVO com user_id
+      let { data: pacoteAtivo, error: erroAtivo } = await supabase
         .from('cliente_pacotes')
         .select(`
           *,
-          pacote:pacotes_definicoes(nome, quantidade_projetos, validade_dias, preco)
+          pacote:pacotes_definicoes(nome, quantidade_projetos, validade_dias, valor)
         `)
         .eq('user_id', clientId)
         .eq('status', 'ativo')
         .single();
+
+      // Se não encontrou com user_id, tentar com cliente_id
+      if (erroAtivo && erroAtivo.code === 'PGRST116') {
+        const { data: pacoteComClienteId, error: erroClienteId } = await supabase
+          .from('cliente_pacotes')
+          .select(`
+            *,
+            pacote:pacotes_definicoes(nome, quantidade_projetos, validade_dias, valor)
+          `)
+          .eq('cliente_id', clientId)
+          .eq('status', 'ativo')
+          .single();
+
+        if (!erroClienteId) {
+          pacoteAtivo = pacoteComClienteId;
+          erroAtivo = null;
+        }
+      }
 
       devLog.log('[API billing-info] Busca pacote ATIVO:', {
         clientId,
@@ -73,7 +92,7 @@ export async function GET(
           data_ativacao: pacoteAtivo.data_ativacao,
           data_expiracao: pacoteAtivo.data_expiracao,
           status: pacoteAtivo.status,
-          preco: pacoteAtivo.pacote?.preco || null
+          preco: pacoteAtivo.pacote?.valor || null
         };
       } else {
         // Se não encontrou ativo, buscar QUALQUER pacote (para debug)
@@ -81,7 +100,7 @@ export async function GET(
           .from('cliente_pacotes')
           .select(`
             *,
-            pacote:pacotes_definicoes(nome, quantidade_projetos, validade_dias, preco)
+            pacote:pacotes_definicoes(nome, quantidade_projetos, validade_dias, valor)
           `)
           .eq('user_id', clientId)
           .order('created_at', { ascending: false });
@@ -111,7 +130,7 @@ export async function GET(
             data_ativacao: ultimoPacote.data_ativacao,
             data_expiracao: ultimoPacote.data_expiracao,
             status: ultimoPacote.status,
-            preco: ultimoPacote.pacote?.preco || null
+            preco: ultimoPacote.pacote?.valor || null
           };
         }
       }

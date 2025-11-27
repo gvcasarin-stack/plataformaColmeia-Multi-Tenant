@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createTenantHeaders } from '@/lib/utils/tenant-helper';
+import { devLog } from '@/lib/utils/productionLogger';
 import { PlusCircle } from 'lucide-react';
 
 interface AddTransactionModalProps {
@@ -72,20 +73,23 @@ export default function AddTransactionModal({ onTransactionAdded, month, year }:
         description: 'A transação foi criada com sucesso.',
         variant: 'default',
       });
-      
+
       setFormData({
         description: '',
         amount: '',
         category: '',
-        type: 'despesa',
+        type: 'expense',
         date: new Date().toISOString().split('T')[0]
       });
-      
+
       setOpen(false);
       onTransactionAdded();
-      
+
+      // ✅ Notificar outras abas sobre mudança nos dados financeiros
+      window.dispatchEvent(new CustomEvent('financial-data-updated'));
+
     } catch (error) {
-      console.error('Erro ao criar transação:', error);
+      devLog.error('Erro ao criar transação:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível criar a transação.',

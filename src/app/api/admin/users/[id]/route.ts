@@ -15,7 +15,7 @@ export async function GET(
     const supabase = createSupabaseServiceRoleClient();
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, name, phone, status, role')
+      .select('id, email, name, phone, status, role, cpf, cnpj, is_company, company_name')
       .eq('id', userId)
       .single();
 
@@ -31,12 +31,16 @@ export async function GET(
     const payload = {
       id: data.id,
       email: data.email,
-      name: data.full_name || data.email,
+      name: data.name || data.email,
       phone: data.phone,
+      // Campos do banco (retornar em ambos os formatos para compatibilidade)
+      is_company: data.is_company,
+      company_name: data.company_name,
+      cpf: data.cpf,
+      cnpj: data.cnpj,
+      // Campos camelCase para compatibilidade
       isCompany: data.is_company,
       companyName: data.company_name,
-      cnpj: data.cnpj,
-      cpf: data.cpf,
     };
 
     return NextResponse.json({ success: true, data: payload });

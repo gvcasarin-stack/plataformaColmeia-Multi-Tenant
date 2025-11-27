@@ -1,9 +1,33 @@
 import { useProjects } from '@/lib/hooks/useProjects'
 // Firebase Timestamp removido - usando Date nativo
 import { Project } from '@/types/project'
+import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
+import { useState, useEffect } from 'react'
+import { devLog } from '@/lib/utils/productionLogger'
 
 export function ProjectsOverview() {
   const { projects, loading } = useProjects()
+  const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([])
+  const [statusLoading, setStatusLoading] = useState(true)
+
+  // Carregar status dinâmicos do tenant
+  useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        setStatusLoading(true);
+        const statuses = await getProjectStatuses();
+        setAvailableStatuses(statuses);
+        devLog.log('[ProjectsOverview] Status carregados:', statuses.length);
+      } catch (error) {
+        devLog.error('[ProjectsOverview] Erro ao carregar status:', error);
+        setAvailableStatuses([]);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    loadStatuses();
+  }, []);
 
   // Get real numbers from Firebase data
   const stats = {
@@ -35,8 +59,14 @@ export function ProjectsOverview() {
       return projectDate.getFullYear() === now.getFullYear();
     }).length,
 
-    // Completed projects - count projects with status 'Finalizado'
-    concluidos: projects.filter(p => p.status === 'Finalizado').length
+    // Completed projects - count projects with status finalizados (usar slugs dinâmicos)
+    concluidos: projects.filter(p => {
+      // Procurar por status que podem indicar conclusão
+      const finalizadoStatuses = availableStatuses.filter(s =>
+        s.slug === 'finalizado' || s.name.toLowerCase().includes('finalizado') || s.name.toLowerCase().includes('concluído')
+      );
+      return finalizadoStatuses.some(s => s.slug === p.status);
+    }).length
   }
 
   // Calculate real percentages

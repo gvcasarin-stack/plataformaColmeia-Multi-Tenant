@@ -1,23 +1,35 @@
 'use client';
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Project, TimelineEvent, ProjectFile, UpdatedProject } from "@/types/project"
-import { 
-  Edit, 
-  Save, 
-  X, 
-  Trash2, 
+import {
+  Edit,
+  Save,
+  X,
+  Trash2,
   Building,
-  DollarSign,   
+  DollarSign,
   ChevronLeft,
-  User,          
+  User,
   Settings,      // ✅ Para substituir outros ícones
-  Download       // ✅ Ícone correto de download
+  Download,      // ✅ Ícone correto de download
+  CreditCard,    // ✅ Para CPF/CNPJ
+  MapPin,        // ✅ Para endereço
+  Factory,       // ✅ Para distribuidora
+  Zap,           // ✅ Para potência (raio)
+  Plug,          // ✅ Para disjuntor (tomada)
+  Clock,         // ✅ Para datas
+  Lock,          // ✅ Para comentários internos
+  Camera,        // 🎨 Para upload de imagens em comentários
+  Archive,       // ✅ Para arquivar projeto
+  Package,       // 📦 Para pacotes
+  CalendarCheck  // 📅 Para assinaturas
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -32,16 +44,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { FileUploadSection } from "@/components/file-upload-section"
-import { uploadProjectFile, FileUploadResult, FileOperationUser } from '@/lib/services/fileService/index'
+import { uploadProjectFileAction } from '@/lib/actions/file-actions'
 import { ErrorBoundary } from "@/components/error-boundary"
 import { v4 as uuidv4 } from 'uuid'
 import { calculateProjectCost } from "@/lib/utils/projectUtils"
 import { resetAllForms } from '@/lib/utils/reset'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 // ❌ FIREBASE - REMOVIDO: import { Timestamp } from 'firebase/firestore'
 import { deleteCommentAction, deleteFileAction } from '@/lib/actions/project-actions'
-import { useTransition } from 'react'
 import { ProjectResponsibleAdmin } from './project-view/project-responsible-admin'
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 
@@ -61,6 +73,23 @@ const ALLOWED_FILE_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
 const MAX_FILES = 5;
+
+// Lista de distribuidoras de energia
+const DISTRIBUIDORAS = [
+  "Enel",
+  "Copel",
+  "Cemig",
+  "CPFL",
+  "Neoenergia Cosern",
+  "Light",
+  "EDP",
+  "Celesc",
+  "Energisa",
+  "Equatorial",
+  "RGE",
+  "Amazonas Energia",
+  "Outro"
+];
 
 export interface ExpandedProjectViewProps {
   project: Project;
@@ -168,6 +197,23 @@ export const ExpandedProjectView = ({
     return '';
   };
 
+  // Função para formatar CPF/CNPJ com pontuação
+  const formatCpfCnpj = (value: string | undefined): string => {
+    if (!value) return '';
+    const numbers = value.replace(/\D/g, '');
+
+    if (numbers.length === 11) {
+      // CPF: 000.000.000-00
+      return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    } else if (numbers.length === 14) {
+      // CNPJ: 00.000.000/0000-00
+      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    // Se não tiver 11 ou 14 dígitos, retorna sem formatação
+    return value;
+  };
+
   const formatDateBR = (value: any): string => {
     if (!value) return 'N/A';
     if (typeof value === 'string') {
@@ -249,13 +295,116 @@ export const ExpandedProjectView = ({
     valorProjeto: project.valorProjeto === undefined ? null : project.valorProjeto,
     pagamento: project.pagamento,
 
+    // 💳 BILLING: Preservar campos de faturamento
+    billing_mode: project.billing_mode || 'avulso',
+    billing_snapshot: project.billing_snapshot || null,
+
     listaMateriais: project.listaMateriais,
-    disjuntorPadraoEntrada: project.disjuntorPadraoEntrada
+    disjuntorPadraoEntrada: project.disjuntorPadraoEntrada,
+    cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final,
+    endereco_local: project.endereco_local,
+    havera_beneficiarias: project.havera_beneficiarias || false
   })
   const [newComment, setNewComment] = useState('')
+  const [commentVisibility, setCommentVisibility] = useState<'all' | 'internal'>('all')
+  const [commentImages, setCommentImages] = useState<File[]>([])
+  const [commentImagePreviews, setCommentImagePreviews] = useState<string[]>([])
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>(
     project.timelineEvents || []
   );
+
+  // 🎨 Handler para adicionar imagens aos comentários
+  const handleCommentImageSelect = (files: File[]) => {
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione apenas arquivos de imagem.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Limitar a 5 imagens por comentário
+    const maxImages = 5;
+    if (commentImages.length + imageFiles.length > maxImages) {
+      toast({
+        title: "Limite de imagens",
+        description: `Você pode adicionar no máximo ${maxImages} imagens por comentário.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar tamanho (máximo 10MB por imagem)
+    const maxSize = 10 * 1024 * 1024;
+    const oversizedFiles = imageFiles.filter(file => file.size > maxSize);
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "Cada imagem deve ter no máximo 10MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Criar previews
+    const newPreviews: string[] = [];
+    imageFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          newPreviews.push(e.target.result as string);
+          if (newPreviews.length === imageFiles.length) {
+            setCommentImagePreviews(prev => [...prev, ...newPreviews]);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    setCommentImages(prev => [...prev, ...imageFiles]);
+  };
+
+  // 🎨 Handler para remover imagem do preview
+  const handleRemoveCommentImage = (index: number) => {
+    setCommentImages(prev => prev.filter((_, i) => i !== index));
+    setCommentImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // 🎨 Handler para paste de imagens (Ctrl+V)
+  const handleCommentPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      handleCommentImageSelect(imageFiles);
+    }
+  };
+
+  // 🎨 Handler para drag and drop de imagens
+  const handleCommentDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleCommentDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = Array.from(e.dataTransfer.files);
+    handleCommentImageSelect(files);
+  };
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
   const [isDragging, setIsDragging] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -266,11 +415,44 @@ export const ExpandedProjectView = ({
   const [activeTab, setActiveTab] = useState("visao-geral");
   const [showAddDocumentSection, setShowAddDocumentSection] = useState(false);
   const [showAddCommentSection, setShowAddCommentSection] = useState(false);
+  const [showBeneficiariasUploadSection, setShowBeneficiariasUploadSection] = useState(false);
+  const [numBeneficiarias, setNumBeneficiarias] = useState(2);
+  const [selectedBeneficiariaFiles, setSelectedBeneficiariaFiles] = useState<{[key: string]: File | null}>({});
+  const [uploadingBeneficiaria, setUploadingBeneficiaria] = useState<string | null>(null);
+  const [percentuaisBeneficiarias, setPercentuaisBeneficiarias] = useState<{[key: string]: string}>({});
   const isPending = false; // Placeholder
   const [isSessionChecking, setIsSessionChecking] = useState(false);
   const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
   const [statusLoading, setStatusLoading] = useState(true);
   const [isDeleting, startDeleteTransition] = useTransition();
+
+  // 🖼️ Estado para modal de ampliação de imagem
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+
+  // 🆕 Estados para proprietários do projeto
+  const [owners, setOwners] = useState<Array<{ id: string; name: string; email: string; companyName?: string; isCompany?: boolean }>>([]);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string>('');
+  const [loadingOwners, setLoadingOwners] = useState(false);
+  const [organizationName, setOrganizationName] = useState<string>('');
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState<string>(''); // 🆕 Query de busca de proprietários
+
+  // 🗑️ Estados para arquivar projeto
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  // 🆕 Inicializar selectedOwnerId quando owners for carregado
+  useEffect(() => {
+    const currentOwnerId = project.owner_id || project.userId || '';
+    setSelectedOwnerId(currentOwnerId);
+    devLog.log('[ExpandedProjectView] Owner ID inicializado:', currentOwnerId);
+  }, [project.owner_id, project.userId]);
+
+  // 🆕 Função para obter o nome do proprietário atual
+  const getCurrentOwnerName = (): string => {
+    // O empresaIntegradora já vem calculado dinamicamente do backend
+    // baseado no owner_id, então podemos confiar nele
+    return project.empresaIntegradora || 'N/A';
+  };
 
   // Carregar status dinâmicos do tenant
   useEffect(() => {
@@ -295,6 +477,53 @@ export const ExpandedProjectView = ({
 
     loadStatuses();
   }, []);
+
+  // 🆕 Carregar lista de proprietários (admin + clientes) - apenas para admins
+  useEffect(() => {
+    const loadOwners = async () => {
+      if (!isAdminPanel) return;
+
+      setLoadingOwners(true);
+      try {
+        // Buscar clientes
+        const clientsResponse = await fetch('/api/admin/clients', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (clientsResponse.ok) {
+          const clientsResult = await clientsResponse.json();
+          const mappedClients = (clientsResult.data || []).map((client: any) => ({
+            id: client.id,
+            name: client.name,
+            email: client.email,
+            companyName: client.company_name,
+            isCompany: client.is_company // 🔧 Incluir is_company
+          }));
+          setOwners(mappedClients);
+        }
+
+        // Buscar nome da organização
+        const orgResponse = await fetch('/api/tenant/organization', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (orgResponse.ok) {
+          const orgResult = await orgResponse.json();
+          if (orgResult.success && orgResult.data?.name) {
+            setOrganizationName(orgResult.data.name);
+          }
+        }
+      } catch (error) {
+        devLog.error('[ExpandedProjectView] Erro ao buscar proprietários:', error);
+      } finally {
+        setLoadingOwners(false);
+      }
+    };
+
+    loadOwners();
+  }, [isAdminPanel]);
 
   useEffect(() => {
     if (!user) {
@@ -418,10 +647,16 @@ export const ExpandedProjectView = ({
       // ✅ DETECTAR MUDANÇA DE STATUS
       const statusChanged = project.status !== editedProject.status;
 
-      devLog.log('🔍 [EXPANDED PROJECT DEBUG] Verificando mudança de status:', {
+      // ✅ DETECTAR MUDANÇA DE PROPRIETÁRIO
+      const ownerChanged = (project.owner_id || project.userId) !== selectedOwnerId;
+
+      devLog.log('🔍 [EXPANDED PROJECT DEBUG] Verificando mudanças:', {
         originalStatus: project.status,
         newStatus: editedProject.status,
         statusChanged,
+        originalOwner: project.owner_id || project.userId,
+        newOwner: selectedOwnerId,
+        ownerChanged,
         user: user,
         userProfileFullName: user?.profile?.full_name,
         userEmail: user?.email
@@ -459,8 +694,24 @@ export const ExpandedProjectView = ({
 
       let updateEvent: TimelineEvent;
 
-      if (statusChanged) {
-        // Se o status mudou, criar evento de mudança de status
+      if (statusChanged && ownerChanged) {
+        // Se status E proprietário mudaram, criar evento combinado
+        const statusName = availableStatuses.find(s => s.slug === editedProject.status)?.name || editedProject.status;
+        const oldStatusName = availableStatuses.find(s => s.slug === project.status)?.name || project.status;
+        const slaDays = availableStatuses.find(s => s.slug === editedProject.status)?.slaDays;
+
+        const newOwnerName = selectedOwnerId === user.id
+          ? (organizationName || 'Minha Empresa')
+          : (owners.find(o => o.id === selectedOwnerId)?.companyName || owners.find(o => o.id === selectedOwnerId)?.name || 'Novo proprietário');
+
+        updateEvent = createTimelineEvent('status', {
+          content: `Status alterado de "${oldStatusName}" para "${statusName}"${slaExpiresAt && slaDays ? ` (Prazo: ${slaDays} dia${slaDays !== 1 ? 's' : ''})` : ''}. Projeto transferido para ${newOwnerName}.`,
+          oldStatus: project.status,
+          newStatus: editedProject.status
+        });
+        devLog.log('✅ [EXPANDED PROJECT] Criado evento de STATUS CHANGE + TRANSFER:', updateEvent);
+      } else if (statusChanged) {
+        // Se apenas o status mudou
         const statusName = availableStatuses.find(s => s.slug === editedProject.status)?.name || editedProject.status;
         const oldStatusName = availableStatuses.find(s => s.slug === project.status)?.name || project.status;
         const slaDays = availableStatuses.find(s => s.slug === editedProject.status)?.slaDays;
@@ -471,8 +722,18 @@ export const ExpandedProjectView = ({
           newStatus: editedProject.status
         });
         devLog.log('✅ [EXPANDED PROJECT] Criado evento de STATUS CHANGE:', updateEvent);
+      } else if (ownerChanged) {
+        // Se apenas o proprietário mudou
+        const newOwnerName = selectedOwnerId === user.id
+          ? (organizationName || 'Minha Empresa')
+          : (owners.find(o => o.id === selectedOwnerId)?.companyName || owners.find(o => o.id === selectedOwnerId)?.name || 'Novo proprietário');
+
+        updateEvent = createTimelineEvent('comment', {
+          content: `Projeto transferido para ${newOwnerName}.`
+        });
+        devLog.log('✅ [EXPANDED PROJECT] Criado evento de TRANSFER:', updateEvent);
       } else {
-        // Se não houve mudança de status, criar evento genérico
+        // Se não houve mudança significativa, criar evento genérico
         updateEvent = createTimelineEvent('comment', {
           content: 'Informações do projeto atualizadas.'
         });
@@ -482,6 +743,8 @@ export const ExpandedProjectView = ({
       const projectToUpdate: UpdatedProject = {
         ...editedProject,
         timelineEvents: [updateEvent, ...timelineEvents],
+        // ✅ Adicionar owner_id se foi alterado
+        owner_id: selectedOwnerId,
         // ✅ Adicionar campos SLA se o status mudou
         ...(statusChanged && {
           status_changed_at: now.toISOString(),
@@ -496,9 +759,14 @@ export const ExpandedProjectView = ({
       setIsEditing(false);
       setTimelineEvents(prevEvents => [updateEvent, ...prevEvents]);
 
-      const successMessage = statusChanged
-        ? `Status alterado para "${availableStatuses.find(s => s.slug === editedProject.status)?.name || editedProject.status}" com sucesso.`
-        : "As alterações foram salvas com sucesso.";
+      let successMessage = "As alterações foram salvas com sucesso.";
+      if (statusChanged && ownerChanged) {
+        successMessage = `Status alterado e projeto transferido com sucesso.`;
+      } else if (statusChanged) {
+        successMessage = `Status alterado para "${availableStatuses.find(s => s.slug === editedProject.status)?.name || editedProject.status}" com sucesso.`;
+      } else if (ownerChanged) {
+        successMessage = "Projeto transferido com sucesso.";
+      }
 
       toast({
         title: "Alterações salvas",
@@ -533,8 +801,165 @@ export const ExpandedProjectView = ({
 
   const handleFiles = async (filesToUpload: File[]) => {
     // Upload já é tratado pelo FileUploadSection via Server Action
-    // Não precisa fazer nada adicional aqui  
+    // Não precisa fazer nada adicional aqui
     devLog.log('[ExpandedProjectView] Upload de arquivos concluído via FileUploadSection:', filesToUpload.length);
+  };
+
+  /**
+   * Função helper para renderizar o conteúdo do evento com badge colorido para unidades
+   * 🎨 Atualizada para exibir imagens inline nos comentários
+   */
+  const renderEventContent = (content: string, event?: TimelineEvent) => {
+    // Regex para detectar padrão: Arquivo "[Unidade Beneficiaria XX - YY%] nome.pdf" foi enviado
+    const regex = /Arquivo\s+"?\[(.*?)\]\s+([^"]+)"?\s+(.*)/;
+    const match = content.match(regex);
+
+    if (match) {
+      const labelPart = match[1]; // Ex: "Unidade Beneficiaria 01 - 30%"
+      const fileName = match[2]; // Ex: "Pacotes.png"
+      const action = match[3]; // Ex: "foi enviado."
+
+      // Determinar se é beneficiária ou geradora
+      const isBeneficiaria = labelPart.includes('Unidade Beneficiaria');
+      const isGeradora = labelPart.includes('Fatura da Unidade Geradora');
+
+      if (isBeneficiaria || isGeradora) {
+        const badgeColor = isBeneficiaria
+          ? 'bg-purple-600 text-white'
+          : 'bg-green-600 text-white';
+
+        return (
+          <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+            <span className={`inline-block px-2 py-1 rounded-md text-xs font-semibold ${badgeColor} mr-2`}>
+              {labelPart}
+            </span>
+            {fileName} {action}
+          </p>
+        );
+      }
+    }
+
+    // Se não corresponder ao padrão, retornar conteúdo normal
+    return (
+      <div>
+        {/* 🎨 Renderizar texto apenas se existir */}
+        {content && content.trim() && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{content}</p>
+        )}
+
+        {/* 🎨 Renderizar imagens inline se existirem */}
+        {event?.images && event.images.length > 0 && (
+          <div className={content && content.trim() ? "mt-3 grid grid-cols-2 md:grid-cols-3 gap-2" : "grid grid-cols-2 md:grid-cols-3 gap-2"}>
+            {event.images.map((imageUrl, idx) => (
+              <div key={idx} className="relative group bg-gray-50 rounded-md border border-gray-200">
+                <img
+                  src={imageUrl}
+                  alt={`Imagem ${idx + 1}`}
+                  className="w-full h-48 object-contain rounded-md cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setEnlargedImage(imageUrl)}
+                />
+                {/* Ícone de expandir ao hover */}
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-md transition-all flex items-center justify-center pointer-events-none">
+                  <span className="text-gray-700 bg-white/90 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-xs font-medium shadow-sm">
+                    Clique para ampliar
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  /**
+   * Função para upload de faturas de unidades beneficiárias
+   */
+  const handleBeneficiariaUpload = async (file: File, label: string) => {
+    try {
+      setUploadingBeneficiaria(label);
+      devLog.log('[ExpandedProjectView] Iniciando upload de fatura beneficiária:', { fileName: file.name, label });
+
+      // Validar arquivo
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        toast({
+          title: "Tipo de arquivo não permitido",
+          description: "Por favor, envie apenas PDF, Word ou imagens (JPG, PNG).",
+          variant: "destructive"
+        });
+        setUploadingBeneficiaria(null);
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 10MB.",
+          variant: "destructive"
+        });
+        setUploadingBeneficiaria(null);
+        return;
+      }
+
+      // Preparar dados do usuário para o upload
+      const uploadUser = {
+        id: user?.id || '',
+        email: user?.email || '',
+        role: user?.role || 'cliente'
+      };
+
+      // Criar FormData com o arquivo e incluir label no nome
+      const formData = new FormData();
+      // Criar novo arquivo com nome customizado que inclui o label (sem acentuação)
+      const labelSemAcentuacao = label
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+
+      // Adicionar percentual ao nome se existir
+      const percentual = percentuaisBeneficiarias[label];
+      const labelComPercentual = percentual
+        ? `${labelSemAcentuacao} - ${percentual}%`
+        : labelSemAcentuacao;
+
+      const customFileName = `[${labelComPercentual}] ${file.name}`;
+      const renamedFile = new File([file], customFileName, { type: file.type });
+      formData.append('file', renamedFile);
+
+      // Fazer upload do arquivo usando a action
+      const result = await uploadProjectFileAction(
+        editedProject.id,
+        formData,
+        uploadUser
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao fazer upload do arquivo');
+      }
+
+      devLog.log('[ExpandedProjectView] Upload de fatura beneficiária concluído:', result);
+
+      toast({
+        title: "Upload concluído",
+        description: `${label} enviada com sucesso!`,
+        className: "bg-green-500 text-white"
+      });
+
+      // Limpar arquivo selecionado
+      setSelectedBeneficiariaFiles(prev => ({ ...prev, [label]: null }));
+
+      // Recarregar timeline
+      await refreshProjectAfterUpload();
+
+    } catch (error) {
+      devLog.error('[ExpandedProjectView] Erro ao fazer upload de fatura beneficiária:', error);
+      toast({
+        title: "Erro ao fazer upload",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao fazer upload do arquivo.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingBeneficiaria(null);
+    }
   };
 
   /**
@@ -572,7 +997,8 @@ export const ExpandedProjectView = ({
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !user?.email) {
+    // 🎨 Validação: Precisa ter texto OU imagens
+    if ((!newComment.trim() && commentImages.length === 0) || !user?.email) {
       if (!user?.email) {
         toast({
           title: "Erro ao adicionar comentário",
@@ -584,9 +1010,45 @@ export const ExpandedProjectView = ({
     }
 
     try {
-      // ✅ CORRIGIDO: Usar addCommentAction ao invés de onUpdate
+      // 🎨 PASSO 1: Upload das imagens inline (se houver)
+      let uploadedImageUrls: string[] = [];
+
+      if (commentImages.length > 0) {
+        devLog.log('🎨 [handleAddComment] Fazendo upload de imagens inline:', commentImages.length);
+
+        // Importar a nova função de upload de imagens inline
+        const { uploadCommentImageAction } = await import('@/lib/actions/file-actions');
+
+        const userForUpload = {
+          id: user.id,
+          email: user.email!,
+          role: user.role || user.profile?.role || 'client'
+        };
+
+        for (const imageFile of commentImages) {
+          // Criar FormData para enviar o arquivo
+          const formData = new FormData();
+          formData.append('file', imageFile);
+
+          const uploadResult = await uploadCommentImageAction(
+            project.id,
+            formData,
+            userForUpload
+          );
+
+          if (uploadResult.success && uploadResult.data?.publicUrl) {
+            uploadedImageUrls.push(uploadResult.data.publicUrl);
+            devLog.log('🎨 [handleAddComment] Imagem inline uploaded:', uploadResult.data.publicUrl);
+          } else {
+            devLog.error('🎨 [handleAddComment] Erro no upload da imagem:', uploadResult.error);
+            throw new Error(uploadResult.error || 'Erro ao fazer upload da imagem');
+          }
+        }
+      }
+
+      // 🎨 PASSO 2: Adicionar comentário com URLs das imagens
       const { addCommentAction } = await import('@/lib/actions/project-actions');
-      
+
       // ✅ DEBUG: Verificar dados do usuário antes de enviar
       devLog.log('🔍 [handleAddComment] Dados do usuário completos:', {
         user: user,
@@ -597,33 +1059,38 @@ export const ExpandedProjectView = ({
         profileRole: user?.profile?.role,
         profileFullName: user?.profile?.full_name
       });
-      
+
       // ✅ CORREÇÃO CRÍTICA: Não usar Service Role Client no frontend
       // Usar dados do usuário da sessão diretamente
       const actualRole = user.role || user.profile?.role || 'client';
       const actualName = user.profile?.full_name || user.profile?.name || user.email!;
-      
+
       const userForAction = {
         id: user.id,
         email: user.email!,
         name: actualName,
         role: actualRole
       };
-      
+
       devLog.log('🔍 [handleAddComment] Dados do usuário para action:', {
         roleFromSession: user.role,
         roleFromProfile: user.profile?.role,
         actualRoleUsed: actualRole,
         userForAction,
         projectCreatedBy: project.userId || project.created_by,
-        isUserTheProjectOwner: user.id === (project.userId || project.created_by)
+        isUserTheProjectOwner: user.id === (project.userId || project.created_by),
+        hasImages: uploadedImageUrls.length > 0,
+        imageUrls: uploadedImageUrls
       });
-      
+
+      // 🎨 Incluir URLs das imagens no comentário
       const result = await addCommentAction(
         project.id,
-        { 
-          text: newComment,
-          timestamp: new Date().toISOString()
+        {
+          text: newComment.trim() || '', // Garantir string vazia se não houver texto
+          timestamp: new Date().toISOString(),
+          visibility: commentVisibility,
+          images: uploadedImageUrls.length > 0 ? uploadedImageUrls : undefined
         },
         userForAction
       );
@@ -632,35 +1099,44 @@ export const ExpandedProjectView = ({
         throw new Error(result.error);
       }
 
-      // ✅ CORREÇÃO: Após adicionar comentário, recarregar dados completos do projeto
-      if (result.data && (result.data as any).commentAdded) {
-        // Buscar dados atualizados usando a mesma lógica do upload
-        const { getProjectAction } = await import('@/lib/actions/project-actions');
-        const updatedProject = await getProjectAction(project.id);
-        
-        if (updatedProject.data) {
-          devLog.log('[handleAddComment] Timeline atualizada com dados completos');
-          setTimelineEvents(updatedProject.data.timelineEvents || []);
-          setEditedProject(prev => ({
-            ...prev,
-            timelineEvents: updatedProject.data.timelineEvents || [],
-            comments: updatedProject.data.comments || []
-          }));
-        }
+      // ✅ CORREÇÃO: Sempre recarregar dados completos do projeto após adicionar comentário
+      const { getProjectAction } = await import('@/lib/actions/project-actions');
+      const updatedProject = await getProjectAction(project.id);
+
+      if (updatedProject.data) {
+        devLog.log('[handleAddComment] Timeline atualizada com dados completos');
+        setTimelineEvents(updatedProject.data.timelineEvents || []);
+        setEditedProject(prev => ({
+          ...prev,
+          timelineEvents: updatedProject.data.timelineEvents || [],
+          comments: updatedProject.data.comments || []
+        }));
       }
-      
+
+      // 🎨 Limpar estados
       setNewComment('');
+      setCommentVisibility('all'); // Reset para padrão
+      setCommentImages([]);
+      setCommentImagePreviews([]);
+
       toast({
         title: "Comentário adicionado",
-        description: "O comentário foi adicionado com sucesso.",
+        description: uploadedImageUrls.length > 0
+          ? `Comentário com ${uploadedImageUrls.length} imagem(ns) adicionado com sucesso.`
+          : "O comentário foi adicionado com sucesso.",
       });
     } catch (error) {
-      devLog.error('Error adding comment:', error);
+      devLog.error('🎨 [handleAddComment] Erro completo:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro ao adicionar o comentário.';
       toast({
         title: "Erro ao adicionar",
-        description: "Ocorreu um erro ao adicionar o comentário.",
+        description: errorMessage,
         variant: "destructive"
       });
+
+      // Limpar imagens em caso de erro
+      setCommentImages([]);
+      setCommentImagePreviews([]);
     }
   };
 
@@ -716,6 +1192,52 @@ export const ExpandedProjectView = ({
         description: error instanceof Error ? error.message : "Não foi possível atualizar o projeto.",
         variant: "destructive"
       });
+    }
+  };
+
+  // 🗑️ Função para arquivar projeto
+  const handleArchiveProject = async () => {
+    try {
+      setIsArchiving(true);
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user!.id);
+
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (response.ok) {
+        const projectName = editedProject.nomeClienteFinal || editedProject.name || project.nomeClienteFinal || project.name || 'Sem nome';
+
+        toast({
+          title: "Projeto arquivado",
+          description: `O projeto "${projectName}" foi arquivado com sucesso.`,
+        });
+
+        setShowArchiveDialog(false);
+
+        // Fechar modal e disparar evento para atualizar a lista do Kanban
+        onClose();
+
+        // Disparar evento customizado para o Kanban atualizar
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('project-archived', {
+            detail: { projectId: project.id }
+          }));
+        }
+      } else {
+        throw new Error('Erro ao arquivar projeto');
+      }
+    } catch (error) {
+      devLog.error('[ExpandedProjectView] Erro ao arquivar projeto:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível arquivar o projeto.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -795,52 +1317,70 @@ export const ExpandedProjectView = ({
 
   return (
     <div className="-m-6">
-      {/* Header Azul Refatorado */}
-      <div className="bg-blue-600 text-white shadow-md">
-        <div className="px-6 py-6">
-          {/* Linha Superior: Status e Atualização (Botão Voltar Removido) */}
-          <div className="flex items-center justify-start space-x-3 mb-3">
-            <div className="bg-white/25 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
-              {availableStatuses.length > 0 && (() => {
-                const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
-                if (currentStatus) {
-                  return (
-                    <>
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: currentStatus.color }}
-                      />
-                      {currentStatus.name}
-                    </>
-                  );
-                }
-                return editedProject.status;
-              })()}
-              {availableStatuses.length === 0 && editedProject.status}
-            </div>
-            <div className="flex items-center text-xs text-blue-100">
-              {/* Ícone de relógio removido anteriormente, manter sem por enquanto */}
-              <span>{`Atualizado ${new Date(editedProject.updatedAt instanceof Date ? editedProject.updatedAt : editedProject.updatedAt).toLocaleTimeString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}</span>
-            </div>
-      </div>
-
-          {/* Título Principal do Projeto */}
-          <h1 className="text-3xl font-bold mb-1">Projeto {editedProject.nomeClienteFinal || 'Cliente Final'}</h1>
-          <p className="text-sm text-blue-200">Número do projeto: {editedProject.number}</p>
-        </div>
-      </div>
-
       {/* Conteúdo Principal com Abas - Alinhado com outras páginas */}
-      <div className="px-6 pt-6 space-y-6">
+      <div className="px-6 pt-2 space-y-6">
+        {/* Header Azul Refatorado com bordas arredondadas */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-2xl overflow-hidden">
+          <div className="px-6 py-6">
+            {/* Linha Superior: Status e Atualização (Botão Voltar Removido) */}
+            <div className="flex items-center justify-start space-x-3 mb-3">
+              <div className="bg-white/25 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
+                {availableStatuses.length > 0 && (() => {
+                  const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
+                  if (currentStatus) {
+                    return (
+                      <>
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: currentStatus.color }}
+                        />
+                        {currentStatus.name}
+                      </>
+                    );
+                  }
+                  return editedProject.status;
+                })()}
+                {availableStatuses.length === 0 && editedProject.status}
+              </div>
+              <div className="flex items-center text-xs text-blue-100">
+                {/* Ícone de relógio removido anteriormente, manter sem por enquanto */}
+                <span>{`Atualizado ${new Date(editedProject.updatedAt instanceof Date ? editedProject.updatedAt : editedProject.updatedAt).toLocaleTimeString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}</span>
+              </div>
+            </div>
+
+            {/* Título Principal do Projeto */}
+            <h1 className="text-3xl font-bold mb-1">Projeto {editedProject.nomeClienteFinal || 'Cliente Final'}</h1>
+            <p className="text-sm text-blue-200">Número do projeto: {editedProject.number}</p>
+          </div>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:w-[400px] bg-gray-200 dark:bg-gray-700 p-1 rounded-lg">
-            <TabsTrigger value="visao-geral" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-300">Visão Geral</TabsTrigger>
-            <TabsTrigger value="linha-do-tempo" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-300">Linha do Tempo</TabsTrigger>
-          </TabsList>
+          <div className="flex space-x-2 mb-6">
+            <button
+              onClick={() => setActiveTab('visao-geral')}
+              className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                activeTab === 'visao-geral'
+                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              Visão Geral
+            </button>
+            <button
+              onClick={() => setActiveTab('linha-do-tempo')}
+              className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                activeTab === 'linha-do-tempo'
+                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              Linha do Tempo
+            </button>
+          </div>
 
           <TabsContent value="visao-geral" className="mt-6">
             <div className="space-y-8"> {/* Increased spacing */}
-              
+
               {/* Detalhes do Projeto Card */}
               <Card className="shadow-lg rounded-lg">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -849,25 +1389,38 @@ export const ExpandedProjectView = ({
                     <CardDescription>Informações gerais sobre o projeto.</CardDescription>
             </div>
                   {isAdminPanel && (
-                    <Button 
-                      onClick={() => {
-                        devLog.log('[Debug EPV] Edit/Cancel button clicked. isEditing (before):', isEditing);
-                        if (isEditing) { 
-                          devLog.log('[Debug EPV] Canceling edit. Reverting editedProject and setting hasChanges to false.');
-                          setEditedProject({ ...project }); 
-                          setHasChanges(false);          
-                        }
-                        setIsEditing(prev => {
-                          const newIsEditing = !prev;
-                          devLog.log('[Debug EPV] Toggling isEditing to:', newIsEditing);
-                          return newIsEditing;
-                        });    
-                      }} 
-                      variant={isEditing ? "destructive" : "default"} 
-                      className="ml-auto flex items-center">
-                      <Edit className="mr-2 h-4 w-4" />
-                      {isEditing ? "Cancelar Edição" : "Editar Projeto"}
-                    </Button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <Button
+                        onClick={() => setShowArchiveDialog(true)}
+                        variant="outline"
+                        className="flex items-center bg-white text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 dark:bg-gray-800 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20 dark:hover:text-red-300 transition-all duration-200">
+                        <Archive className="mr-2 h-4 w-4" />
+                        Arquivar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          devLog.log('[Debug EPV] Edit/Cancel button clicked. isEditing (before):', isEditing);
+                          if (isEditing) {
+                            devLog.log('[Debug EPV] Canceling edit. Reverting editedProject and setting hasChanges to false.');
+                            setEditedProject({ ...project });
+                            setHasChanges(false);
+                          }
+                          setIsEditing(prev => {
+                            const newIsEditing = !prev;
+                            devLog.log('[Debug EPV] Toggling isEditing to:', newIsEditing);
+                            return newIsEditing;
+                          });
+                        }}
+                        variant={isEditing ? "destructive" : "default"}
+                        className={`flex items-center transition-all duration-200 ${
+                          isEditing
+                            ? ''
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        {isEditing ? "Cancelar Edição" : "Editar Projeto"}
+                      </Button>
+                    </div>
                   )}
                 </CardHeader>
                 <CardContent className="p-6">
@@ -878,16 +1431,101 @@ export const ExpandedProjectView = ({
                         <Input id="number" value={editedProject.number || ''} onChange={(e) => handleChange('number', e.target.value)} className="mt-1"/>
             </div>
             <div>
-                        <Label htmlFor="empresaIntegradora" className="text-sm font-medium text-gray-700">Empresa Integradora</Label>
-                        <Input id="empresaIntegradora" value={editedProject.empresaIntegradora || ''} onChange={(e) => handleChange('empresaIntegradora', e.target.value)} className="mt-1"/>
+                        <Label htmlFor="owner" className="text-sm font-medium text-gray-700">Proprietário do Projeto</Label>
+                        <Select
+                          value={selectedOwnerId}
+                          onValueChange={(value) => {
+                            setSelectedOwnerId(value);
+                            setHasChanges(true);
+                          }}
+                          disabled={loadingOwners}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder={loadingOwners ? "Carregando..." : "Selecione o proprietário"} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            {/* Opção: Minha Empresa */}
+                            <SelectItem value={user.id}>
+                              {organizationName || 'Minha Empresa'}
+                            </SelectItem>
+
+                            {/* 🆕 Campo de busca */}
+                            {owners.length > 0 && (
+                              <div className="px-2 py-2 sticky top-0 bg-white border-b border-gray-200">
+                                <div className="relative">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                  </svg>
+                                  <Input
+                                    type="text"
+                                    placeholder="Buscar por empresa ou cliente..."
+                                    value={ownerSearchQuery}
+                                    onChange={(e) => setOwnerSearchQuery(e.target.value)}
+                                    className="h-9 pl-9 pr-3 text-xs border-gray-300"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Opções: Clientes filtrados */}
+                            {owners
+                              .filter((owner) => {
+                                const query = ownerSearchQuery.toLowerCase().trim();
+                                if (!query) return true;
+
+                                const nameMatch = owner.name?.toLowerCase().includes(query);
+                                const companyMatch = owner.companyName?.toLowerCase().includes(query);
+
+                                return nameMatch || companyMatch;
+                              })
+                              .map((owner) => (
+                                <SelectItem key={owner.id} value={owner.id}>
+                                  {/* 🆕 INVERSÃO: Empresa primeiro, Nome entre parênteses */}
+                                  {owner.isCompany && owner.companyName ? (
+                                    <>
+                                      {owner.companyName} ({owner.name})
+                                    </>
+                                  ) : (
+                                    owner.name
+                                  )}
+                                  {' - '}{owner.email}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
             </div>
             <div>
                         <Label htmlFor="nomeClienteFinal" className="text-sm font-medium text-gray-700">Cliente Final</Label>
                         <Input id="nomeClienteFinal" value={editedProject.nomeClienteFinal || ''} onChange={(e) => handleChange('nomeClienteFinal', e.target.value)} className="mt-1"/>
             </div>
+            {/* ✅ NOVO CAMPO: CPF/CNPJ */}
+            <div>
+                        <Label htmlFor="cpf_cnpj_cliente_final" className="text-sm font-medium text-gray-700">CPF/CNPJ Cliente Final</Label>
+                        <Input id="cpf_cnpj_cliente_final" value={editedProject.cpf_cnpj_cliente_final || ''} onChange={(e) => handleChange('cpf_cnpj_cliente_final', e.target.value)} className="mt-1" placeholder="000.000.000-00" maxLength={20}/>
+            </div>
+            {/* ✅ NOVO CAMPO: Endereço */}
+            <div>
+                        <Label htmlFor="endereco_local" className="text-sm font-medium text-gray-700">Endereço do Local</Label>
+                        <Input id="endereco_local" value={editedProject.endereco_local || ''} onChange={(e) => handleChange('endereco_local', e.target.value)} className="mt-1" placeholder="Rua, Número - Bairro - Cidade/UF"/>
+            </div>
             <div>
                         <Label htmlFor="distribuidora" className="text-sm font-medium text-gray-700">Distribuidora</Label>
-                        <Input id="distribuidora" value={editedProject.distribuidora || ''} onChange={(e) => handleChange('distribuidora', e.target.value)} className="mt-1"/>
+                        <Select
+                          value={editedProject.distribuidora || ''}
+                          onValueChange={(value) => handleChange('distribuidora', value)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Selecione uma distribuidora" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DISTRIBUIDORAS.map((distribuidora) => (
+                              <SelectItem key={distribuidora} value={distribuidora}>
+                                {distribuidora}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
             </div>
             <div>
                         <Label htmlFor="potencia" className="text-sm font-medium text-gray-700">Potência (kWp)</Label>
@@ -976,48 +1614,354 @@ export const ExpandedProjectView = ({
             </div>
           </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                      {/* Visualização Estilizada (Não Editável) */}
-                      <DetailItem icon={<Building className="h-5 w-5 text-slate-700 dark:text-slate-300" />} label="Empresa Integradora" value={editedProject.empresaIntegradora} bgColor="bg-slate-100 dark:bg-slate-800/30" />
-                      <DetailItem icon={<User className="h-5 w-5 text-purple-700 dark:text-purple-300" />} label="Cliente Final" value={editedProject.nomeClienteFinal} bgColor="bg-purple-100 dark:bg-purple-900/30" />
-                      {/* Linha 2: Distribuidora | Potência */}
-                      <DetailItem icon={<Building className="h-5 w-5 text-green-700 dark:text-green-300" />} label="Distribuidora" value={editedProject.distribuidora} bgColor="bg-green-100 dark:bg-green-900/30" />
-                      <DetailItem icon={<ClockIcon className="h-5 w-5 text-yellow-700 dark:text-yellow-300" />} label="Potência (kWp)" value={`${editedProject.potencia || 0} kWp`} bgColor="bg-yellow-100 dark:bg-yellow-900/30" />
-
-                      {/* Linha 3: Data de Criação | Data de Entrega */}
-                      <DetailItem 
-                        icon={<ClockIcon className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />} 
-                        label="Data de Criação" 
-                        value={editedProject.createdAt 
-                          ? new Date(
-                              // Compatível com string ISO ou Timestamp
-                              (typeof editedProject.createdAt === 'string' 
-                                ? editedProject.createdAt 
-                                : (editedProject.createdAt as any))
-                            ).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric'}) 
-                          : 'N/A'} 
-                        bgColor="bg-zinc-100 dark:bg-zinc-800/30" 
-                      />
-                      <DetailItem 
-                        icon={<ClockIcon className="h-5 w-5 text-red-700 dark:text-red-300" />} 
-                        label="Data de Entrega" 
-                        value={formatDateBR(editedProject.dataEntrega)} 
-                        bgColor="bg-red-100 dark:bg-red-900/30" 
-                      />
-
-                      {/* Linha 4: Disjuntor | Valor do Projeto */}
-                      <DetailItem icon={<Settings className="h-5 w-5 text-violet-700 dark:text-violet-300" />} label="Disjuntor do Padrão de Entrada" value={editedProject.disjuntorPadraoEntrada || 'N/A'} bgColor="bg-violet-100 dark:bg-violet-900/30" />
-                      <DetailItem icon={<DollarSign className="h-5 w-5 text-teal-700 dark:text-teal-300" />} label="Valor do Projeto" value={editedProject.valorProjeto !== undefined && editedProject.valorProjeto !== null ? `R$ ${Number(editedProject.valorProjeto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'} bgColor="bg-teal-100 dark:bg-teal-900/30" />
-                      {/* Linha 5: Lista de material ocupa a largura de duas colunas e suporta múltiplas linhas com rolagem leve */}
-                      <div className="md:col-span-2">
-                        <DetailItem 
-                          icon={<FileIcon className="h-5 w-5 text-orange-700 dark:text-orange-300" />} 
-                          label="Lista de Material" 
-                          value={editedProject.listaMateriais || 'N/A'} 
-                          bgColor="bg-orange-100 dark:bg-orange-900/30" 
-                          multiline
-                        />
+                    <div className="space-y-8">
+                      {/* 📋 SEÇÃO: INFORMAÇÕES DO CLIENTE */}
+                      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 px-6 py-4">
+                          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-full">
+                              <User className="h-5 w-5 text-white" />
+                            </div>
+                            Informações do Cliente
+                          </h3>
+                        </div>
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
+                                <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-2 block">Cliente Final</span>
+                                <div className="flex items-center gap-3">
+                                  <User className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{editedProject.nomeClienteFinal}</p>
+                                </div>
+                              </div>
+                            </div>
+                            {editedProject.cpf_cnpj_cliente_final && (
+                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
+                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2 block">CPF/CNPJ</span>
+                                <div className="flex items-center gap-3">
+                                  <CreditCard className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCpfCnpj(editedProject.cpf_cnpj_cliente_final)}</p>
+                                </div>
+                              </div>
+                            )}
+                            {editedProject.endereco_local && (
+                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
+                                <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-2 block">Endereço do Local</span>
+                                <div className="flex items-center gap-3">
+                                  <MapPin className="h-6 w-6 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.endereco_local}</p>
+                                </div>
+                              </div>
+                            )}
+                            <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
+                              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-2 block">Compensação de Créditos</span>
+                              <div className="flex items-center gap-3">
+                                <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                {editedProject.havera_beneficiarias ? (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200">
+                                    Sim
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+                                    Não
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className={editedProject.cpf_cnpj_cliente_final || editedProject.endereco_local ? "" : "md:col-span-2"}>
+                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
+                                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 block">Proprietário do Projeto</span>
+                                <div className="flex items-center gap-3">
+                                  <Building className="h-6 w-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{getCurrentOwnerName()}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* ⚡💰📅 SEÇÃO: INFORMAÇÕES TÉCNICAS, FINANCEIRAS E DATAS */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* ⚡ Informações Técnicas */}
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="bg-gradient-to-r from-teal-500 to-teal-600 dark:from-teal-600 dark:to-teal-700 px-4 py-3">
+                            <h4 className="text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                              <div className="p-1.5 bg-white/20 rounded-full">
+                                <Settings className="h-4 w-4 text-white" />
+                              </div>
+                              Técnico
+                            </h4>
+                          </div>
+                          <div className="p-4">
+                            <div className="space-y-3">
+                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                                <span className="text-xs font-bold uppercase tracking-wider text-green-600 dark:text-green-400 block mb-1.5">Distribuidora</span>
+                                <div className="flex items-center gap-2">
+                                  <Factory className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.distribuidora || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                                <span className="text-xs font-bold uppercase tracking-wider text-yellow-600 dark:text-yellow-400 block mb-1.5">Potência</span>
+                                <div className="flex items-center gap-2">
+                                  <Zap className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.potencia || 0} kWp</p>
+                                </div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                                <span className="text-xs font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 block mb-1.5">Disjuntor</span>
+                                <div className="flex items-center gap-2">
+                                  <Plug className="h-5 w-5 text-violet-600 dark:text-violet-400 flex-shrink-0" />
+                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.disjuntorPadraoEntrada || 'N/A'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 💰 Informações Financeiras */}
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-600 dark:to-amber-700 px-4 py-3">
+                            <h4 className="text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                              <div className="p-1.5 bg-white/20 rounded-full">
+                                <DollarSign className="h-4 w-4 text-white" />
+                              </div>
+                              Financeiro
+                            </h4>
+                          </div>
+                          <div className="p-4">
+                            {/* 🆕 Renderizar informações baseadas no billing_mode */}
+                            {editedProject.billing_mode === 'pacote' && editedProject.billing_snapshot ? (
+                              <div className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-lg shadow-lg border-2 border-purple-200 dark:border-purple-700">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Package className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Projeto incluso no pacote</span>
+                                </div>
+                                <p className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-1">
+                                  {editedProject.billing_snapshot.pacote_nome || 'Pacote'}
+                                </p>
+                                <p className="text-sm text-purple-600 dark:text-purple-400">
+                                  Projeto {editedProject.billing_snapshot.projetos_usados_depois || 1} de {editedProject.billing_snapshot.projetos_inclusos || 0}
+                                </p>
+                                {editedProject.billing_snapshot.data_ativacao && (
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                    Ativado em: {new Date(editedProject.billing_snapshot.data_ativacao).toLocaleDateString('pt-BR')}
+                                  </p>
+                                )}
+                                {editedProject.billing_snapshot.data_expiracao && (
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    Válido até: {new Date(editedProject.billing_snapshot.data_expiracao).toLocaleDateString('pt-BR')}
+                                  </p>
+                                )}
+                              </div>
+                            ) : editedProject.billing_mode === 'assinatura' && editedProject.billing_snapshot ? (
+                              <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-lg shadow-lg border-2 border-blue-200 dark:border-blue-700">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <CalendarCheck className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Projeto incluso na assinatura</span>
+                                </div>
+                                <p className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-1">
+                                  {editedProject.billing_snapshot.plano_nome || 'Plano de Assinatura'}
+                                </p>
+                                <p className="text-sm text-blue-600 dark:text-blue-400">
+                                  Projeto {editedProject.billing_snapshot.projetos_usados_depois || 1} de {editedProject.billing_snapshot.projetos_mensais || 0} do ciclo atual
+                                </p>
+                                {editedProject.billing_snapshot.proximo_reset && (
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                    Renovação: {new Date(editedProject.billing_snapshot.proximo_reset).toLocaleDateString('pt-BR')}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block mb-2">Valor do Projeto</span>
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="h-6 w-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                                    {editedProject.valorProjeto !== undefined && editedProject.valorProjeto !== null
+                                      ? `R$ ${Number(editedProject.valorProjeto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                      : 'N/A'}
+                                  </p>
+                                </div>
+                                {editedProject.potencia && (
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                    Baseado em {editedProject.potencia} kWp
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 📅 Datas */}
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="bg-gradient-to-r from-sky-500 to-sky-600 dark:from-sky-600 dark:to-sky-700 px-4 py-3">
+                            <h4 className="text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                              <div className="p-1.5 bg-white/20 rounded-full">
+                                <ClockIcon className="h-4 w-4 text-white" />
+                              </div>
+                              Datas
+                            </h4>
+                          </div>
+                          <div className="p-4">
+                            <div className="space-y-3">
+                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block mb-1.5">Criação</span>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">
+                                    {editedProject.createdAt
+                                      ? new Date(
+                                          typeof editedProject.createdAt === 'string'
+                                            ? editedProject.createdAt
+                                            : (editedProject.createdAt as any)
+                                        ).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric'})
+                                      : 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                                <span className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400 block mb-1.5">Entrega</span>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{formatDateBR(editedProject.dataEntrega)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 📦 SEÇÃO: LISTA DE MATERIAIS */}
+                      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 dark:from-indigo-600 dark:to-indigo-700 px-6 py-4">
+                          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-full">
+                              <FileIcon className="h-5 w-5 text-white" />
+                            </div>
+                            Lista de Materiais
+                          </h3>
+                        </div>
+                        <div className="p-6">
+                          <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-lg min-h-[100px] max-h-60 overflow-y-auto">
+                            <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
+                              {editedProject.listaMateriais || 'Nenhum material especificado'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 📊 SEÇÃO: STATUS DO PROJETO */}
+                      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 px-6 py-4">
+                          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-full">
+                              <ClockIcon className="h-5 w-5 text-white" />
+                            </div>
+                            Status do Projeto
+                          </h3>
+                        </div>
+                        <div className="p-6">
+                          <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                              {/* Status Badge */}
+                              {availableStatuses.length > 0 && (() => {
+                                const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
+                                if (currentStatus) {
+                                  return (
+                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full shadow-md border-2" style={{
+                                      backgroundColor: `${currentStatus.color}15`,
+                                      borderColor: currentStatus.color
+                                    }}>
+                                      <div
+                                        className="w-3 h-3 rounded-full shadow-sm"
+                                        style={{ backgroundColor: currentStatus.color }}
+                                      />
+                                      <span className="text-base font-bold text-gray-900 dark:text-gray-100">
+                                        {currentStatus.name}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                              })()}
+                              {availableStatuses.length === 0 && (
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full shadow-md bg-gray-100 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600">
+                                  <span className="text-base font-bold text-gray-900 dark:text-gray-100">
+                                    {editedProject.status}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Badge de Prioridade */}
+                              {isAdminPanel && (
+                                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full shadow-md border-2" style={{
+                                  backgroundColor:
+                                    editedProject.prioridade === 'Urgente' ? '#FEE2E2' :
+                                    editedProject.prioridade === 'Alta' ? '#FEF3C7' :
+                                    editedProject.prioridade === 'Média' ? '#DBEAFE' :
+                                    '#F3F4F6',
+                                  borderColor:
+                                    editedProject.prioridade === 'Urgente' ? '#DC2626' :
+                                    editedProject.prioridade === 'Alta' ? '#F59E0B' :
+                                    editedProject.prioridade === 'Média' ? '#3B82F6' :
+                                    '#9CA3AF'
+                                }}>
+                                  <span className={`text-sm ${
+                                    editedProject.prioridade === 'Urgente' ? 'text-red-700' :
+                                    editedProject.prioridade === 'Alta' ? 'text-yellow-700' :
+                                    editedProject.prioridade === 'Média' ? 'text-blue-700' :
+                                    'text-gray-700'
+                                  }`}>
+                                    {editedProject.prioridade === 'Urgente' && '🔥'}
+                                    {editedProject.prioridade === 'Alta' && '⚠️'}
+                                    {editedProject.prioridade === 'Média' && '📊'}
+                                    {!editedProject.prioridade && '📋'}
+                                  </span>
+                                  <span className={`text-xs font-bold uppercase tracking-wide ${
+                                    editedProject.prioridade === 'Urgente' ? 'text-red-800' :
+                                    editedProject.prioridade === 'Alta' ? 'text-yellow-800' :
+                                    editedProject.prioridade === 'Média' ? 'text-blue-800' :
+                                    'text-gray-700'
+                                  }`}>
+                                    {editedProject.prioridade || 'Baixa'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 👤 SEÇÃO: RESPONSÁVEL PELO PROJETO */}
+                      {isAdminPanel && user && (
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 px-6 py-4">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                              <div className="p-2 bg-white/20 rounded-full">
+                                <User className="h-5 w-5 text-white" />
+                              </div>
+                              Responsável pelo Projeto
+                            </h3>
+                          </div>
+                          <div className="p-6">
+                            <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-lg">
+                              <ProjectResponsibleAdmin
+                                project={editedProject}
+                                currentUser={{
+                                  uid: user.id,
+                                  email: user.email,
+                                  name: user.profile?.name || user.email,
+                                  phone: user.profile?.phone || '',
+                                  role: user.role
+                                }}
+                                onUpdate={handleProjectUpdate}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -1033,104 +1977,10 @@ export const ExpandedProjectView = ({
                   </CardFooter>
                 )}
               </Card>
-
-              {/* Card Status e Responsabilidade */}
-              <Card className="shadow-lg rounded-lg">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-semibold">Status do Projeto</CardTitle>
-                  <CardDescription>Acompanhe o progresso e o responsável.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0 bg-blue-500 text-white rounded-full p-3 md:p-4 shadow-md">
-                      <ClockIcon className="h-6 w-6 md:h-8 md:w-8" />
-                    </div>
-                    <div className="flex-grow">
-                      <div>
-                        <Label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status Atual</Label>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {availableStatuses.length > 0 && (() => {
-                            const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
-                            if (currentStatus) {
-                              return (
-                                <>
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: currentStatus.color }}
-                                  />
-                                  <p className="text-lg md:text-xl font-semibold text-gray-900">
-                                    {currentStatus.name}
-                                  </p>
-                                </>
-                              );
-                            }
-                          })()}
-                          {availableStatuses.length === 0 && (
-                            <p className="text-lg md:text-xl font-semibold text-gray-900">
-                              {editedProject.status}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {/* Mostrar prioridade apenas para administradores */}
-                      {isAdminPanel && (
-                        <div className="mt-2">
-                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridade</Label>
-                          <p className={`mt-0.5 text-md font-semibold ${ 
-                            editedProject.prioridade === 'Urgente' ? 'text-red-600' :
-                            editedProject.prioridade === 'Alta' ? 'text-yellow-600' :
-                            editedProject.prioridade === 'Média' ? 'text-blue-600' :
-                            'text-gray-700'
-                          }`}>
-                            {editedProject.prioridade || 'N/A'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* ✅ Componente de Responsável pelo Projeto */}
-                  {isAdminPanel && user && (
-                    <div className="pt-4 border-t border-gray-200">
-                      <ProjectResponsibleAdmin
-                        project={editedProject}
-                        currentUser={{
-                          uid: user.id,
-                          email: user.email,
-                          name: user.profile?.name || user.email,
-                          phone: user.profile?.phone || '',
-                          role: user.role
-                        }}
-                        onUpdate={handleProjectUpdate}
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="linha-do-tempo" className="mt-6">
-            <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-gray-800">Linha do Tempo do Projeto</h2>
-                <div className="flex space-x-3">
-                  <Button 
-                        variant="default" 
-                        onClick={() => { setShowAddDocumentSection(prev => !prev); setShowAddCommentSection(false); }} 
-                        className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm"
-                    >
-                        Adicionar Documentos
-                  </Button>
-                  <Button 
-                        variant="default" 
-                        onClick={() => { setShowAddCommentSection(prev => !prev); setShowAddDocumentSection(false); }} 
-                        className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-sm"
-                  >
-                        Adicionar Comentário
-                  </Button>
-            </div>
-        </div>
-
             {showAddDocumentSection && (
                 <Card className="mb-6 shadow-lg rounded-lg">
                     <CardHeader>
@@ -1157,91 +2007,460 @@ export const ExpandedProjectView = ({
                     <CardHeader>
                         <CardTitle>Adicionar Novo Comentário</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="flex space-x-3 items-start">
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="Escreva seu comentário aqui..."
-                            className="flex-grow resize-none border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            rows={3}
-                />
-                <Button 
-                            onClick={() => {
+                    <CardContent className="p-6 space-y-4">
+                        {/* ✅ Radio buttons para visibilidade - Apenas para Admin/Colaborador */}
+                        {(() => {
+                          // ✅ CORREÇÃO: Priorizar user.profile.role sobre user.role
+                          // porque user.role retorna "authenticated" (role de autenticação do Supabase)
+                          const actualRole = user?.profile?.role || user?.role;
+                          const isInternalTeam = actualRole === 'admin' || actualRole === 'superadmin' || actualRole === 'colaborador';
+                          return isInternalTeam;
+                        })() && (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-700">Visibilidade do Comentário</Label>
+                            <RadioGroup
+                              value={commentVisibility}
+                              onValueChange={(value: 'all' | 'internal') => setCommentVisibility(value)}
+                              className="flex gap-4"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="all" id="visibility-all" />
+                                <Label htmlFor="visibility-all" className="font-normal cursor-pointer">
+                                  Visível a todos
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="internal" id="visibility-internal" />
+                                <Label htmlFor="visibility-internal" className="font-normal cursor-pointer">
+                                  Apenas equipe interna
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+                        )}
+
+                        {/* 🎨 Área de comentário com suporte a imagens inline */}
+                        <div
+                          className="space-y-3"
+                          onDragOver={handleCommentDragOver}
+                          onDrop={handleCommentDrop}
+                        >
+                          {/* Textarea com hint de paste */}
+                          <div className="relative">
+                            <Textarea
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              onPaste={handleCommentPaste}
+                              placeholder="Escreva ou cole prints (Ctrl+V)..."
+                              className="flex-grow resize-none border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pr-12"
+                              rows={3}
+                            />
+                            {/* Botão de câmera para upload manual */}
+                            <input
+                              type="file"
+                              id="comment-image-upload"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files) {
+                                  handleCommentImageSelect(Array.from(e.target.files));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor="comment-image-upload"
+                              className="absolute right-2 top-2 cursor-pointer text-gray-500 hover:text-blue-600 transition-colors"
+                              title="Adicionar imagens"
+                            >
+                              <Camera size={20} />
+                            </label>
+                          </div>
+
+                          {/* Preview de imagens selecionadas */}
+                          {commentImagePreviews.length > 0 && (
+                            <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                              {commentImagePreviews.map((preview, index) => (
+                                <div key={index} className="relative group">
+                                  <img
+                                    src={preview}
+                                    alt={`Preview ${index + 1}`}
+                                    className="w-20 h-20 object-cover rounded-md border border-gray-300"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveCommentImage(index)}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Remover imagem"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Botão enviar */}
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={() => {
                                 handleAddComment();
-                                if (newComment.trim()) setShowAddCommentSection(false);
-                            }}
-                            disabled={!newComment.trim() || isPending}
-                            className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm"
-                          >
-                            Enviar Comentário
-                </Button>
-              </div>
+                                if (newComment.trim() || commentImages.length > 0) {
+                                  setShowAddCommentSection(false);
+                                }
+                              }}
+                              disabled={(!newComment.trim() && commentImages.length === 0) || isPending}
+                              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm"
+                            >
+                              Enviar Comentário
+                            </Button>
+                          </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {showBeneficiariasUploadSection && (
+                <Card className="mb-6 shadow-lg rounded-lg border-purple-200">
+                    <CardHeader className="bg-purple-50">
+                        <CardTitle className="text-purple-900">Enviar Faturas das Unidades Beneficiárias</CardTitle>
+                        <CardDescription className="text-purple-700">
+                          Faça upload das faturas da Unidade Geradora e das Unidades Beneficiárias.
+                          <span className="font-semibold"> Tamanho máximo: 10MB por arquivo.</span>
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="space-y-6">
+                            {/* Unidades Beneficiárias Dinâmicas */}
+                            {Array.from({ length: numBeneficiarias }, (_, index) => {
+                              const numero = String(index + 1).padStart(2, '0');
+                              const label = `Unidade Beneficiária ${numero}`;
+                              const selectedFile = selectedBeneficiariaFiles[label];
+                              const isUploading = uploadingBeneficiaria === label;
+
+                              return (
+                                <div key={`beneficiaria-${index}`} className="space-y-3 p-4 bg-purple-50/50 rounded-lg border border-purple-200">
+                                  <Label className="text-sm font-bold text-purple-900 flex items-center gap-2">
+                                    <span className="bg-purple-600 text-white px-3 py-1 rounded-md">{label}</span>
+                                  </Label>
+
+                                  {/* Percentual e File input lado a lado */}
+                                  <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-3">
+                                    {/* Campo de Percentual */}
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`percentual-${index}`} className="text-xs text-purple-700 font-medium">
+                                        Percentual (%)
+                                      </Label>
+                                      <Input
+                                        id={`percentual-${index}`}
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        placeholder="Ex: 30"
+                                        value={percentuaisBeneficiarias[label] || ''}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          setPercentuaisBeneficiarias(prev => ({ ...prev, [label]: value }));
+                                        }}
+                                        disabled={isUploading}
+                                        className="text-center font-semibold"
+                                      />
+                                    </div>
+
+                                    {/* File input */}
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`file-${index}`} className="text-xs text-purple-700 font-medium">
+                                        Arquivo da Fatura
+                                      </Label>
+                                      <Input
+                                        id={`file-${index}`}
+                                        type="file"
+                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            setSelectedBeneficiariaFiles(prev => ({ ...prev, [label]: file }));
+                                          }
+                                          // Reset input para permitir re-seleção do mesmo arquivo
+                                          e.target.value = '';
+                                        }}
+                                        disabled={isUploading}
+                                        className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Show selected file info */}
+                                  {selectedFile && !isUploading && (
+                                    <div className="flex items-center justify-between p-3 bg-white rounded-md border border-purple-300">
+                                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                                        <span className="text-lg">📄</span>
+                                        <span className="font-medium">{selectedFile.name}</span>
+                                        <span className="text-gray-500">({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setSelectedBeneficiariaFiles(prev => ({ ...prev, [label]: null }))}
+                                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                      >
+                                        ✕
+                                      </Button>
+                                    </div>
+                                  )}
+
+                                  {/* Upload button - only show if file selected */}
+                                  {selectedFile && !isUploading && (
+                                    <Button
+                                      onClick={() => handleBeneficiariaUpload(selectedFile, label)}
+                                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold"
+                                    >
+                                      ⬆️ Enviar {label}
+                                    </Button>
+                                  )}
+
+                                  {/* Loading state */}
+                                  {isUploading && (
+                                    <div className="flex items-center justify-center gap-2 p-3 bg-purple-100 rounded-md text-purple-700 font-medium">
+                                      <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                                      Enviando...
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {/* Fatura da Unidade Geradora */}
+                            <div className="space-y-3 p-4 bg-green-50/50 rounded-lg border border-green-200">
+                              <Label className="text-sm font-bold text-green-900 flex items-center gap-2">
+                                <span className="bg-green-600 text-white px-3 py-1 rounded-md">Fatura da Unidade Geradora</span>
+                              </Label>
+
+                              {/* Percentual e File input lado a lado */}
+                              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-3">
+                                {/* Campo de Percentual */}
+                                <div className="space-y-2">
+                                  <Label htmlFor="percentual-geradora" className="text-xs text-green-700 font-medium">
+                                    Percentual (%)
+                                  </Label>
+                                  <Input
+                                    id="percentual-geradora"
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    placeholder="Ex: 30"
+                                    value={percentuaisBeneficiarias['Fatura da Unidade Geradora'] || ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setPercentuaisBeneficiarias(prev => ({ ...prev, 'Fatura da Unidade Geradora': value }));
+                                    }}
+                                    disabled={uploadingBeneficiaria === 'Fatura da Unidade Geradora'}
+                                    className="text-center font-semibold"
+                                  />
+                                </div>
+
+                                {/* File input */}
+                                <div className="space-y-2">
+                                  <Label htmlFor="file-geradora" className="text-xs text-green-700 font-medium">
+                                    Arquivo da Fatura
+                                  </Label>
+                                  <Input
+                                    id="file-geradora"
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        setSelectedBeneficiariaFiles(prev => ({ ...prev, 'Fatura da Unidade Geradora': file }));
+                                      }
+                                      e.target.value = '';
+                                    }}
+                                    disabled={uploadingBeneficiaria === 'Fatura da Unidade Geradora'}
+                                    className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-800 hover:file:bg-green-200"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Show selected file info */}
+                              {selectedBeneficiariaFiles['Fatura da Unidade Geradora'] && uploadingBeneficiaria !== 'Fatura da Unidade Geradora' && (
+                                <div className="flex items-center justify-between p-3 bg-white rounded-md border border-green-300">
+                                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                                    <span className="text-lg">📄</span>
+                                    <span className="font-medium">{selectedBeneficiariaFiles['Fatura da Unidade Geradora']!.name}</span>
+                                    <span className="text-gray-500">({(selectedBeneficiariaFiles['Fatura da Unidade Geradora']!.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setSelectedBeneficiariaFiles(prev => ({ ...prev, 'Fatura da Unidade Geradora': null }))}
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  >
+                                    ✕
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* Upload button */}
+                              {selectedBeneficiariaFiles['Fatura da Unidade Geradora'] && uploadingBeneficiaria !== 'Fatura da Unidade Geradora' && (
+                                <Button
+                                  onClick={() => handleBeneficiariaUpload(selectedBeneficiariaFiles['Fatura da Unidade Geradora']!, 'Fatura da Unidade Geradora')}
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+                                >
+                                  ⬆️ Enviar Fatura da Unidade Geradora
+                                </Button>
+                              )}
+
+                              {/* Loading state */}
+                              {uploadingBeneficiaria === 'Fatura da Unidade Geradora' && (
+                                <div className="flex items-center justify-center gap-2 p-3 bg-green-100 rounded-md text-green-700 font-medium">
+                                  <div className="animate-spin h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full"></div>
+                                  Enviando...
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Add More Units button */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setNumBeneficiarias(prev => prev + 1)}
+                              className="w-full border-2 border-dashed border-purple-400 text-purple-700 hover:bg-purple-50 hover:border-purple-600 font-semibold py-6"
+                            >
+                              + Adicionar Mais Unidades Beneficiárias
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             )}
 
             {/* Card do Histórico de Atualizações (Timeline Events) */}
             <Card className="shadow-lg rounded-lg">
-                <CardHeader>
-                    <CardTitle>Histórico de Atualizações</CardTitle>
+                <CardHeader className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                        <CardTitle className="text-2xl">Linha do Tempo do Projeto</CardTitle>
+                        <div className="flex flex-wrap gap-3">
+                            <Button
+                                variant="default"
+                                onClick={() => { setShowAddDocumentSection(prev => !prev); setShowAddCommentSection(false); setShowBeneficiariasUploadSection(false); }}
+                                className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm"
+                            >
+                                Adicionar Documentos
+                            </Button>
+                            <Button
+                                variant="default"
+                                onClick={() => { setShowAddCommentSection(prev => !prev); setShowAddDocumentSection(false); setShowBeneficiariasUploadSection(false); }}
+                                className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-sm"
+                            >
+                                Adicionar Comentário
+                            </Button>
+                            {editedProject.havera_beneficiarias && (
+                                <Button
+                                    variant="default"
+                                    onClick={() => { setShowBeneficiariasUploadSection(prev => !prev); setShowAddDocumentSection(false); setShowAddCommentSection(false); }}
+                                    className="flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md shadow-sm"
+                                >
+                                    Enviar Fatura das Unidades Beneficiárias
+                                </Button>
+                            )}
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="p-6">
                     <div className="space-y-6"> {/* Usando space-y-6 para espaçamento entre eventos */}
                         {timelineEvents.length === 0 && (
                             <p className="text-gray-500 text-center py-4">Nenhum evento na linha do tempo ainda.</p>
                     )}
-                        {timelineEvents.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((event, index) => {
+                        {timelineEvents
+                          .filter((event) => {
+                            // ✅ FILTRO: Ocultar comentários internos para clientes
+                            if (event.type === 'comment' && event.visibility === 'internal') {
+                              // ✅ CORREÇÃO: Verificar user.profile.role ao invés de user.role
+                              const actualRole = user?.profile?.role || user?.role;
+                              return actualRole !== 'client' && actualRole !== 'cliente';
+                            }
+                            return true;
+                          })
+                          .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                          .map((event, index) => {
                             let iconComponent: React.ReactNode;
                             let iconBgColor: string;
 
+                            let eventTypeBadge: { label: string; color: string } | null = null;
+
                             switch (event.type) {
                                 case 'comment':
-                                    iconComponent = <MessageIcon className="h-5 w-5 text-white" />;
+                                    iconComponent = <MessageIcon className="h-6 w-6 text-white" />;
                                     iconBgColor = 'bg-blue-500';
+                                    eventTypeBadge = { label: 'Comentário', color: 'bg-blue-100 text-blue-700 border-blue-300' };
                                     break;
                                 case 'responsibility':
-                                    iconComponent = <User className="h-5 w-5 text-white" />;
+                                    iconComponent = <User className="h-6 w-6 text-white" />;
                                     iconBgColor = 'bg-green-500';
+                                    eventTypeBadge = { label: 'Responsabilidade', color: 'bg-green-100 text-green-700 border-green-300' };
                                     break;
                                 case 'document':
                                 case 'file_upload':
-                                    iconComponent = <FileIcon className="h-5 w-5 text-white" />;
+                                    iconComponent = <FileIcon className="h-6 w-6 text-white" />;
                                     iconBgColor = 'bg-orange-500';
+                                    eventTypeBadge = { label: 'Documento', color: 'bg-orange-100 text-orange-700 border-orange-300' };
                                     break;
                                 case 'status':
-                                    iconComponent = <ClockIcon className="h-5 w-5 text-white" />;
+                                    iconComponent = <ClockIcon className="h-6 w-6 text-white" />;
                                     iconBgColor = 'bg-purple-500';
+                                    eventTypeBadge = { label: 'Status', color: 'bg-purple-100 text-purple-700 border-purple-300' };
                                     break;
                                 case 'checklist':
-                                case 'info_update': 
+                                    iconComponent = <Settings className="h-6 w-6 text-white" />;
+                                    iconBgColor = 'bg-teal-500';
+                                    eventTypeBadge = { label: 'Checklist', color: 'bg-teal-100 text-teal-700 border-teal-300' };
+                                    break;
+                                case 'info_update':
                                 default:
-                                    iconComponent = <Settings className="h-5 w-5 text-white" />;
+                                    iconComponent = <Settings className="h-6 w-6 text-white" />;
                                     iconBgColor = 'bg-green-500';
+                                    eventTypeBadge = { label: 'Sistema', color: 'bg-green-100 text-green-700 border-green-300' };
                                     break;
                             }
 
                             return (
-                                <div key={event.id || index} className="flex items-start space-x-3 p-3 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm">
-                                    {/* Círculo do Ícone */}
-                                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${iconBgColor}`}>
+                                <div key={event.id || index} className="flex items-start space-x-4 p-5 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200">
+                                    {/* Círculo do Ícone - Maior e com mais contraste */}
+                                    <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${iconBgColor} shadow-md`}>
                                         {iconComponent}
-                    </div>
+                                    </div>
 
-                                    {/* Conteúdo do Evento Simplificado por enquanto */}
+                                    {/* Conteúdo do Evento */}
                                     <div className="flex-grow">
-                                        <div className="flex items-center justify-between mb-0.5">
-                                            <span className="font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                                              {event.fullName || event.user || 'Usuário'}
-                                            </span>
-                                            <span className="text-xs text-gray-500">
-                                                {new Date(event.timestamp).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"})}
-                                                {event.edited && <span className="italic text-gray-400 ml-1">(editado)</span>}
-                            </span>
-                          </div>
+                                        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                                                {event.fullName || event.user || 'Usuário'}
+                                              </span>
+                                              {/* Badge de tipo de evento */}
+                                              {eventTypeBadge && (
+                                                <Badge className={`${eventTypeBadge.color} border text-xs font-medium px-2 py-0.5`}>
+                                                  {eventTypeBadge.label}
+                                                </Badge>
+                                              )}
+                                              {/* ✅ Badge para comentários internos */}
+                                              {event.type === 'comment' && event.visibility === 'internal' && (
+                                                <Badge className="bg-amber-100 text-amber-700 border-amber-300 border flex items-center gap-1 text-xs px-2 py-0.5">
+                                                  <Lock className="h-3 w-3" />
+                                                  Equipe Interna
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-200 dark:border-gray-600">
+                                                <ClockIcon className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                                    {new Date(event.timestamp).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"})}
+                                                </span>
+                                                {event.edited && <span className="italic text-gray-500 dark:text-gray-400 text-xs">(editado)</span>}
+                                            </div>
+                                        </div>
                                         {/* A exibição detalhada do conteúdo (status, links, etc.) será refinada depois */}
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{event.content}</p>
-                                        
+                                        {renderEventContent(event.content || '', event)}
+
                                         {/* Botões para eventos de arquivo (Download/Excluir) */}
                                         {((event.type === 'document' || event.type === 'file_upload' || event.fileName) && event.fileUrl) && (
                                           <div className="flex items-center space-x-2 mt-2">
@@ -1524,6 +2743,63 @@ export const ExpandedProjectView = ({
               className="bg-red-500 hover:bg-red-600"
             >
               {isDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 🖼️ Modal Lightbox para ampliar imagens */}
+      {enlargedImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <div className="relative max-w-7xl max-h-full">
+            {/* Botão fechar */}
+            <button
+              onClick={() => setEnlargedImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+              aria-label="Fechar"
+            >
+              <X size={32} />
+            </button>
+
+            {/* Imagem ampliada */}
+            <img
+              src={enlargedImage}
+              alt="Imagem ampliada"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 🗑️ Dialog de confirmação para arquivar projeto */}
+      <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arquivar projeto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja arquivar o projeto{' '}
+              <span className="font-medium text-gray-900 dark:text-white">
+                "{editedProject.nomeClienteFinal || editedProject.name || project.nomeClienteFinal || project.name || 'Sem nome'}"
+              </span>?
+              <br /><br />
+              O projeto será movido para a aba "Arquivados" e poderá ser restaurado posteriormente.
+              Todos os dados serão preservados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isArchiving}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleArchiveProject}
+              disabled={isArchiving}
+              className="bg-gray-600 hover:bg-gray-700"
+            >
+              {isArchiving ? 'Arquivando...' : 'Arquivar Projeto'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

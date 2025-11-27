@@ -391,6 +391,22 @@ export function RegisterForm() {
     setLoading(true);
     setErrors({});
 
+    // ✅ VERIFICAÇÃO GLOBAL: Verificar email antes de prosseguir
+    devLog.log("[RegisterForm] handleSubmit: Verificando disponibilidade do email...");
+    await checkEmailAvailability(formData.email);
+
+    // Se o email não estiver disponível, bloquear submissão
+    if (emailAvailable === false || emailError) {
+      setLoading(false);
+      devLog.warn("[RegisterForm] handleSubmit: Email não disponível, bloqueando submissão");
+      toast({
+        title: "Email já cadastrado",
+        description: emailError || "Este email já está em uso no sistema.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!validateForm()) {
       setLoading(false);
       devLog.log("[RegisterForm] handleSubmit: Validação do formulário falhou.");

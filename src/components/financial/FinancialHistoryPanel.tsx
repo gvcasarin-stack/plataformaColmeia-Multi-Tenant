@@ -7,33 +7,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  DollarSign, 
-  ArrowUpDown, 
+import {
+  DollarSign,
+  ArrowUpDown,
   Calculator,
   PlusCircle,
   Trash2,
   Edit,
   BarChart3,
-  LineChart
+  LineChart,
+  Calendar,
+  Receipt
 } from 'lucide-react';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AddTransactionModal from './AddTransactionModal';
 import AddFixedCostModal from './AddFixedCostModal';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createTenantHeaders } from '@/lib/utils/tenant-helper';
+import { devLog } from '@/lib/utils/productionLogger';
 
 // ✅ CORREÇÃO REACT #130: Definir aliases para ícones que não existem
 const Icons = {
   DollarSign,
   TrendingUp: ArrowUpDown,
+  Calendar,
   TrendingDown: ArrowUpDown,
   Calculator,
   Plus: PlusCircle,
   Trash2,
   Edit,
   BarChart3,
-  LineChart
+  LineChart,
+  Receipt
 };
 
 interface FinancialData {
@@ -60,12 +65,21 @@ interface FinancialData {
 
 type AnalysisType = 'numerical' | 'graphical';
 
-export default function FinancialHistoryPanel() {
+interface FinancialHistoryPanelProps {
+  initialLoading?: boolean;
+  preloadedData?: {
+    transactions: any[];
+    fixedCosts: any[];
+    projects?: any[];
+  };
+}
+
+export default function FinancialHistoryPanel({ initialLoading = false, preloadedData }: FinancialHistoryPanelProps = {}) {
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialLoading);
   const [analysisType, setAnalysisType] = useState<AnalysisType>('numerical');
   
   const currentDate = new Date();
@@ -82,6 +96,29 @@ export default function FinancialHistoryPanel() {
   // Estados para edição
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [editingFixedCost, setEditingFixedCost] = useState<any>(null);
+
+  // Categorias disponíveis (mesmas do AddTransactionModal)
+  const transactionCategories = [
+    'Alimentação',
+    'Transporte',
+    'Materiais',
+    'Serviços',
+    'Consultoria',
+    'Marketing',
+    'Tecnologia',
+    'Outros'
+  ];
+
+  const fixedCostCategories = [
+    'Escritório',
+    'Tecnologia',
+    'Comunicação',
+    'Serviços',
+    'Seguros',
+    'Impostos',
+    'Licenças',
+    'Outros'
+  ];
 
   // Função utilitária para converter data do banco (YYYY-MM-DD) para formato do input month (YYYY-MM)
   const formatDateForMonthInput = (dateString: string | null | undefined): string => {
@@ -147,7 +184,7 @@ export default function FinancialHistoryPanel() {
       setFinancialData(data);
       
     } catch (error) {
-      console.error('Erro ao carregar dados financeiros:', error);
+      devLog.error('Erro ao carregar dados financeiros:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os dados financeiros.',
@@ -159,8 +196,148 @@ export default function FinancialHistoryPanel() {
   };
 
   useEffect(() => {
-    fetchFinancialData();
-  }, [selectedMonth, selectedYear]);
+    // Se temos dados precarregados e estamos no mês atual, usar eles
+    if (preloadedData && selectedMonth === currentMonth && selectedYear === currentYear) {
+      devLog.log('[FinancialHistoryPanel] Usando dados precarregados - sem loading!');
+
+      // Calcular métricas com dados precarregados
+      const transactions = preloadedData.transactions || [];
+      const fixedCosts = preloadedData.fixedCosts || [];
+
+      // ✅ CORREÇÃO: Filtrar projetos pela data de PAGAMENTO (não criação)
+      const projects = (preloadedData.projects || []).filter((project: any) => {
+        const paymentStatus = project.pagamento || 'pendente';
+
+        // Não contabilizar projetos pendentes
+        if (paymentStatus === 'pendente') {
+          return false;
+        }
+
+        // Verificar data do pagamento conforme o status
+        let paymentDate = null;
+
+        if (paymentStatus === 'pago' && project.data_pagamento_integral) {
+          paymentDate = project.data_pagamento_integral;
+        } else if (paymentStatus === 'parcela1' && project.data_pagamento_parcela1) {
+          paymentDate = project.data_pagamento_parcela1;
+        }
+
+        // Se não tem data de pagamento registrada, não contabilizar
+        if (!paymentDate) {
+          return false;
+        }
+
+        try {
+          const date = new Date(paymentDate);
+          const paymentMonth = date.getMonth() + 1;
+          const paymentYear = date.getFullYear();
+
+          return paymentMonth === selectedMonth && paymentYear === selectedYear;
+        } catch (e) {
+          devLog.error('[FinancialHistoryPanel] Erro ao processar data de pagamento:', e);
+          return false;
+        }
+      });
+
+      devLog.log('[FinancialHistoryPanel] Projetos filtrados por data de PAGAMENTO:', {
+        selectedMonth,
+        selectedYear,
+        totalProjects: preloadedData.projects?.length || 0,
+        filteredProjects: projects.length
+      });
+
+      // Calcular métricas
+      const projectRevenue = projects.reduce((total: number, project: any) => {
+        const value = project.valor_projeto || 0;
+        if (project.pagamento === 'pago') {
+          return total + value;
+        } else if (project.pagamento === 'parcela1') {
+          return total + (value / 2);
+        }
+        return total;
+      }, 0);
+
+      const projectEstimatedRevenue = projects.reduce((total: number, project: any) => {
+        return total + (project.valor_projeto || 0);
+      }, 0);
+
+      const transactionRevenue = transactions.filter((t: any) => t.type === 'income')
+        .reduce((total: number, t: any) => total + parseFloat(t.amount || 0), 0);
+
+      const variableExpenses = transactions.filter((t: any) => t.type === 'expense')
+        .reduce((total: number, t: any) => total + parseFloat(t.amount || 0), 0);
+
+      const fixedExpenses = fixedCosts.reduce((total: number, cost: any) => total + parseFloat(cost.amount || 0), 0);
+
+      const totalRevenue = projectRevenue + transactionRevenue;
+      const totalExpenses = variableExpenses + fixedExpenses;
+      const netProfit = totalRevenue - totalExpenses;
+
+      // Agrupar transações por categoria
+      const transactionsByCategory = transactions.reduce((acc: any, transaction: any) => {
+        const category = transaction.category || 'Sem categoria';
+        if (!acc[category]) {
+          acc[category] = {
+            receitas: 0,
+            despesas: 0,
+            items: []
+          };
+        }
+
+        if (transaction.type === 'income') {
+          acc[category].receitas += parseFloat(transaction.amount || 0);
+        } else {
+          acc[category].despesas += parseFloat(transaction.amount || 0);
+        }
+
+        acc[category].items.push(transaction);
+        return acc;
+      }, {});
+
+      // Agrupar custos fixos por categoria
+      const fixedCostsByCategory = fixedCosts.reduce((acc: any, cost: any) => {
+        const category = cost.category || 'Sem categoria';
+        if (!acc[category]) {
+          acc[category] = {
+            total: 0,
+            items: []
+          };
+        }
+
+        acc[category].total += parseFloat(cost.amount || 0);
+        acc[category].items.push(cost);
+        return acc;
+      }, {});
+
+      setFinancialData({
+        metrics: {
+          totalRevenue,
+          totalExpenses,
+          netProfit,
+          fixedCosts: fixedExpenses,
+          projectRevenue,
+          projectEstimatedRevenue,
+          transactionRevenue,
+          variableExpenses
+        },
+        projects,
+        transactions,
+        fixedCosts,
+        transactionsByCategory,
+        fixedCostsByCategory,
+        period: {
+          month: selectedMonth,
+          year: selectedYear
+        }
+      });
+
+      setLoading(false);
+    } else {
+      // Senão, buscar da API
+      devLog.log('[FinancialHistoryPanel] Buscando dados da API (mês diferente ou sem preload)');
+      fetchFinancialData();
+    }
+  }, [selectedMonth, selectedYear, preloadedData]);
 
   const formatCurrency = (value: any) => {
     const numValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
@@ -271,7 +448,7 @@ export default function FinancialHistoryPanel() {
           }
         }
       } catch (error) {
-        console.error(`Erro ao buscar dados para ${monthName}/${year}:`, error);
+        devLog.error(`Erro ao buscar dados para ${monthName}/${year}:`, error);
       }
     }
     
@@ -311,11 +488,14 @@ export default function FinancialHistoryPanel() {
         description: 'A transação foi removida com sucesso.',
         variant: 'default',
       });
-      
+
       fetchFinancialData();
-      
+
+      // ✅ Notificar outras abas sobre mudança nos dados financeiros
+      window.dispatchEvent(new CustomEvent('financial-data-updated'));
+
     } catch (error) {
-      console.error('Erro ao deletar transação:', error);
+      devLog.error('Erro ao deletar transação:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível deletar a transação.',
@@ -346,11 +526,14 @@ export default function FinancialHistoryPanel() {
         description: 'O custo fixo foi removido com sucesso.',
         variant: 'default',
       });
-      
+
       fetchFinancialData();
-      
+
+      // ✅ Notificar outras abas sobre mudança nos dados financeiros
+      window.dispatchEvent(new CustomEvent('financial-data-updated'));
+
     } catch (error) {
-      console.error('Erro ao deletar custo fixo:', error);
+      devLog.error('Erro ao deletar custo fixo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível remover o custo fixo.',
@@ -360,7 +543,7 @@ export default function FinancialHistoryPanel() {
   };
 
   // Funções de edição
-  const updateTransaction = async (id: string, data: { description: string; amount: number; category: string }) => {
+  const updateTransaction = async (id: string, data: { description: string; amount: number; category: string; date?: string }) => {
     try {
       // ✅ SEGURANÇA MULTI-TENANT: Incluir headers com tenant_id
       if (!user?.id) {
@@ -386,12 +569,15 @@ export default function FinancialHistoryPanel() {
         description: 'A transação foi atualizada com sucesso.',
         variant: 'default',
       });
-      
+
       setEditingTransaction(null);
       fetchFinancialData();
-      
+
+      // ✅ Notificar outras abas sobre mudança nos dados financeiros
+      window.dispatchEvent(new CustomEvent('financial-data-updated'));
+
     } catch (error) {
-      console.error('Erro ao atualizar transação:', error);
+      devLog.error('Erro ao atualizar transação:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar a transação.',
@@ -426,12 +612,15 @@ export default function FinancialHistoryPanel() {
         description: 'O custo fixo foi atualizado com sucesso.',
         variant: 'default',
       });
-      
+
       setEditingFixedCost(null);
       fetchFinancialData();
-      
+
+      // ✅ Notificar outras abas sobre mudança nos dados financeiros
+      window.dispatchEvent(new CustomEvent('financial-data-updated'));
+
     } catch (error) {
-      console.error('Erro ao atualizar custo fixo:', error);
+      devLog.error('Erro ao atualizar custo fixo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o custo fixo.',
@@ -474,134 +663,149 @@ export default function FinancialHistoryPanel() {
   return (
     <div className="space-y-6">
       {/* Filtros de Mês e Ano */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex items-center gap-2">
-          <Select
-            value={selectedMonth.toString()}
-            onValueChange={(value) => setSelectedMonth(parseInt(value))}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map((month) => (
-                <SelectItem key={month.value} value={month.value.toString()}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 px-4 py-2 rounded-lg border-2 border-indigo-200 dark:border-indigo-700">
+            <Icons.Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <Select
+              value={selectedMonth.toString()}
+              onValueChange={(value) => setSelectedMonth(parseInt(value))}
+            >
+              <SelectTrigger className="w-40 border-0 bg-transparent font-semibold text-indigo-900 dark:text-indigo-100">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month.value} value={month.value.toString()}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={selectedYear.toString()}
-            onValueChange={(value) => setSelectedYear(parseInt(value))}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <span className="text-indigo-400">•</span>
+
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(value) => setSelectedYear(parseInt(value))}
+            >
+              <SelectTrigger className="w-24 border-0 bg-transparent font-semibold text-indigo-900 dark:text-indigo-100">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* Marcadores Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <Icons.TrendingUp className="h-5 w-5 mr-2 text-green-500" />
-              Receitas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {formatCurrency(totalRevenue)}
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {getMonthName(selectedMonth)} {selectedYear}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Bloco de Métricas Principais */}
+      <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-3">
+                <div className="p-3 bg-green-500 rounded-full">
+                  <Icons.TrendingUp className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-gray-700 dark:text-gray-200">Receitas</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                {formatCurrency(totalRevenue)}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {getMonthName(selectedMonth)} {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <Icons.TrendingDown className="h-5 w-5 mr-2 text-red-500" />
-              Despesas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {formatCurrency(totalExpenses)}
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Fixas: {formatCurrency(fixedCosts)}
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-3">
+                <div className="p-3 bg-red-500 rounded-full">
+                  <Icons.TrendingDown className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-gray-700 dark:text-gray-200">Despesas</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                {formatCurrency(totalExpenses)}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Fixas: {formatCurrency(fixedCosts)}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <Calculator className="h-5 w-5 mr-2 text-blue-500" />
-              Lucro Líquido
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-3xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(netProfit)}
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Margem: {totalRevenue > 0 ? 
-                ((netProfit / totalRevenue) * 100).toFixed(1) : '0'}%
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-3">
+                <div className="p-3 bg-blue-500 rounded-full">
+                  <Calculator className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-gray-700 dark:text-gray-200">Lucro Líquido</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className={`text-3xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(netProfit)}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Margem: {totalRevenue > 0 ?
+                  ((netProfit / totalRevenue) * 100).toFixed(1) : '0'}%
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-purple-500" />
-              Custos Fixos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {formatCurrency(fixedCosts)}
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {(financialData.fixedCosts || []).length} itens ativos
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-3">
+                <div className="p-3 bg-purple-500 rounded-full">
+                  <DollarSign className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-gray-700 dark:text-gray-200">Custos Fixos</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                {formatCurrency(fixedCosts)}
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {(financialData.fixedCosts || []).length} itens ativos
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Botões de Alternância */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-2">
         <Button
           onClick={() => setAnalysisType('numerical')}
-          className={`flex items-center gap-2 ${
-            analysisType === 'numerical' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-white text-gray-700 border border-gray-300'
+          className={`flex items-center gap-2 transition-all duration-200 ${
+            analysisType === 'numerical'
+              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
           }`}
         >
-          <BarChart3 className="h-4 w-4" />
+          <Receipt className="h-4 w-4" />
           Análise Numérica
         </Button>
-        
+
         <Button
           onClick={() => setAnalysisType('graphical')}
-          className={`flex items-center gap-2 ${
-            analysisType === 'graphical' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-white text-gray-700 border border-gray-300'
+          className={`flex items-center gap-2 transition-all duration-200 ${
+            analysisType === 'graphical'
+              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
           }`}
         >
           <LineChart className="h-4 w-4" />
@@ -610,11 +814,11 @@ export default function FinancialHistoryPanel() {
       </div>
 
       {/* Análise Financeira Mensal */}
-      <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
+      <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl">
         <CardHeader>
           <CardTitle className="text-xl flex items-center">
             {analysisType === 'numerical' ? (
-              <BarChart3 className="h-6 w-6 mr-2 text-blue-500" />
+              <Receipt className="h-6 w-6 mr-2 text-blue-500" />
             ) : (
               <LineChart className="h-6 w-6 mr-2 text-blue-500" />
             )}
@@ -634,11 +838,11 @@ export default function FinancialHistoryPanel() {
                       {formatCurrency(totalRevenue)}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full" 
-                      style={{ 
-                        width: `${totalRevenue > 0 ? 100 : 0}%` 
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-green-500 h-3 rounded-full"
+                      style={{
+                        width: `${totalRevenue > 0 ? 100 : 0}%`
                       }}
                     ></div>
                   </div>
@@ -649,16 +853,16 @@ export default function FinancialHistoryPanel() {
                       {formatCurrency(totalExpenses)}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-red-500 h-2 rounded-full" 
-                      style={{ 
-                        width: `${totalExpenses > 0 ? 100 : 0}%` 
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-red-500 h-3 rounded-full"
+                      style={{
+                        width: `${totalExpenses > 0 ? 100 : 0}%`
                       }}
                     ></div>
                   </div>
 
-                  <div className="flex justify-between items-center border-t pt-3">
+                  <div className="flex justify-between items-center border-t pt-3 mt-2">
                     <span className="text-gray-600 font-semibold">Lucro Líquido</span>
                     <span className={`font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(netProfit)}
@@ -677,11 +881,11 @@ export default function FinancialHistoryPanel() {
                       {formatCurrency(fixedCosts)}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-orange-500 h-2 rounded-full" 
-                      style={{ 
-                        width: `${totalExpenses > 0 ? (fixedCosts / totalExpenses) * 100 : (fixedCosts > 0 ? 100 : 0)}%` 
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-orange-500 h-3 rounded-full"
+                      style={{
+                        width: `${totalExpenses > 0 ? (fixedCosts / totalExpenses) * 100 : (fixedCosts > 0 ? 100 : 0)}%`
                       }}
                     ></div>
                   </div>
@@ -692,11 +896,11 @@ export default function FinancialHistoryPanel() {
                       {formatCurrency(variableExpenses)}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-purple-500 h-2 rounded-full" 
-                      style={{ 
-                        width: `${totalExpenses > 0 ? (variableExpenses / totalExpenses) * 100 : (variableExpenses > 0 ? 100 : 0)}%` 
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-purple-500 h-3 rounded-full"
+                      style={{
+                        width: `${totalExpenses > 0 ? (variableExpenses / totalExpenses) * 100 : (variableExpenses > 0 ? 100 : 0)}%`
                       }}
                     ></div>
                   </div>
@@ -787,7 +991,7 @@ export default function FinancialHistoryPanel() {
           {/* Primeira Linha: Despesas e Custos Fixos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Despesas Variáveis */}
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
+            <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Despesas Variáveis</CardTitle>
@@ -806,10 +1010,10 @@ export default function FinancialHistoryPanel() {
                   {(financialData.transactions || []).filter(t => t.type === 'expense').length > 0 ? (
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Valor</TableHead>
-                          <TableHead className="w-24">Ações</TableHead>
+                        <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
+                          <TableHead className="font-bold text-gray-800 dark:text-gray-200">Descrição</TableHead>
+                          <TableHead className="font-bold text-gray-800 dark:text-gray-200">Valor</TableHead>
+                          <TableHead className="w-24 font-bold text-gray-800 dark:text-gray-200">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -828,18 +1032,34 @@ export default function FinancialHistoryPanel() {
                                       className="w-full px-2 py-1 text-sm border rounded"
                                       placeholder="Descrição"
                                     />
-                                    <input
-                                      type="text"
+                                    <Select
                                       value={editingTransaction.category || ''}
-                                      onChange={(e) => setEditingTransaction({...editingTransaction, category: e.target.value})}
+                                      onValueChange={(value) => setEditingTransaction({...editingTransaction, category: value})}
+                                    >
+                                      <SelectTrigger className="w-full text-sm">
+                                        <SelectValue placeholder="Selecione a categoria" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {transactionCategories.map((category) => (
+                                          <SelectItem key={category} value={category}>
+                                            {category}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <input
+                                      type="date"
+                                      value={editingTransaction.transaction_date?.split('T')[0] || ''}
+                                      onChange={(e) => setEditingTransaction({...editingTransaction, transaction_date: e.target.value})}
                                       className="w-full px-2 py-1 text-sm border rounded"
-                                      placeholder="Categoria"
                                     />
                                   </div>
                                 ) : (
                                   <div>
                                     <div className="font-medium">{safeString(transaction.description)}</div>
-                                    <div className="text-sm text-gray-500">{safeString(transaction.category)}</div>
+                                    <Badge variant="secondary" className="text-xs mt-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                                      {safeString(transaction.category)}
+                                    </Badge>
                                   </div>
                                 )}
                               </TableCell>
@@ -864,7 +1084,8 @@ export default function FinancialHistoryPanel() {
                                       onClick={() => updateTransaction(safeString(transaction.id), {
                                         description: editingTransaction.description,
                                         amount: editingTransaction.amount,
-                                        category: editingTransaction.category
+                                        category: editingTransaction.category,
+                                        date: editingTransaction.transaction_date
                                       })}
                                       className="text-green-600 hover:text-green-800 bg-transparent border-none p-1"
                                       size="sm"
@@ -913,7 +1134,7 @@ export default function FinancialHistoryPanel() {
             </Card>
 
             {/* Custos Fixos Mensais */}
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
+            <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Custos Fixos Mensais</CardTitle>
@@ -930,10 +1151,10 @@ export default function FinancialHistoryPanel() {
                   {(financialData.fixedCosts || []).length > 0 ? (
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Valor</TableHead>
-                          <TableHead className="w-24">Ações</TableHead>
+                        <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
+                          <TableHead className="font-bold text-gray-800 dark:text-gray-200">Nome</TableHead>
+                          <TableHead className="font-bold text-gray-800 dark:text-gray-200">Valor</TableHead>
+                          <TableHead className="w-24 font-bold text-gray-800 dark:text-gray-200">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -952,24 +1173,32 @@ export default function FinancialHistoryPanel() {
                                       className="w-full px-2 py-1 text-sm border rounded"
                                       placeholder="Nome"
                                     />
-                                    <input
-                                      type="text"
+                                    <Select
                                       value={editingFixedCost.category || ''}
-                                      onChange={(e) => setEditingFixedCost({...editingFixedCost, category: e.target.value})}
-                                      className="w-full px-2 py-1 text-sm border rounded"
-                                      placeholder="Categoria"
-                                    />
+                                      onValueChange={(value) => setEditingFixedCost({...editingFixedCost, category: value})}
+                                    >
+                                      <SelectTrigger className="w-full text-sm">
+                                        <SelectValue placeholder="Selecione a categoria" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {fixedCostCategories.map((category) => (
+                                          <SelectItem key={category} value={category}>
+                                            {category}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                     <div className="grid grid-cols-2 gap-2">
                                       <input
                                         type="month"
-                                        value={editingFixedCost.vigencia_inicio || ''}
+                                        value={formatDateForMonthInput(editingFixedCost.vigencia_inicio) || ''}
                                         onChange={(e) => setEditingFixedCost({...editingFixedCost, vigencia_inicio: e.target.value})}
                                         className="w-full px-2 py-1 text-sm border rounded"
                                         placeholder="Início"
                                       />
                                       <input
                                         type="month"
-                                        value={editingFixedCost.vigencia_fim || ''}
+                                        value={formatDateForMonthInput(editingFixedCost.vigencia_fim) || ''}
                                         onChange={(e) => setEditingFixedCost({...editingFixedCost, vigencia_fim: e.target.value})}
                                         className="w-full px-2 py-1 text-sm border rounded"
                                         placeholder="Término (opcional)"
@@ -979,7 +1208,9 @@ export default function FinancialHistoryPanel() {
                                 ) : (
                                   <div>
                                     <div className="font-medium">{safeString(cost.name)}</div>
-                                    <div className="text-sm text-gray-500">{safeString(cost.category)}</div>
+                                    <Badge variant="secondary" className="text-xs mt-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                                      {safeString(cost.category)}
+                                    </Badge>
                                   </div>
                                 )}
                               </TableCell>
@@ -1057,7 +1288,7 @@ export default function FinancialHistoryPanel() {
 
           {/* Segunda Linha: Fontes de Receita Mensal */}
           <div className="grid grid-cols-1 gap-6">
-            <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
+            <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-lg rounded-2xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Fontes de Receita Mensal</CardTitle>
@@ -1079,10 +1310,10 @@ export default function FinancialHistoryPanel() {
                     {(financialData.projects || []).length > 0 ? (
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Projeto</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Valor Pago</TableHead>
+                          <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">Projeto</TableHead>
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">Status</TableHead>
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">Valor Pago</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1149,10 +1380,10 @@ export default function FinancialHistoryPanel() {
                     {(financialData.transactions || []).filter(t => t.type === 'income').length > 0 ? (
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Descrição</TableHead>
-                            <TableHead>Valor</TableHead>
-                            <TableHead className="w-24">Ações</TableHead>
+                          <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">Descrição</TableHead>
+                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">Valor</TableHead>
+                            <TableHead className="w-24 font-bold text-gray-800 dark:text-gray-200">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1171,18 +1402,34 @@ export default function FinancialHistoryPanel() {
                                         className="w-full px-2 py-1 text-sm border rounded"
                                         placeholder="Descrição"
                                       />
-                                      <input
-                                        type="text"
+                                      <Select
                                         value={editingTransaction.category || ''}
-                                        onChange={(e) => setEditingTransaction({...editingTransaction, category: e.target.value})}
+                                        onValueChange={(value) => setEditingTransaction({...editingTransaction, category: value})}
+                                      >
+                                        <SelectTrigger className="w-full text-sm">
+                                          <SelectValue placeholder="Selecione a categoria" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {transactionCategories.map((category) => (
+                                            <SelectItem key={category} value={category}>
+                                              {category}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <input
+                                        type="date"
+                                        value={editingTransaction.transaction_date?.split('T')[0] || ''}
+                                        onChange={(e) => setEditingTransaction({...editingTransaction, transaction_date: e.target.value})}
                                         className="w-full px-2 py-1 text-sm border rounded"
-                                        placeholder="Categoria"
                                       />
                                     </div>
                                   ) : (
                                     <div>
                                       <div className="font-medium">{safeString(transaction.description)}</div>
-                                      <div className="text-sm text-gray-500">{safeString(transaction.category)}</div>
+                                      <Badge variant="secondary" className="text-xs mt-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                                        {safeString(transaction.category)}
+                                      </Badge>
                                     </div>
                                   )}
                                 </TableCell>
@@ -1207,7 +1454,8 @@ export default function FinancialHistoryPanel() {
                                         onClick={() => updateTransaction(safeString(transaction.id), {
                                           description: editingTransaction.description,
                                           amount: editingTransaction.amount,
-                                          category: editingTransaction.category
+                                          category: editingTransaction.category,
+                                          date: editingTransaction.transaction_date
                                         })}
                                         className="text-green-600 hover:text-green-800 bg-transparent border-none p-1"
                                         size="sm"

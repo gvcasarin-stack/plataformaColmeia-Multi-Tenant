@@ -74,7 +74,11 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       prioridade: data.prioridade || 'Baixa',
       valorProjeto: data.valor_projeto || null,
       pagamento: data.pagamento || undefined,
-  
+
+      // 💳 BILLING: Adicionar campos de faturamento
+      billing_mode: data.billing_mode || 'avulso',
+      billing_snapshot: data.billing_snapshot || null,
+
       createdAt: sanitizeDate(data.created_at),
       updatedAt: sanitizeDate(data.updated_at),
       adminResponsibleId: data.admin_responsible_id,
@@ -124,8 +128,9 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
     const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .eq('created_by', userId)
+      .or(`owner_id.eq.${userId},and(owner_id.is.null,created_by.eq.${userId})`)
       .eq('tenant_id', userData.tenant_id) // ✅ CRÍTICO: Filtrar por tenant
+      .is('deleted_at', null) // ✅ SOFT DELETE: Excluir projetos arquivados
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -160,7 +165,11 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
       prioridade: item.prioridade || 'Baixa',
       valorProjeto: item.valor_projeto || null,
       pagamento: item.pagamento || undefined,
-  
+
+      // 💳 BILLING: Adicionar campos de faturamento
+      billing_mode: item.billing_mode || 'avulso',
+      billing_snapshot: item.billing_snapshot || null,
+
       createdAt: sanitizeDate(item.created_at),
       updatedAt: sanitizeDate(item.updated_at),
       adminResponsibleId: item.admin_responsible_id,
@@ -254,9 +263,18 @@ export const getProjectsWithFilters = async (filters: {
     logger.debug('[getProjectsWithFilters] Buscando projetos com filtros:', filters);
 
     const supabase = getSupabaseClient(); // ✅ Obter cliente dinamicamente
+    // 🆕 CORREÇÃO: Fazer LEFT JOIN com users para buscar dados do proprietário (owner_id)
     let query = supabase
       .from('projects')
-      .select('*');
+      .select(`
+        *,
+        owner:users!owner_id (
+          id,
+          name,
+          company_name
+        )
+      `)
+      .is('deleted_at', null); // ✅ SOFT DELETE: Excluir projetos arquivados
 
     if (filters.userId) {
       query = query.eq('created_by', filters.userId);
@@ -300,34 +318,54 @@ export const getProjectsWithFilters = async (filters: {
     };
 
     // Mapear dados do Supabase para o formato Project
-    const projects: Project[] = data.map(item => ({
-      id: item.id,
-      userId: item.created_by,
-      nome_cliente_final: item.nome_cliente_final,
-      number: item.number,
-      empresaIntegradora: item.empresa_integradora || '',
-      nomeClienteFinal: item.nome_cliente_final || '',
-      distribuidora: item.distribuidora || '',
-      potencia: item.potencia || 0,
-      dataEntrega: item.data_entrega || '',
-      status: item.status || 'Não Iniciado',
-      prioridade: item.prioridade || 'Baixa',
-      valorProjeto: item.valor_projeto || null,
-      pagamento: item.pagamento || undefined,
-  
-      createdAt: sanitizeDate(item.created_at),
-      updatedAt: sanitizeDate(item.updated_at),
-      adminResponsibleId: item.admin_responsible_id,
-      adminResponsibleName: item.admin_responsible_name,
-      adminResponsibleEmail: item.admin_responsible_email,
-      adminResponsiblePhone: item.admin_responsible_phone,
-      timelineEvents: item.timeline_events || [],
-      documents: item.documents || [],
-      files: item.files || [],
-      comments: item.comments || [],
-      history: item.history || [],
-      lastUpdateBy: item.last_update_by || undefined,
-    }));
+    const projects: Project[] = data.map(item => {
+      // 🆕 CORREÇÃO: Calcular empresaIntegradora dinamicamente APENAS se owner_id existir
+      // Para projetos antigos (sem owner_id), manter valor do banco
+      let empresaIntegradoraFinal = item.empresa_integradora || '';
+
+      if (item.owner_id && item.owner) {
+        // Projeto novo com owner_id: usar dados do proprietário
+        empresaIntegradoraFinal = item.owner.company_name || item.owner.name || empresaIntegradoraFinal;
+      }
+
+      return {
+        id: item.id,
+        userId: item.owner_id || item.created_by, // Usar owner_id se existir, senão created_by
+        nome_cliente_final: item.nome_cliente_final,
+        number: item.number,
+        empresaIntegradora: empresaIntegradoraFinal, // 🆕 Calculado dinamicamente
+        nomeClienteFinal: item.nome_cliente_final || '',
+        distribuidora: item.distribuidora || '',
+        potencia: item.potencia || 0,
+        dataEntrega: item.data_entrega || '',
+        status: item.status || 'Não Iniciado',
+        prioridade: item.prioridade || 'Baixa',
+        valorProjeto: item.valor_projeto || null,
+        pagamento: item.pagamento || undefined,
+
+        // 💳 BILLING: Adicionar campos de faturamento
+        billing_mode: item.billing_mode || 'avulso',
+        billing_snapshot: item.billing_snapshot || null,
+
+        createdAt: sanitizeDate(item.created_at),
+        updatedAt: sanitizeDate(item.updated_at),
+        adminResponsibleId: item.admin_responsible_id,
+        adminResponsibleName: item.admin_responsible_name,
+        adminResponsibleEmail: item.admin_responsible_email,
+        adminResponsiblePhone: item.admin_responsible_phone,
+        timelineEvents: item.timeline_events || [],
+        documents: item.documents || [],
+        files: item.files || [],
+        comments: item.comments || [],
+        history: item.history || [],
+        lastUpdateBy: item.last_update_by || undefined,
+
+        // ✅ CAMPOS DE SLA (prazo de expiração)
+        status_changed_at: item.status_changed_at ? sanitizeDate(item.status_changed_at) : null,
+        sla_expires_at: item.sla_expires_at ? sanitizeDate(item.sla_expires_at) : null,
+        sla_expired: item.sla_expired || false,
+      };
+    });
 
     logger.debug('[getProjectsWithFilters] Projetos encontrados:', projects.length);
     return projects;

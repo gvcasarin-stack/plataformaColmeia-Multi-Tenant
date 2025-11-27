@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service'
 import { devLog } from '@/lib/utils/productionLogger'
+import { handleTempTenant } from '@/lib/utils/temp-tenant-handler'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,8 +21,8 @@ export async function GET(request: NextRequest) {
     if (!tenantId && !tenantSlug) {
       devLog.error('[API Tenant Organization] Nem tenant ID nem slug encontrados');
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Tenant ID ou slug não encontrado nos headers',
           debug: {
             receivedHeaders: Object.fromEntries(headersList.entries()),
@@ -30,6 +31,12 @@ export async function GET(request: NextRequest) {
         },
         { status: 400 }
       )
+    }
+
+    // 🛠️ FALLBACK: Lidar com tenants temporários
+    const tempTenantResponse = handleTempTenant(tenantId, 'object', 'TenantOrganization');
+    if (tempTenantResponse) {
+      return tempTenantResponse;
     }
 
     const supabase = createSupabaseServiceRoleClient()
@@ -54,7 +61,18 @@ export async function GET(request: NextRequest) {
       payment_method_added,
       next_billing_date,
       created_at,
-      updated_at
+      updated_at,
+      plans:plan_id (
+        id,
+        plan_code,
+        name,
+        price,
+        max_projects,
+        max_users,
+        max_clients,
+        max_storage_gb,
+        api_calls_per_day
+      )
     `);
 
     // Buscar por ID ou slug
@@ -131,6 +149,7 @@ export async function GET(request: NextRequest) {
         slug: organization.slug,
         tenant_id: organization.tenant_id, // ✅ ADICIONADO: Campo tenant_id necessário
         plan_id: organization.plan_id,
+        plan: organization.plans, // ✅ ADICIONADO: Dados completos do plano via JOIN
         settings: organization.settings,
         contact_email: organization.contact_email,
         status: organization.status,

@@ -38,41 +38,14 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // 🔒 MULTI-TENANT: Obter tenant_id do domínio
-    const hostname = request.headers.get('host') || '';
-    console.log('[check-email] Hostname:', hostname);
+    // ✅ VERIFICAÇÃO GLOBAL: Buscar email em TODOS os tenants
+    console.log('[check-email] Verificando email globalmente:', email);
 
-    // Extrair slug do hostname (ex: "solar-tech" de "solar-tech.gerenciamentofotovoltaico.com.br")
-    const slug = hostname.split('.')[0];
-    console.log('[check-email] Slug extraído:', slug);
-
-    // Buscar tenant_id pelo slug (não existe custom_domain na tabela)
-    const { data: orgData, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, slug, name')
-      .eq('slug', slug)
-      .maybeSingle();
-
-    console.log('[check-email] OrgData:', orgData, 'Error:', orgError);
-
-    if (orgError || !orgData) {
-      console.error('[check-email] Org não encontrada para slug:', slug);
-      return NextResponse.json(
-        { error: 'Tenant não identificado', debug: { hostname, slug } },
-        { status: 400 }
-      );
-    }
-
-    const tenantId = orgData.id;
-    console.log('[check-email] Tenant encontrado:', { id: tenantId, name: orgData.name });
-
-    // 🔒 SEGURANÇA: Buscar apenas se o email existe e qual o role
-    // NÃO retornar dados pessoais, apenas informação mínima necessária
     const { data: user, error } = await supabase
       .from('users')
       .select('role, tenant_id')
       .eq('email', email.toLowerCase().trim())
-      .eq('tenant_id', tenantId)
+      .limit(1)
       .maybeSingle();
 
     if (error) {
@@ -83,8 +56,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Se não existe usuário com esse email neste tenant
+    // Se não existe usuário com esse email em NENHUM tenant
     if (!user) {
+      console.log('[check-email] ✅ Email disponível');
       return NextResponse.json({
         exists: false,
         available: true
@@ -93,6 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Se existe, retornar tipo de usuário (sem dados pessoais)
     const isAdminRole = ['admin', 'superadmin', 'colaborador'].includes(user.role);
+    console.log('[check-email] ❌ Email já existe - Role:', user.role, 'Tenant:', user.tenant_id);
 
     return NextResponse.json({
       exists: true,

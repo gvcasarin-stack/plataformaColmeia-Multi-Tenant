@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
+import { COLABORADOR_PERMISSIONS } from '@/types/user';
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,13 +40,14 @@ export async function GET(request: NextRequest) {
         phone,
         department,
         role,
+        permissions,
         tenant_id,
         status,
         created_at,
         updated_at
       `)
       .eq('tenant_id', tenantId)
-      .eq('role', 'admin')
+      .in('role', ['admin', 'colaborador']) // ✅ Aceita ambos os roles
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
@@ -77,12 +79,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Formatar dados para o frontend (usando campos diretos)
+    // Formatar dados para o frontend
     const formattedMembers = (members || []).map(member => ({
       id: member.id,
-      name: member.name || member.email.split('@')[0], // Usar nome real ou parte do email
+      name: member.name || member.email.split('@')[0],
       email: member.email,
-      role: member.role,
+      role: member.role, // ✅ Retornar role real (admin ou colaborador)
+      permissions: member.permissions, // ✅ Incluir permissions
       phone: member.phone || '',
       department: member.department || 'Engenharia',
       createdAt: member.created_at,
@@ -126,10 +129,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, role, phone, department } = body;
-    
+    const { name, email, role, phone, department, permissions } = body;
+
     devLog.log('[API Team Members] Dados recebidos:', {
-      name, email, role, phone, department
+      name, email, role, phone, department, permissions
     });
 
     if (!name || !email || !role) {
@@ -141,32 +144,34 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Verificar se email já existe no tenant
-    const { data: existingUser } = await supabase
+    // ✅ VERIFICAÇÃO GLOBAL: Verificar se email já existe em QUALQUER tenant
+    const { data: globalEmailCheck } = await supabase
       .from('users')
-      .select('id')
+      .select('id, email, tenant_id')
       .eq('email', email)
-      .eq('tenant_id', tenantId)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email já está em uso nesta organização' },
-        { status: 409 }
-      );
+    if (globalEmailCheck) {
+      devLog.warn('[API Team Members] Email já cadastrado no sistema', {
+        email,
+        existingUserId: globalEmailCheck.id,
+        existingTenantId: globalEmailCheck.tenant_id
+      });
+      return NextResponse.json({
+        error: 'Este email já possui cadastro no sistema. Se você já tem conta, faça login. Se esqueceu a senha, use "Recuperar Senha".'
+      }, { status: 409 });
     }
 
-    // Passo 1: Criar usuário no Supabase Auth primeiro
+    // Passo 1: Criar usuário no Supabase Auth sem senha (será definida pelo link)
     devLog.log('[API Team Members] Criando usuário no Auth...');
-    
-    const tempPassword = `Temp${Date.now()}!`; // Senha temporária
-    
+
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
-      password: tempPassword,
-      email_confirm: true
+      email_confirm: true, // Email já confirmado
+      // ✅ Não definir senha - será definida pelo link
     });
-    
+
     if (authError) {
       devLog.error('[API Team Members] Erro ao criar no Auth:', authError);
       return NextResponse.json(
@@ -174,7 +179,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     devLog.log('[API Team Members] Usuário criado no Auth:', authUser.user?.id);
     
     // Passo 2: Criar registro na tabela users usando ID do Auth
@@ -186,18 +191,11 @@ export async function POST(request: NextRequest) {
         name,
         phone: phone || null,
         department: department || 'Engenharia',
-        role,
+        role: role, // ✅ Usar role original (admin, colaborador, etc)
         tenant_id: tenantId,
         status: 'active',
         auth_provider: 'supabase',
-        permissions: {
-          can_export_data: false,
-          can_manage_users: false,
-          can_edit_projects: false,
-          can_create_projects: true,
-          can_delete_projects: false,
-          can_view_financials: false
-        },
+        permissions: permissions || COLABORADOR_PERMISSIONS, // ✅ Usar permissions do body ou preset padrão
         settings: {
           preferences: {
             theme: 'light',
@@ -240,8 +238,49 @@ export async function POST(request: NextRequest) {
 
     devLog.log('[API Team Members] Usuário criado:', newUser.id);
 
-    // TODO: Enviar email de boas-vindas com link para definir senha
-    // await sendWelcomeEmail(email, name, tenantSlug);
+    // ✅ Passo 3: Gerar link de definir senha
+    devLog.log('[API Team Members] Gerando link de definir senha...');
+
+    // ✅ SOLUÇÃO FINAL: Redirect direto sem callback
+    // O Supabase vai colocar os tokens no hash fragment (#access_token=...)
+    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/admin/nova-senha`;
+
+    const { data: resetData, error: resetError } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: redirectUrl,
+      }
+    });
+
+    if (resetError) {
+      devLog.error('[API Team Members] Erro ao gerar link de senha:', resetError);
+      // Não falhar a criação do usuário por causa do link
+    } else {
+      const passwordResetLink = resetData.properties.action_link || '';
+      devLog.log('[API Team Members] Link de senha gerado com sucesso');
+      devLog.log('[API Team Members] Link:', passwordResetLink);
+      devLog.log('[API Team Members] Redirect URL configurado:', redirectUrl);
+
+      // ✅ Passo 4: Enviar email de boas-vindas com link
+      try {
+        const { sendTeamMemberWelcomeEmail } = await import('@/lib/services/emailService');
+        const emailSent = await sendTeamMemberWelcomeEmail(
+          email,
+          name,
+          passwordResetLink
+        );
+
+        if (emailSent) {
+          devLog.log('[API Team Members] Email de boas-vindas enviado com sucesso');
+        } else {
+          devLog.warn('[API Team Members] Falha ao enviar email de boas-vindas');
+        }
+      } catch (emailError) {
+        devLog.error('[API Team Members] Erro ao enviar email de boas-vindas:', emailError);
+        // Não falhar a criação do usuário por causa do email
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -249,7 +288,7 @@ export async function POST(request: NextRequest) {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        role: newUser.role,
+        role: role, // ✅ Retornar role original do frontend (admin ou colaborador)
         phone: newUser.phone || '',
         department: newUser.department || 'Engenharia',
         createdAt: newUser.created_at,
@@ -282,7 +321,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, phone, department } = body;
+    const { id, name, phone, department, role, permissions } = body;
 
     if (!id || !name) {
       return NextResponse.json(
@@ -293,15 +332,22 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Atualizar usuário (usando campos diretos)
+    // Preparar dados de atualização
+    const updateData: any = {
+      name,
+      phone: phone || null,
+      department: department || 'Engenharia',
+      updated_at: new Date().toISOString()
+    };
+
+    // Se role ou permissions foram fornecidos, incluir na atualização
+    if (role) updateData.role = role;
+    if (permissions) updateData.permissions = permissions;
+
+    // Atualizar usuário
     const { data: updatedUser, error } = await supabase
       .from('users')
-      .update({
-        name,
-        phone: phone || null,
-        department: department || 'Engenharia',
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .select()
@@ -323,7 +369,8 @@ export async function PUT(request: NextRequest) {
         id: updatedUser.id,
         name: updatedUser.name || name,
         email: updatedUser.email,
-        role: updatedUser.role,
+        role: updatedUser.role, // ✅ Retornar role real do banco
+        permissions: updatedUser.permissions, // ✅ Retornar permissions atualizadas
         phone: updatedUser.phone || '',
         department: updatedUser.department || 'Engenharia',
         createdAt: updatedUser.created_at,
@@ -359,25 +406,36 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Marcar usuário como inativo ao invés de deletar
-    const { error } = await supabase
+    // ✅ CORREÇÃO: Excluir permanentemente do banco de dados
+    devLog.log('[API Team Members] Excluindo usuário do banco de dados...');
+
+    const { error: deleteError } = await supabase
       .from('users')
-      .update({
-        status: 'inactive',
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('id', userId)
       .eq('tenant_id', tenantId);
 
-    if (error) {
-      devLog.error('[API Team Members] Erro ao remover usuário:', error);
+    if (deleteError) {
+      devLog.error('[API Team Members] Erro ao excluir usuário do DB:', deleteError);
       return NextResponse.json(
-        { error: 'Erro ao remover membro da equipe' },
+        { error: 'Erro ao remover membro da equipe do banco de dados' },
         { status: 500 }
       );
     }
 
-    devLog.log('[API Team Members] Usuário removido:', userId);
+    // ✅ CORREÇÃO: Excluir também do Supabase Auth
+    devLog.log('[API Team Members] Excluindo usuário do Auth...');
+
+    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
+
+    if (authDeleteError) {
+      devLog.error('[API Team Members] Erro ao excluir usuário do Auth:', authDeleteError);
+      devLog.warn('[API Team Members] Usuário removido do DB mas falhou ao remover do Auth');
+    } else {
+      devLog.log('[API Team Members] Usuário excluído do Auth com sucesso');
+    }
+
+    devLog.log('[API Team Members] Usuário excluído permanentemente:', userId);
 
     return NextResponse.json({
       success: true,

@@ -73,11 +73,41 @@ export async function createClientRequest(data: Omit<ClientRequest, 'id' | 'stat
 
     const supabase = createSupabaseServiceRoleClient();
 
+    // ✅ VERIFICAÇÃO GLOBAL: Verificar se email já existe em QUALQUER tenant
+    logger.info('[ClientRequestService] [SUPABASE] Verificando se email já existe no sistema', { email: data.email });
+
+    const { data: globalEmailCheck, error: globalCheckError } = await supabase
+      .from('users')
+      .select('id, email, tenant_id, status, role')
+      .eq('email', data.email)
+      .limit(1)
+      .maybeSingle();
+
+    if (globalCheckError) {
+      logger.error('[ClientRequestService] [SUPABASE] Erro ao verificar email globalmente', {
+        email: data.email,
+        error: globalCheckError.message
+      });
+    }
+
+    if (globalEmailCheck) {
+      logger.warn('[ClientRequestService] [SUPABASE] ❌ Email já cadastrado no sistema', {
+        email: data.email,
+        existingUserId: globalEmailCheck.id,
+        existingTenantId: globalEmailCheck.tenant_id,
+        existingStatus: globalEmailCheck.status,
+        existingRole: globalEmailCheck.role
+      });
+      throw new Error('Este email já possui cadastro no sistema. Se você já tem conta, faça login. Se esqueceu a senha, use "Recuperar Senha".');
+    }
+
+    logger.info('[ClientRequestService] [SUPABASE] ✅ Email disponível, prosseguindo com cadastro');
+
     // ✅ PRODUÇÃO - 1. Criar usuário no Supabase Auth
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: data.email,
       password: data.password,
-      email_confirm: false, // Será confirmado após aprovação admin
+      email_confirm: true, // Permitir login imediato - controle via status no banco
       user_metadata: {
         name: data.name,
         displayName: data.name

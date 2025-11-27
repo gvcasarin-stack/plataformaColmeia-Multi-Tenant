@@ -113,18 +113,6 @@ export function ClientSubscriptionsTab() {
             const response = await fetch(`/api/admin/clients/${client.id}/billing-info`);
             const result = await response.json();
 
-            // 🔍 DEBUG: Log para entender o que a API está retornando
-            console.log('[ClientSubscriptionsTab] Billing info para cliente:', {
-              clientId: client.id,
-              clientName: client.name,
-              success: result.success,
-              billing_mode: result.data?.billing_mode,
-              hasPackage: !!result.data?.package,
-              packageData: result.data?.package,
-              hasSubscription: !!result.data?.subscription,
-              subscriptionData: result.data?.subscription
-            });
-
             if (result.success) {
               return {
                 ...client,
@@ -132,14 +120,12 @@ export function ClientSubscriptionsTab() {
                 billingInfo: result.data
               };
             }
-            console.error('[ClientSubscriptionsTab] API retornou success: false para cliente:', client.id, result);
             return {
               ...client,
               billingMode: 'avulso' as const,
               billingInfo: null
             };
           } catch (error) {
-            console.error('[ClientSubscriptionsTab] Erro ao buscar billing info para cliente:', client.id, error);
             return {
               ...client,
               billingMode: 'avulso' as const,
@@ -148,15 +134,6 @@ export function ClientSubscriptionsTab() {
           }
         })
       );
-
-      // 🔍 DEBUG: Log dos dados finais
-      console.log('[ClientSubscriptionsTab] Clientes com billing carregados:', clientsData.map(c => ({
-        id: c.id,
-        name: c.name,
-        billingMode: c.billingMode,
-        hasPackage: !!c.billingInfo?.package,
-        hasSubscription: !!c.billingInfo?.subscription
-      })));
 
       setClientsWithBilling(clientsData);
     } finally {

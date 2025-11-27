@@ -248,6 +248,7 @@ export default function ClientDashboard() {
         nomeClienteFinal: data.nomeClienteFinal,
         cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final, // ✅ NOVO CAMPO
         endereco_local: data.endereco_local, // ✅ NOVO CAMPO
+        havera_beneficiarias: data.havera_beneficiarias, // ✅ NOVO CAMPO: Compensação de créditos
         distribuidora: data.distribuidora,
         potencia: data.power, // 'power' é o campo do formulário
         listaMateriais: data.listaMateriais, // ADICIONADO: Lista de materiais

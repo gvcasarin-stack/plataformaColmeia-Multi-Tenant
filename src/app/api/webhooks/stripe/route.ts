@@ -129,24 +129,50 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       metadata: session.metadata
     });
 
-    const { organizationId, tenantId } = session.metadata || {};
+    const { organizationId, tenantId, planType } = session.metadata || {};
 
     if (!organizationId || !tenantId) {
       devLog.error('[Stripe Webhook] Missing organization metadata in session');
       return;
     }
 
+    // Buscar plan_id correto do banco de dados com base no planType
+    let planId = null;
+    if (planType) {
+      const { data: plan, error: planError } = await supabase
+        .from('plans')
+        .select('id')
+        .eq('plan_code', planType)
+        .eq('is_active', true)
+        .single();
+
+      if (plan && !planError) {
+        planId = plan.id;
+        devLog.log('[Stripe Webhook] Plan encontrado:', { planType, planId });
+      } else {
+        devLog.error('[Stripe Webhook] Plan não encontrado no banco:', { planType, error: planError });
+      }
+    }
+
+    // Preparar dados de atualização
+    const updateData: any = {
+      stripe_customer_id: session.customer as string,
+      stripe_subscription_id: session.subscription as string,
+      subscription_status: 'active',
+      is_trial: false,
+      payment_method_added: true,
+      updated_at: new Date().toISOString()
+    };
+
+    // Adicionar plan_id se foi encontrado
+    if (planId) {
+      updateData.plan_id = planId;
+    }
+
     // Atualizar organização com dados do Stripe
     const { error: updateError } = await supabase
       .from('organizations')
-      .update({
-        stripe_customer_id: session.customer as string,
-        stripe_subscription_id: session.subscription as string,
-        subscription_status: 'active',
-        is_trial: false,
-        payment_method_added: true,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', organizationId);
 
     if (updateError) {
@@ -191,7 +217,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
       metadata: subscription.metadata
     });
 
-    const { organizationId, tenantId } = subscription.metadata || {};
+    const { organizationId, tenantId, planType } = subscription.metadata || {};
 
     if (!organizationId || !tenantId) {
       devLog.error('[Stripe Webhook] Missing organization metadata in subscription');
@@ -200,16 +226,42 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 
     const supabase = createSupabaseServiceRoleClient();
 
+    // Buscar plan_id correto do banco de dados com base no planType
+    let planId = null;
+    if (planType) {
+      const { data: plan, error: planError } = await supabase
+        .from('plans')
+        .select('id')
+        .eq('plan_code', planType)
+        .eq('is_active', true)
+        .single();
+
+      if (plan && !planError) {
+        planId = plan.id;
+        devLog.log('[Stripe Webhook] Plan encontrado em subscription.created:', { planType, planId });
+      } else {
+        devLog.error('[Stripe Webhook] Plan não encontrado no banco:', { planType, error: planError });
+      }
+    }
+
+    // Preparar dados de atualização
+    const updateData: any = {
+      stripe_subscription_id: subscription.id,
+      subscription_status: subscription.status === 'active' ? 'active' : 'inactive',
+      is_trial: false,
+      payment_method_added: true,
+      updated_at: new Date().toISOString()
+    };
+
+    // Adicionar plan_id se foi encontrado
+    if (planId) {
+      updateData.plan_id = planId;
+    }
+
     // Atualizar status da subscription
     const { error: updateError } = await supabase
       .from('organizations')
-      .update({
-        stripe_subscription_id: subscription.id,
-        subscription_status: subscription.status === 'active' ? 'active' : 'inactive',
-        is_trial: false,
-        payment_method_added: true,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', organizationId);
 
     if (updateError) {

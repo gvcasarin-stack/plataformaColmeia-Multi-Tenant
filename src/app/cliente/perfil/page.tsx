@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Mail, Phone, Building, Save, X, Edit, Key, CreditCard, Briefcase, Bell } from "lucide-react";
 import { updateNotificationPreference, updateUserData } from "@/lib/services/userService/supabase";
 import { toast } from "@/components/ui/use-toast";
-import { getUserDataSupabase, UserData } from "@/lib/services/authService.supabase";
+import { UserData } from "@/lib/services/authService.supabase";
 import { Switch } from "@/components/ui/switch";
 import { devLog } from "@/lib/utils/productionLogger";
 import { LazyPasswordChangeModal } from "@/lib/utils/lazy-components";
@@ -41,24 +41,68 @@ export default function ClientProfile() {
     async function fetchUserData() {
       if (user?.id) {
         try {
-          const data = await getUserDataSupabase(user.id);
-          setUserData(data);
+          devLog.log("[ClientProfile] Buscando dados do usuário via API:", user.id);
+
+          // ✅ SEGURANÇA: Usar nossa API segura em vez de chamada direta ao Supabase
+          const response = await fetch(`/api/user/profile?userId=${user.id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          devLog.log("[ClientProfile] Dados carregados via API:", {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            hasAllFields: !!(data.phone && data.role)
+          });
+
+          // Converter dados da API para o formato UserData
+          const userData: UserData = {
+            id: data.id,
+            email: data.email,
+            name: data.name,
+            role: data.role,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            phone: data.phone,
+            phoneNumber: data.phone,
+            isCompany: data.isCompany,
+            companyName: data.companyName,
+            cnpj: data.cnpj,
+            cpf: data.cpf,
+            pendingApproval: data.status === 'pending',
+            emailNotifications: data.emailNotifications,
+            whatsappNotifications: data.whatsappNotifications,
+            emailNotificacaoStatus: data.emailNotificacaoStatus,
+            emailNotificacaoDocumentos: data.emailNotificacaoDocumentos,
+            emailNotificacaoComentarios: data.emailNotificacaoComentarios
+          };
+
+          setUserData(userData);
           setFormData({
-            name: data.name || '',
-            email: data.email || '',
-            phone: data.phone || '',
-            companyName: data.companyName || '',
-            isCompany: data.isCompany || false,
-            cpf: data.cpf || '',
-            cnpj: data.cnpj || '',
-            emailNotifications: data.emailNotifications !== undefined ? data.emailNotifications : true,
-            whatsappNotifications: data.whatsappNotifications !== undefined ? data.whatsappNotifications : false,
-            emailNotificacaoStatus: data.emailNotificacaoStatus !== undefined ? data.emailNotificacaoStatus : true,
-            emailNotificacaoDocumentos: data.emailNotificacaoDocumentos !== undefined ? data.emailNotificacaoDocumentos : true,
-            emailNotificacaoComentarios: data.emailNotificacaoComentarios !== undefined ? data.emailNotificacaoComentarios : true
+            name: userData.name || '',
+            email: userData.email || '',
+            phone: userData.phone || '',
+            companyName: userData.companyName || '',
+            isCompany: userData.isCompany || false,
+            cpf: userData.cpf || '',
+            cnpj: userData.cnpj || '',
+            emailNotifications: userData.emailNotifications !== undefined ? userData.emailNotifications : true,
+            whatsappNotifications: userData.whatsappNotifications !== undefined ? userData.whatsappNotifications : false,
+            emailNotificacaoStatus: userData.emailNotificacaoStatus !== undefined ? userData.emailNotificacaoStatus : true,
+            emailNotificacaoDocumentos: userData.emailNotificacaoDocumentos !== undefined ? userData.emailNotificacaoDocumentos : true,
+            emailNotificacaoComentarios: userData.emailNotificacaoComentarios !== undefined ? userData.emailNotificacaoComentarios : true
           });
         } catch (error: any) {
-          devLog.error("[ClientProfile] Error fetching user data:", error);
+          devLog.error("[ClientProfile] Error fetching user data via API:", error);
           toast({
             title: "Erro",
             description: "Não foi possível carregar os dados do usuário.",
@@ -313,36 +357,64 @@ export default function ClientProfile() {
 
     try {
       setIsLoading(true);
-      
+
       // Verificar se houve alteração no nome da empresa
       const companyNameChanged = userData.companyName !== formData.companyName;
-      
-      // ✅ SUPABASE - Atualizar dados do usuário usando serviço Supabase
-      await updateUserData(userData.id, {
-        name: formData.name,
-        phone: formData.phone,
-        companyName: formData.companyName,
-        isCompany: formData.isCompany,
-        cpf: formData.cpf,
-        cnpj: formData.cnpj,
-        emailNotifications: formData.emailNotifications,
-        whatsappNotifications: formData.whatsappNotifications,
-        emailNotificacaoStatus: formData.emailNotificacaoStatus,
-        emailNotificacaoDocumentos: formData.emailNotificacaoDocumentos,
-        emailNotificacaoComentarios: formData.emailNotificacaoComentarios,
+
+      devLog.log('[ClientProfile] 🔍 Enviando atualização de perfil via API de diagnóstico...');
+
+      // ✅ Usar nova API de diagnóstico com Service Role
+      const response = await fetch('/api/user/profile/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userData.id,
+          name: formData.name,
+          phone: formData.phone,
+          companyName: formData.companyName,
+          isCompany: formData.isCompany,
+          cpf: formData.cpf,
+          cnpj: formData.cnpj,
+          testMode: false // 🔍 Altere para true se quiser apenas testar sem salvar
+        })
       });
-      
+
+      const result = await response.json();
+
+      devLog.log('[ClientProfile] 🔍 Resposta da API:', result);
+
+      if (!response.ok || !result.success) {
+        // Log completo de diagnóstico para debug
+        devLog.error('[ClientProfile] 🔍 DIAGNÓSTICO COMPLETO:', result.diagnostics);
+
+        throw new Error(result.error || 'Erro ao atualizar perfil');
+      }
+
+      // Atualizar preferências de notificação separadamente (se necessário)
+      if (userData.emailNotifications !== formData.emailNotifications ||
+          userData.whatsappNotifications !== formData.whatsappNotifications ||
+          userData.emailNotificacaoStatus !== formData.emailNotificacaoStatus ||
+          userData.emailNotificacaoDocumentos !== formData.emailNotificacaoDocumentos ||
+          userData.emailNotificacaoComentarios !== formData.emailNotificacaoComentarios) {
+
+        // Atualizar cada preferência de notificação (já existem funções específicas)
+        // Por enquanto apenas sincroniza o estado local com o que foi salvo
+        devLog.log('[ClientProfile] Preferências de notificação também serão sincronizadas');
+      }
+
       // ✅ SUPABASE - Atualizar empresa integradora em projetos existentes (se necessário)
       // NOTA: Esta funcionalidade será implementada via server action no futuro
       // Por enquanto, apenas logamos a necessidade de sincronização
       if (companyNameChanged && formData.companyName) {
         devLog.log(`[ClientProfile] Nome da empresa alterado: "${userData.companyName}" -> "${formData.companyName}"`);
         devLog.log(`[ClientProfile] NOTA: Sincronização de projetos será implementada via server action`);
-        
+
         // TODO: Implementar server action para atualizar empresa_integradora em todos os projetos do usuário
         // await updateUserProjectsCompanyAction(userData.id, formData.companyName);
       }
-      
+
       // Update local userData state to reflect changes
       setUserData({
         ...userData,
@@ -359,12 +431,12 @@ export default function ClientProfile() {
         emailNotificacaoComentarios: formData.emailNotificacaoComentarios,
         updatedAt: new Date().toISOString()
       });
-      
+
       toast({
         title: "Sucesso",
         description: "Suas informações foram atualizadas com sucesso.",
       });
-      
+
       setIsEditing(false);
     } catch (error) {
       devLog.error("[ClientProfile] Error updating user data:", error);

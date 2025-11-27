@@ -1,6 +1,8 @@
 // ✅ CORREÇÃO CRÍTICA: Frontend não pode usar Service Role Client
 // Vamos buscar o tenant_id via API route dedicada
 
+import { devLog } from '@/lib/utils/productionLogger';
+
 /**
  * Helper para buscar tenant_id do usuário autenticado via API
  * Usado para enviar headers x-tenant-id nas chamadas de API
@@ -20,14 +22,14 @@ export async function getUserTenantId(userId: string): Promise<string | null> {
     if (response.ok) {
       const { tenantId } = await response.json();
       if (tenantId) {
-        console.log('[getUserTenantId] Tenant ID obtido via API:', tenantId);
+        devLog.log('[getUserTenantId] Tenant ID obtido via API:', tenantId);
         return tenantId;
       }
     } else {
-      console.warn('[getUserTenantId] API falhou:', response.status);
+      devLog.warn('[getUserTenantId] API falhou:', response.status);
     }
   } catch (error) {
-    console.warn('[getUserTenantId] Erro na API, tentando fallback:', error);
+    devLog.warn('[getUserTenantId] Erro na API, tentando fallback:', error);
   }
 
   // ✅ FALLBACK: Extrair tenant do hostname atual
@@ -39,7 +41,7 @@ export async function getUserTenantId(userId: string): Promise<string | null> {
     
     if (isSubdomain) {
       const tenantSlug = hostname.split('.')[0];
-      console.log('[getUserTenantId] Tenant extraído do hostname:', tenantSlug);
+      devLog.log('[getUserTenantId] Tenant extraído do hostname:', tenantSlug);
       
       // Como não temos o ID, vamos buscar via API de debug que sempre funciona
       try {
@@ -50,19 +52,19 @@ export async function getUserTenantId(userId: string): Promise<string | null> {
         if (debugResponse.ok) {
           const debugResult = await debugResponse.json();
           if (debugResult.success && debugResult.tenant?.id) {
-            console.log('[getUserTenantId] Tenant ID obtido via debug API:', debugResult.tenant.id);
+            devLog.log('[getUserTenantId] Tenant ID obtido via debug API:', debugResult.tenant.id);
             return debugResult.tenant.id;
           }
         }
       } catch (debugError) {
-        console.warn('[getUserTenantId] Debug API também falhou:', debugError);
+        devLog.warn('[getUserTenantId] Debug API também falhou:', debugError);
       }
     }
   } catch (fallbackError) {
-    console.error('[getUserTenantId] Fallback falhou:', fallbackError);
+    devLog.error('[getUserTenantId] Fallback falhou:', fallbackError);
   }
 
-  console.error('[getUserTenantId] Todas as tentativas falharam');
+  devLog.error('[getUserTenantId] Todas as tentativas falharam');
   return null;
 }
 

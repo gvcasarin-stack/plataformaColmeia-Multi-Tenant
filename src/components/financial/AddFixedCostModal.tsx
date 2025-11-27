@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createTenantHeaders } from '@/lib/utils/tenant-helper';
+import { devLog } from '@/lib/utils/productionLogger';
 import { PlusCircle } from 'lucide-react';
 
 interface AddFixedCostModalProps {
@@ -91,7 +92,7 @@ export default function AddFixedCostModal({ onCostAdded }: AddFixedCostModalProp
         description: 'O custo fixo foi criado com sucesso.',
         variant: 'default',
       });
-      
+
       setFormData({
         name: '',
         description: '',
@@ -100,12 +101,15 @@ export default function AddFixedCostModal({ onCostAdded }: AddFixedCostModalProp
         startMonth: '',
         endMonth: ''
       });
-      
+
       setOpen(false);
       onCostAdded();
-      
+
+      // ✅ Notificar outras abas sobre mudança nos dados financeiros
+      window.dispatchEvent(new CustomEvent('financial-data-updated'));
+
     } catch (error) {
-      console.error('Erro ao criar custo fixo:', error);
+      devLog.error('Erro ao criar custo fixo:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível criar o custo fixo.',

@@ -91,8 +91,13 @@ export async function GET(req: NextRequest) {
     try {
       devLog.log("[NOTIFICATION-API] Tentando enviar emails via método padrão...");
       const emailResult = await notifyAdminAboutNewProject(
-        projectId,
-        clientName
+        clientName,
+        "Projeto de Teste", // projectName
+        projectNumber,
+        "10.5", // projectPotencia
+        "CEMIG", // projectDistribuidora
+        `${process.env.NEXT_PUBLIC_APP_URL}/projetos/${projectId}`, // projectUrlForAdmin
+        projectId // projectId
       );
       
       results.standardEmail.success = emailResult;

@@ -7,6 +7,9 @@ html, body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  overflow-x: hidden; /* Previne scroll horizontal */
+  width: 100%;
+  max-width: 100vw; /* Garante que não exceda a viewport */
 }
 
 *, *::before, *::after {
@@ -121,7 +124,7 @@ html, body {
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Global */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -137,6 +140,49 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-primary/70;
+}
+
+/* Custom scrollbar - Para elementos específicos com classe .custom-scrollbar */
+.custom-scrollbar {
+  direction: ltr !important; /* Força direção left-to-right para garantir scrollbar à direita */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(249, 115, 22, 0.6) rgba(254, 215, 170, 0.3); /* Orange thumb & track for Firefox */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px; /* Largura da scrollbar */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(254, 215, 170, 0.3); /* orange-200 with opacity */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.6); /* orange-500 with opacity */
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.9); /* orange-500 mais escuro no hover */
+}
+
+/* Dark mode support for custom scrollbar */
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(249, 115, 22, 0.7) rgba(67, 56, 202, 0.3); /* Firefox dark mode */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(67, 56, 202, 0.2); /* Darker track for dark mode */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.7); /* Orange thumb for dark mode */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 1); /* Solid orange on hover in dark mode */
 }
 
 /* Glass effect for cards */

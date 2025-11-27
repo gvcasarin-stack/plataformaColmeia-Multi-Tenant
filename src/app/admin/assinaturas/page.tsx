@@ -7,17 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
-  CreditCard, 
-  Users, 
-  FolderOpen, 
-  Building2, 
-  HardDrive, 
+import {
+  CreditCard,
+  Users,
+  FolderOpen,
+  Building2,
+  HardDrive,
   Zap,
   Calendar,
   AlertTriangle,
   CheckCircle,
-  TrendingUp
+  TrendingUp,
+  Star,
+  Shield,
+  BarChart3,
+  Sparkles,
+  Mail,
+  FileText,
+  Inbox,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { devLog } from '@/lib/utils/productionLogger';
@@ -572,76 +580,86 @@ export default function AssinaturasPage() {
       )}
 
 
+      {/* Separador visual */}
+      <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informações do Plano */}
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-md h-fit">
-          <CardHeader>
+        <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 h-fit">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-b-2 border-emerald-200 dark:border-emerald-700">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-5 w-5 text-emerald-600" />
+              <Crown className="h-5 w-5 text-emerald-600" />
               Plano Atual
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="space-y-4">
-              <div className="border rounded-lg p-6 hover:shadow-md transition-shadow bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200">
+              <div className="relative border-2 rounded-xl p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-300 overflow-hidden">
+                {/* Badge "Plano Atual" destacado */}
+                <div className="absolute top-0 right-0 bg-emerald-600 text-white px-4 py-1 rounded-bl-xl font-semibold text-xs flex items-center gap-1 shadow-md">
+                  <Star className="h-3 w-3" />
+                  SEU PLANO
+                </div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-xl text-emerald-900">Básico</h3>
+                  <h3 className="font-bold text-xl text-emerald-900">
+                    {organization?.plan?.name || 'Básico'}
+                  </h3>
               <Badge className={getTrialBadgeColor()}>
-                {trialInfo?.isActive ? `Trial (${trialInfo.daysRemaining}d)` : 
-                 trialInfo?.isExpired ? 'Trial Expirado' : 
+                {trialInfo?.isActive ? `Trial (${trialInfo.daysRemaining}d)` :
+                 trialInfo?.isExpired ? 'Trial Expirado' :
                  organization.subscription_status === 'active' ? 'Ativo' : organization.subscription_status}
               </Badge>
                 </div>
-                
+
                 <p className="text-3xl font-bold text-green-600 mb-4">
-                  R$ {stripePlans.basico.price.toLocaleString('pt-BR')}/mês
+                  R$ {organization?.plan?.price ? parseFloat(organization.plan.price).toLocaleString('pt-BR') : stripePlans.basico.price.toLocaleString('pt-BR')}/mês
                 </p>
 
                 <div className="space-y-3 text-sm text-gray-700 mb-6">
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <FolderOpen className="h-4 w-4 text-emerald-500" />
                     <span>
-                      <strong>{stripePlans.basico.features.max_projects} projetos</strong>
+                      <strong>{organization?.plan?.max_projects || stripePlans.basico.features.max_projects} projetos</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <Users className="h-4 w-4 text-emerald-500" />
                     <span>
-                      <strong>{stripePlans.basico.features.max_users} usuários</strong>
+                      <strong>{organization?.plan?.max_users || stripePlans.basico.features.max_users} usuários</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <Building2 className="h-4 w-4 text-emerald-500" />
                     <span>
-                      <strong>{stripePlans.basico.features.max_clients} clientes</strong>
+                      <strong>{organization?.plan?.max_clients || stripePlans.basico.features.max_clients} clientes</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <HardDrive className="h-4 w-4 text-emerald-500" />
                     <span>
-                      <strong>{stripePlans.basico.features.max_storage_gb}GB storage</strong>
+                      <strong>{organization?.plan?.max_storage_gb || stripePlans.basico.features.max_storage_gb}GB storage</strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-500">✓</span>
+                    <Zap className="h-4 w-4 text-emerald-500" />
                     <span>
-                      <strong>{stripePlans.basico.features.api_calls_per_day.toLocaleString('pt-BR')} API calls/dia</strong>
+                      <strong>{(organization?.plan?.api_calls_per_day || stripePlans.basico.features.api_calls_per_day).toLocaleString('pt-BR')} API calls/dia</strong>
                     </span>
                   </div>
-                  
+
                   {/* Mostrar features extras apenas se não estiver ativo */}
                   {!(organization.subscription_status === 'active' && !organization.is_trial) && (
                     <div className="border-t pt-3 mt-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-emerald-500">✨</span>
+                        <Mail className="h-4 w-4 text-emerald-500" />
                         <span><strong>Suporte por Email</strong></span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-emerald-500">✨</span>
+                        <FileText className="h-4 w-4 text-emerald-500" />
                         <span><strong>Relatórios Básicos</strong></span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-emerald-500">✨</span>
+                        <Sparkles className="h-4 w-4 text-emerald-500" />
                         <span><strong>Integrações Essenciais</strong></span>
                       </div>
                     </div>
@@ -686,18 +704,23 @@ export default function AssinaturasPage() {
         </Card>
 
         {/* Opções de Upgrade */}
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-md h-fit">
-          <CardHeader>
+        <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 h-fit">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b-2 border-blue-200 dark:border-blue-700">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+              <TrendingUp className="h-5 w-5 text-blue-600" />
               Opções de Upgrade
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {/* Mostrar sempre o plano Profissional como opção de upgrade */}
             <div className="space-y-4">
-              <div className="border rounded-lg p-6 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-                <div className="flex items-center justify-between mb-4">
+              <div className="relative border-2 rounded-xl p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 overflow-hidden">
+                {/* Selo "Mais escolhido" destacado */}
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1 rounded-bl-xl font-semibold text-xs flex items-center gap-1 shadow-md">
+                  <Sparkles className="h-3 w-3" />
+                  MAIS ESCOLHIDO
+                </div>
+                <div className="flex items-center justify-between mb-4 pt-2">
                   <h3 className="font-bold text-xl text-blue-900">{stripePlans.profissional.name}</h3>
                   <Badge className="bg-blue-100 text-blue-700 border-blue-200">
                     Upgrade Recomendado
@@ -710,52 +733,52 @@ export default function AssinaturasPage() {
 
                 <div className="space-y-3 text-sm text-gray-700 mb-6">
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-500">✓</span>
+                    <FolderOpen className="h-4 w-4 text-blue-500" />
                     <span>
                       <strong>{stripePlans.profissional.features.max_projects} projetos</strong>
                       <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_projects} atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-500">✓</span>
+                    <Users className="h-4 w-4 text-blue-500" />
                     <span>
                       <strong>{stripePlans.profissional.features.max_users} usuários</strong>
                       <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_users} atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-500">✓</span>
+                    <Building2 className="h-4 w-4 text-blue-500" />
                     <span>
                       <strong>{stripePlans.profissional.features.max_clients} clientes</strong>
                       <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_clients} atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-500">✓</span>
+                    <HardDrive className="h-4 w-4 text-blue-500" />
                     <span>
                       <strong>{stripePlans.profissional.features.max_storage_gb}GB storage</strong>
                       <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.max_storage_gb}GB atual)</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-500">✓</span>
+                    <Zap className="h-4 w-4 text-blue-500" />
                     <span>
                       <strong>{stripePlans.profissional.features.api_calls_per_day.toLocaleString('pt-BR')} API calls/dia</strong>
                       <span className="text-xs text-gray-500 ml-1">(vs {stripePlans.basico.features.api_calls_per_day.toLocaleString('pt-BR')} atual)</span>
                     </span>
                   </div>
-                  
+
                   {/* Features condicionais baseadas no status do plano básico */}
                   <div className="border-t pt-3 mt-4">
                     {organization.subscription_status === 'active' && !organization.is_trial ? (
                       // Se básico está ativo, mostrar apenas 2 features no profissional
                       <>
                         <div className="flex items-center gap-2">
-                          <span className="text-blue-500">✨</span>
+                          <Shield className="h-4 w-4 text-blue-500" />
                           <span><strong>Suporte Prioritário</strong></span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-blue-500">✨</span>
+                          <BarChart3 className="h-4 w-4 text-blue-500" />
                           <span><strong>Relatórios Avançados</strong></span>
                         </div>
                       </>
@@ -763,15 +786,15 @@ export default function AssinaturasPage() {
                       // Se trial ou trial expirado, mostrar 3 features no profissional
                       <>
                         <div className="flex items-center gap-2">
-                          <span className="text-blue-500">✨</span>
+                          <Shield className="h-4 w-4 text-blue-500" />
                           <span><strong>Suporte Prioritário</strong></span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-blue-500">✨</span>
+                          <BarChart3 className="h-4 w-4 text-blue-500" />
                           <span><strong>Relatórios Avançados</strong></span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-blue-500">✨</span>
+                          <Sparkles className="h-4 w-4 text-blue-500" />
                           <span><strong>Integrações Premium</strong></span>
                         </div>
                       </>
@@ -797,130 +820,173 @@ export default function AssinaturasPage() {
         </Card>
       </div>
 
+      {/* Separador visual */}
+      <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
+
       {/* Uso dos Recursos */}
       {usageStats && usageStats.projects && usageStats.users && usageStats.clients && usageStats.storage && usageStats.apiCalls && (
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-md">
-          <CardHeader>
+        <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b-2 border-indigo-200 dark:border-indigo-700">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
+              <BarChart3 className="h-5 w-5 text-indigo-600" />
               Uso dos Recursos
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
               {/* Projetos */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="h-4 w-4 text-orange-500" />
-                  <span className="font-medium">Projetos</span>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs ${usageStats.projects.percentage >= 85 ? 'border-red-200 text-red-700' : 
-                                        usageStats.projects.percentage >= 70 ? 'border-yellow-200 text-yellow-700' : 
-                                        'border-green-200 text-green-700'}`}
-                  >
-                    {usageStats.projects.current}/{usageStats.projects.limit}
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-orange-500" />
+                    <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Projetos</span>
+                  </div>
+                  {usageStats.projects.percentage >= 85 && (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  )}
                 </div>
-                <Progress 
-                  value={usageStats.projects.percentage} 
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.projects.current}</span>
+                  <span className="text-sm text-gray-500">de {usageStats.projects.limit}</span>
+                </div>
+                <Progress
+                  value={usageStats.projects.percentage}
                   className="h-2"
                 />
-                <p className="text-xs text-gray-500">
-                  {usageStats.projects.percentage}% do limite usado
-                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    usageStats.projects.percentage >= 85 ? 'border-red-200 text-red-700 bg-red-50' :
+                    usageStats.projects.percentage >= 70 ? 'border-yellow-200 text-yellow-700 bg-yellow-50' :
+                    'border-green-200 text-green-700 bg-green-50'
+                  }`}
+                >
+                  {usageStats.projects.percentage}% usado
+                </Badge>
               </div>
 
               {/* Usuários */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-500" />
-                  <span className="font-medium">Usuários</span>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs ${usageStats.users.percentage >= 85 ? 'border-red-200 text-red-700' : 
-                                        usageStats.users.percentage >= 70 ? 'border-yellow-200 text-yellow-700' : 
-                                        'border-green-200 text-green-700'}`}
-                  >
-                    {usageStats.users.current}/{usageStats.users.limit}
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Usuários</span>
+                  </div>
+                  {usageStats.users.percentage >= 85 && (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  )}
                 </div>
-                <Progress 
-                  value={usageStats.users.percentage} 
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.users.current}</span>
+                  <span className="text-sm text-gray-500">de {usageStats.users.limit}</span>
+                </div>
+                <Progress
+                  value={usageStats.users.percentage}
                   className="h-2"
                 />
-                <p className="text-xs text-gray-500">
-                  {usageStats.users.percentage}% do limite usado
-                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    usageStats.users.percentage >= 85 ? 'border-red-200 text-red-700 bg-red-50' :
+                    usageStats.users.percentage >= 70 ? 'border-yellow-200 text-yellow-700 bg-yellow-50' :
+                    'border-green-200 text-green-700 bg-green-50'
+                  }`}
+                >
+                  {usageStats.users.percentage}% usado
+                </Badge>
               </div>
 
               {/* Clientes */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-cyan-500" />
-                  <span className="font-medium">Clientes</span>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs ${usageStats.clients.percentage >= 85 ? 'border-red-200 text-red-700' : 
-                                        usageStats.clients.percentage >= 70 ? 'border-yellow-200 text-yellow-700' : 
-                                        'border-green-200 text-green-700'}`}
-                  >
-                    {usageStats.clients.current}/{usageStats.clients.limit}
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-cyan-500" />
+                    <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Clientes</span>
+                  </div>
+                  {usageStats.clients.percentage >= 85 && (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  )}
                 </div>
-                <Progress 
-                  value={usageStats.clients.percentage} 
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.clients.current}</span>
+                  <span className="text-sm text-gray-500">de {usageStats.clients.limit}</span>
+                </div>
+                <Progress
+                  value={usageStats.clients.percentage}
                   className="h-2"
                 />
-                <p className="text-xs text-gray-500">
-                  {usageStats.clients.percentage}% do limite usado
-                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    usageStats.clients.percentage >= 85 ? 'border-red-200 text-red-700 bg-red-50' :
+                    usageStats.clients.percentage >= 70 ? 'border-yellow-200 text-yellow-700 bg-yellow-50' :
+                    'border-green-200 text-green-700 bg-green-50'
+                  }`}
+                >
+                  {usageStats.clients.percentage}% usado
+                </Badge>
               </div>
 
               {/* Storage */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <HardDrive className="h-4 w-4 text-purple-500" />
-                  <span className="font-medium">Storage</span>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs ${usageStats.storage.percentage >= 85 ? 'border-red-200 text-red-700' : 
-                                        usageStats.storage.percentage >= 70 ? 'border-yellow-200 text-yellow-700' : 
-                                        'border-green-200 text-green-700'}`}
-                  >
-                    {usageStats.storage.current}/{usageStats.storage.limit}GB
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="h-4 w-4 text-purple-500" />
+                    <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Storage</span>
+                  </div>
+                  {usageStats.storage.percentage >= 85 && (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  )}
                 </div>
-                <Progress 
-                  value={usageStats.storage.percentage} 
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.storage.current}</span>
+                  <span className="text-sm text-gray-500">de {usageStats.storage.limit}GB</span>
+                </div>
+                <Progress
+                  value={usageStats.storage.percentage}
                   className="h-2"
                 />
-                <p className="text-xs text-gray-500">
-                  {usageStats.storage.percentage}% do limite usado
-                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    usageStats.storage.percentage >= 85 ? 'border-red-200 text-red-700 bg-red-50' :
+                    usageStats.storage.percentage >= 70 ? 'border-yellow-200 text-yellow-700 bg-yellow-50' :
+                    'border-green-200 text-green-700 bg-green-50'
+                  }`}
+                >
+                  {usageStats.storage.percentage}% usado
+                </Badge>
               </div>
 
               {/* API Calls */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-yellow-500" />
-                  <span className="font-medium">API Calls (hoje)</span>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs ${usageStats.apiCalls.percentage >= 85 ? 'border-red-200 text-red-700' : 
-                                        usageStats.apiCalls.percentage >= 70 ? 'border-yellow-200 text-yellow-700' : 
-                                        'border-green-200 text-green-700'}`}
-                  >
-                    {usageStats.apiCalls.current}/{usageStats.apiCalls.limit}
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-yellow-500" />
+                    <span className="font-medium text-sm text-gray-700 dark:text-gray-300">API Calls (hoje)</span>
+                  </div>
+                  {usageStats.apiCalls.percentage >= 85 && (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  )}
                 </div>
-                <Progress 
-                  value={usageStats.apiCalls.percentage} 
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{usageStats.apiCalls.current}</span>
+                  <span className="text-sm text-gray-500">de {usageStats.apiCalls.limit}</span>
+                </div>
+                <Progress
+                  value={usageStats.apiCalls.percentage}
                   className="h-2"
                 />
-                <p className="text-xs text-gray-500">
-                  {usageStats.apiCalls.percentage}% do limite diário usado
-                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    usageStats.apiCalls.percentage >= 85 ? 'border-red-200 text-red-700 bg-red-50' :
+                    usageStats.apiCalls.percentage >= 70 ? 'border-yellow-200 text-yellow-700 bg-yellow-50' :
+                    'border-green-200 text-green-700 bg-green-50'
+                  }`}
+                >
+                  {usageStats.apiCalls.percentage}% usado
+                </Badge>
               </div>
             </div>
           </CardContent>

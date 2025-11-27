@@ -176,10 +176,10 @@ export async function createNotificationForProjectClient(
     const supabase = createSupabaseServiceRoleClient();
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, nome_cliente_final, created_by, tenant_id') // ✅ CORRIGIDO: campos corretos
+      .select('id, nome_cliente_final, created_by, owner_id, tenant_id') // ✅ CORRIGIDO: incluir owner_id
       .eq('id', projectId)
       .single();
-      
+
     devLog.log('🔍 [URGENT DEBUG createNotificationForProjectClient] Resultado da busca do projeto:', {
       project,
       projectError: projectError?.message,
@@ -191,8 +191,9 @@ export async function createNotificationForProjectClient(
       logger.error('[createNotificationForProjectClient] Projeto não encontrado:', { projectError });
       return { success: false, error: 'Projeto não encontrado' };
     }
-    
-    const clientId = project.created_by;
+
+    // 🔧 CORREÇÃO: Usar owner_id se existir, senão usar created_by (retrocompatibilidade)
+    const clientId = project.owner_id || project.created_by;
     if (!clientId) {
       devLog.error('🔍 [URGENT DEBUG createNotificationForProjectClient] ERRO: Projeto sem cliente!');
       logger.error('[createNotificationForProjectClient] Projeto sem cliente:', { projectId });
@@ -471,7 +472,7 @@ export async function notifyNewComment(params: {
     // Buscar informações do projeto (tenant_id e responsável)
     const { data: projectData, error: projectError } = await supabase
       .from('projects')
-      .select('tenant_id, admin_responsible_id, created_by')
+      .select('tenant_id, admin_responsible_id, created_by, owner_id')
       .eq('id', params.projectId)
       .single();
 
@@ -482,8 +483,16 @@ export async function notifyNewComment(params: {
 
     const tenantId = projectData.tenant_id;
     const responsibleId = projectData.admin_responsible_id;
-    const projectClientId = projectData.created_by;
+    // 🔧 CORREÇÃO: Usar owner_id se existir, senão usar created_by (retrocompatibilidade)
+    const projectClientId = projectData.owner_id || projectData.created_by;
     const hasResponsible = !!responsibleId;
+
+    logger.info('[notifyNewComment] Project owner resolution:', {
+      owner_id: projectData.owner_id,
+      created_by: projectData.created_by,
+      projectClientId,
+      usedField: projectData.owner_id ? 'owner_id' : 'created_by'
+    });
 
     const isAdminComment = ['admin', 'superadmin', 'colaborador'].includes(params.authorRole);
     let notificationIds: string[] = [];
@@ -733,7 +742,7 @@ export async function notifyNewDocument(params: {
     // Buscar informações do projeto (tenant_id e responsável)
     const { data: projectData, error: projectError } = await supabase
       .from('projects')
-      .select('tenant_id, admin_responsible_id, created_by')
+      .select('tenant_id, admin_responsible_id, created_by, owner_id')
       .eq('id', params.projectId)
       .single();
 
@@ -744,7 +753,8 @@ export async function notifyNewDocument(params: {
 
     const tenantId = projectData.tenant_id;
     const responsibleId = projectData.admin_responsible_id;
-    const projectClientId = projectData.created_by;
+    // 🔧 CORREÇÃO: Usar owner_id se existir, senão usar created_by (retrocompatibilidade)
+    const projectClientId = projectData.owner_id || projectData.created_by;
     const hasResponsible = !!responsibleId;
 
     const isAdminUpload = ['admin', 'superadmin', 'colaborador'].includes(params.uploaderRole);

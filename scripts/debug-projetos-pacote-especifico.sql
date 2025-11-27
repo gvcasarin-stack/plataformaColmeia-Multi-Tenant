@@ -16,7 +16,7 @@ SELECT
   number,
   empresa_integradora,
   nome_cliente_final,
-  potencia_kwp,
+  potencia,
   status,
   payment_status,
   created_at
@@ -99,7 +99,7 @@ BEGIN
         number,
         empresa_integradora,
         nome_cliente_final,
-        potencia_kwp,
+        potencia,
         status,
         payment_status,
         created_at
@@ -112,7 +112,7 @@ BEGIN
       RAISE NOTICE 'Projeto %: % (ID: %)', v_count, rec.number, rec.id;
       RAISE NOTICE '  - Empresa: %', rec.empresa_integradora;
       RAISE NOTICE '  - Cliente: %', rec.nome_cliente_final;
-      RAISE NOTICE '  - Potência: %', rec.potencia_kwp;
+      RAISE NOTICE '  - Potência: %', rec.potencia;
     END LOOP;
 
     RAISE NOTICE '========================================';

@@ -1,6 +1,6 @@
 /**
  * Operações de Storage exclusivamente para uso no servidor
- * 
+ *
  * Este módulo fornece operações seguras de Supabase Storage
  * que só podem ser executadas no ambiente servidor
  */
@@ -8,6 +8,7 @@
 import { createSupabaseServiceRoleClient } from './service';
 import { STORAGE_BUCKETS } from './storage';
 import logger from '@/lib/utils/logger';
+import { devLog } from '@/lib/utils/productionLogger'; // ✅ CORRIGIDO: Import adicionado
 
 /**
  * Classe para operações de storage no servidor
@@ -79,21 +80,21 @@ class ServerStorageManager {
    */
   async ensureBucketExists(bucketName: string): Promise<boolean> {
     try {
-      console.log(`🚨 [CRITICAL DEBUG] Verificando se bucket '${bucketName}' existe...`);
+      devLog.log(`🚨 [CRITICAL DEBUG] Verificando se bucket '${bucketName}' existe...`);
       
       // Listar buckets para verificar se existe
       const { data: buckets, error: listError } = await this.supabase.storage.listBuckets();
       
       if (listError) {
-        console.log(`🚨 [CRITICAL ERROR] Erro ao listar buckets:`, listError);
+        devLog.log(`🚨 [CRITICAL ERROR] Erro ao listar buckets:`, listError);
         return false;
       }
       
       const bucketExists = buckets?.some(b => b.name === bucketName);
-      console.log(`🚨 [CRITICAL DEBUG] Bucket '${bucketName}' existe: ${bucketExists}`);
+      devLog.log(`🚨 [CRITICAL DEBUG] Bucket '${bucketName}' existe: ${bucketExists}`);
       
       if (!bucketExists) {
-        console.log(`🚨 [CRITICAL DEBUG] Criando bucket '${bucketName}'...`);
+        devLog.log(`🚨 [CRITICAL DEBUG] Criando bucket '${bucketName}'...`);
         
         const { error: createError } = await this.supabase.storage.createBucket(bucketName, {
           public: false, // Arquivos privados por padrão
@@ -102,16 +103,16 @@ class ServerStorageManager {
         });
         
         if (createError) {
-          console.log(`🚨 [CRITICAL ERROR] Erro ao criar bucket:`, createError);
+          devLog.log(`🚨 [CRITICAL ERROR] Erro ao criar bucket:`, createError);
           return false;
         }
         
-        console.log(`🚨 [CRITICAL DEBUG] Bucket '${bucketName}' criado com sucesso!`);
+        devLog.log(`🚨 [CRITICAL DEBUG] Bucket '${bucketName}' criado com sucesso!`);
       }
       
       return true;
     } catch (error) {
-      console.log(`🚨 [CRITICAL ERROR] Erro inesperado ao verificar/criar bucket:`, error);
+      devLog.log(`🚨 [CRITICAL ERROR] Erro inesperado ao verificar/criar bucket:`, error);
       return false;
     }
   }
@@ -130,7 +131,7 @@ class ServerStorageManager {
     try {
       const { bucket, path, file, contentType, metadata } = options;
 
-      console.log(`🚨 [CRITICAL DEBUG] Iniciando upload para ${bucket}/${path}`);
+      devLog.log(`🚨 [CRITICAL DEBUG] Iniciando upload para ${bucket}/${path}`);
       
       // ✅ CORREÇÃO CRÍTICA: Verificar/criar bucket antes do upload
       const bucketReady = await this.ensureBucketExists(bucket);
@@ -160,14 +161,14 @@ class ServerStorageManager {
         .from(bucket)
         .upload(path, file, uploadOptions);
 
-      console.log(`🚨 [CRITICAL DEBUG] Resultado do upload no storage:`, {
+      devLog.log(`🚨 [CRITICAL DEBUG] Resultado do upload no storage:`, {
         success: !error,
         error: error?.message,
         data: data?.path
       });
 
       if (error) {
-        console.log(`🚨 [CRITICAL ERROR] Upload falhou no storage:`, error);
+        devLog.log(`🚨 [CRITICAL ERROR] Upload falhou no storage:`, error);
         logger.error(`[ServerStorage] Upload failed:`, error);
         return {
           success: false,
@@ -175,7 +176,7 @@ class ServerStorageManager {
         };
       }
       
-      console.log(`🚨 [CRITICAL DEBUG] Upload concluído com sucesso no storage!`);
+      devLog.log(`🚨 [CRITICAL DEBUG] Upload concluído com sucesso no storage!`);
 
       // Obter URL pública
       let publicUrl;

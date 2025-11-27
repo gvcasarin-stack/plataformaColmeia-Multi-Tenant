@@ -187,9 +187,9 @@ export function Sidebar({ collapsed: collapsedProp, onToggle: onToggleProp }: Si
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {links.map((link) => {
             // Verificar se estamos na página atual analisando o pathname
-            // Para projetos, considerar também páginas que começam com o caminho de projetos
-            const isActive = pathname === link.href || 
-                            (link.href === '/cliente/projetos' && pathname?.startsWith('/cliente/projetos/'));
+            // Para projetos, considerar também páginas que começam com o caminho de projetos ou /projetos/[id]
+            const isActive = pathname === link.href ||
+                            (link.href === '/cliente/projetos' && (pathname?.startsWith('/cliente/projetos/') || pathname?.startsWith('/projetos/')));
             const Icon = link.icon;
             return (
               <Link

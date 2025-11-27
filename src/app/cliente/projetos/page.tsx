@@ -165,10 +165,10 @@ export default function ClientProjects() {
 
   // Make sure we have a valid user ID before filtering
   const currentUserId = user?.id;
-  
-  // CRITICAL SECURITY CHECK: Ensure we only show projects belonging to the current user
-  // This is a double-safety measure in case the backend filtering fails
-  const projects = allProjects.filter(project => project.userId === currentUserId);
+
+  // ✅ CORREÇÃO: Backend já filtra por owner_id, não precisa filtrar novamente
+  // Server action getProjectsForUserAction já retorna apenas projetos do cliente
+  const projects = allProjects;
   
   // Filter projects based on selected status filter (usando slugs)
   const filteredProjects = projects.filter(project => {
@@ -410,6 +410,9 @@ export default function ClientProjects() {
         number: data.projectNumber, // Será gerado pela action/service se undefined
         empresaIntegradora: data.empresaIntegradora || userData?.companyName || userData?.name || "Cliente Individual",
         nomeClienteFinal: data.nomeClienteFinal,
+        cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final, // ✅ NOVO CAMPO
+        endereco_local: data.endereco_local, // ✅ NOVO CAMPO
+        havera_beneficiarias: data.havera_beneficiarias, // ✅ NOVO CAMPO: Compensação de créditos
         distribuidora: data.distribuidora,
         potencia: data.power, // 'power' é o campo do formulário
         listaMateriais: data.listaMateriais, // ADICIONADO: Lista de materiais

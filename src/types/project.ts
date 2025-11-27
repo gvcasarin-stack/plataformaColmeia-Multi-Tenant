@@ -7,18 +7,20 @@ import { Comment } from "./comment";
 
 /**
  * Tipos para o status do projeto
+ * ✅ ATUALIZADO: Agora usa slugs (formato kebab-case) ao invés de nomes legíveis
+ * Os nomes legíveis são buscados da tabela project_statuses no banco
  */
-export type ProjectStatus = 
-  | 'Não Iniciado'
-  | 'Em Desenvolvimento'
-  | 'Aguardando Assinaturas'
-  | 'Em Homologação'
-  | 'Projeto Aprovado'
-  | 'Aguardando Solicitar Vistoria'
-  | 'Projeto Pausado'
-  | 'Em Vistoria'
-  | 'Finalizado'
-  | 'Cancelado';
+export type ProjectStatus =
+  | 'nao-iniciado'
+  | 'em-desenvolvimento'
+  | 'aguardando-assinaturas'
+  | 'em-homologacao'
+  | 'projeto-aprovado'
+  | 'aguardando-solicitar-vistoria'
+  | 'projeto-pausado'
+  | 'em-vistoria'
+  | 'finalizado'
+  | 'cancelado';
 
 /**
  * Prioridade do projeto
@@ -104,6 +106,20 @@ export interface Project {
   valorProjeto: number | null;
   pagamento?: string;
 
+  // 🆕 CORREÇÃO FINANCEIRA: Datas de pagamento para contabilização correta
+  data_pagamento_parcela1?: string | Date | null;
+  data_pagamento_integral?: string | Date | null;
+
+  // ✅ NOVOS CAMPOS: CPF/CNPJ e Endereço (opcionais)
+  cpf_cnpj_cliente_final?: string;
+  endereco_local?: string;
+
+  // ✅ NOVO CAMPO: Compensação de Créditos (opcional)
+  havera_beneficiarias?: boolean;
+
+  // 🆕 NOVO CAMPO: Proprietário do projeto (quem "possui" o projeto)
+  owner_id?: string;
+
   createdAt: string | Date;
   updatedAt: string | Date;
   adminResponsibleId?: string;
@@ -122,6 +138,41 @@ export interface Project {
     timestamp?: any;
     preciseTimestamp?: string;
   };
+
+  // SLA fields
+  status_changed_at?: string | Date | null;
+  sla_expires_at?: string | Date | null;
+  sla_expired?: boolean;
+
+  // Kanban ordering field
+  kanban_position?: number | null;
+
+  // 🆕 BILLING MODE FIELDS: Modalidade de faturamento e snapshot
+  billing_mode?: 'avulso' | 'pacote' | 'assinatura';
+  billing_snapshot?: {
+    mode: 'avulso' | 'pacote' | 'assinatura';
+    // Para pacote
+    pacote_id?: string;
+    pacote_nome?: string;
+    projetos_inclusos?: number;
+    projetos_usados_antes?: number;
+    projetos_usados_depois?: number;
+    data_ativacao?: string;
+    data_expiracao?: string;
+    // Para assinatura
+    assinatura_id?: string;
+    plano_nome?: string;
+    projetos_mensais?: number;
+    dia_renovacao?: number;
+    ultimo_reset?: string;
+    proximo_reset?: string;
+    status?: string;
+    // Para avulso
+    potencia?: number;
+    valor_projeto?: number;
+    // Timestamp de quando foi criado o snapshot
+    timestamp?: string;
+  } | null;
 }
 
 /**

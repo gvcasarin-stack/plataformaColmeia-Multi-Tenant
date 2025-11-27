@@ -56,13 +56,29 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
+    // 🆕 CORREÇÃO: Registrar data do pagamento para contabilização correta
+    const now = new Date().toISOString();
+    const updateData: any = {
+      pagamento: paymentStatus,
+      updated_at: now
+    };
+
+    // Registrar timestamp do pagamento conforme o status
+    if (paymentStatus === 'pago') {
+      updateData.data_pagamento_integral = now;
+    } else if (paymentStatus === 'parcela1') {
+      updateData.data_pagamento_parcela1 = now;
+    }
+    // Se voltar para pendente, limpar as datas de pagamento
+    else if (paymentStatus === 'pendente') {
+      updateData.data_pagamento_parcela1 = null;
+      updateData.data_pagamento_integral = null;
+    }
+
     // ✅ SEGURANÇA: Atualizar apenas projetos do tenant atual
     const { data, error } = await supabase
       .from('projects')
-      .update({
-        pagamento: paymentStatus,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', projectId)
       .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
       .select()

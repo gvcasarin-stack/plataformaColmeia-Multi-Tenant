@@ -32,11 +32,12 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('users')
       .select(`
-        id, email, name, phone, role, status, 
+        id, email, name, phone, role, status,
         is_blocked, blocked_reason, blocked_at, blocked_by,
         tenant_id, created_at, updated_at,
         permissions, settings, user_type, auth_provider,
-        avatar_url, department, position, last_login, login_count
+        avatar_url, department, position, last_login, login_count,
+        company_name, is_company, cpf, cnpj
       `)
       .eq('tenant_id', tenantId)
       .eq('role', 'client')

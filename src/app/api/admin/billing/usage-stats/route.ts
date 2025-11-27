@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
+import { handleTempTenant } from '@/lib/utils/temp-tenant-handler';
 
 /**
  * API para calcular estatísticas de uso atual vs limites do plano
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     if (!tenantId) {
       devLog.error('[API Usage Stats] Tenant ID não encontrado nos headers');
       return NextResponse.json(
-        { 
+        {
           error: 'Acesso negado: tenant não identificado',
           debug: {
             receivedHeaders: Object.fromEntries(headersList.entries()),
@@ -32,6 +33,12 @@ export async function GET(request: NextRequest) {
         },
         { status: 403 }
       );
+    }
+
+    // 🛠️ FALLBACK: Lidar com tenants temporários
+    const tempTenantResponse = handleTempTenant(tenantId, 'object', 'UsageStats');
+    if (tempTenantResponse) {
+      return tempTenantResponse;
     }
 
     const supabase = createSupabaseServiceRoleClient();

@@ -22,14 +22,14 @@ export async function GET(request: NextRequest) {
   console.log('🔍 TESTE 1: Query exata da API...');
   const { data: projetos1, error: error1 } = await supabase
     .from('projects')
-    .select('id, number, empresa_integradora, nome_cliente_final, potencia_kwp, status, payment_status, created_at')
+    .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, payment_status, created_at')
     .eq('cliente_pacote_id', pacoteId)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
 
   results.tests.teste1_query_exata = {
     description: 'Query EXATA da API (linhas 65-70)',
-    query: `SELECT id, number, empresa_integradora, nome_cliente_final, potencia_kwp, status, payment_status, created_at FROM projects WHERE cliente_pacote_id = '${pacoteId}' AND tenant_id = '${tenantId}' ORDER BY created_at DESC`,
+    query: `SELECT id, number, empresa_integradora, nome_cliente_final, potencia, status, payment_status, created_at FROM projects WHERE cliente_pacote_id = '${pacoteId}' AND tenant_id = '${tenantId}' ORDER BY created_at DESC`,
     projetos: projetos1,
     count: projetos1?.length || 0,
     error: error1,

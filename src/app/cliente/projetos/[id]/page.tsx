@@ -6,7 +6,7 @@ import { getProjectAction, updateProjectAction, editProjectAction } from "@/lib/
 import { useAuth } from "@/lib/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
 import { ExpandedProjectView } from "@/app/components/expanded-project-view";
-import { getUserDataSupabase } from "@/lib/services/authService.supabase";
+// ✅ CORREÇÃO: Removido import de getUserDataSupabase - agora usa API segura
 import type { Project, UpdatedProject } from "@/types/project";
 import { devLog } from "@/lib/utils/productionLogger";
 import { subscribeToProject } from "@/lib/services/projectService/supabase";
@@ -90,10 +90,21 @@ export default function ClientProjectDetail() {
         devLog.log('[ClientProjectDetail] fetchProject: Projeto carregado com sucesso:', result.data);
         setProject(result.data);
         
-        // Buscar dados do usuário apenas se necessário
+        // ✅ CORREÇÃO: Substituir chamada direta ao Supabase por API segura
         if (!userData) {
           try {
-            const userDataResult = await getUserDataSupabase(user.id);
+            const response = await fetch(`/api/user/profile?userId=${user.id}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!response.ok) {
+              throw new Error(`Erro na API: ${response.status}`);
+            }
+
+            const userDataResult = await response.json();
             setUserData(userDataResult);
           } catch (error) {
             devLog.error("[ClientProjectDetail] Error fetching user data:", error);

@@ -1,6 +1,6 @@
-import { devLog } from "@/lib/utils/productionLogger";
-
 "use client";
+
+import { devLog } from "@/lib/utils/productionLogger";
 
 // Definição de rotas comuns agrupadas por seção
 const commonRoutes = {
@@ -73,7 +73,7 @@ export function prefetchLinksOnPage(): void {
           manualPrefetch(href);
         } catch (e) {
           // Ignora erros de prefetch
-          console.debug(`Prefetch error for ${href}:`, e);
+          devLog.debug(`Prefetch error for ${href}:`, e);
         }
       }
     });
@@ -112,7 +112,7 @@ export function prefetchNextProbableRoutes(currentPath: string): void {
       manualPrefetch(route);
     } catch (e) {
       // Ignora erros de prefetch
-      console.debug(`Prefetch error for ${route}:`, e);
+      devLog.debug(`Prefetch error for ${route}:`, e);
     }
   });
 } 

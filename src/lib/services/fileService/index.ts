@@ -4,6 +4,9 @@
  * Fornece uma API unificada para o serviço e compatibilidade com APIs legadas.
  */
 
+// ✅ CORRIGIDO: Import do devLog movido para o topo
+import { devLog } from "@/lib/utils/productionLogger";
+
 // Importar tipos para exportação
 import type { 
   // Tipos que realmente existem em ./types.ts
@@ -139,7 +142,6 @@ export {
 };
 
 // Importar e exportar outras funções de helpers.ts que realmente existem
-import { devLog } from "@/lib/utils/productionLogger";
 import {
   // calculateStorageUsage, // Não existe em helpers.ts
   // getFileIcon, // Não existe em helpers.ts

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { devLog } from "@/lib/utils/productionLogger";
 
 export async function POST(request: NextRequest) {
   try {
     const logEntry = await request.json()
     
     // Log no console da Vercel (aparece nos logs da função)
-    console.log('🚀 [REGISTRATION-LOG]', {
+    devLog.log('🚀 [REGISTRATION-LOG]', {
       timestamp: logEntry.timestamp,
       step: logEntry.step,
       message: logEntry.message,
@@ -14,9 +15,9 @@ export async function POST(request: NextRequest) {
       type: logEntry.type || 'info'
     })
     
-    // Se for erro, usar console.error
+    // Se for erro, usar devLog.error
     if (logEntry.type === 'error') {
-      console.error('❌ [REGISTRATION-ERROR]', {
+      devLog.error('❌ [REGISTRATION-ERROR]', {
         step: logEntry.step,
         message: logEntry.message,
         error: logEntry.error
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Erro ao processar log de registro:', error)
+    devLog.error('Erro ao processar log de registro:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { getCurrentDomainTenantId } from '@/lib/utils/tenant-client';
 import toast from 'react-hot-toast';
+import { devLog } from '@/lib/utils/productionLogger';
 
 /**
  * Página de login administrativo - VERSÃO CORRIGIDA
@@ -12,13 +13,13 @@ import toast from 'react-hot-toast';
  */
 export default function AdminLoginPage() {
   // Debug crítico para confirmar renderização
-  console.log('🔑 [ADMIN-LOGIN] COMPONENTE CORRETO RENDERIZADO - Sistema de Gerenciamento Fotovoltaico / Área Administrativa');
-  
+  devLog.log('🔑 [ADMIN-LOGIN] COMPONENTE CORRETO RENDERIZADO - Sistema de Gerenciamento Fotovoltaico / Área Administrativa');
+
   // Forçar renderização com alert para debug
   if (typeof window !== 'undefined') {
-    console.log('🔑 PÁGINA ADMIN CARREGADA - DEVERIA SER LARANJA');
+    devLog.log('🔑 PÁGINA ADMIN CARREGADA - DEVERIA SER LARANJA');
   }
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,12 +28,16 @@ export default function AdminLoginPage() {
     tenantId: null,
     hostname: ''
   });
-  const { user, signInWithPassword, isLoading: authIsLoading } = useAuth();
+  const { user, signInWithPassword, signOut, isLoading: authIsLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Pegar email dos parâmetros de URL se disponível (vem do registro)
+  const welcomeEmail = searchParams?.get('email') || '';
 
   // 🔒 VALIDAÇÃO PREVENTIVA: Detectar informações do domínio atual
   useEffect(() => {
-    console.log('🔑 [ADMIN-LOGIN] useEffect executado - página carregada');
+    devLog.log('🔑 [ADMIN-LOGIN] useEffect executado - página carregada');
 
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
@@ -40,26 +45,35 @@ export default function AdminLoginPage() {
 
       setDomainInfo({ tenantId, hostname });
 
-      console.log('🔒 [ADMIN-LOGIN] Domínio detectado:', {
+      // Pré-popular email se vier da URL
+      if (welcomeEmail && !email) {
+        setEmail(welcomeEmail);
+        devLog.log('🔑 [ADMIN-LOGIN] Email pré-populado:', welcomeEmail);
+      }
+
+      devLog.log('🔒 [ADMIN-LOGIN] Domínio detectado:', {
         hostname,
         tenantId,
+        welcomeEmail,
         isGoiasSolar: hostname.includes('goias-solar'),
         isSuprema: hostname.includes('suprema')
       });
     }
-  }, []);
+  }, [welcomeEmail]);
 
-  // Redirecionamento apenas se usuário tiver papel de admin/superadmin
+  // Redirecionamento se usuário tiver papel de admin/superadmin/colaborador
   useEffect(() => {
     const isAdmin = !!user && (
       (user as any).role === 'admin' ||
       (user as any).role === 'superadmin' ||
+      (user as any).role === 'colaborador' ||
       (user as any).profile?.role === 'admin' ||
-      (user as any).profile?.role === 'superadmin'
+      (user as any).profile?.role === 'superadmin' ||
+      (user as any).profile?.role === 'colaborador'
     );
 
     if (!authIsLoading && isAdmin) {
-      console.log('🔑 [ADMIN-LOGIN] Usuário admin autenticado, redirecionando para /admin/painel...');
+      devLog.log('🔑 [ADMIN-LOGIN] Usuário administrativo autenticado, redirecionando para /admin/painel...');
       router.push('/admin/painel');
     }
   }, [user, authIsLoading, router]);
@@ -83,7 +97,7 @@ export default function AdminLoginPage() {
 
         setTenantWarning(
           '⚠️ Atenção: Você está tentando fazer login no domínio da Goiás Solar, mas seu e-mail parece ser da Suprema Solar. ' +
-          'Você deveria fazer login em suprema-solar.gerenciamentofotovoltaico.com.br'
+          'Você deveria fazer login em suprema.gerenciamentofotovoltaico.com.br'
         );
         return true;
       }
@@ -123,7 +137,7 @@ export default function AdminLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🔑 [ADMIN-LOGIN] Tentativa de login iniciada');
+    devLog.log('🔑 [ADMIN-LOGIN] Tentativa de login iniciada');
     
     if (!email || !password) {
       toast.error('Preencha todos os campos', {
@@ -141,7 +155,7 @@ export default function AdminLoginPage() {
       );
 
       if (!shouldContinue) {
-        console.log('🔒 [ADMIN-LOGIN] Login cancelado pelo usuário devido ao warning de tenant');
+        devLog.log('🔒 [ADMIN-LOGIN] Login cancelado pelo usuário devido ao warning de tenant');
         return;
       }
     }
@@ -153,27 +167,53 @@ export default function AdminLoginPage() {
         position: 'top-center',
       });
       
-      console.log('🔑 [ADMIN-LOGIN] Chamando signInWithPassword...');
-      const { error } = await signInWithPassword({ email, password });
-      
+      devLog.log('🔑 [ADMIN-LOGIN] Chamando signInWithPassword...');
+      const { error, user: loggedUser } = await signInWithPassword({ email, password });
+
       toast.dismiss(loadingToastId);
-      
+
       if (error) {
-        console.error('🔑 [ADMIN-LOGIN] Erro no login:', error);
+        devLog.error('🔑 [ADMIN-LOGIN] Erro no login:', error);
         toast.error('Erro no login. Verifique suas credenciais.', {
           duration: 6000,
           position: 'top-center',
         });
       } else {
-        console.log('🔑 [ADMIN-LOGIN] Login bem-sucedido!');
+        devLog.log('🔑 [ADMIN-LOGIN] Login bem-sucedido! Verificando permissões...');
+
+        // 🔒 VALIDAÇÃO DE ROLE: Apenas admin, superadmin e colaborador podem acessar área administrativa
+        const userRole = (loggedUser as any)?.profile?.role || (loggedUser as any)?.role;
+        devLog.log('🔑 [ADMIN-LOGIN] Role detectado:', userRole);
+
+        if (userRole !== 'admin' && userRole !== 'superadmin' && userRole !== 'colaborador') {
+          devLog.error('🔑 [ADMIN-LOGIN] Acesso negado - usuário não tem permissões administrativas:', { email, role: userRole });
+          toast.error('Acesso negado. Você não possui permissão administrativa. Use a área de cliente.', {
+            duration: 6000,
+            position: 'top-center',
+          });
+
+          // Fazer logout imediatamente
+          await signOut();
+          setLoading(false);
+          return;
+        }
+
+        devLog.log('🔑 [ADMIN-LOGIN] Permissão validada! Redirecionando...');
         toast.success('Login realizado com sucesso!', {
-          duration: 3000,
+          duration: 2000,
           position: 'top-center',
         });
+
+        // 🚀 CORREÇÃO: Redirecionamento imediato após login bem-sucedido
+        // Não esperar pelo useEffect, redirecionar agora mesmo
+        setTimeout(() => {
+          devLog.log('🔑 [ADMIN-LOGIN] Executando redirecionamento para /admin/painel');
+          router.push('/admin/painel');
+        }, 500); // Pequeno delay para mostrar o toast
       }
       
     } catch (error) {
-      console.error('🔑 [ADMIN-LOGIN] Erro inesperado:', error);
+      devLog.error('🔑 [ADMIN-LOGIN] Erro inesperado:', error);
       toast.error('Erro inesperado. Tente novamente.', {
         duration: 4000,
         position: 'top-center',
@@ -293,6 +333,7 @@ export default function AdminLoginPage() {
             </a>
           </div>
         </div>
+
       </div>
     </div>
   );

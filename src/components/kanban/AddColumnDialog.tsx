@@ -51,23 +51,17 @@ export function AddColumnDialog({ onColumnAdded }: AddColumnDialogProps) {
     setIsSubmitting(true)
     
     try {
-      const columnId = await addKanbanColumn(columnName)
-      
-      toast({
-        title: "Coluna adicionada",
-        description: `A coluna "${columnName}" foi adicionada com sucesso.`,
-        variant: "default",
-      })
-      
+      await addKanbanColumn("", columnName.trim(), "#6b7280") // Usar cor padrão cinza
+
       // Limpar o formulário
       setColumnName("")
-      
+
       // Fechar o dialog
       setOpen(false)
-      
-      // Notificar o componente pai
+
+      // ✅ Notificar o componente pai APÓS sucesso da API
       if (onColumnAdded) {
-        onColumnAdded(columnId, columnName)
+        onColumnAdded("", columnName)
       }
     } catch (error: any) {
       devLog.error("Erro ao adicionar coluna:", error)

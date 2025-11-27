@@ -1,6 +1,6 @@
 'use server'
 
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service'
 import { devLog } from '@/lib/utils/productionLogger'
 import { registrationLogger } from '@/lib/utils/registrationLogger'
 import { setupNewTenantConfigs } from '@/lib/services/tenantConfigSetup'
@@ -11,6 +11,7 @@ export interface RegistrationData {
   adminName: string
   adminEmail: string
   adminPassword: string
+  adminPhone: string
   plan: 'basico' | 'profissional'
 }
 
@@ -137,10 +138,44 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
 
     registrationLogger.log('RESERVED_SLUG_CHECK', 'Slug não está reservado, prosseguindo', { slug: sanitizedSlug })
 
+    // 1.6. ✅ VERIFICAÇÃO GLOBAL: Verificar se email já existe em QUALQUER tenant
+    registrationLogger.log('EMAIL_CHECK', 'Verificando se email já existe no sistema', { email: data.adminEmail })
+
+    const { data: globalEmailCheck, error: globalCheckError } = await supabase
+      .from('users')
+      .select('id, email, tenant_id')
+      .eq('email', data.adminEmail)
+      .limit(1)
+      .maybeSingle()
+
+    if (globalCheckError) {
+      registrationLogger.error('EMAIL_CHECK', 'Erro ao verificar email globalmente', {
+        email: data.adminEmail,
+        error: globalCheckError.message
+      })
+      // Não falhar o registro por erro na verificação - prosseguir
+      registrationLogger.log('EMAIL_CHECK', 'Continuando registro apesar do erro na verificação de email')
+    }
+
+    if (globalEmailCheck) {
+      registrationLogger.warn('EMAIL_CHECK', 'Email já cadastrado no sistema', {
+        email: data.adminEmail,
+        existingUserId: globalEmailCheck.id,
+        existingTenantId: globalEmailCheck.tenant_id
+      })
+      return {
+        success: false,
+        error: 'EMAIL_EXISTS',
+        message: 'Este email já possui cadastro no sistema. Se você já tem conta, faça login. Se esqueceu a senha, use "Recuperar Senha".'
+      }
+    }
+
+    registrationLogger.log('EMAIL_CHECK', 'Email disponível, prosseguindo')
+
     // 2. Criar usuário no Supabase Auth
-    registrationLogger.log('AUTH_USER', 'Criando usuário no Supabase Auth', { 
+    registrationLogger.log('AUTH_USER', 'Criando usuário no Supabase Auth', {
       email: data.adminEmail,
-      name: data.adminName 
+      name: data.adminName
     })
 
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
@@ -190,13 +225,13 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
       start_trial: true // Sempre com trial para novos registros
     }
     
-    console.log('🎯 CHAMANDO FUNÇÃO SQL COM PARÂMETROS:', sqlParams)
+    devLog.log('🎯 CHAMANDO FUNÇÃO SQL COM PARÂMETROS:', sqlParams)
     
     const { data: orgResult, error: orgError } = await supabase.rpc('initialize_new_organization', sqlParams)
 
     if (orgError || !orgResult) {
       // Log mais detalhado do erro SQL
-      console.error('🔥 ERRO CRÍTICO NA FUNÇÃO SQL:', {
+      devLog.error('🔥 ERRO CRÍTICO NA FUNÇÃO SQL:', {
         orgError,
         orgResult,
         errorCode: orgError?.code,
@@ -258,7 +293,9 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
         id: userId,
         email: data.adminEmail,
         name: data.adminName,
+        phone: data.adminPhone,
         role: 'admin',
+        status: 'active', // ✅ CORREÇÃO: Admin sempre ativo
         tenant_id: organizationId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -267,23 +304,62 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
     if (userError) {
       registrationLogger.error('USER_TABLE', 'Erro ao inserir usuário na tabela', userError)
       devLog.error('[registerOrganization] Erro ao criar usuário na tabela:', userError)
-      
-      // Limpar recursos criados
+
+      // Limpar recursos criados de forma mais robusta
       registrationLogger.log('CLEANUP', 'Limpando recursos devido ao erro na tabela users', {
         userId,
         organizationId
       })
-      await supabase.auth.admin.deleteUser(userId)
-      await supabase.from('organizations').delete().eq('id', organizationId)
-      
+
+      try {
+        // Tentar remover usuário do auth primeiro
+        await supabase.auth.admin.deleteUser(userId)
+        registrationLogger.log('CLEANUP', 'Usuário removido do auth')
+      } catch (authCleanupError) {
+        registrationLogger.error('CLEANUP', 'Erro ao limpar usuário do auth (não crítico)', authCleanupError)
+      }
+
+      try {
+        // Tentar remover organização
+        await supabase.from('organizations').delete().eq('id', organizationId)
+        registrationLogger.log('CLEANUP', 'Organização removida')
+      } catch (orgCleanupError) {
+        registrationLogger.error('CLEANUP', 'Erro ao limpar organização (não crítico)', orgCleanupError)
+      }
+
       return {
         success: false,
         error: 'USER_TABLE_ERROR',
-        message: 'Erro ao configurar usuário. Tente novamente.'
+        message: 'Erro ao configurar usuário. Tente novamente.',
+        details: userError
       }
     }
 
     registrationLogger.log('USER_TABLE', 'Usuário inserido na tabela com sucesso')
+
+    // 4.5. Verificação de integridade: confirmar que usuário Auth ainda existe
+    try {
+      const { data: verifyAuth, error: verifyError } = await supabase.auth.admin.getUserById(userId)
+
+      if (verifyError || !verifyAuth.user) {
+        registrationLogger.error('INTEGRITY_CHECK', 'Usuário sumiu do auth após criação', { userId, verifyError })
+
+        // Limpar usuário da tabela se não existe no auth
+        await supabase.from('users').delete().eq('id', userId)
+        await supabase.from('organizations').delete().eq('id', organizationId)
+
+        return {
+          success: false,
+          error: 'AUTH_INTEGRITY_ERROR',
+          message: 'Falha na integridade da autenticação. Tente novamente.'
+        }
+      }
+
+      registrationLogger.log('INTEGRITY_CHECK', 'Usuário Auth confirmado', { userId })
+    } catch (integrityError) {
+      registrationLogger.error('INTEGRITY_CHECK', 'Erro na verificação de integridade (não crítico)', integrityError)
+      // Continuar mesmo com erro na verificação
+    }
 
     // 4.1. Criar configs padrão para a organização usando serviço robusto
     try {
@@ -318,6 +394,63 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
       registrationLogger.error('CONFIG_CREATE', 'Exceção inesperada no setup de configs', configError);
       devLog.warn('[registerOrganization] Exceção no setup de configs (não crítico):', configError);
       // Não falhar o registro por causa das configs
+    }
+
+    // 4.2. Criar status padrão de projetos para o novo tenant (com fallback robusto)
+    try {
+      registrationLogger.log('PROJECT_STATUSES', 'Criando status padrão de projetos', {
+        organizationId,
+        companyName: data.companyName
+      });
+
+      const { error: statusError } = await supabase.rpc('create_default_project_statuses', {
+        p_tenant_id: organizationId
+      });
+
+      if (statusError) {
+        registrationLogger.error('PROJECT_STATUSES', 'Erro ao criar status via função SQL, tentando inserção manual', statusError);
+
+        // Fallback: criar status manualmente
+        const defaultStatuses = [
+          { name: 'Não Iniciado', slug: 'nao-iniciado', color: '#f59e0b', order_index: 1, is_default: true },
+          { name: 'Em Desenvolvimento', slug: 'em-desenvolvimento', color: '#3b82f6', order_index: 2, is_default: true },
+          { name: 'Aguardando Assinaturas', slug: 'aguardando-assinaturas', color: '#8b5cf6', order_index: 3, is_default: true },
+          { name: 'Em Homologação', slug: 'em-homologacao', color: '#06b6d4', order_index: 4, is_default: true },
+          { name: 'Projeto Aprovado', slug: 'projeto-aprovado', color: '#10b981', order_index: 5, is_default: true },
+          { name: 'Aguardando Solicitar Vistoria', slug: 'aguardando-solicitar-vistoria', color: '#f97316', order_index: 6, is_default: true },
+          { name: 'Projeto Pausado', slug: 'projeto-pausado', color: '#eab308', order_index: 7, is_default: true },
+          { name: 'Em Vistoria', slug: 'em-vistoria', color: '#0ea5e9', order_index: 8, is_default: true },
+          { name: 'Finalizado', slug: 'finalizado', color: '#22c55e', order_index: 9, is_default: true },
+          { name: 'Cancelado', slug: 'cancelado', color: '#ef4444', order_index: 10, is_default: true }
+        ];
+
+        const statusesToInsert = defaultStatuses.map(status => ({
+          ...status,
+          tenant_id: organizationId,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+
+        const { error: insertError } = await supabase
+          .from('project_statuses')
+          .insert(statusesToInsert);
+
+        if (insertError) {
+          registrationLogger.error('PROJECT_STATUSES', 'Fallback manual também falhou', insertError);
+          devLog.warn('[registerOrganization] Fallback de status também falhou (não crítico):', insertError);
+        } else {
+          registrationLogger.log('PROJECT_STATUSES', 'Status criados com sucesso via fallback manual');
+          devLog.log('[registerOrganization] Status de projetos criados via fallback:', { organizationId });
+        }
+      } else {
+        registrationLogger.log('PROJECT_STATUSES', 'Status padrão de projetos criados com sucesso via função SQL');
+        devLog.log('[registerOrganization] Status de projetos criados:', { organizationId });
+      }
+    } catch (statusError) {
+      registrationLogger.error('PROJECT_STATUSES', 'Exceção inesperada ao criar status de projetos', statusError);
+      devLog.warn('[registerOrganization] Exceção ao criar status de projetos (não crítico):', statusError);
+      // Não falhar o registro por causa dos status
     }
 
     // 5. Criar notificação de boas-vindas
@@ -367,15 +500,39 @@ export async function registerOrganization(data: RegistrationData): Promise<Regi
       plan: data.plan
     })
 
-    // 7. Preparar redirecionamento para o tenant
+    // 7. Invalidar cache do middleware para o novo tenant
+    try {
+      const cacheResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/tenant/cache`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'invalidate',
+          slug: sanitizedSlug
+        })
+      });
+
+      if (cacheResponse.ok) {
+        devLog.log('[registerOrganization] Cache invalidado para novo tenant:', sanitizedSlug);
+      } else {
+        devLog.warn('[registerOrganization] Falha ao invalidar cache (não crítico):', sanitizedSlug);
+      }
+    } catch (cacheError) {
+      devLog.warn('[registerOrganization] Erro ao invalidar cache (não crítico):', cacheError);
+      // Não falhar o registro por causa do cache
+    }
+
+    // 8. Preparar redirecionamento para o tenant
     const redirectUrl = `https://${sanitizedSlug}.gerenciamentofotovoltaico.com.br/admin/login?welcome=true&email=${encodeURIComponent(data.adminEmail)}`
 
     registrationLogger.log('SUCCESS', 'Registro concluído com sucesso', {
       organizationId,
       userId,
-      slug: data.slug,
+      slug: sanitizedSlug,
       plan: data.plan,
-      redirectUrl
+      redirectUrl,
+      cacheInvalidated: true
     })
 
     return {

@@ -14,7 +14,14 @@ import {
   AlertCircle,
   Factory,
   AlertTriangle,
-  Clock
+  Clock,
+  MoreVertical,
+  Eye,
+  UserPlus,
+  Target,
+  ArrowRightLeft,
+  Link2,
+  Archive
 } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Project, TimelineEvent } from "@/types/project"
@@ -28,6 +35,28 @@ import { DeleteColumnDialog } from '@/components/kanban'
 import { devLog } from "@/lib/utils/productionLogger";
 import { useAuth } from '@/lib/hooks/useAuth'
 import { calculateSLAStatus, calculateSLAExpiration } from '@/lib/utils/sla-calculator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 /**
  * Interface que define a estrutura de uma coluna do quadro Kanban
@@ -51,6 +80,7 @@ interface Column {
 interface KanbanBoardProps {
   projects: Project[];
   searchQuery?: string;
+  sortBy?: string;
   onProjectUpdate?: (updatedProject: any) => Promise<any>;
 }
 
@@ -73,7 +103,7 @@ const priorityStyles = {
 export const KanbanBoard = forwardRef<
   { reloadColumnTitles: () => Promise<boolean> },
   KanbanBoardProps
->(function KanbanBoard({ projects, searchQuery = '', onProjectUpdate }, ref) {
+>(function KanbanBoard({ projects, searchQuery = '', sortBy = 'manual', onProjectUpdate }, ref) {
   const router = useRouter()
   const { user } = useAuth();
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
@@ -82,6 +112,14 @@ export const KanbanBoard = forwardRef<
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});  // slug -> name
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [columnToDelete, setColumnToDelete] = useState<{ id: string, title: string, isDefault: boolean }>({ id: '', title: '', isDefault: false });
+
+  // 🆕 Estados para membros da equipe (para atribuir responsável)
+  const [teamMembers, setTeamMembers] = useState<Array<{ id: string, name: string, email: string }>>([]);
+  const [loadingTeamMembers, setLoadingTeamMembers] = useState(false);
+
+  // 🆕 Estados para modal de arquivar
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [projectToArchive, setProjectToArchive] = useState<Project | null>(null);
 
   // Expor o método reloadColumnTitles através da ref
   useImperativeHandle(ref, () => ({
@@ -173,6 +211,237 @@ export const KanbanBoard = forwardRef<
     });
   }, [localProjects, searchQuery]);
 
+  // 🆕 Buscar membros da equipe para ações rápidas
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      setLoadingTeamMembers(true);
+      try {
+        const response = await fetch('/api/admin/team-members');
+        if (response.ok) {
+          const result = await response.json();
+          setTeamMembers(result.data || []);
+        }
+      } catch (error) {
+        devLog.error('[KanbanBoard] Erro ao buscar membros:', error);
+      } finally {
+        setLoadingTeamMembers(false);
+      }
+    };
+
+    fetchTeamMembers();
+  }, []);
+
+  // 🆕 Funções de ação rápida
+  const handleViewProject = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/projetos/${project.id}`);
+  };
+
+  const handleCopyLink = async (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const link = `${window.location.origin}/projetos/${project.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({
+        title: "Link copiado!",
+        description: "O link do projeto foi copiado para a área de transferência.",
+        className: "bg-green-500 text-white"
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o link.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAssignResponsible = async (project: Project, memberId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const member = teamMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    try {
+      // ✅ CORREÇÃO: Obter headers corretos usando tenant-helper
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user?.id);
+
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          // ✅ CORREÇÃO: Usar nomes de campos snake_case (como no banco)
+          admin_responsible_id: memberId,
+          admin_responsible_name: member.name,
+          admin_responsible_email: member.email
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao atribuir responsável');
+      }
+
+      // Atualizar localmente
+      setLocalProjects(prev => prev.map(p =>
+        p.id === project.id
+          ? { ...p, adminResponsibleId: memberId, adminResponsibleName: member.name, adminResponsibleEmail: member.email }
+          : p
+      ));
+
+      toast({
+        title: "Responsável atribuído",
+        description: `${member.name} agora é responsável pelo projeto ${project.number}.`,
+        className: "bg-green-500 text-white"
+      });
+    } catch (error: any) {
+      devLog.error('[KanbanBoard] Erro ao atribuir responsável:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível atribuir o responsável.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleChangePriority = async (project: Project, newPriority: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      // 🆕 CORREÇÃO: Obter headers corretos usando tenant-helper
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user?.id);
+
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'PUT', // ✅ CORREÇÃO: Usar PUT ao invés de PATCH
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prioridade: newPriority })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao alterar prioridade');
+      }
+
+      // Atualizar localmente
+      setLocalProjects(prev => prev.map(p =>
+        p.id === project.id ? { ...p, prioridade: newPriority as any } : p
+      ));
+
+      toast({
+        title: "Prioridade alterada",
+        description: `Prioridade do projeto ${project.number} alterada para ${newPriority}.`,
+        className: "bg-green-500 text-white"
+      });
+    } catch (error: any) {
+      devLog.error('[KanbanBoard] Erro ao alterar prioridade:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível alterar a prioridade.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleChangeStatus = async (project: Project, newStatusSlug: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const newStatus = columns.find(col => col.slug === newStatusSlug);
+    if (!newStatus) return;
+
+    try {
+      // 🆕 CORREÇÃO: Obter headers corretos usando tenant-helper
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user?.id);
+
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'PUT', // ✅ CORREÇÃO: Usar PUT ao invés de PATCH
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatusSlug })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao mudar status');
+      }
+
+      // Atualizar localmente
+      setLocalProjects(prev => prev.map(p =>
+        p.id === project.id ? { ...p, status: newStatusSlug as any } : p
+      ));
+
+      toast({
+        title: "Status alterado",
+        description: `Status do projeto ${project.number} alterado para ${newStatus.title}.`,
+        className: "bg-green-500 text-white"
+      });
+    } catch (error: any) {
+      devLog.error('[KanbanBoard] Erro ao mudar status:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível mudar o status.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleArchiveProject = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // ✅ CORREÇÃO: Usar modal customizado ao invés de confirm()
+    setProjectToArchive(project);
+    setArchiveDialogOpen(true);
+  };
+
+  const confirmArchiveProject = async () => {
+    if (!projectToArchive) return;
+
+    try {
+      // ✅ CORREÇÃO: Obter headers corretos usando tenant-helper
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user?.id);
+
+      const response = await fetch(`/api/projects/${projectToArchive.id}`, {
+        method: 'DELETE',
+        headers
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao arquivar projeto');
+      }
+
+      // Remover localmente
+      setLocalProjects(prev => prev.filter(p => p.id !== projectToArchive.id));
+
+      toast({
+        title: "Projeto arquivado",
+        description: `Projeto ${projectToArchive.number} foi arquivado com sucesso.`,
+        className: "bg-green-500 text-white"
+      });
+
+      // Fechar modal
+      setArchiveDialogOpen(false);
+      setProjectToArchive(null);
+    } catch (error: any) {
+      devLog.error('[KanbanBoard] Erro ao arquivar projeto:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível arquivar o projeto.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Função para lidar com o clique no botão de excluir coluna
   const handleDeleteClick = (columnId: string, columnTitle: string, isDefaultColumn: boolean, e: React.MouseEvent) => {
     // Impedir que o clique propague para o contêiner (evita navegação para a página do projeto)
@@ -242,7 +511,249 @@ export const KanbanBoard = forwardRef<
     });
 
     devLog.log(`[Kanban] Found ${filteredProjects.length} projects for ${columnSlug}`);
-    return filteredProjects;
+
+    // Aplicar ordenação
+    return sortProjects(filteredProjects);
+  };
+
+  /**
+   * Função para ordenar projetos de acordo com o critério selecionado
+   */
+  const sortProjects = (projects: Project[]): Project[] => {
+    const sorted = [...projects];
+
+    switch (sortBy) {
+      case 'manual':
+        // Ordenação manual baseada no campo kanban_position
+        return sorted.sort((a, b) => {
+          const posA = a.kanban_position ?? Number.MAX_SAFE_INTEGER;
+          const posB = b.kanban_position ?? Number.MAX_SAFE_INTEGER;
+          return posA - posB;
+        });
+
+      case 'delivery-date-asc':
+        // Data de entrega mais próxima primeiro
+        return sorted.sort((a, b) =>
+          new Date(a.dataEntrega).getTime() - new Date(b.dataEntrega).getTime()
+        );
+
+      case 'delivery-date-desc':
+        // Data de entrega mais distante primeiro
+        return sorted.sort((a, b) =>
+          new Date(b.dataEntrega).getTime() - new Date(a.dataEntrega).getTime()
+        );
+
+      case 'priority-desc':
+        // Prioridade maior primeiro (Urgente > Alta > Média > Baixa)
+        const priorityOrder = { 'Urgente': 4, 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+        return sorted.sort((a, b) => {
+          const priorityA = priorityOrder[a.prioridade] || 0;
+          const priorityB = priorityOrder[b.prioridade] || 0;
+          return priorityB - priorityA;
+        });
+
+      case 'priority-asc':
+        // Prioridade menor primeiro (Baixa > Média > Alta > Urgente)
+        const priorityOrderAsc = { 'Urgente': 4, 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+        return sorted.sort((a, b) => {
+          const priorityA = priorityOrderAsc[a.prioridade] || 0;
+          const priorityB = priorityOrderAsc[b.prioridade] || 0;
+          return priorityA - priorityB;
+        });
+
+      case 'sla-asc':
+        // SLA expira primeiro
+        return sorted.sort((a, b) => {
+          // Projetos sem SLA vão para o final
+          if (!a.sla_expires_at) return 1;
+          if (!b.sla_expires_at) return -1;
+          return new Date(a.sla_expires_at).getTime() - new Date(b.sla_expires_at).getTime();
+        });
+
+      case 'sla-desc':
+        // SLA expira depois
+        return sorted.sort((a, b) => {
+          // Projetos sem SLA vão para o final
+          if (!a.sla_expires_at) return 1;
+          if (!b.sla_expires_at) return -1;
+          return new Date(b.sla_expires_at).getTime() - new Date(a.sla_expires_at).getTime();
+        });
+
+      case 'created-asc':
+        // Mais antigos primeiro
+        return sorted.sort((a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+
+      case 'created-desc':
+        // Mais recentes primeiro
+        return sorted.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+      case 'updated-desc':
+        // Última atualização mais recente primeiro
+        return sorted.sort((a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+
+      case 'updated-asc':
+        // Última atualização mais antiga primeiro
+        return sorted.sort((a, b) =>
+          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+        );
+
+      case 'value-desc':
+        // Valor maior primeiro
+        return sorted.sort((a, b) => {
+          const valueA = a.valorProjeto ?? 0;
+          const valueB = b.valorProjeto ?? 0;
+          return valueB - valueA;
+        });
+
+      case 'value-asc':
+        // Valor menor primeiro
+        return sorted.sort((a, b) => {
+          const valueA = a.valorProjeto ?? 0;
+          const valueB = b.valorProjeto ?? 0;
+          return valueA - valueB;
+        });
+
+      case 'client-asc':
+        // Cliente A-Z
+        return sorted.sort((a, b) =>
+          (a.nomeClienteFinal || '').localeCompare(b.nomeClienteFinal || '')
+        );
+
+      case 'client-desc':
+        // Cliente Z-A
+        return sorted.sort((a, b) =>
+          (b.nomeClienteFinal || '').localeCompare(a.nomeClienteFinal || '')
+        );
+
+      case 'time-in-status-desc':
+        // Mais tempo na etapa atual primeiro
+        return sorted.sort((a, b) => {
+          const timeA = a.status_changed_at ?
+            Date.now() - new Date(a.status_changed_at).getTime() : 0;
+          const timeB = b.status_changed_at ?
+            Date.now() - new Date(b.status_changed_at).getTime() : 0;
+          return timeB - timeA;
+        });
+
+      case 'time-in-status-asc':
+        // Menos tempo na etapa atual primeiro
+        return sorted.sort((a, b) => {
+          const timeA = a.status_changed_at ?
+            Date.now() - new Date(a.status_changed_at).getTime() : 0;
+          const timeB = b.status_changed_at ?
+            Date.now() - new Date(b.status_changed_at).getTime() : 0;
+          return timeA - timeB;
+        });
+
+      default:
+        return sorted;
+    }
+  };
+
+  /**
+   * Função para lidar com reordenação manual dentro da mesma coluna
+   */
+  const handleManualReorder = async (
+    projectId: string,
+    columnSlug: string,
+    oldIndex: number,
+    newIndex: number
+  ) => {
+    devLog.log('[Kanban] Manual reorder:', { projectId, columnSlug, oldIndex, newIndex });
+
+    // Obter todos os projetos da coluna filtrados (sem aplicar sort ainda)
+    const columnProjects = filteredProjects
+      .filter(p => p.status === columnSlug)
+      .sort((a, b) => {
+        const posA = a.kanban_position ?? Number.MAX_SAFE_INTEGER;
+        const posB = b.kanban_position ?? Number.MAX_SAFE_INTEGER;
+        return posA - posB;
+      });
+
+    // Encontrar o projeto movido
+    const movedProject = columnProjects[oldIndex];
+    if (!movedProject || movedProject.id !== projectId) {
+      devLog.error('[Kanban] Projeto não encontrado na posição esperada', {
+        expected: projectId,
+        found: movedProject?.id,
+        oldIndex,
+        columnProjects: columnProjects.map(p => p.id)
+      });
+      return;
+    }
+
+    // Remover da posição antiga e inserir na nova
+    const reordered = [...columnProjects];
+    reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, movedProject);
+
+    // Atualizar kanban_position para todos os projetos da coluna
+    const updates: Array<{ id: string; kanban_position: number }> = [];
+    reordered.forEach((proj, index) => {
+      // Sempre atualizar para garantir sequência correta
+      updates.push({ id: proj.id, kanban_position: index + 1 });
+    });
+
+    devLog.log('[Kanban] Projects to update:', updates);
+
+    // Atualizar localmente primeiro (optimistic update)
+    setLocalProjects(prev =>
+      prev.map(p => {
+        const update = updates.find(u => u.id === p.id);
+        return update ? { ...p, kanban_position: update.kanban_position } : p;
+      })
+    );
+
+    // Salvar no backend
+    try {
+      devLog.log('[Kanban] Enviando request para /api/projects/reorder');
+      devLog.log('[Kanban] Payload:', { updates });
+
+      const response = await fetch('/api/projects/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      });
+
+      devLog.log('[Kanban] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        devLog.error('[Kanban] Error response:', errorData);
+        throw new Error(errorData.error || 'Erro ao salvar ordenação');
+      }
+
+      const result = await response.json();
+      devLog.log('[Kanban] Reorder saved successfully:', result);
+
+      toast({
+        title: "Ordenação salva",
+        description: `${result.updated || updates.length} projeto(s) reordenado(s) com sucesso.`,
+        className: "bg-green-500 text-white"
+      });
+    } catch (error: any) {
+      devLog.error('[Kanban] Error saving reorder:', error);
+      console.error('[KANBAN REORDER ERROR]', {
+        error,
+        message: error.message,
+        stack: error.stack
+      });
+
+      // Reverter em caso de erro
+      setLocalProjects(projects);
+
+      toast({
+        title: "Erro ao reordenar",
+        description: error.message || "Não foi possível salvar a nova ordenação. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -259,21 +770,28 @@ export const KanbanBoard = forwardRef<
 
     const newStatusSlug = destination.droppableId;
     const oldStatusSlug = project.status;
+    const isSameColumn = oldStatusSlug === newStatusSlug;
 
-    devLog.log('[KANBAN DEBUG] Status change details:', {
+    devLog.log('[KANBAN DEBUG] Drag details:', {
       draggableId,
       sourceColumn: source.droppableId,
       destinationColumn: destination.droppableId,
+      sourceIndex: source.index,
+      destinationIndex: destination.index,
       oldStatus: oldStatusSlug,
       newStatus: newStatusSlug,
-      project: {
-        id: project.id,
-        currentStatus: project.status
-      }
+      isSameColumn,
+      sortMode: sortBy
     });
 
+    // ✅ Se for mesma coluna E o modo for ordenação manual, atualizar posições
+    if (isSameColumn && sortBy === 'manual') {
+      handleManualReorder(draggableId, oldStatusSlug, source.index, destination.index);
+      return;
+    }
+
     // Verifica se houve mudança real de status
-    if (oldStatusSlug === newStatusSlug) return;
+    if (isSameColumn) return;
 
     // Validar se o status de destino existe nas colunas atuais
     const targetColumn = columns.find(col => col.slug === newStatusSlug);
@@ -479,14 +997,134 @@ export const KanbanBoard = forwardRef<
                                 <div className="font-medium text-gray-900 dark:text-white">
                                   {project.number}
                                 </div>
-                                <div className={cn(
-                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium",
-                                  project.prioridade === 'Alta' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                                  project.prioridade === 'Média' ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                                  "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                )}>
-                                  {priorityStyles[project.prioridade || 'Média'].icon}
-                                  {project.prioridade}
+                                <div className="flex items-center gap-1.5">
+                                  <div className={cn(
+                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium",
+                                    project.prioridade === 'Alta' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                                    project.prioridade === 'Média' ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                                    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  )}>
+                                    {priorityStyles[project.prioridade || 'Média'].icon}
+                                    {project.prioridade}
+                                  </div>
+
+                                  {/* 🆕 Botão de Ações Rápidas */}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md opacity-70 hover:opacity-100 transition-opacity"
+                                      >
+                                        <MoreVertical className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenuLabel className="font-semibold">Ações Rápidas</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+
+                                      {/* Ver Detalhes */}
+                                      <DropdownMenuItem onClick={(e) => handleViewProject(project, e)} className="font-medium">
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Ver Detalhes
+                                      </DropdownMenuItem>
+
+                                      <DropdownMenuSeparator />
+
+                                      {/* Atribuir Responsável */}
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                          <UserPlus className="mr-2 h-4 w-4" />
+                                          Atribuir Responsável
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                          {loadingTeamMembers ? (
+                                            <DropdownMenuItem disabled>Carregando...</DropdownMenuItem>
+                                          ) : teamMembers.length === 0 ? (
+                                            <DropdownMenuItem disabled>Nenhum membro disponível</DropdownMenuItem>
+                                          ) : (
+                                            teamMembers.map((member) => (
+                                              <DropdownMenuItem
+                                                key={member.id}
+                                                onClick={(e) => handleAssignResponsible(project, member.id, e)}
+                                              >
+                                                <User className="mr-2 h-4 w-4" />
+                                                {member.name}
+                                              </DropdownMenuItem>
+                                            ))
+                                          )}
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuSub>
+
+                                      {/* Alterar Prioridade */}
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                          <Target className="mr-2 h-4 w-4" />
+                                          Alterar Prioridade
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                          <DropdownMenuItem onClick={(e) => handleChangePriority(project, 'Urgente', e)}>
+                                            <AlertTriangle className="mr-2 h-4 w-4 text-purple-600" />
+                                            Urgente
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={(e) => handleChangePriority(project, 'Alta', e)}>
+                                            <AlertTriangle className="mr-2 h-4 w-4 text-red-600" />
+                                            Alta
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={(e) => handleChangePriority(project, 'Média', e)}>
+                                            <AlertTriangle className="mr-2 h-4 w-4 text-yellow-600" />
+                                            Média
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={(e) => handleChangePriority(project, 'Baixa', e)}>
+                                            <AlertTriangle className="mr-2 h-4 w-4 text-green-600" />
+                                            Baixa
+                                          </DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuSub>
+
+                                      {/* Mudar Status */}
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                          <ArrowRightLeft className="mr-2 h-4 w-4" />
+                                          Mudar Status
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                          {columns.map((col) => (
+                                            <DropdownMenuItem
+                                              key={col.id}
+                                              onClick={(e) => handleChangeStatus(project, col.slug, e)}
+                                              disabled={project.status === col.slug}
+                                            >
+                                              <div
+                                                className="mr-2 h-3 w-3 rounded-full"
+                                                style={{ backgroundColor: col.color }}
+                                              />
+                                              {col.title}
+                                            </DropdownMenuItem>
+                                          ))}
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuSub>
+
+                                      <DropdownMenuSeparator />
+
+                                      {/* Copiar Link */}
+                                      <DropdownMenuItem onClick={(e) => handleCopyLink(project, e)}>
+                                        <Link2 className="mr-2 h-4 w-4" />
+                                        Copiar Link
+                                      </DropdownMenuItem>
+
+                                      <DropdownMenuSeparator />
+
+                                      {/* Arquivar Projeto */}
+                                      <DropdownMenuItem
+                                        onClick={(e) => handleArchiveProject(project, e)}
+                                        className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                                      >
+                                        <Archive className="mr-2 h-4 w-4" />
+                                        Arquivar Projeto
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </div>
 
@@ -529,7 +1167,14 @@ export const KanbanBoard = forwardRef<
                               </div>
 
                               {/* ✅ Responsável pelo Projeto */}
-                              {user && (user.role === 'admin' || user.role === 'superadmin' || user.role === 'colaborador') && (
+                              {(() => {
+                                // ✅ CORREÇÃO: Priorizar user.profile.role sobre user.role
+                                const actualRole = user?.profile?.role || user?.role;
+                                const isInternalTeam = actualRole === 'admin' || actualRole === 'superadmin' || actualRole === 'colaborador';
+
+                                if (!isInternalTeam) return null;
+
+                                return (
                                 <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                                   {project.adminResponsibleName ? (
                                     <Badge variant="secondary" className="w-full justify-center bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 text-xs py-1">
@@ -543,7 +1188,8 @@ export const KanbanBoard = forwardRef<
                                     </Badge>
                                   )}
                                 </div>
-                              )}
+                                );
+                              })()}
 
                               {/* ✅ Badge de SLA - Prazo da Etapa */}
                               {(() => {
@@ -612,6 +1258,29 @@ export const KanbanBoard = forwardRef<
             isDefaultColumn={columnToDelete.isDefault}
             onDeleted={reloadColumnTitles}
           />
+
+          {/* 🆕 Modal de Arquivar Projeto */}
+          <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Arquivar Projeto</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja arquivar o projeto <strong>{projectToArchive?.number}</strong>?
+                  <br /><br />
+                  O projeto será movido para a área de projetos arquivados e poderá ser restaurado posteriormente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmArchiveProject}
+                  className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                >
+                  Arquivar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </DragDropContext>

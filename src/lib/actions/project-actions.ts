@@ -541,13 +541,13 @@ export async function updateProjectAction(
 }
 
 export async function addCommentAction(
-  projectId: string, 
-  comment: { text: string; timestamp?: string },
+  projectId: string,
+  comment: { text: string; timestamp?: string; visibility?: 'all' | 'internal'; images?: string[] },
   user: { id: string; email?: string | null; name?: string | null; role?: string }
-): Promise<{ 
-  data?: Project & { id: string }; 
-  error?: string; 
-  message?: string; 
+): Promise<{
+  data?: Project & { id: string };
+  error?: string;
+  message?: string;
   refresh?: boolean;
 }> {
   
@@ -565,8 +565,9 @@ export async function addCommentAction(
 
   // Logs removidos por questões de segurança em produção
   try {
-    if (!projectId || !comment.text) {
-      return { error: 'Project ID and comment text are required' };
+    // 🎨 Validação: Precisa ter texto OU imagens
+    if (!projectId || (!comment.text && (!comment.images || comment.images.length === 0))) {
+      return { error: 'Project ID and comment text or images are required' };
     }
     if (!user || !user.id) {
       return { error: 'User information is required' };
@@ -623,15 +624,20 @@ export async function addCommentAction(
     // ❌ FIREBASE - COMENTADO: const newCommentId = adminDb.collection('projects').doc().id; // Gera um ID único para o comentário
     const newCommentId = crypto.randomUUID(); // ✅ SUPABASE - Gerar UUID
 
+    // ✅ Definir visibilidade padrão como 'all' se não especificado
+    const visibility = comment.visibility || 'all';
+
     const newCommentEntry = {
       id: newCommentId,
       userId: user.id,
       userName: user.name || user.email || 'Usuário Desconhecido',
       userRole: user.role || 'client',
-      text: comment.text,
+      text: comment.text || '', // 🎨 Permitir texto vazio se houver imagens
       timestamp: comment.timestamp || new Date().toISOString(),
+      visibility: visibility,
       replies: [],
-      reactions: {}
+      reactions: {},
+      images: comment.images || [] // 🎨 Incluir imagens no comentário
     };
 
     const newTimelineEvent: TimelineEvent = {
@@ -640,8 +646,10 @@ export async function addCommentAction(
       timestamp: newCommentEntry.timestamp,
       user: newCommentEntry.userName,
       userId: newCommentEntry.userId,
-      content: newCommentEntry.text,
+      content: newCommentEntry.text || (comment.images && comment.images.length > 0 ? `${comment.images.length} imagem(ns)` : ''), // 🎨 Texto descritivo se só houver imagens
       commentId: newCommentId,
+      visibility: visibility,
+      images: comment.images || [], // 🎨 Incluir URLs das imagens
     };
 
     // ✅ SUPABASE - IMPLEMENTAÇÃO: Adicionar comentário no Supabase
@@ -657,7 +665,7 @@ export async function addCommentAction(
     
     const { data: basicProject, error: fetchError} = await supabase
       .from('projects')
-      .select('id, nome_cliente_final, number, created_by, comments, timeline_events')
+      .select('id, nome_cliente_final, number, created_by, owner_id, comments, timeline_events')
       .eq('id', projectId)
       .eq('tenant_id', userTenantId)
       .single();
@@ -732,12 +740,14 @@ export async function addCommentAction(
     });
 
     devLog.log('[addCommentAction] Comment added successfully to Supabase');
-    
+
     const authorName = user.name || user.email || 'Usuário Desconhecido';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const projectUrlClient = `${baseUrl}/cliente/projetos/${projectId}`;
     const projectUrlAdmin = `${baseUrl}/admin/projetos/${projectId}`;
-    const projectClientOwnerId = basicProject.created_by; // Cliente dono do projeto
+
+    // 🔧 CORREÇÃO: Usar owner_id se existir, senão usar created_by (retrocompatibilidade)
+    const projectClientOwnerId = basicProject.owner_id || basicProject.created_by;
 
     // ✅ DEBUG: Log detalhado dos dados do projeto (OTIMIZADO)
     devLog.log('[addCommentAction] DEBUG - Project data analysis (OTIMIZADO):', {
@@ -745,7 +755,9 @@ export async function addCommentAction(
       projectName: basicProject.nome_cliente_final,
       projectNumber: basicProject.number,
       projectCreatedBy: basicProject.created_by,
+      projectOwnerId: basicProject.owner_id,
       projectClientOwnerId: projectClientOwnerId,
+      ownerIdUsed: basicProject.owner_id ? 'owner_id (proprietário)' : 'created_by (fallback)',
       authorId: user.id,
       authorRole: user.role,
       willNotifyCorrectUser: projectClientOwnerId !== user.id ? '✅ YES - will notify client' : '❌ NO - same user (skip notification)'
@@ -786,16 +798,27 @@ export async function addCommentAction(
       });
 
       if (isAdmin) {
-        // ✅ Admin comentou → Notificar CLIENTE (e SOMENTE o cliente)
-        devLog.log('[addCommentAction] Admin commented - notifying client ONLY', {
-          authorName,
-          projectClientOwnerId,
-          projectName: basicProject.nome_cliente_final
-        });
-
-        if (!projectClientOwnerId) {
-          devLog.warn('[addCommentAction] AVISO: Projeto sem cliente dono (created_by). Nenhuma notificação será enviada.');
+        // ✅ VERIFICAR SE É COMENTÁRIO INTERNO
+        // Se for comentário interno (visibility === 'internal'), NÃO notificar o cliente
+        if (visibility === 'internal') {
+          devLog.log('[addCommentAction] Comentário INTERNO - NÃO notificar cliente', {
+            authorName,
+            projectClientOwnerId,
+            projectName: basicProject.nome_cliente_final,
+            visibility
+          });
+          // Pular notificação para o cliente
         } else {
+          // ✅ Admin comentou com visibilidade pública → Notificar CLIENTE (e SOMENTE o cliente)
+          devLog.log('[addCommentAction] Admin commented - notifying client ONLY', {
+            authorName,
+            projectClientOwnerId,
+            projectName: basicProject.nome_cliente_final
+          });
+
+          if (!projectClientOwnerId) {
+            devLog.warn('[addCommentAction] AVISO: Projeto sem cliente dono (created_by). Nenhuma notificação será enviada.');
+          } else {
           // ✅ DEBUG: Log da query antes de executar
           devLog.log('[addCommentAction] DEBUG - About to query users table:', {
             queryTable: 'users',
@@ -869,6 +892,7 @@ export async function addCommentAction(
           } catch (clientError) {
             devLog.error('[addCommentAction] Erro na notificação para cliente:', clientError);
             // Não falha o comentário se a notificação falhar
+          }
           }
         }
 
@@ -1563,30 +1587,47 @@ export async function createProjectClientAction(
     const creationTimestamp = new Date().toISOString();
 
     if (checklistMessage) {
+      // ✅ NOVO: Adicionar mensagem sobre compensação de créditos se habilitado
+      let finalChecklistMessage = checklistMessage;
+      if (projectDataFromClient.havera_beneficiarias) {
+        finalChecklistMessage += '\n\n⚡ ATENÇÃO: Este projeto possui compensação de créditos.\nEnvie as Faturas das Unidades Beneficiárias na Linha do Tempo do Projeto no campo adequado.';
+      }
+
       const checklistEvent = {
         id: crypto.randomUUID(),
         type: 'checklist',
-        content: checklistMessage,
+        content: finalChecklistMessage,
         user: 'Sistema',
         userId: 'system',
         timestamp: creationTimestamp,
         isSystemGenerated: true,
         title: 'Checklist de Documentos Necessários para o Projeto',
-        fullMessage: checklistMessage
+        fullMessage: finalChecklistMessage
       };
       initialTimelineEvents.push(checklistEvent);
       logger.info('[createProjectClientAction] Evento de checklist adicionado à timeline inicial:', {
         eventType: checklistEvent.type,
         eventTitle: checklistEvent.title,
-        hasMessage: !!checklistEvent.content
+        hasMessage: !!checklistEvent.content,
+        hasBeneficiarias: !!projectDataFromClient.havera_beneficiarias
       });
      }
 
     // ✅ CORREÇÃO MULTI-TENANT: Recalcular valor no servidor usando configurações do tenant
     let valorProjetoFinal = projectDataFromClient.valorProjeto || 0;
-    const potencia = typeof projectDataFromClient.potencia === 'string' 
-      ? parseFloat(projectDataFromClient.potencia) || 0 
-      : (projectDataFromClient.potencia as number) || 0;
+
+    // ✅ CORREÇÃO BUG: Frontend envia "power", backend esperava "potencia"
+    const potenciaValue = (projectDataFromClient as any).power ?? projectDataFromClient.potencia;
+    const potencia = typeof potenciaValue === 'string'
+      ? parseFloat(potenciaValue) || 0
+      : (potenciaValue as number) || 0;
+
+    logger.info('[createProjectClientAction] ✅ Potência extraída corretamente:', {
+      receivedPower: (projectDataFromClient as any).power,
+      receivedPotencia: projectDataFromClient.potencia,
+      finalPotencia: potencia,
+      type: typeof potencia
+    });
 
     // ✅ CORREÇÃO CRÍTICA: SEMPRE recalcular valor no servidor usando configurações do tenant
     // Ignorar o valor vindo do frontend e sempre calcular baseado nas configurações
@@ -1640,11 +1681,231 @@ export async function createProjectClientAction(
       }
     }
 
+    // 🆕 NOVO: Determinar owner_id
+    // Se admin passou owner_id, usar ele. Senão, usar o próprio criador (clientUser.id)
+    const ownerId = projectDataFromClient.owner_id || clientUser.id;
+
+    logger.info('[createProjectClientAction] Owner ID definido:', {
+      owner_id: ownerId,
+      created_by: clientUser.id,
+      passedOwnerId: projectDataFromClient.owner_id,
+      isAdminCreating: projectDataFromClient.owner_id !== undefined
+    });
+
+    // ✅ BILLING: Buscar billing_mode do usuário owner para validação de pacote/assinatura
+    logger.info('[createProjectClientAction] Buscando billing_mode do owner:', { ownerId });
+
+    // Buscar billing_mode do usuário dono do projeto
+    const { data: ownerUser, error: ownerError } = await supabase
+      .from('users')
+      .select('id, billing_mode, tenant_id')
+      .eq('id', ownerId)
+      .single();
+
+    if (ownerError || !ownerUser) {
+      logger.error('[createProjectClientAction] Erro ao buscar dados do owner:', ownerError);
+      return { error: 'Erro ao buscar informações do usuário. Tente novamente.' };
+    }
+
+    const billingMode = ownerUser.billing_mode || 'avulso';
+    let billingSnapshot: any = null;
+
+    logger.info('[createProjectClientAction] Billing mode identificado:', {
+      ownerId,
+      billingMode,
+      ownerTenantId: ownerUser.tenant_id
+    });
+
+    // ✅ VALIDAÇÃO DE PACOTE
+    if (billingMode === 'pacote') {
+      logger.info('[createProjectClientAction] Validando pacote do usuário...');
+
+      // Buscar pacote ativo do usuário
+      const { data: pacote, error: pacoteError } = await supabase
+        .from('cliente_pacotes')
+        .select(`
+          *,
+          pacote:pacotes_definicoes(*)
+        `)
+        .eq('user_id', ownerId)
+        .eq('status', 'ativo')
+        .single();
+
+      if (pacoteError || !pacote) {
+        logger.warn('[createProjectClientAction] Nenhum pacote ativo encontrado para o usuário');
+        return {
+          error: 'Nenhum pacote ativo encontrado',
+          message: 'Você precisa de um pacote ativo para criar projetos. Entre em contato com o administrador.'
+        };
+      }
+
+      // Validar expiração do pacote
+      const agora = new Date();
+      const dataExpiracao = new Date(pacote.data_expiracao);
+
+      if (agora > dataExpiracao) {
+        logger.warn('[createProjectClientAction] Pacote expirado:', {
+          dataExpiracao: pacote.data_expiracao,
+          agora: agora.toISOString()
+        });
+        return {
+          error: 'Pacote expirado',
+          message: `O pacote expirou em ${dataExpiracao.toLocaleDateString('pt-BR')}. Entre em contato com o administrador para renovar.`
+        };
+      }
+
+      // Validar quota de projetos
+      if (pacote.projetos_usados >= pacote.projetos_inclusos) {
+        logger.warn('[createProjectClientAction] Pacote esgotado:', {
+          projetos_usados: pacote.projetos_usados,
+          projetos_inclusos: pacote.projetos_inclusos
+        });
+        return {
+          error: 'Pacote esgotado',
+          message: `Todos os ${pacote.projetos_inclusos} projetos do pacote foram utilizados. Entre em contato com o administrador para renovar.`
+        };
+      }
+
+      // ✅ Pacote válido - decrementar contador
+      const { error: updateError } = await supabase
+        .from('cliente_pacotes')
+        .update({
+          projetos_usados: pacote.projetos_usados + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', pacote.id);
+
+      if (updateError) {
+        logger.error('[createProjectClientAction] Erro ao decrementar contador do pacote:', updateError);
+        return { error: 'Erro ao processar pacote. Tente novamente.' };
+      }
+
+      // Criar snapshot do pacote
+      billingSnapshot = {
+        mode: 'pacote',
+        pacote_id: pacote.id,
+        pacote_nome: pacote.pacote?.nome || 'Pacote',
+        projetos_inclusos: pacote.projetos_inclusos,
+        projetos_usados_antes: pacote.projetos_usados,
+        projetos_usados_depois: pacote.projetos_usados + 1,
+        data_ativacao: pacote.data_ativacao,
+        data_expiracao: pacote.data_expiracao,
+        timestamp: new Date().toISOString()
+      };
+
+      logger.info('[createProjectClientAction] ✅ Pacote validado e contador decrementado:', {
+        pacote_id: pacote.id,
+        pacote_nome: billingSnapshot.pacote_nome,
+        projetos_usados_antes: pacote.projetos_usados,
+        projetos_usados_depois: pacote.projetos_usados + 1,
+        projetos_restantes: pacote.projetos_inclusos - (pacote.projetos_usados + 1)
+      });
+    }
+
+    // ✅ VALIDAÇÃO DE ASSINATURA
+    else if (billingMode === 'assinatura') {
+      logger.info('[createProjectClientAction] Validando assinatura do usuário...');
+
+      // Buscar assinatura ativa do usuário
+      const { data: assinatura, error: assinaturaError } = await supabase
+        .from('cliente_assinaturas')
+        .select(`
+          *,
+          plano:planos_assinatura(*)
+        `)
+        .eq('user_id', ownerId)
+        .eq('status', 'ativa')
+        .single();
+
+      if (assinaturaError || !assinatura) {
+        logger.warn('[createProjectClientAction] Nenhuma assinatura ativa encontrada para o usuário');
+        return {
+          error: 'Nenhuma assinatura ativa encontrada',
+          message: 'Você precisa de uma assinatura ativa para criar projetos. Entre em contato com o administrador.'
+        };
+      }
+
+      // Validar status da assinatura
+      if (assinatura.status === 'pausada' || assinatura.status === 'cancelada') {
+        logger.warn('[createProjectClientAction] Assinatura com status inválido:', {
+          status: assinatura.status
+        });
+        return {
+          error: `Assinatura ${assinatura.status}`,
+          message: `Sua assinatura está ${assinatura.status}. Entre em contato com o administrador.`
+        };
+      }
+
+      // Validar quota mensal
+      if (assinatura.projetos_usados_mes_atual >= assinatura.projetos_mensais) {
+        const proximoReset = new Date(assinatura.proximo_reset);
+        logger.warn('[createProjectClientAction] Cota mensal esgotada:', {
+          projetos_usados_mes_atual: assinatura.projetos_usados_mes_atual,
+          projetos_mensais: assinatura.projetos_mensais,
+          proximo_reset: assinatura.proximo_reset
+        });
+        return {
+          error: 'Cota mensal esgotada',
+          message: `Cota mensal de ${assinatura.projetos_mensais} projetos esgotada. Aguarde a renovação em ${proximoReset.toLocaleDateString('pt-BR')}.`
+        };
+      }
+
+      // ✅ Assinatura válida - decrementar contador mensal
+      const { error: updateError } = await supabase
+        .from('cliente_assinaturas')
+        .update({
+          projetos_usados_mes_atual: assinatura.projetos_usados_mes_atual + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', assinatura.id);
+
+      if (updateError) {
+        logger.error('[createProjectClientAction] Erro ao decrementar contador da assinatura:', updateError);
+        return { error: 'Erro ao processar assinatura. Tente novamente.' };
+      }
+
+      // Criar snapshot da assinatura
+      billingSnapshot = {
+        mode: 'assinatura',
+        assinatura_id: assinatura.id,
+        plano_nome: assinatura.plano?.nome || 'Plano de Assinatura',
+        projetos_mensais: assinatura.projetos_mensais,
+        projetos_usados_antes: assinatura.projetos_usados_mes_atual,
+        projetos_usados_depois: assinatura.projetos_usados_mes_atual + 1,
+        dia_renovacao: assinatura.dia_renovacao,
+        ultimo_reset: assinatura.ultimo_reset,
+        proximo_reset: assinatura.proximo_reset,
+        status: assinatura.status,
+        timestamp: new Date().toISOString()
+      };
+
+      logger.info('[createProjectClientAction] ✅ Assinatura validada e contador decrementado:', {
+        assinatura_id: assinatura.id,
+        plano_nome: billingSnapshot.plano_nome,
+        projetos_usados_antes: assinatura.projetos_usados_mes_atual,
+        projetos_usados_depois: assinatura.projetos_usados_mes_atual + 1,
+        projetos_restantes: assinatura.projetos_mensais - (assinatura.projetos_usados_mes_atual + 1)
+      });
+    }
+
+    // ✅ MODO AVULSO - Criar snapshot com valor calculado
+    else {
+      billingSnapshot = {
+        mode: 'avulso',
+        potencia: potencia,
+        valor_projeto: valorProjetoFinal,
+        timestamp: new Date().toISOString()
+      };
+
+      logger.info('[createProjectClientAction] Modo avulso - snapshot criado:', billingSnapshot);
+    }
+
     // ✅ SUPABASE - Preparar dados do projeto para inserção
     const projectData = {
       nome_cliente_final: projectDataFromClient.nomeClienteFinal || projectDataFromClient.nome_cliente_final || 'Projeto sem nome',
       number: projectNumber,
       created_by: clientUser.id,
+      owner_id: ownerId, // 🆕 NOVO CAMPO: Proprietário do projeto
       tenant_id: tenantInfo.tenant_id, // ✅ CRÍTICO: Incluir tenant_id para isolamento
       empresa_integradora: projectDataFromClient.empresaIntegradora || '',
       distribuidora: projectDataFromClient.distribuidora || '',
@@ -1654,10 +1915,15 @@ export async function createProjectClientAction(
       disjuntor_padrao_entrada: projectDataFromClient.disjuntorPadraoEntrada && projectDataFromClient.disjuntorPadraoEntrada.trim() !== '' ? projectDataFromClient.disjuntorPadraoEntrada : null,
       cpf_cnpj_cliente_final: projectDataFromClient.cpf_cnpj_cliente_final && projectDataFromClient.cpf_cnpj_cliente_final.trim() !== '' ? projectDataFromClient.cpf_cnpj_cliente_final : null,
       endereco_local: projectDataFromClient.endereco_local && projectDataFromClient.endereco_local.trim() !== '' ? projectDataFromClient.endereco_local : null,
+      havera_beneficiarias: projectDataFromClient.havera_beneficiarias || false, // ✅ NOVO CAMPO
       status: projectDataFromClient.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: projectDataFromClient.prioridade || 'Baixa',
       valor_projeto: valorProjetoFinal,
       pagamento: projectDataFromClient.pagamento || 'pendente', // ✅ GARANTIR SEMPRE PENDENTE
+
+      // 💳 BILLING: Campos de faturamento
+      billing_mode: billingMode, // 'avulso' | 'pacote' | 'assinatura'
+      billing_snapshot: billingSnapshot, // Snapshot congelado do billing no momento da criação
 
       timeline_events: initialTimelineEvents, // ✅ Agora inclui a checklist inicial
       documents: [],
@@ -1730,6 +1996,7 @@ export async function createProjectClientAction(
     const projectResult: Project = {
       id: newProject.id,
       userId: newProject.created_by, // Mapear created_by para userId
+      owner_id: newProject.owner_id, // 🆕 NOVO CAMPO: Proprietário
       nome_cliente_final: newProject.nome_cliente_final,
       number: newProject.number,
       empresaIntegradora: newProject.empresa_integradora,
@@ -1743,7 +2010,11 @@ export async function createProjectClientAction(
       prioridade: newProject.prioridade,
       valorProjeto: newProject.valor_projeto,
       pagamento: newProject.pagamento,
-      
+
+      // 💳 BILLING: Adicionar campos de faturamento que estavam faltando
+      billing_mode: newProject.billing_mode || 'avulso',
+      billing_snapshot: newProject.billing_snapshot || null,
+
       createdAt: newProject.created_at,
       updatedAt: newProject.updated_at,
       adminResponsibleId: newProject.admin_responsible_id,
@@ -1946,10 +2217,17 @@ export async function getProjectAction(projectId: string): Promise<{
     // Isso permite que admins vejam qualquer projeto e que a verificação de permissão
     // seja feita no frontend baseada nos dados retornados
     const supabase = createSupabaseServiceRoleClient();
-    
+
     const { data, error } = await supabase
       .from('projects')
-      .select('*')
+      .select(`
+        *,
+        owner:users!owner_id (
+          id,
+          name,
+          company_name
+        )
+      `)
       .eq('id', projectId)
       .single();
 
@@ -1970,13 +2248,22 @@ export async function getProjectAction(projectId: string): Promise<{
       return { error: 'Projeto não encontrado.' };
     }
 
+    // 🆕 Calcular empresaIntegradora dinamicamente baseado no owner_id
+    let empresaIntegradoraFinal = data.empresa_integradora || '';
+
+    if (data.owner_id && data.owner) {
+      // Projeto com owner_id: usar dados do proprietário
+      empresaIntegradoraFinal = data.owner.company_name || data.owner.name || empresaIntegradoraFinal;
+    }
+
     // Mapear dados do Supabase para o formato Project
     const project: Project = {
       id: data.id,
       userId: data.created_by,
+      owner_id: data.owner_id,
       nome_cliente_final: data.nome_cliente_final,
       number: data.number,
-      empresaIntegradora: data.empresa_integradora || '',
+      empresaIntegradora: empresaIntegradoraFinal,
       nomeClienteFinal: data.nome_cliente_final || '',
       distribuidora: data.distribuidora || '',
       potencia: data.potencia || 0,
@@ -1985,10 +2272,15 @@ export async function getProjectAction(projectId: string): Promise<{
       disjuntorPadraoEntrada: data.disjuntor_padrao_entrada || undefined,
       cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final || undefined,
       endereco_local: data.endereco_local || undefined,
+      havera_beneficiarias: data.havera_beneficiarias || false,
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',
       valorProjeto: data.valor_projeto || null,
       pagamento: data.pagamento || undefined,
+
+      // 💳 BILLING: Adicionar campos de faturamento que estavam faltando
+      billing_mode: data.billing_mode || 'avulso',
+      billing_snapshot: data.billing_snapshot || null,
 
       createdAt: data.created_at,
       updatedAt: data.updated_at,
@@ -2459,6 +2751,9 @@ export async function editProjectAction(
     if (updatedProject.comments !== undefined) updateData.comments = updatedProject.comments;
     if (updatedProject.history !== undefined) updateData.history = updatedProject.history;
 
+    // 🆕 TRANSFERÊNCIA: Mapear owner_id para salvar transferência de propriedade
+    if (updatedProject.owner_id !== undefined) updateData.owner_id = updatedProject.owner_id;
+
     // ✅ CORREÇÃO: Mapear campos de SLA para persistir no banco
     if (updatedProject.status_changed_at !== undefined) updateData.status_changed_at = updatedProject.status_changed_at;
     if (updatedProject.sla_expires_at !== undefined) updateData.sla_expires_at = updatedProject.sla_expires_at;
@@ -2480,7 +2775,14 @@ export async function editProjectAction(
       .from('projects')
       .update(updateData)
       .eq('id', updatedProject.id)
-      .select()
+      .select(`
+        *,
+        owner:users!owner_id (
+          id,
+          name,
+          company_name
+        )
+      `)
       .single();
 
     devLog.log('[SERVER] editProjectAction - Resultado update:', {
@@ -2507,16 +2809,19 @@ export async function editProjectAction(
           newStatus: updatedProjectData.status
         });
         
-        if (updatedProjectData.created_by) {
+        // 🔧 CORREÇÃO: Usar owner_id se existir, senão usar created_by
+        const projectOwnerId = updatedProjectData.owner_id || updatedProjectData.created_by;
+
+        if (projectOwnerId) {
           // Buscar role do admin do banco para garantir consistência
           const { data: adminProfile } = await supabase
             .from('users')
             .select('role, name')
             .eq('id', adminData.id)
             .single();
-          
+
           const actualAdminName = adminProfile?.name || adminData.email || 'Admin';
-          
+
           const { notifyStatusChange } = await import('@/lib/services/notificationService');
           await notifyStatusChange({
             projectId: updatedProjectData.id,
@@ -2524,7 +2829,7 @@ export async function editProjectAction(
             projectName: updatedProjectData.nome_cliente_final,
             oldStatus: currentProject.status,
             newStatus: updatedProjectData.status,
-            clientId: updatedProjectData.created_by,
+            clientId: projectOwnerId, // 🔧 CORREÇÃO: Usar proprietário do projeto
             adminId: adminData.id,
             adminName: actualAdminName
           });
@@ -2541,33 +2846,36 @@ export async function editProjectAction(
       
       if (addedFiles.length > 0) {
         devLog.log('[SERVER] editProjectAction - Novos arquivos detectados, enviando notificações:', addedFiles.length);
-        
-        // Buscar dados do cliente para notificação
+
+        // 🔧 CORREÇÃO: Usar owner_id se existir, senão usar created_by
+        const projectOwnerId = updatedProjectData.owner_id || updatedProjectData.created_by;
+
+        // Buscar dados do proprietário para notificação
         let clientName = 'Cliente';
-        if (updatedProjectData.created_by) {
+        if (projectOwnerId) {
           const { data: clientData } = await supabase
             .from('users')
             .select('name, email')
-            .eq('id', updatedProjectData.created_by)
+            .eq('id', projectOwnerId)
             .single();
-          
+
           if (clientData) {
             clientName = clientData.name || clientData.email || 'Cliente';
           }
         }
-        
+
         // Buscar role do admin do banco
         const { data: adminProfile } = await supabase
           .from('users')
           .select('role, name')
           .eq('id', adminData.id)
           .single();
-        
+
         const actualAdminRole = adminProfile?.role || adminData.role || 'admin';
         const actualAdminName = adminProfile?.name || adminData.email || 'Admin';
-        
+
         const { notifyNewDocument } = await import('@/lib/services/notificationService');
-        
+
         for (const addedFile of addedFiles) {
           await notifyNewDocument({
             projectId: updatedProjectData.id,
@@ -2577,7 +2885,7 @@ export async function editProjectAction(
             uploaderId: adminData.id,
             uploaderName: actualAdminName,
             uploaderRole: actualAdminRole,
-            clientId: updatedProjectData.created_by,
+            clientId: projectOwnerId, // 🔧 CORREÇÃO: Usar proprietário do projeto
             clientName: clientName
           });
         }
@@ -2588,13 +2896,22 @@ export async function editProjectAction(
       // Não falhar a edição por causa das notificações
     }
 
+    // 🆕 Recalcular empresaIntegradora dinamicamente baseado no owner_id
+    let empresaIntegradoraFinal = updatedProjectData.empresa_integradora || '';
+
+    if (updatedProjectData.owner_id && updatedProjectData.owner) {
+      // Projeto com owner_id: usar dados do proprietário
+      empresaIntegradoraFinal = updatedProjectData.owner.company_name || updatedProjectData.owner.name || empresaIntegradoraFinal;
+    }
+
     // Converter dados do Supabase para formato Project
     const finalData: Project = {
       id: updatedProjectData.id,
       userId: updatedProjectData.created_by,
+      owner_id: updatedProjectData.owner_id,
       nome_cliente_final: updatedProjectData.nome_cliente_final,
       number: updatedProjectData.number,
-      empresaIntegradora: updatedProjectData.empresa_integradora,
+      empresaIntegradora: empresaIntegradoraFinal,
       nomeClienteFinal: updatedProjectData.nome_cliente_final,
       distribuidora: updatedProjectData.distribuidora,
       potencia: updatedProjectData.potencia,

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devLog } from "@/lib/utils/productionLogger";
 import { createClient } from '@supabase/supabase-js';
-// Temporário: usar console.log direto para evitar erro de import
-const devLog = {
-  log: (...args: any[]) => console.log(...args),
-  error: (...args: any[]) => console.error(...args),
-  warn: (...args: any[]) => console.warn(...args)
-};
+// devLog já importado do productionLogger
 
 function isConfigured() {
   return !!(
@@ -57,6 +53,39 @@ export async function POST(req: NextRequest) {
 
     const supabase = adminClient();
 
+    // ✅ VERIFICAÇÃO GLOBAL: Verificar se email já existe em QUALQUER tenant
+    devLog.log('[PreRegister] Verificando se email já existe no sistema', { email });
+
+    const { data: globalEmailCheck, error: globalCheckError } = await supabase
+      .from('users')
+      .select('id, email, tenant_id, status, role')
+      .eq('email', email)
+      .limit(1)
+      .maybeSingle();
+
+    if (globalCheckError) {
+      devLog.error('[PreRegister] Erro ao verificar email globalmente', {
+        email,
+        error: globalCheckError.message
+      });
+    }
+
+    if (globalEmailCheck) {
+      devLog.warn('[PreRegister] ❌ Email já cadastrado no sistema', {
+        email,
+        existingUserId: globalEmailCheck.id,
+        existingTenantId: globalEmailCheck.tenant_id,
+        existingStatus: globalEmailCheck.status,
+        existingRole: globalEmailCheck.role
+      });
+      return NextResponse.json({
+        error: 'EMAIL_EXISTS',
+        message: 'Este email já possui cadastro no sistema. Se você já tem conta, faça login. Se esqueceu a senha, use "Recuperar Senha".'
+      }, { status: 409 });
+    }
+
+    devLog.log('[PreRegister] ✅ Email disponível, prosseguindo com cadastro');
+
     let resolvedTenantId: string | null = tenant_id || null;
     if (!resolvedTenantId && tenant_slug) {
       const { data: org, error: orgErr } = await supabase
@@ -68,51 +97,15 @@ export async function POST(req: NextRequest) {
       if (orgErr) devLog.warn('[PreRegister] Falha ao resolver tenant por slug', { tenant_slug, error: orgErr.message });
     }
 
-    // Upsert por email; se id for conhecido, usar id; senão, manter por email
-    // SIMPLIFICADO: inserir apenas campos obrigatórios básicos
+    // Inserir novo usuário (não fazer upsert pois já verificamos que email não existe)
     const insert = {
-      id: id || undefined, // ID é obrigatório
+      id: id || undefined,
       email,
       name: name || (typeof email === 'string' ? email.split('@')[0] : 'Usuário'),
       role: 'client',
       status: 'pending',
       tenant_id: resolvedTenantId || null
     };
-
-    const { data: existing, error: fetchErr } = await supabase
-      .from('users')
-      .select('id, email, status, tenant_id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (fetchErr) {
-      devLog.error('[PreRegister] Erro ao buscar usuário', {
-        message: fetchErr.message,
-        code: fetchErr.code || 'unknown',
-        details: fetchErr.details || 'none',
-        hint: fetchErr.hint || 'none',
-        email
-      });
-    }
-
-    if (existing?.id) {
-      const { error: updErr } = await supabase
-        .from('users')
-        .update(insert)
-        .eq('id', existing.id);
-      if (updErr) {
-        devLog.error('[PreRegister] Erro ao atualizar usuário', {
-          message: updErr.message,
-          code: updErr.code || 'unknown',
-          details: updErr.details || 'none',
-          hint: updErr.hint || 'none',
-          email,
-          existingId: existing.id
-        });
-        return NextResponse.json({ error: 'DB_UPDATE', message: updErr.message }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, id: existing.id, action: 'updated' });
-    }
 
     const { data: created, error: insErr } = await supabase
       .from('users')
