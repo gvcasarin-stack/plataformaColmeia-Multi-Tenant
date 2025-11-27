@@ -2278,8 +2278,8 @@ export default function AdminBillingPage() {
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-1">
-                              {pacote.status === 'ativo' ? (
-                                <>
+                              <div className="flex items-center gap-2">
+                                {pacote.status === 'ativo' ? (
                                   <Badge className={
                                     esgotado ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
                                     quaseEsgotado ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
@@ -2287,21 +2287,44 @@ export default function AdminBillingPage() {
                                   }>
                                     {esgotado ? 'Esgotado' : quaseEsgotado ? 'Quase esgotado' : 'Ativo'}
                                   </Badge>
-                                  {dataExpiracao && (
-                                    <span className={`text-xs ${
-                                      estaExpirado ? 'text-red-600 dark:text-red-400 font-semibold' :
-                                      estaQuaseExpirar ? 'text-red-600 dark:text-red-400' :
-                                      estaProximoExpirar ? 'text-yellow-600 dark:text-yellow-400' :
-                                      'text-gray-500 dark:text-gray-400'
-                                    }`}>
-                                      {estaExpirado ? 'Expirado' : `${diasRestantes} dias restantes`}
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
-                                  {pacote.status === 'expirado' ? 'Expirado' : pacote.status === 'cancelado' ? 'Cancelado' : 'Inativo'}
-                                </Badge>
+                                ) : (
+                                  <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+                                    {pacote.status === 'expirado' ? 'Expirado' : pacote.status === 'cancelado' ? 'Cancelado' : 'Inativo'}
+                                  </Badge>
+                                )}
+                                {/* Badge de Situação de Pagamento do Pacote */}
+                                {(() => {
+                                  const paymentStatus = pacote.payment_status || 'pendente';
+                                  if (paymentStatus === 'pago') {
+                                    return (
+                                      <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400">
+                                        Pago
+                                      </Badge>
+                                    );
+                                  } else if (paymentStatus === 'parcela1') {
+                                    return (
+                                      <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+                                        1ª Parcela
+                                      </Badge>
+                                    );
+                                  } else {
+                                    return (
+                                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400">
+                                        Pendente
+                                      </Badge>
+                                    );
+                                  }
+                                })()}
+                              </div>
+                              {pacote.status === 'ativo' && dataExpiracao && (
+                                <span className={`text-xs ${
+                                  estaExpirado ? 'text-red-600 dark:text-red-400 font-semibold' :
+                                  estaQuaseExpirar ? 'text-red-600 dark:text-red-400' :
+                                  estaProximoExpirar ? 'text-yellow-600 dark:text-yellow-400' :
+                                  'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {estaExpirado ? 'Expirado' : `${diasRestantes} dias restantes`}
+                                </span>
                               )}
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {formatCurrency(pacoteDefinicao?.valor || 0)}
@@ -2386,7 +2409,6 @@ export default function AdminBillingPage() {
                                     <TableHead className="text-left">Cliente Final</TableHead>
                                     <TableHead className="text-left">Potência</TableHead>
                                     <TableHead className="text-left">Status</TableHead>
-                                    <TableHead className="text-left">Situação de Pagamento</TableHead>
                                     <TableHead className="text-left">Data de Solicitação</TableHead>
                                   </TableRow>
                                 </TableHeader>
@@ -2410,30 +2432,6 @@ export default function AdminBillingPage() {
                                             );
                                           }
                                           return <Badge className="bg-gray-50 text-gray-700 border-gray-200">{getStatusDisplayName(projeto.status)}</Badge>;
-                                        })()}
-                                      </TableCell>
-                                      <TableCell>
-                                        {(() => {
-                                          const paymentStatus = projeto.pagamento || 'pendente';
-                                          if (paymentStatus === 'pago') {
-                                            return (
-                                              <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400">
-                                                Pago
-                                              </Badge>
-                                            );
-                                          } else if (paymentStatus === 'parcela1') {
-                                            return (
-                                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
-                                                1ª Parcela
-                                              </Badge>
-                                            );
-                                          } else {
-                                            return (
-                                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400">
-                                                Pendente
-                                              </Badge>
-                                            );
-                                          }
                                         })()}
                                       </TableCell>
                                       <TableCell className="text-sm text-gray-500">
@@ -2509,8 +2507,8 @@ export default function AdminBillingPage() {
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-1">
-                              {assinatura.status === 'ativa' ? (
-                                <>
+                              <div className="flex items-center gap-2">
+                                {assinatura.status === 'ativa' ? (
                                   <Badge className={
                                     esgotado ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
                                     quaseEsgotado ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
@@ -2518,19 +2516,42 @@ export default function AdminBillingPage() {
                                   }>
                                     {esgotado ? 'Limite excedido' : quaseEsgotado ? 'Quase no limite' : 'Ativa'}
                                   </Badge>
-                                  {proximoReset && (
-                                    <span className={`text-xs ${
-                                      proximoRenovar ? 'text-purple-600 dark:text-purple-400 font-medium' :
-                                      'text-gray-500 dark:text-gray-400'
-                                    }`}>
-                                      Renova em {diasParaRenovacao} {diasParaRenovacao === 1 ? 'dia' : 'dias'}
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
-                                  {assinatura.status === 'cancelada' ? 'Cancelada' : assinatura.status === 'suspensa' ? 'Suspensa' : 'Inativa'}
-                                </Badge>
+                                ) : (
+                                  <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+                                    {assinatura.status === 'cancelada' ? 'Cancelada' : assinatura.status === 'suspensa' ? 'Suspensa' : 'Inativa'}
+                                  </Badge>
+                                )}
+                                {/* Badge de Situação de Pagamento da Assinatura */}
+                                {(() => {
+                                  const paymentStatus = assinatura.payment_status || 'pendente';
+                                  if (paymentStatus === 'pago') {
+                                    return (
+                                      <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400">
+                                        Pago
+                                      </Badge>
+                                    );
+                                  } else if (paymentStatus === 'parcela1') {
+                                    return (
+                                      <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+                                        1ª Parcela
+                                      </Badge>
+                                    );
+                                  } else {
+                                    return (
+                                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400">
+                                        Pendente
+                                      </Badge>
+                                    );
+                                  }
+                                })()}
+                              </div>
+                              {assinatura.status === 'ativa' && proximoReset && (
+                                <span className={`text-xs ${
+                                  proximoRenovar ? 'text-purple-600 dark:text-purple-400 font-medium' :
+                                  'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  Renova em {diasParaRenovacao} {diasParaRenovacao === 1 ? 'dia' : 'dias'}
+                                </span>
                               )}
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {formatCurrency(plano?.valor_mensal || 0)}/mês
@@ -2612,7 +2633,6 @@ export default function AdminBillingPage() {
                                       <TableHead className="text-left">Cliente Final</TableHead>
                                       <TableHead className="text-left">Potência</TableHead>
                                       <TableHead className="text-left">Status</TableHead>
-                                      <TableHead className="text-left">Situação de Pagamento</TableHead>
                                       <TableHead className="text-left">Data de Solicitação</TableHead>
                                     </TableRow>
                                   </TableHeader>
@@ -2636,30 +2656,6 @@ export default function AdminBillingPage() {
                                               );
                                             }
                                             return <Badge className="bg-gray-50 text-gray-700 border-gray-200">{getStatusDisplayName(projeto.status)}</Badge>;
-                                          })()}
-                                        </TableCell>
-                                        <TableCell>
-                                          {(() => {
-                                            const paymentStatus = projeto.pagamento || 'pendente';
-                                            if (paymentStatus === 'pago') {
-                                              return (
-                                                <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400">
-                                                  Pago
-                                                </Badge>
-                                              );
-                                            } else if (paymentStatus === 'parcela1') {
-                                              return (
-                                                <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
-                                                  1ª Parcela
-                                                </Badge>
-                                              );
-                                            } else {
-                                              return (
-                                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400">
-                                                  Pendente
-                                                </Badge>
-                                              );
-                                            }
                                           })()}
                                         </TableCell>
                                         <TableCell className="text-sm text-gray-500">
