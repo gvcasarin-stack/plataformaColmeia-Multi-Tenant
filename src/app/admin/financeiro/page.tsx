@@ -2364,30 +2364,6 @@ export default function AdminBillingPage() {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-
-                            {/* 🆕 BADGE DE STATUS DE PAGAMENTO */}
-                            {(() => {
-                              const paymentStatus = pacote.payment_status || 'pendente';
-                              if (paymentStatus === 'pago') {
-                                return (
-                                  <Badge className="bg-green-100 text-green-700 border-green-200">
-                                    Pago
-                                  </Badge>
-                                );
-                              } else if (paymentStatus === 'parcela1') {
-                                return (
-                                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                                    1ª Parcela Paga
-                                  </Badge>
-                                );
-                              } else {
-                                return (
-                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-                                    Pendente
-                                  </Badge>
-                                );
-                              }
-                            })()}
                           </div>
 
                           {(!pacote.projetos || pacote.projetos.length === 0) && (pacote.projetos_usados || 0) === 0 ? (
@@ -2410,15 +2386,16 @@ export default function AdminBillingPage() {
                                     <TableHead className="text-left">Cliente Final</TableHead>
                                     <TableHead className="text-left">Potência</TableHead>
                                     <TableHead className="text-left">Status</TableHead>
-                                    <TableHead className="text-left">Data</TableHead>
+                                    <TableHead className="text-left">Situação de Pagamento</TableHead>
+                                    <TableHead className="text-left">Data de Solicitação</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                   {pacote.projetos.map((projeto: any) => (
                                     <TableRow key={projeto.id} className="border-b border-gray-100 dark:border-gray-800">
                                       <TableCell className="font-medium">#{projeto.number}</TableCell>
-                                      <TableCell>{projeto.nomeClienteFinal || '-'}</TableCell>
-                                      <TableCell>{projeto.potenciakWp ? `${projeto.potenciakWp} kWp` : '-'}</TableCell>
+                                      <TableCell>{projeto.nome_cliente_final || '-'}</TableCell>
+                                      <TableCell>{projeto.potencia ? `${projeto.potencia} kWp` : '-'}</TableCell>
                                       <TableCell>
                                         {statusLoading ? (
                                           <Badge className="bg-gray-50 text-gray-500 border-gray-200">...</Badge>
@@ -2433,6 +2410,30 @@ export default function AdminBillingPage() {
                                             );
                                           }
                                           return <Badge className="bg-gray-50 text-gray-700 border-gray-200">{getStatusDisplayName(projeto.status)}</Badge>;
+                                        })()}
+                                      </TableCell>
+                                      <TableCell>
+                                        {(() => {
+                                          const paymentStatus = projeto.pagamento || 'pendente';
+                                          if (paymentStatus === 'pago') {
+                                            return (
+                                              <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400">
+                                                Pago
+                                              </Badge>
+                                            );
+                                          } else if (paymentStatus === 'parcela1') {
+                                            return (
+                                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+                                                1ª Parcela
+                                              </Badge>
+                                            );
+                                          } else {
+                                            return (
+                                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400">
+                                                Pendente
+                                              </Badge>
+                                            );
+                                          }
                                         })()}
                                       </TableCell>
                                       <TableCell className="text-sm text-gray-500">
@@ -2592,30 +2593,6 @@ export default function AdminBillingPage() {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-
-                            {/* 🆕 BADGE DE STATUS DE PAGAMENTO */}
-                            {(() => {
-                              const paymentStatus = assinatura.payment_status || 'pendente';
-                              if (paymentStatus === 'pago') {
-                                return (
-                                  <Badge className="bg-green-100 text-green-700 border-green-200">
-                                    Pago
-                                  </Badge>
-                                );
-                              } else if (paymentStatus === 'parcela1') {
-                                return (
-                                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                                    1ª Parcela Paga
-                                  </Badge>
-                                );
-                              } else {
-                                return (
-                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-                                    Pendente
-                                  </Badge>
-                                );
-                              }
-                            })()}
                           </div>
 
                           <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -2635,15 +2612,16 @@ export default function AdminBillingPage() {
                                       <TableHead className="text-left">Cliente Final</TableHead>
                                       <TableHead className="text-left">Potência</TableHead>
                                       <TableHead className="text-left">Status</TableHead>
-                                      <TableHead className="text-left">Data</TableHead>
+                                      <TableHead className="text-left">Situação de Pagamento</TableHead>
+                                      <TableHead className="text-left">Data de Solicitação</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {assinatura.projetosDoMesAtual?.map((projeto: any) => (
                                       <TableRow key={projeto.id} className="border-b border-gray-100 dark:border-gray-800">
                                         <TableCell className="font-medium">#{projeto.number}</TableCell>
-                                        <TableCell>{projeto.nomeClienteFinal || '-'}</TableCell>
-                                        <TableCell>{projeto.potenciakWp ? `${projeto.potenciakWp} kWp` : '-'}</TableCell>
+                                        <TableCell>{projeto.nome_cliente_final || '-'}</TableCell>
+                                        <TableCell>{projeto.potencia ? `${projeto.potencia} kWp` : '-'}</TableCell>
                                         <TableCell>
                                           {statusLoading ? (
                                             <Badge className="bg-gray-50 text-gray-500 border-gray-200">...</Badge>
@@ -2658,6 +2636,30 @@ export default function AdminBillingPage() {
                                               );
                                             }
                                             return <Badge className="bg-gray-50 text-gray-700 border-gray-200">{getStatusDisplayName(projeto.status)}</Badge>;
+                                          })()}
+                                        </TableCell>
+                                        <TableCell>
+                                          {(() => {
+                                            const paymentStatus = projeto.pagamento || 'pendente';
+                                            if (paymentStatus === 'pago') {
+                                              return (
+                                                <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400">
+                                                  Pago
+                                                </Badge>
+                                              );
+                                            } else if (paymentStatus === 'parcela1') {
+                                              return (
+                                                <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+                                                  1ª Parcela
+                                                </Badge>
+                                              );
+                                            } else {
+                                              return (
+                                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400">
+                                                  Pendente
+                                                </Badge>
+                                              );
+                                            }
                                           })()}
                                         </TableCell>
                                         <TableCell className="text-sm text-gray-500">
