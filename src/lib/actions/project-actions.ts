@@ -1707,7 +1707,7 @@ export async function createProjectClientAction(
       return { error: 'Erro ao buscar informações do usuário. Tente novamente.' };
     }
 
-    const billingMode = ownerUser.billing_mode || 'avulso';
+    let billingMode = ownerUser.billing_mode || 'avulso'; // 🔧 MUDOU: let ao invés de const para permitir fallback
     let billingSnapshot: any = null;
 
     logger.info('[createProjectClientAction] Billing mode identificado:', {
@@ -1732,74 +1732,94 @@ export async function createProjectClientAction(
         .single();
 
       if (pacoteError || !pacote) {
-        logger.warn('[createProjectClientAction] Nenhum pacote ativo encontrado para o usuário');
-        return {
-          error: 'Nenhum pacote ativo encontrado',
-          message: 'Você precisa de um pacote ativo para criar projetos. Entre em contato com o administrador.'
+        // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
+        logger.warn('[createProjectClientAction] Nenhum pacote ativo encontrado - criando como AVULSO');
+        billingMode = 'avulso';
+        billingSnapshot = {
+          mode: 'avulso',
+          potencia: potencia,
+          valor_projeto: valorProjetoFinal,
+          fallback_reason: 'pacote_nao_encontrado',
+          original_billing_mode: 'pacote',
+          timestamp: new Date().toISOString()
         };
+      } else {
+        // Tem pacote, validar expiração e quota
+        const agora = new Date();
+        const dataExpiracao = new Date(pacote.data_expiracao);
+
+        if (agora > dataExpiracao) {
+          // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
+          logger.warn('[createProjectClientAction] Pacote expirado - criando como AVULSO:', {
+            dataExpiracao: pacote.data_expiracao,
+            agora: agora.toISOString()
+          });
+          billingMode = 'avulso';
+          billingSnapshot = {
+            mode: 'avulso',
+            potencia: potencia,
+            valor_projeto: valorProjetoFinal,
+            fallback_reason: 'pacote_expirado',
+            original_billing_mode: 'pacote',
+            pacote_nome: pacote.pacote?.nome,
+            data_expiracao: pacote.data_expiracao,
+            timestamp: new Date().toISOString()
+          };
+        } else if (pacote.projetos_usados >= pacote.projetos_inclusos) {
+          // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
+          logger.warn('[createProjectClientAction] Pacote esgotado - criando como AVULSO:', {
+            projetos_usados: pacote.projetos_usados,
+            projetos_inclusos: pacote.projetos_inclusos
+          });
+          billingMode = 'avulso';
+          billingSnapshot = {
+            mode: 'avulso',
+            potencia: potencia,
+            valor_projeto: valorProjetoFinal,
+            fallback_reason: 'pacote_esgotado',
+            original_billing_mode: 'pacote',
+            pacote_nome: pacote.pacote?.nome,
+            projetos_inclusos: pacote.projetos_inclusos,
+            projetos_usados: pacote.projetos_usados,
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          // ✅ Pacote válido - decrementar contador
+          const { error: updateError } = await supabase
+            .from('cliente_pacotes')
+            .update({
+              projetos_usados: pacote.projetos_usados + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', pacote.id);
+
+          if (updateError) {
+            logger.error('[createProjectClientAction] Erro ao decrementar contador do pacote:', updateError);
+            return { error: 'Erro ao processar pacote. Tente novamente.' };
+          }
+
+          // Criar snapshot do pacote
+          billingSnapshot = {
+            mode: 'pacote',
+            pacote_id: pacote.id,
+            pacote_nome: pacote.pacote?.nome || 'Pacote',
+            projetos_inclusos: pacote.projetos_inclusos,
+            projetos_usados_antes: pacote.projetos_usados,
+            projetos_usados_depois: pacote.projetos_usados + 1,
+            data_ativacao: pacote.data_ativacao,
+            data_expiracao: pacote.data_expiracao,
+            timestamp: new Date().toISOString()
+          };
+
+          logger.info('[createProjectClientAction] ✅ Pacote validado e contador decrementado:', {
+            pacote_id: pacote.id,
+            pacote_nome: billingSnapshot.pacote_nome,
+            projetos_usados_antes: pacote.projetos_usados,
+            projetos_usados_depois: pacote.projetos_usados + 1,
+            projetos_restantes: pacote.projetos_inclusos - (pacote.projetos_usados + 1)
+          });
+        }
       }
-
-      // Validar expiração do pacote
-      const agora = new Date();
-      const dataExpiracao = new Date(pacote.data_expiracao);
-
-      if (agora > dataExpiracao) {
-        logger.warn('[createProjectClientAction] Pacote expirado:', {
-          dataExpiracao: pacote.data_expiracao,
-          agora: agora.toISOString()
-        });
-        return {
-          error: 'Pacote expirado',
-          message: `O pacote expirou em ${dataExpiracao.toLocaleDateString('pt-BR')}. Entre em contato com o administrador para renovar.`
-        };
-      }
-
-      // Validar quota de projetos
-      if (pacote.projetos_usados >= pacote.projetos_inclusos) {
-        logger.warn('[createProjectClientAction] Pacote esgotado:', {
-          projetos_usados: pacote.projetos_usados,
-          projetos_inclusos: pacote.projetos_inclusos
-        });
-        return {
-          error: 'Pacote esgotado',
-          message: `Todos os ${pacote.projetos_inclusos} projetos do pacote foram utilizados. Entre em contato com o administrador para renovar.`
-        };
-      }
-
-      // ✅ Pacote válido - decrementar contador
-      const { error: updateError } = await supabase
-        .from('cliente_pacotes')
-        .update({
-          projetos_usados: pacote.projetos_usados + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', pacote.id);
-
-      if (updateError) {
-        logger.error('[createProjectClientAction] Erro ao decrementar contador do pacote:', updateError);
-        return { error: 'Erro ao processar pacote. Tente novamente.' };
-      }
-
-      // Criar snapshot do pacote
-      billingSnapshot = {
-        mode: 'pacote',
-        pacote_id: pacote.id,
-        pacote_nome: pacote.pacote?.nome || 'Pacote',
-        projetos_inclusos: pacote.projetos_inclusos,
-        projetos_usados_antes: pacote.projetos_usados,
-        projetos_usados_depois: pacote.projetos_usados + 1,
-        data_ativacao: pacote.data_ativacao,
-        data_expiracao: pacote.data_expiracao,
-        timestamp: new Date().toISOString()
-      };
-
-      logger.info('[createProjectClientAction] ✅ Pacote validado e contador decrementado:', {
-        pacote_id: pacote.id,
-        pacote_nome: billingSnapshot.pacote_nome,
-        projetos_usados_antes: pacote.projetos_usados,
-        projetos_usados_depois: pacote.projetos_usados + 1,
-        projetos_restantes: pacote.projetos_inclusos - (pacote.projetos_usados + 1)
-      });
     }
 
     // ✅ VALIDAÇÃO DE ASSINATURA
@@ -1818,74 +1838,95 @@ export async function createProjectClientAction(
         .single();
 
       if (assinaturaError || !assinatura) {
-        logger.warn('[createProjectClientAction] Nenhuma assinatura ativa encontrada para o usuário');
-        return {
-          error: 'Nenhuma assinatura ativa encontrada',
-          message: 'Você precisa de uma assinatura ativa para criar projetos. Entre em contato com o administrador.'
+        // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
+        logger.warn('[createProjectClientAction] Nenhuma assinatura ativa encontrada - criando como AVULSO');
+        billingMode = 'avulso';
+        billingSnapshot = {
+          mode: 'avulso',
+          potencia: potencia,
+          valor_projeto: valorProjetoFinal,
+          fallback_reason: 'assinatura_nao_encontrada',
+          original_billing_mode: 'assinatura',
+          timestamp: new Date().toISOString()
         };
+      } else {
+        // Tem assinatura, validar status e quota
+        if (assinatura.status === 'pausada' || assinatura.status === 'cancelada') {
+          // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
+          logger.warn('[createProjectClientAction] Assinatura com status inválido - criando como AVULSO:', {
+            status: assinatura.status
+          });
+          billingMode = 'avulso';
+          billingSnapshot = {
+            mode: 'avulso',
+            potencia: potencia,
+            valor_projeto: valorProjetoFinal,
+            fallback_reason: `assinatura_${assinatura.status}`,
+            original_billing_mode: 'assinatura',
+            plano_nome: assinatura.plano?.nome,
+            status_assinatura: assinatura.status,
+            timestamp: new Date().toISOString()
+          };
+        } else if (assinatura.projetos_usados_mes_atual >= assinatura.projetos_mensais) {
+          // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
+          const proximoReset = new Date(assinatura.proximo_reset);
+          logger.warn('[createProjectClientAction] Cota mensal esgotada - criando como AVULSO:', {
+            projetos_usados_mes_atual: assinatura.projetos_usados_mes_atual,
+            projetos_mensais: assinatura.projetos_mensais,
+            proximo_reset: assinatura.proximo_reset
+          });
+          billingMode = 'avulso';
+          billingSnapshot = {
+            mode: 'avulso',
+            potencia: potencia,
+            valor_projeto: valorProjetoFinal,
+            fallback_reason: 'assinatura_esgotada',
+            original_billing_mode: 'assinatura',
+            plano_nome: assinatura.plano?.nome,
+            projetos_mensais: assinatura.projetos_mensais,
+            projetos_usados_mes_atual: assinatura.projetos_usados_mes_atual,
+            proximo_reset: assinatura.proximo_reset,
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          // ✅ Assinatura válida - decrementar contador mensal
+          const { error: updateError } = await supabase
+            .from('cliente_assinaturas')
+            .update({
+              projetos_usados_mes_atual: assinatura.projetos_usados_mes_atual + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', assinatura.id);
+
+          if (updateError) {
+            logger.error('[createProjectClientAction] Erro ao decrementar contador da assinatura:', updateError);
+            return { error: 'Erro ao processar assinatura. Tente novamente.' };
+          }
+
+          // Criar snapshot da assinatura
+          billingSnapshot = {
+            mode: 'assinatura',
+            assinatura_id: assinatura.id,
+            plano_nome: assinatura.plano?.nome || 'Plano de Assinatura',
+            projetos_mensais: assinatura.projetos_mensais,
+            projetos_usados_antes: assinatura.projetos_usados_mes_atual,
+            projetos_usados_depois: assinatura.projetos_usados_mes_atual + 1,
+            dia_renovacao: assinatura.dia_renovacao,
+            ultimo_reset: assinatura.ultimo_reset,
+            proximo_reset: assinatura.proximo_reset,
+            status: assinatura.status,
+            timestamp: new Date().toISOString()
+          };
+
+          logger.info('[createProjectClientAction] ✅ Assinatura validada e contador decrementado:', {
+            assinatura_id: assinatura.id,
+            plano_nome: billingSnapshot.plano_nome,
+            projetos_usados_antes: assinatura.projetos_usados_mes_atual,
+            projetos_usados_depois: assinatura.projetos_usados_mes_atual + 1,
+            projetos_restantes: assinatura.projetos_mensais - (assinatura.projetos_usados_mes_atual + 1)
+          });
+        }
       }
-
-      // Validar status da assinatura
-      if (assinatura.status === 'pausada' || assinatura.status === 'cancelada') {
-        logger.warn('[createProjectClientAction] Assinatura com status inválido:', {
-          status: assinatura.status
-        });
-        return {
-          error: `Assinatura ${assinatura.status}`,
-          message: `Sua assinatura está ${assinatura.status}. Entre em contato com o administrador.`
-        };
-      }
-
-      // Validar quota mensal
-      if (assinatura.projetos_usados_mes_atual >= assinatura.projetos_mensais) {
-        const proximoReset = new Date(assinatura.proximo_reset);
-        logger.warn('[createProjectClientAction] Cota mensal esgotada:', {
-          projetos_usados_mes_atual: assinatura.projetos_usados_mes_atual,
-          projetos_mensais: assinatura.projetos_mensais,
-          proximo_reset: assinatura.proximo_reset
-        });
-        return {
-          error: 'Cota mensal esgotada',
-          message: `Cota mensal de ${assinatura.projetos_mensais} projetos esgotada. Aguarde a renovação em ${proximoReset.toLocaleDateString('pt-BR')}.`
-        };
-      }
-
-      // ✅ Assinatura válida - decrementar contador mensal
-      const { error: updateError } = await supabase
-        .from('cliente_assinaturas')
-        .update({
-          projetos_usados_mes_atual: assinatura.projetos_usados_mes_atual + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', assinatura.id);
-
-      if (updateError) {
-        logger.error('[createProjectClientAction] Erro ao decrementar contador da assinatura:', updateError);
-        return { error: 'Erro ao processar assinatura. Tente novamente.' };
-      }
-
-      // Criar snapshot da assinatura
-      billingSnapshot = {
-        mode: 'assinatura',
-        assinatura_id: assinatura.id,
-        plano_nome: assinatura.plano?.nome || 'Plano de Assinatura',
-        projetos_mensais: assinatura.projetos_mensais,
-        projetos_usados_antes: assinatura.projetos_usados_mes_atual,
-        projetos_usados_depois: assinatura.projetos_usados_mes_atual + 1,
-        dia_renovacao: assinatura.dia_renovacao,
-        ultimo_reset: assinatura.ultimo_reset,
-        proximo_reset: assinatura.proximo_reset,
-        status: assinatura.status,
-        timestamp: new Date().toISOString()
-      };
-
-      logger.info('[createProjectClientAction] ✅ Assinatura validada e contador decrementado:', {
-        assinatura_id: assinatura.id,
-        plano_nome: billingSnapshot.plano_nome,
-        projetos_usados_antes: assinatura.projetos_usados_mes_atual,
-        projetos_usados_depois: assinatura.projetos_usados_mes_atual + 1,
-        projetos_restantes: assinatura.projetos_mensais - (assinatura.projetos_usados_mes_atual + 1)
-      });
     }
 
     // ✅ MODO AVULSO - Criar snapshot com valor calculado
