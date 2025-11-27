@@ -583,6 +583,16 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
             />
           </div>
 
+          {/* 🆕 Billing Info Card - Mostrar informações de faturamento (CLIENTE) */}
+          {!isAdmin && (
+            <BillingInfoCard
+              billingStatus={billingStatus}
+              isLoading={loadingBillingStatus}
+              isAdmin={false}
+              potenciaDigitada={powerValue && powerValue > 0 ? powerValue : null}
+            />
+          )}
+
           {/* 🆕 CAMPO APENAS PARA ADMIN: Proprietário do Projeto */}
           {isAdmin && (
             <div className="space-y-3 pt-4 border-t border-gray-200">
