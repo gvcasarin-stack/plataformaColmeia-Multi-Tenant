@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import { UserData as AuthUserData } from "@/lib/services/authService.supabase"
 import { devLog } from "@/lib/utils/productionLogger";
 import logger from '@/lib/utils/logger'
+import { BillingInfoCard } from "@/components/project/BillingInfoCard"
 
 // Lista de distribuidoras de energia
 const DISTRIBUIDORAS = [
@@ -78,7 +79,11 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
   const [selectedOwnerData, setSelectedOwnerData] = useState<{ name: string; companyName?: string } | null>(null); // 🆕 Dados do cliente selecionado
   const [organizationName, setOrganizationName] = useState<string>(''); // Nome da organização/tenant
   const [clientSearchQuery, setClientSearchQuery] = useState<string>(''); // 🆕 Query de busca de clientes
-  
+
+  // 🆕 Estados para billing info
+  const [billingStatus, setBillingStatus] = useState<any | null>(null);
+  const [loadingBillingStatus, setLoadingBillingStatus] = useState(false);
+
   const { register, handleSubmit, reset, formState: { errors }, setValue, control, watch } = useForm<ClientFormData>({
     defaultValues: {
       nomeClienteFinal: "",
@@ -99,6 +104,9 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
   
   // Observar mudanças no campo distribuidora para mostrar o campo "Outro" quando necessário
   const distribuidoraSelecionada = watch("distribuidora");
+
+  // 🆕 Observar mudanças no campo power para validação em tempo real
+  const powerValue = watch("power");
 
   useEffect(() => {
     setShowOutroInput(distribuidoraSelecionada === "Outro");
@@ -176,6 +184,43 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
       }
     }
   }, [selectedOwnerId, clients, currentUserId, isAdmin]);
+
+  // 🆕 Buscar billing status quando selecionar proprietário (admin) ou abrir modal (cliente)
+  useEffect(() => {
+    async function fetchBillingStatus() {
+      // Determinar o userId correto
+      const targetUserId = isAdmin ? selectedOwnerId : user?.id;
+
+      if (!open || !targetUserId) {
+        setBillingStatus(null);
+        return;
+      }
+
+      setLoadingBillingStatus(true);
+      try {
+        const response = await fetch(`/api/user/${targetUserId}/billing-status`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setBillingStatus(result);
+            devLog.log('[CreateProjectModal] Billing status carregado:', result);
+          }
+        }
+      } catch (error) {
+        devLog.error('[CreateProjectModal] Erro ao buscar billing status:', error);
+      } finally {
+        setLoadingBillingStatus(false);
+      }
+    }
+
+    fetchBillingStatus();
+  }, [open, isAdmin, selectedOwnerId, user?.id]);
 
   // Efeito para carregar dados do usuário
   useEffect(() => {
@@ -649,6 +694,14 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
                   💡 <strong>Dica:</strong> Se o cliente ainda não tem conta, crie na sua conta. Depois você pode transferir usando o botão "Transferir Propriedade" na tela do projeto.
                 </p>
               </div>
+
+              {/* 🆕 Billing Info Card - Mostrar informações de faturamento */}
+              <BillingInfoCard
+                billingStatus={billingStatus}
+                isLoading={loadingBillingStatus}
+                isAdmin={isAdmin}
+                potenciaDigitada={powerValue && powerValue > 0 ? powerValue : null}
+              />
             </div>
           )}
 

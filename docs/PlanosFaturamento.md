@@ -276,11 +276,79 @@ CREATE TABLE cliente_assinaturas (
   - [x] Datas de ativação/expiração/renovação exibidas
 
 #### 5.2. Notificações e Alertas ⏳
-- [ ] Email/notificação 7 dias antes de pacote expirar
-- [ ] Email/notificação quando pacote expirar
-- [ ] Email/notificação quando pacote esgotar
-- [ ] Email/notificação quando assinatura precisar renovação
-- [ ] Notificação para admin quando cliente bloqueado
+
+**Sistema de Notificações:** Todas as notificações são enviadas via **IN-APP + EMAIL** (padrão da aplicação)
+
+##### **Notificações para o CLIENTE:**
+
+1. **7 dias antes do pacote expirar** 📅
+   - **Título:** "Seu pacote expira em breve"
+   - **Mensagem:** "Seu pacote [Nome do Pacote] expira em 7 dias (DD/MM/YYYY). Renove para continuar aproveitando os benefícios!"
+   - **Ação:** Botão "Solicitar Renovação"
+   - **Tipo:** `warning`
+
+2. **Quando pacote expirar** ⚠️
+   - **Título:** "Seu pacote expirou"
+   - **Mensagem:** "Seu pacote [Nome do Pacote] expirou em DD/MM/YYYY. Novos projetos serão cobrados como avulsos."
+   - **Ação:** Botão "Renovar Pacote"
+   - **Tipo:** `alert`
+
+3. **Quando pacote esgotar** 🚫
+   - **Título:** "Você utilizou todos os projetos do seu pacote"
+   - **Mensagem:** "Você utilizou todos os X projetos do seu pacote [Nome]. Renove ou adquira um novo pacote!"
+   - **Ação:** Botão "Renovar Pacote"
+   - **Tipo:** `warning`
+
+4. **Quando assinatura precisar renovação** 💳
+   - **Título:** "Sua assinatura precisa ser renovada"
+   - **Mensagem:** "Sua assinatura [Nome do Plano] renova em 3 dias. Efetue o pagamento para continuar criando projetos."
+   - **Ação:** Botão "Solicitar Renovação"
+   - **Tipo:** `warning`
+
+5. **Quando cria projeto fora dos limites** 💰
+   - **Título:** "Projeto criado fora do pacote/assinatura"
+   - **Mensagem:** "Você criou um projeto mas seu pacote está esgotado/expirado. Este projeto será cobrado como avulso."
+   - **Ação:** Nenhuma (apenas informativo)
+   - **Tipo:** `info`
+
+6. **Quando potência excede limite do pacote** ⚡
+   - **Título:** "Potência excede limite do pacote"
+   - **Mensagem:** "O projeto criado tem potência de X kWp, mas seu pacote permite até Y kWp. A diferença será cobrada como avulso."
+   - **Ação:** Nenhuma (apenas informativo)
+   - **Tipo:** `info`
+
+##### **Notificações para o ADMIN:**
+
+1. **Cliente criou projeto com pacote esgotado** 📦
+   - **Título:** "Cliente criou projeto fora do pacote"
+   - **Mensagem:** "Cliente [Nome] (email) criou projeto #XXX mas o pacote está esgotado. Projeto será cobrado como avulso."
+   - **Ação:** Link para o projeto
+   - **Tipo:** `info`
+
+2. **Cliente criou projeto com pacote expirado** ⏰
+   - **Título:** "Cliente criou projeto com pacote expirado"
+   - **Mensagem:** "Cliente [Nome] (email) criou projeto #XXX mas o pacote expirou em DD/MM/YYYY. Projeto será cobrado como avulso."
+   - **Ação:** Link para o cliente
+   - **Tipo:** `warning`
+
+3. **Cliente criou projeto com assinatura suspensa** 🚫
+   - **Título:** "Cliente criou projeto com assinatura suspensa"
+   - **Mensagem:** "Cliente [Nome] (email) criou projeto #XXX mas a assinatura está suspensa/pendente de renovação."
+   - **Ação:** Link para o cliente
+   - **Tipo:** `alert`
+
+4. **Cliente criou projeto excedendo potência** ⚡
+   - **Título:** "Cliente excedeu limite de potência"
+   - **Mensagem:** "Cliente [Nome] criou projeto #XXX com X kWp, mas o limite do pacote/assinatura é Y kWp."
+   - **Ação:** Link para o projeto
+   - **Tipo:** `info`
+
+##### **Checklist de Implementação:**
+- [ ] Criar endpoint `/api/notifications/billing` para gatilhos de notificação
+- [ ] Integrar com sistema de notificações existente (in-app)
+- [ ] Integrar com sistema de emails existente
+- [ ] Implementar gatilhos no momento da criação do projeto
+- [ ] Implementar gatilhos nos jobs automáticos (FASE 5.3)
 
 #### 5.3. Jobs Automáticos (Cron) ⏳
 - [ ] Job diário: Verificar pacotes expirados
