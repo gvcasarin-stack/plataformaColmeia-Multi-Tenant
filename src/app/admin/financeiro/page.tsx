@@ -248,6 +248,13 @@ export default function AdminBillingPage() {
   const [loadingPacotes, setLoadingPacotes] = useState(false);
   const [loadingAssinaturas, setLoadingAssinaturas] = useState(false);
 
+  // ✅ ESTADOS PARA CONVERSÃO DE PROJETOS AVULSOS
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [projectToConvert, setProjectToConvert] = useState<any | null>(null);
+  const [availableBillingOptions, setAvailableBillingOptions] = useState<any>({ pacotes: [], assinaturas: [] });
+  const [loadingBillingOptions, setLoadingBillingOptions] = useState(false);
+  const [convertingProject, setConvertingProject] = useState(false);
+
   // ✅ NOVOS FILTROS
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>('');
@@ -770,22 +777,22 @@ export default function AdminBillingPage() {
         description: 'Aguarde enquanto redefinimos o status para pendente.',
         variant: 'default',
       });
-      
+
       await updateProjectPayment(projectId, 'pendente');
-      
+
       toast({
         title: 'Status resetado',
         description: 'O projeto foi marcado como pendente.',
         variant: 'default',
       });
-      
+
       await fetchData(true);
-      
+
       // ✅ CORREÇÃO: Notificar painel sobre atualização de billing
       window.dispatchEvent(new CustomEvent('billing-updated', {
         detail: { action: 'reset', projectId }
       }));
-      
+
     } catch (error) {
       devLog.error('[ResetPaymentStatus] Error:', error);
       toast({
@@ -793,6 +800,99 @@ export default function AdminBillingPage() {
         description: 'Ocorreu um erro ao redefinir o status. Tente novamente.',
         variant: 'destructive',
       });
+    }
+  };
+
+  // 🆕 FUNÇÕES DE CONVERSÃO DE PROJETOS AVULSOS
+  const openConvertModal = async (project: any) => {
+    try {
+      setProjectToConvert(project);
+      setLoadingBillingOptions(true);
+      setShowConvertModal(true);
+
+      // Buscar opções disponíveis
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user?.id || '');
+
+      const response = await fetch(`/api/admin/projects/${project.id}/available-billing`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) throw new Error('Erro ao buscar opções disponíveis');
+
+      const result = await response.json();
+      if (result.success) {
+        setAvailableBillingOptions(result.data);
+      }
+    } catch (error) {
+      devLog.error('[OpenConvertModal] Error:', error);
+      toast({
+        title: 'Erro ao carregar opções',
+        description: 'Ocorreu um erro ao buscar pacotes/assinaturas disponíveis.',
+        variant: 'destructive',
+      });
+      setShowConvertModal(false);
+    } finally {
+      setLoadingBillingOptions(false);
+    }
+  };
+
+  const handleConvertProject = async (targetType: 'pacote' | 'assinatura', targetId: string) => {
+    if (!projectToConvert) return;
+
+    try {
+      setConvertingProject(true);
+
+      toast({
+        title: 'Convertendo projeto...',
+        description: `Aguarde enquanto convertemos para ${targetType}.`,
+        variant: 'default',
+      });
+
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user?.id || '');
+
+      const response = await fetch(`/api/admin/projects/${projectToConvert.id}/convert-billing`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ target_type: targetType, target_id: targetId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao converter projeto');
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: 'Projeto convertido!',
+        description: `Projeto convertido para ${targetType} com sucesso.`,
+        variant: 'default',
+      });
+
+      setShowConvertModal(false);
+      setProjectToConvert(null);
+      await fetchData(true);
+
+      // Notificar painel sobre atualização
+      window.dispatchEvent(new CustomEvent('billing-updated', {
+        detail: { action: 'convert', projectId: projectToConvert.id }
+      }));
+
+    } catch (error: any) {
+      devLog.error('[HandleConvertProject] Error:', error);
+      toast({
+        title: 'Erro ao converter',
+        description: error.message || 'Ocorreu um erro ao converter o projeto.',
+        variant: 'destructive',
+      });
+    } finally {
+      setConvertingProject(false);
     }
   };
 
@@ -2198,6 +2298,15 @@ export default function AdminBillingPage() {
                                                 Marcar como Pago (Integral)
                                               </DropdownMenuItem>
                                             )}
+                                            {/* 🆕 CONVERSÃO: Apenas para projetos avulsos */}
+                                            {project.billing_mode === 'avulso' && (
+                                              <>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => openConvertModal(project)} className="text-blue-600 dark:text-blue-400">
+                                                  Converter para Pacote/Assinatura
+                                                </DropdownMenuItem>
+                                              </>
+                                            )}
                                           </>
                                         );
                                       })()}
@@ -2700,6 +2809,179 @@ export default function AdminBillingPage() {
             projects: projects
           }}
         />
+      )}
+
+      {/* 🆕 MODAL DE CONVERSÃO DE PROJETO AVULSO */}
+      {showConvertModal && projectToConvert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Converter Projeto para Pacote/Assinatura
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowConvertModal(false);
+                    setProjectToConvert(null);
+                  }}
+                  disabled={convertingProject}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-4">
+              {/* Info do Projeto */}
+              <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">
+                  Projeto: {projectToConvert.number || projectToConvert.id}
+                </h3>
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  Cliente: {projectToConvert.client_name || projectToConvert.users?.full_name || 'N/A'}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  Valor atual (avulso): {formatCurrency(projectToConvert.billing_snapshot?.valor_projeto || projectToConvert.price || 0)}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  Status de pagamento: {projectToConvert.pagamento === 'pago' ? 'Pago' : projectToConvert.pagamento === 'parcela1' ? '1ª Parcela Paga' : 'Pendente'}
+                </p>
+              </div>
+
+              {/* Warning */}
+              <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="flex gap-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-900 dark:text-yellow-300 mb-1">
+                      Atenção
+                    </h4>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                      Após a conversão, este projeto será contabilizado no pacote/assinatura selecionado.
+                      {projectToConvert.pagamento === 'pago' && (
+                        <> O valor já pago (avulso) deverá ser negociado manualmente com o cliente para ajuste do valor do pacote/assinatura.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loading */}
+              {loadingBillingOptions && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                </div>
+              )}
+
+              {/* Opções */}
+              {!loadingBillingOptions && (
+                <div className="space-y-4">
+                  {/* Pacotes */}
+                  {availableBillingOptions.pacotes && availableBillingOptions.pacotes.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                        Pacotes Disponíveis
+                      </h3>
+                      <div className="grid gap-3">
+                        {availableBillingOptions.pacotes.map((pacote: any) => (
+                          <button
+                            key={pacote.id}
+                            onClick={() => handleConvertProject('pacote', pacote.id)}
+                            disabled={convertingProject}
+                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium text-gray-900 dark:text-white">
+                                  {pacote.nome}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  Quota: {pacote.quota} • {pacote.vagas_disponiveis} vagas disponíveis
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                  Expira em: {new Date(pacote.expira_em).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                              <Icons.CheckCircle className="h-5 w-5 text-green-600" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Assinaturas */}
+                  {availableBillingOptions.assinaturas && availableBillingOptions.assinaturas.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                        Assinaturas Disponíveis
+                      </h3>
+                      <div className="grid gap-3">
+                        {availableBillingOptions.assinaturas.map((assinatura: any) => (
+                          <button
+                            key={assinatura.id}
+                            onClick={() => handleConvertProject('assinatura', assinatura.id)}
+                            disabled={convertingProject}
+                            className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium text-gray-900 dark:text-white">
+                                  {assinatura.nome}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  Quota mensal: {assinatura.quota} • {assinatura.vagas_disponiveis} vagas disponíveis
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                  Próximo reset: {new Date(assinatura.proximo_reset).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                              <Icons.CheckCircle className="h-5 w-5 text-green-600" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nenhuma opção disponível */}
+                  {(!availableBillingOptions.pacotes || availableBillingOptions.pacotes.length === 0) &&
+                   (!availableBillingOptions.assinaturas || availableBillingOptions.assinaturas.length === 0) && (
+                    <div className="py-12 text-center">
+                      <Icons.AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        Nenhuma opção disponível
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Este cliente não possui pacotes ou assinaturas ativos com quota disponível.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowConvertModal(false);
+                  setProjectToConvert(null);
+                }}
+                disabled={convertingProject}
+                className="w-full"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
