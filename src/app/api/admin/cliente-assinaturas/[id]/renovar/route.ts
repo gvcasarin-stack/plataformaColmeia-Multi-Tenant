@@ -80,6 +80,7 @@ export async function PATCH(
         .insert({
           user_id: assinaturaAtual.user_id,
           plano_id: novo_plano_id,
+          tenant_id: tenantId,
           data_inicio: agora.toISOString(),
           status: 'ativa',
           dia_renovacao: diaRenovacao,

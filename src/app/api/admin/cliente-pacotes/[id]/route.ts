@@ -72,6 +72,7 @@ export async function PATCH(
         .insert({
           user_id: pacoteAtual.user_id,
           pacote_id: novo_pacote_id,
+          tenant_id: tenantId,
           data_ativacao: dataAtivacao.toISOString(),
           data_expiracao: dataExpiracao.toISOString(),
           projetos_inclusos: novoPacote.quantidade_projetos,
