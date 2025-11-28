@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const pacotesComProjetos = await Promise.all(
       (clientePacotes || []).map(async (pacote) => {
         // 🔍 BUSCA PRIMÁRIA: Por FK (cliente_pacote_id)
-        let { data: projetos, error: projetosError } = await supabase
+        const { data: projetosPorFK, error: projetosError } = await supabase
           .from('projects')
           .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, pagamento, created_at, billing_snapshot')
           .eq('cliente_pacote_id', pacote.id)
@@ -74,12 +74,16 @@ export async function GET(request: NextRequest) {
           devLog.error(`[API /admin/cliente-pacotes GET] ERRO ao buscar projetos do pacote ${pacote.id}:`, projetosError);
         }
 
-        // 🆕 FALLBACK: Se não encontrou projetos pela FK, buscar pelo snapshot
-        // (Para projetos antigos criados antes da correção de FK)
-        if (!projetos || projetos.length === 0) {
-          devLog.warn(`[API /admin/cliente-pacotes GET] FK vazia, tentando FALLBACK por billing_snapshot para pacote ${pacote.id}`);
+        const qtdPorFK = projetosPorFK?.length || 0;
+        const esperado = pacote.projetos_usados || 0;
 
-          const { data: projetosFallback, error: fallbackError } = await supabase
+        // 🆕 FALLBACK: Se encontrou MENOS projetos do que o esperado, buscar pelo snapshot também
+        let projetos = projetosPorFK || [];
+
+        if (qtdPorFK < esperado) {
+          devLog.warn(`[API /admin/cliente-pacotes GET] Encontrou ${qtdPorFK} projetos por FK mas esperava ${esperado}. Buscando pelo snapshot...`);
+
+          const { data: projetosPorSnapshot, error: fallbackError } = await supabase
             .from('projects')
             .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, pagamento, created_at, billing_snapshot')
             .eq('owner_id', pacote.user_id)
@@ -87,26 +91,34 @@ export async function GET(request: NextRequest) {
             .eq('tenant_id', tenantId)
             .order('created_at', { ascending: false });
 
-          if (!fallbackError && projetosFallback) {
+          if (!fallbackError && projetosPorSnapshot) {
             // Filtrar apenas os que têm o pacote_id correto no snapshot
-            projetos = projetosFallback.filter(p =>
+            const projetosSnapshot = projetosPorSnapshot.filter(p =>
               p.billing_snapshot?.pacote_id === pacote.id
             );
 
-            devLog.warn(`[API /admin/cliente-pacotes GET] FALLBACK encontrou ${projetos.length} projetos via snapshot para pacote ${pacote.id}`);
+            // Combinar: FK + Snapshot, removendo duplicatas
+            const idsJaAdicionados = new Set(projetos.map(p => p.id));
+            const projetosOrfaos = projetosSnapshot.filter(p => !idsJaAdicionados.has(p.id));
+
+            if (projetosOrfaos.length > 0) {
+              devLog.warn(`[API /admin/cliente-pacotes GET] FALLBACK encontrou ${projetosOrfaos.length} projetos órfãos via snapshot`);
+              projetos = [...projetos, ...projetosOrfaos];
+            }
           }
         }
 
-        devLog.log(`[API /admin/cliente-pacotes GET] Pacote ${pacote.id}: ${projetos?.length || 0} projetos encontrados`, {
+        devLog.log(`[API /admin/cliente-pacotes GET] Pacote ${pacote.id}: ${projetos.length} projetos (${qtdPorFK} por FK + ${projetos.length - qtdPorFK} por snapshot)`, {
           pacoteId: pacote.id,
           tenantId,
-          error: projetosError || null,
-          projetosIds: projetos?.map(p => p.id) || []
+          esperado,
+          encontrado: projetos.length,
+          projetosIds: projetos.map(p => p.id)
         });
 
         return {
           ...pacote,
-          projetos: projetos || [],
+          projetos: projetos,
         };
       })
     );
