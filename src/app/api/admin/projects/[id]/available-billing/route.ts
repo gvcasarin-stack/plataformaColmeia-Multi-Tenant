@@ -26,10 +26,10 @@ export async function GET(
     const supabase = createSupabaseServiceRoleClient();
     const projectId = params.id;
 
-    // 1. Buscar projeto para saber quem é o dono
+    // 1. Buscar projeto para validação
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('owner_id, billing_mode')
+      .select('id, billing_mode')
       .eq('id', projectId)
       .eq('tenant_id', tenantId)
       .single();
@@ -41,14 +41,13 @@ export async function GET(
       );
     }
 
-    const userId = project.owner_id;
-
-    // 2. Buscar pacotes ativos com quota disponível
+    // 2. Buscar TODOS os pacotes ativos do tenant (empresa)
     const { data: pacotes, error: pacotesError } = await supabase
       .from('cliente_pacotes')
       .select(`
         id,
         pacote_id,
+        user_id,
         status,
         projetos_inclusos,
         projetos_usados,
@@ -59,9 +58,13 @@ export async function GET(
           nome,
           quantidade_projetos,
           potencia_maxima
+        ),
+        user:users!user_id(
+          id,
+          email,
+          name
         )
       `)
-      .eq('user_id', userId)
       .eq('tenant_id', tenantId)
       .eq('status', 'ativo');
 
@@ -74,12 +77,13 @@ export async function GET(
       p.projetos_usados < p.projetos_inclusos
     );
 
-    // 3. Buscar assinaturas ativas com quota disponível
+    // 3. Buscar TODAS as assinaturas ativas do tenant (empresa)
     const { data: assinaturas, error: assinaturasError } = await supabase
       .from('cliente_assinaturas')
       .select(`
         id,
         plano_id,
+        user_id,
         status,
         projetos_usados_mes_atual,
         data_inicio,
@@ -89,9 +93,13 @@ export async function GET(
           nome,
           projetos_por_mes,
           potencia_maxima
+        ),
+        user:users!user_id(
+          id,
+          email,
+          name
         )
       `)
-      .eq('user_id', userId)
       .eq('tenant_id', tenantId)
       .eq('status', 'ativa');
 
@@ -106,7 +114,7 @@ export async function GET(
 
     devLog.log('[available-billing] Opções disponíveis:', {
       projectId,
-      userId,
+      tenantId,
       pacotes: pacotesDisponiveis.length,
       assinaturas: assinaturasDisponiveis.length
     });
@@ -117,6 +125,7 @@ export async function GET(
         pacotes: pacotesDisponiveis.map(p => ({
           id: p.id,
           nome: p.pacote.nome,
+          empresa: p.user?.name || 'N/A',
           quota: `${p.projetos_usados}/${p.projetos_inclusos}`,
           vagas_disponiveis: p.projetos_inclusos - p.projetos_usados,
           expira_em: p.data_expiracao
@@ -124,6 +133,7 @@ export async function GET(
         assinaturas: assinaturasDisponiveis.map(a => ({
           id: a.id,
           nome: a.plano.nome,
+          empresa: a.user?.name || 'N/A',
           quota: `${a.projetos_usados_mes_atual}/${a.plano.projetos_por_mes}`,
           vagas_disponiveis: a.plano.projetos_por_mes - a.projetos_usados_mes_atual,
           proximo_reset: a.proximo_reset

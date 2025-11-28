@@ -2899,6 +2899,7 @@ export default function AdminBillingPage() {
                               <div>
                                 <h4 className="font-medium text-gray-900 dark:text-white">
                                   {pacote.nome}
+                                  {pacote.empresa && <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">({pacote.empresa})</span>}
                                 </h4>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                   Quota: {pacote.quota} • {pacote.vagas_disponiveis} vagas disponíveis
@@ -2933,6 +2934,7 @@ export default function AdminBillingPage() {
                               <div>
                                 <h4 className="font-medium text-gray-900 dark:text-white">
                                   {assinatura.nome}
+                                  {assinatura.empresa && <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">({assinatura.empresa})</span>}
                                 </h4>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                   Quota mensal: {assinatura.quota} • {assinatura.vagas_disponiveis} vagas disponíveis
