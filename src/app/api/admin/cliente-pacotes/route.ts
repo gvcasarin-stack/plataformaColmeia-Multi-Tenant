@@ -62,15 +62,39 @@ export async function GET(request: NextRequest) {
     // Para cada pacote, buscar os projetos vinculados
     const pacotesComProjetos = await Promise.all(
       (clientePacotes || []).map(async (pacote) => {
-        const { data: projetos, error: projetosError } = await supabase
+        // 🔍 BUSCA PRIMÁRIA: Por FK (cliente_pacote_id)
+        let { data: projetos, error: projetosError } = await supabase
           .from('projects')
-          .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, pagamento, created_at')
+          .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, pagamento, created_at, billing_snapshot')
           .eq('cliente_pacote_id', pacote.id)
           .eq('tenant_id', tenantId)
           .order('created_at', { ascending: false });
 
         if (projetosError) {
           devLog.error(`[API /admin/cliente-pacotes GET] ERRO ao buscar projetos do pacote ${pacote.id}:`, projetosError);
+        }
+
+        // 🆕 FALLBACK: Se não encontrou projetos pela FK, buscar pelo snapshot
+        // (Para projetos antigos criados antes da correção de FK)
+        if (!projetos || projetos.length === 0) {
+          devLog.warn(`[API /admin/cliente-pacotes GET] FK vazia, tentando FALLBACK por billing_snapshot para pacote ${pacote.id}`);
+
+          const { data: projetosFallback, error: fallbackError } = await supabase
+            .from('projects')
+            .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, pagamento, created_at, billing_snapshot')
+            .eq('owner_id', pacote.user_id)
+            .eq('billing_mode', 'pacote')
+            .eq('tenant_id', tenantId)
+            .order('created_at', { ascending: false });
+
+          if (!fallbackError && projetosFallback) {
+            // Filtrar apenas os que têm o pacote_id correto no snapshot
+            projetos = projetosFallback.filter(p =>
+              p.billing_snapshot?.pacote_id === pacote.id
+            );
+
+            devLog.warn(`[API /admin/cliente-pacotes GET] FALLBACK encontrou ${projetos.length} projetos via snapshot para pacote ${pacote.id}`);
+          }
         }
 
         devLog.log(`[API /admin/cliente-pacotes GET] Pacote ${pacote.id}: ${projetos?.length || 0} projetos encontrados`, {

@@ -1710,6 +1710,10 @@ export async function createProjectClientAction(
     let billingMode = ownerUser.billing_mode || 'avulso'; // 🔧 MUDOU: let ao invés de const para permitir fallback
     let billingSnapshot: any = null;
 
+    // 🆕 FIX: Variáveis para armazenar IDs de pacote/assinatura para vincular ao projeto
+    let pacoteIdParaVincular: string | null = null;
+    let assinaturaIdParaVincular: string | null = null;
+
     logger.info('[createProjectClientAction] Billing mode identificado:', {
       ownerId,
       billingMode,
@@ -1797,6 +1801,9 @@ export async function createProjectClientAction(
             logger.error('[createProjectClientAction] Erro ao decrementar contador do pacote:', updateError);
             return { error: 'Erro ao processar pacote. Tente novamente.' };
           }
+
+          // 🆕 FIX: Armazenar ID do pacote para vincular ao projeto
+          pacoteIdParaVincular = pacote.id;
 
           // Criar snapshot do pacote
           billingSnapshot = {
@@ -1903,6 +1910,9 @@ export async function createProjectClientAction(
             return { error: 'Erro ao processar assinatura. Tente novamente.' };
           }
 
+          // 🆕 FIX: Armazenar ID da assinatura para vincular ao projeto
+          assinaturaIdParaVincular = assinatura.id;
+
           // Criar snapshot da assinatura
           billingSnapshot = {
             mode: 'assinatura',
@@ -1965,6 +1975,10 @@ export async function createProjectClientAction(
       // 💳 BILLING: Campos de faturamento
       billing_mode: billingMode, // 'avulso' | 'pacote' | 'assinatura'
       billing_snapshot: billingSnapshot, // Snapshot congelado do billing no momento da criação
+
+      // 🆕 FIX: FKs para vincular projeto ao pacote/assinatura específico
+      cliente_pacote_id: pacoteIdParaVincular, // FK para cliente_pacotes (se modo pacote)
+      cliente_assinatura_id: assinaturaIdParaVincular, // FK para cliente_assinaturas (se modo assinatura)
 
       timeline_events: initialTimelineEvents, // ✅ Agora inclui a checklist inicial
       documents: [],
