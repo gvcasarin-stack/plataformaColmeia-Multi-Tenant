@@ -279,7 +279,8 @@ export async function updateProjectAction(
         distribuidora: updateData.distribuidora,
         potencia: updateData.potencia,
         data_entrega: updateData.dataEntrega || updateData.data_entrega,
-        valor_projeto: updateData.valorProjeto || updateData.valor_projeto,
+        // ✅ FIX: Usar nullish coalescing (??) para permitir valor 0
+        valor_projeto: updateData.valorProjeto !== undefined ? updateData.valorProjeto : updateData.valor_projeto,
         pagamento: updateData.pagamento,
 
         // ✅ Persistir disjuntor do padrão de entrada (camelCase → snake_case)
@@ -2330,7 +2331,8 @@ export async function getProjectAction(projectId: string): Promise<{
       havera_beneficiarias: data.havera_beneficiarias || false,
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',
-      valorProjeto: data.valor_projeto || null,
+      // ✅ FIX: Permitir valor 0, usar ?? ao invés de ||
+      valorProjeto: data.valor_projeto ?? null,
       pagamento: data.pagamento || undefined,
 
       // 💳 BILLING: Adicionar campos de faturamento que estavam faltando
@@ -2386,7 +2388,7 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
     const supabase = createSupabaseServiceRoleClient();
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role, tenant_id')
+      .select('role, tenant_id, tem_restricao_clientes, clientes_permitidos, permissions')
       .eq('id', userId)
       .single();
 
@@ -2399,7 +2401,14 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
 
     const isAdmin = userData?.role === 'admin' || userData?.role === 'superadmin';
     const isColaborador = userData?.role === 'colaborador';
-    logger.debug('[getProjectsForUserAction] User role determined:', { userId, role: userData?.role, isAdmin, isColaborador });
+    logger.debug('[getProjectsForUserAction] User role determined:', { 
+      userId, 
+      role: userData?.role, 
+      isAdmin, 
+      isColaborador,
+      temRestricao: userData?.tem_restricao_clientes,
+      quantidadeClientesPermitidos: userData?.clientes_permitidos?.length || 0
+    });
 
     let projectList: Project[];
 
@@ -2407,6 +2416,67 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
       // ✅ SEGURANÇA MULTI-TENANT: Para admins E colaboradores, buscar projetos do MESMO TENANT
       logger.debug('[getProjectsForUserAction] User is admin or colaborador, fetching tenant projects');
       projectList = await getProjectsWithFilters({ tenantId: userData.tenant_id, limit: 1000 });
+      
+      // 🆕 FILTRO DE CLIENTES PERMITIDOS: Aplicar apenas para colaboradores
+      if (isColaborador && userData.tem_restricao_clientes) {
+        const clientesPermitidos = userData.clientes_permitidos || [];
+        const projetosOriginais = projectList.length;
+        
+        if (clientesPermitidos.length === 0) {
+          // Sem acesso a nenhum cliente = sem projetos
+          logger.info('[getProjectsForUserAction] Colaborador COM restrição mas SEM clientes permitidos (bloqueio total)', {
+            userId,
+            projetosOriginais
+          });
+          projectList = [];
+        } else {
+          // Filtrar projetos por owner_id
+          projectList = projectList.filter(project => 
+            clientesPermitidos.includes(project.owner_id)
+          );
+          
+          logger.info('[getProjectsForUserAction] Filtro de clientes permitidos aplicado:', {
+            userId,
+            projetosOriginais,
+            projetosFiltrados: projectList.length,
+            clientesPermitidos: clientesPermitidos.length
+          });
+        }
+      } else if (isColaborador && !userData.tem_restricao_clientes) {
+        logger.info('[getProjectsForUserAction] Colaborador SEM restrição (acesso total a todos os projetos)', {
+          userId,
+          totalProjetos: projectList.length
+        });
+      }
+
+      // 🆕 FILTRO DE VISUALIZAÇÃO DE PROJETOS: Verificar permissão can_view_all_projects
+      // Aplicar filtro adicional para colaboradores se não tiverem permissão de ver todos os projetos
+      if (isColaborador) {
+        const permissions = userData.permissions || {};
+        const canViewAllProjects = permissions.can_view_all_projects !== false;
+
+        if (!canViewAllProjects) {
+          const projetosAntesDoFiltro = projectList.length;
+
+          // Filtrar apenas projetos onde o colaborador é responsável
+          projectList = projectList.filter(project =>
+            project.admin_responsible_id === userId || project.adminResponsibleId === userId
+          );
+
+          logger.info('[getProjectsForUserAction] Filtro "Visualizar todos os projetos" aplicado:', {
+            userId,
+            canViewAllProjects: false,
+            projetosAntesDoFiltro,
+            projetosDepoisDoFiltro: projectList.length
+          });
+        } else {
+          logger.info('[getProjectsForUserAction] Colaborador COM permissão para visualizar todos os projetos', {
+            userId,
+            canViewAllProjects: true,
+            totalProjetos: projectList.length
+          });
+        }
+      }
     } else {
       // ✅ SEGURANÇA MULTI-TENANT: Para clientes, buscar projetos do usuário no MESMO TENANT
       logger.debug('[getProjectsForUserAction] User is client, fetching user projects only');
