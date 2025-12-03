@@ -20,12 +20,28 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseServiceRoleClient();
     devLog.log('[API /admin/cliente-assinaturas GET] Cliente criado com sucesso');
 
-    // Buscar assinaturas ativas do tenant
-    // ✅ CORREÇÃO: Query igual à API de diagnóstico que funciona
+    // Buscar assinaturas ativas do tenant com dados de usuário e plano
     devLog.log('[API /admin/cliente-assinaturas GET] Buscando assinaturas para tenant:', tenantId);
     const { data: clienteAssinaturas, error: assinaturasError } = await supabase
       .from('cliente_assinaturas')
-      .select('*')
+      .select(`
+        *,
+        users:user_id (
+          id,
+          name,
+          email,
+          company_name,
+          tenant_id
+        ),
+        planos_assinatura:plano_id (
+          id,
+          nome,
+          quantidade_mensal,
+          valor_mensal,
+          dia_renovacao,
+          potencia_maxima_kwp
+        )
+      `)
       .eq('tenant_id', tenantId)
       .eq('status', 'ativa');
 
