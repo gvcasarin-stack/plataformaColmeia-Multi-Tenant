@@ -16,51 +16,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: [] });
     }
 
+    devLog.log('[API /admin/cliente-assinaturas GET] Criando cliente Supabase...');
     const supabase = createSupabaseServiceRoleClient();
+    devLog.log('[API /admin/cliente-assinaturas GET] Cliente criado com sucesso');
 
-    // Buscar todas as assinaturas de clientes do tenant (ativas e histórico)
-    const { data: clienteAssinaturas, error } = await supabase
+    // Buscar assinaturas ativas do tenant
+    // ✅ CORREÇÃO: Query igual à API de diagnóstico que funciona
+    devLog.log('[API /admin/cliente-assinaturas GET] Buscando assinaturas para tenant:', tenantId);
+    const { data: clienteAssinaturas, error: assinaturasError } = await supabase
       .from('cliente_assinaturas')
-      .select(`
-        id,
-        user_id,
-        plano_id,
-        tenant_id,
-        data_inicio,
-        dia_renovacao,
-        projetos_mensais,
-        projetos_usados_mes_atual,
-        ultimo_reset,
-        proximo_reset,
-        status,
-        payment_status,
-        data_pagamento_parcela1,
-        data_pagamento_integral,
-        data_cancelamento,
-        created_at,
-        users:user_id (
-          id,
-          name,
-          email,
-          company_name,
-          tenant_id
-        ),
-        planos_assinatura:plano_id (
-          id,
-          nome,
-          quantidade_mensal,
-          valor_mensal,
-          dia_renovacao,
-          potencia_maxima_kwp
-        )
-      `)
+      .select('*')
       .eq('tenant_id', tenantId)
-      .order('data_inicio', { ascending: false });
+      .eq('status', 'ativa');
 
-    if (error) {
-      devLog.error('[API /admin/cliente-assinaturas GET] Erro ao buscar assinaturas:', error);
+    if (assinaturasError) {
+      devLog.error('[API /admin/cliente-assinaturas GET] Erro ao buscar assinaturas:', assinaturasError);
       return NextResponse.json({ success: true, data: [] });
     }
+
+    devLog.log('[API /admin/cliente-assinaturas GET] Assinaturas encontradas:', clienteAssinaturas?.length || 0);
 
     // Para cada assinatura, buscar os projetos vinculados (do mês corrente e histórico)
     const assinaturasComProjetos = await Promise.all(
@@ -68,23 +42,15 @@ export async function GET(request: NextRequest) {
         // Buscar TODOS os projetos da assinatura
         const { data: todosProjetos } = await supabase
           .from('projects')
-          .select('id, number, empresaIntegradora, nomeClienteFinal, potenciakWp, status, payment_status, created_at')
+          .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, payment_status, created_at')
           .eq('cliente_assinatura_id', assinatura.id)
           .eq('tenant_id', tenantId)
           .order('created_at', { ascending: false });
 
-        // Separar projetos do mês atual vs histórico
-        const agora = new Date();
-        const ultimoReset = assinatura.ultimo_reset ? new Date(assinatura.ultimo_reset) : null;
-        const proximoReset = assinatura.proximo_reset ? new Date(assinatura.proximo_reset) : null;
-
-        const projetosDoMesAtual = (todosProjetos || []).filter((projeto) => {
-          const dataCriacao = new Date(projeto.created_at);
-          if (ultimoReset && proximoReset) {
-            return dataCriacao >= ultimoReset && dataCriacao < proximoReset;
-          }
-          return false;
-        });
+        // ✅ CORREÇÃO FINAL: Para assinaturas, TODOS os projetos vinculados são do "mês atual"
+        // O contador projetos_usados_mes_atual já é controlado corretamente pelo banco
+        // Não filtrar por data de criação, pois projetos podem ter sido criados antes da assinatura
+        const projetosDoMesAtual = todosProjetos || [];
 
         return {
           ...assinatura,
