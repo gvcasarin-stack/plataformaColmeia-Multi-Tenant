@@ -56,12 +56,19 @@ export async function GET(request: NextRequest) {
     const assinaturasComProjetos = await Promise.all(
       (clienteAssinaturas || []).map(async (assinatura) => {
         // Buscar TODOS os projetos da assinatura
-        const { data: todosProjetos } = await supabase
+        devLog.log(`[API /admin/cliente-assinaturas GET] Buscando projetos para assinatura ${assinatura.id}`);
+        const { data: todosProjetos, error: projetosError } = await supabase
           .from('projects')
           .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, payment_status, created_at')
           .eq('cliente_assinatura_id', assinatura.id)
           .eq('tenant_id', tenantId)
           .order('created_at', { ascending: false });
+
+        if (projetosError) {
+          devLog.error(`[API /admin/cliente-assinaturas GET] Erro ao buscar projetos da assinatura ${assinatura.id}:`, projetosError);
+        } else {
+          devLog.log(`[API /admin/cliente-assinaturas GET] Projetos encontrados para assinatura ${assinatura.id}:`, todosProjetos?.length || 0);
+        }
 
         // ✅ CORREÇÃO FINAL: Para assinaturas, TODOS os projetos vinculados são do "mês atual"
         // O contador projetos_usados_mes_atual já é controlado corretamente pelo banco
