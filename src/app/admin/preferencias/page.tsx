@@ -18,7 +18,7 @@ import {
   type ConfiguracaoSistema
 } from '@/lib/services/configService.supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail } from 'lucide-react';
 import { devLog } from "@/lib/utils/productionLogger";
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -65,6 +65,7 @@ const colorMap: Record<string, { border: string; bg: string; icon: string }> = {
   'cyan-500': { border: '#06b6d4', bg: '#ecfeff', icon: '#06b6d4' },
   'indigo-500': { border: '#6366f1', bg: '#eef2ff', icon: '#6366f1' },
   'green-500': { border: '#22c55e', bg: '#f0fdf4', icon: '#22c55e' },
+  'rose-500': { border: '#f43f5e', bg: '#fff1f2', icon: '#f43f5e' },
 };
 
 // Componente de Seção Expansível (com Border Colorido + Ícone)
@@ -554,7 +555,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
     { id: 'geral', label: 'Geral', icon: <Settings className="h-4 w-4" /> },
     { id: 'projetos', label: 'Projetos', icon: <FileText className="h-4 w-4" /> },
     { id: 'kanban', label: 'Kanban', icon: <Columns3 className="h-4 w-4" /> },
-    { id: 'financeiro', label: 'Financeiro', icon: <DollarSign className="h-4 w-4" /> }
+    { id: 'financeiro', label: 'Financeiro', icon: <DollarSign className="h-4 w-4" /> },
+    { id: 'emails', label: 'E-mails', icon: <Mail className="h-4 w-4" /> }
   ];
 
   return (
@@ -1131,6 +1133,22 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
               <div className="text-center py-12 text-gray-500">
                 <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Configurações financeiras em desenvolvimento...</p>
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* ABA E-MAILS */}
+          {activeTab === 'emails' && (
+            <CollapsibleSection
+              title="Configurações de E-mails"
+              description="Configure os e-mails que são disparados para o administrador."
+              defaultOpen={true}
+              borderColor="rose-500"
+              icon={<Mail className="h-5 w-5" />}
+            >
+              <div className="text-center py-12 text-gray-500">
+                <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Configurações de e-mails serão implementadas em breve...</p>
               </div>
             </CollapsibleSection>
           )}
