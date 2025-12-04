@@ -18,7 +18,7 @@ import {
   type ConfiguracaoSistema
 } from '@/lib/services/configService.supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar } from 'lucide-react';
 import { devLog } from "@/lib/utils/productionLogger";
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,25 +26,25 @@ import { getProjectStatuses, updateStatusSLA, type ProjectStatusInfo } from '@/l
 import { PackagesTab } from '@/components/admin/PackagesTab';
 import { SubscriptionPlansTab } from '@/components/admin/SubscriptionPlansTab';
 
-// Componente de Abas
+// Componente de Abas (Estilo Pill/Botão)
 function Tabs({ tabs, activeTab, onTabChange }: { tabs: { id: string; label: string; icon: React.ReactNode }[]; activeTab: string; onTabChange: (tabId: string) => void }) {
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700">
-      <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+    <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-1">
+      <nav className="flex gap-1" aria-label="Tabs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              "group inline-flex items-center border-b-2 py-4 px-1 text-sm font-medium transition-all duration-200",
+              "group inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200",
               activeTab === tab.id
-                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                : "bg-transparent text-gray-600 hover:bg-white dark:hover:bg-slate-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
             )}
           >
             <span className={cn(
-              "mr-2",
-              activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 group-hover:text-gray-500 dark:text-gray-500"
+              "transition-colors duration-200",
+              activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"
             )}>
               {tab.icon}
             </span>
@@ -56,31 +56,73 @@ function Tabs({ tabs, activeTab, onTabChange }: { tabs: { id: string; label: str
   );
 }
 
-// Componente de Seção Expansível
+// Mapa de cores para os cards
+const colorMap: Record<string, { border: string; bg: string; icon: string }> = {
+  'blue-500': { border: '#3b82f6', bg: '#eff6ff', icon: '#3b82f6' },
+  'emerald-500': { border: '#10b981', bg: '#ecfdf5', icon: '#10b981' },
+  'violet-500': { border: '#8b5cf6', bg: '#f5f3ff', icon: '#8b5cf6' },
+  'amber-500': { border: '#f59e0b', bg: '#fffbeb', icon: '#f59e0b' },
+  'cyan-500': { border: '#06b6d4', bg: '#ecfeff', icon: '#06b6d4' },
+  'indigo-500': { border: '#6366f1', bg: '#eef2ff', icon: '#6366f1' },
+  'green-500': { border: '#22c55e', bg: '#f0fdf4', icon: '#22c55e' },
+};
+
+// Componente de Seção Expansível (com Border Colorido + Ícone)
 function CollapsibleSection({
   title,
   description,
   children,
-  defaultOpen = false
+  defaultOpen = false,
+  borderColor = "blue-500",
+  icon
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  borderColor?: string;
+  icon?: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const colors = colorMap[borderColor] || colorMap['blue-500'];
 
   return (
-    <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-md hover:shadow-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200">
+    <div
+      className={cn(
+        "border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gradient-to-br from-white to-slate-50 dark:from-gray-800 dark:to-gray-850 shadow-md transition-all duration-200",
+        isOpen && "shadow-lg",
+        !isOpen && "hover:shadow-lg"
+      )}
+      style={{
+        borderLeftWidth: isOpen ? '6px' : '4px',
+        borderLeftColor: colors.border,
+      }}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-750 hover:from-indigo-50 hover:to-white dark:hover:from-gray-750 dark:hover:to-gray-700 transition-all duration-200"
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-200"
       >
-        <div className="flex-1 text-left">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">{title}</h3>
-          {description && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+        <div className="flex items-center gap-4 flex-1 text-left">
+          {icon && (
+            <div
+              className={cn(
+                "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200",
+                isOpen ? "shadow-md" : "shadow-sm"
+              )}
+              style={{
+                backgroundColor: colors.bg,
+                color: colors.icon
+              }}
+            >
+              {icon}
+            </div>
           )}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+            {description && (
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+            )}
+          </div>
         </div>
         <div className={cn(
           "ml-4 text-gray-400 transition-transform duration-200",
@@ -94,7 +136,7 @@ function CollapsibleSection({
 
       {isOpen && (
         <div className="border-t border-gray-200 dark:border-gray-700">
-          <div className="p-6">
+          <div className="p-6 bg-white dark:bg-gray-800">
             {children}
           </div>
         </div>
@@ -548,6 +590,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
                 title="Mensagem de Checklist"
                 description="Define a mensagem padrão que será exibida nos checklists dos projetos."
                 defaultOpen={false}
+                borderColor="blue-500"
+                icon={<FileText className="h-5 w-5" />}
               >
                 <div className="space-y-4">
                   {editMode ? (
@@ -600,6 +644,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
                 title="Dados Bancários"
                 description="Configure os dados bancários para recebimentos e pagamentos."
                 defaultOpen={false}
+                borderColor="emerald-500"
+                icon={<DollarSign className="h-5 w-5" />}
               >
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -709,6 +755,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
                 title="Tabela de Preços dos Projetos"
                 description="Configure a tabela de preços base para diferentes faixas de potência dos projetos."
                 defaultOpen={false}
+                borderColor="violet-500"
+                icon={<BarChart3 className="h-5 w-5" />}
               >
                   <div className="space-y-4">
                     <div className="rounded-lg border overflow-hidden">
@@ -860,6 +908,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
                 title="Pacotes de Projetos"
                 description="Configure pacotes de projetos que podem ser vendidos aos clientes."
                 defaultOpen={false}
+                borderColor="amber-500"
+                icon={<Package className="h-5 w-5" />}
               >
                 <PackagesTab />
               </CollapsibleSection>
@@ -869,6 +919,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
                 title="Planos de Assinatura Mensal"
                 description="Configure planos de assinatura mensal para seus clientes."
                 defaultOpen={false}
+                borderColor="cyan-500"
+                icon={<Calendar className="h-5 w-5" />}
               >
                 <SubscriptionPlansTab />
               </CollapsibleSection>
@@ -881,6 +933,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
               title="Colunas do Kanban"
               description="Configure as colunas do quadro Kanban e seus prazos de SLA."
               defaultOpen={true}
+              borderColor="indigo-500"
+              icon={<Columns3 className="h-5 w-5" />}
             >
               {loadingKanban ? (
                 <div className="flex items-center justify-center py-12">
@@ -1071,6 +1125,8 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
               title="Configurações Financeiras"
               description="Configure as preferências financeiras do sistema."
               defaultOpen={true}
+              borderColor="green-500"
+              icon={<DollarSign className="h-5 w-5" />}
             >
               <div className="text-center py-12 text-gray-500">
                 <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
