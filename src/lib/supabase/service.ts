@@ -20,7 +20,7 @@ export function createSupabaseServiceRoleClient() {
       autoRefreshToken: false,
       persistSession: false,
       // It's good practice to detect a session if one is provided, but usually not needed for service roles
-      detectSessionInUrl: false 
+      detectSessionInUrl: false
     },
   });
 } 

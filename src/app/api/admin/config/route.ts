@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { devLog } from "@/lib/utils/productionLogger";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { handleTempTenant } from '@/lib/utils/temp-tenant-handler';
+import { randomUUID } from 'crypto';
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,16 +27,6 @@ export async function GET(request: NextRequest) {
       return tempTenantResponse;
     }
 
-    // ✅ PRODUÇÃO - Verificar se estamos em contexto de build
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      devLog.warn('[API] [Config] Service Role Key não disponível (provavelmente em build)');
-      return NextResponse.json({
-        success: true,
-        data: null,
-        note: 'Service Role Key não configurada'
-      });
-    }
-
     const supabase = createSupabaseServiceRoleClient();
     
     // ✅ SEGURANÇA: Buscar configurações apenas do tenant atual
@@ -44,9 +35,12 @@ export async function GET(request: NextRequest) {
       .select('key, value, description')
       .in('key', [
         'checklist_message',
-        'tabela_precos', 
+        'tabela_precos',
         'faixas_potencia',
-        'dados_bancarios'
+        'dados_bancarios',
+        'responsavel_tecnico',
+        'texto_procuracao',
+        'precificacao_manual'
       ])
       .eq('tenant_id', tenantId);  // ✅ CRÍTICO: Filtrar por tenant
 
@@ -92,15 +86,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ PRODUÇÃO - Verificar se estamos em contexto de build
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      devLog.warn('[API] [Config] Service Role Key não disponível (provavelmente em build)');
-      return NextResponse.json({
-        success: false,
-        error: 'Service Role Key não configurada'
-      });
-    }
-
     const supabase = createSupabaseServiceRoleClient();
     const body = await request.json();
     
@@ -121,18 +106,18 @@ export async function POST(request: NextRequest) {
       .select('id')
       .eq('key', key)
       .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Verificar tenant
-      .single();
+      .maybeSingle();  // ✅ Usa maybeSingle para não lançar erro se não existir
+
+    devLog.log('[API] [Config] Tipo do valor recebido:', typeof value, 'Valor:', value);
 
     if (existing) {
       // ✅ SEGURANÇA: Atualizar configuração apenas do tenant atual
-      // ✅ CORREÇÃO: Para strings simples (como checklist_message), salvar diretamente
-      // Para objetos/arrays, o Supabase já converte automaticamente para JSONB
-      const valueToSave = typeof value === 'string' ? value : value;
+      devLog.log('[API] [Config] Atualizando configuração existente:', key);
 
       const { error } = await supabase
         .from('configs')
         .update({
-          value: valueToSave,
+          value: value,  // Supabase aceita qualquer tipo e converte para JSONB automaticamente
           description,
           updated_at: new Date().toISOString()
         })
@@ -141,40 +126,73 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         devLog.error('[API] [Config] Erro ao atualizar configuração:', error);
+        devLog.error('[API] [Config] Detalhes do erro:', {
+          key,
+          value,
+          valueType: typeof value,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint
+        });
         return NextResponse.json(
-          { error: 'Erro ao atualizar configuração', details: error.message },
+          {
+            success: false,
+            error: 'Erro ao atualizar configuração',
+            details: error.message,
+            hint: error.hint || '',
+            code: error.code || ''
+          },
           { status: 500 }
         );
       }
 
-      devLog.log('[API] [Config] Configuração atualizada:', key);
+      devLog.log('[API] [Config] Configuração atualizada com sucesso:', key);
     } else {
       // ✅ SEGURANÇA: Criar nova configuração com tenant_id
-      // ✅ CORREÇÃO: Para strings simples (como checklist_message), salvar diretamente
-      const valueToSave = typeof value === 'string' ? value : value;
+      devLog.log('[API] [Config] Criando nova configuração:', key);
+
+      const configId = randomUUID();
+      devLog.log('[API] [Config] ID gerado para config:', configId);
 
       const { error } = await supabase
         .from('configs')
-        .insert([{
+        .insert({
+          id: configId,  // ✅ CRÍTICO: Fornecer ID explícito
           key,
-          value: valueToSave,
+          value: value,  // Supabase aceita qualquer tipo e converte para JSONB automaticamente
           description: description || `Configuração ${key}`,
           category: key.includes('preco') || key.includes('potencia') ? 'pricing' : 'business',
           is_active: true,
           tenant_id: tenantId,  // ✅ CRÍTICO: Associar ao tenant
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        }]);
+        });
 
       if (error) {
         devLog.error('[API] [Config] Erro ao criar configuração:', error);
+        devLog.error('[API] [Config] Detalhes do erro:', {
+          key,
+          value,
+          valueType: typeof value,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint
+        });
         return NextResponse.json(
-          { error: 'Erro ao criar configuração', details: error.message },
+          {
+            success: false,
+            error: 'Erro ao criar configuração',
+            details: error.message,
+            hint: error.hint || '',
+            code: error.code || ''
+          },
           { status: 500 }
         );
       }
 
-      devLog.log('[API] [Config] Nova configuração criada:', key);
+      devLog.log('[API] [Config] Nova configuração criada com sucesso:', key);
     }
 
     return NextResponse.json({

@@ -26,6 +26,18 @@ export interface DadosBancarios {
   chavePix: string;
 }
 
+// Interface para dados do responsável técnico
+export interface ResponsavelTecnico {
+  nomeCompleto: string;
+  cpf: string;
+  rg: string;
+  orgaoExpeditor: string;
+  profissao: string;
+  numeroRegistro: string;
+  instituicao: string;
+  estadoRegistro: string;
+}
+
 // Interface para configuração completa
 export interface ConfiguracaoSistema {
   id?: string;
@@ -33,6 +45,9 @@ export interface ConfiguracaoSistema {
   tabelaPrecos?: { tipo: string; valorBase: string }[];
   faixasPotencia?: FaixaPotenciaPreco[];
   dadosBancarios?: DadosBancarios;
+  responsavelTecnico?: ResponsavelTecnico;
+  textoProcuracao?: string;
+  precificacaoManual?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -63,6 +78,9 @@ export async function getConfiguracaoGeral(): Promise<ConfiguracaoSistema | null
     if (apiData.tabela_precos !== undefined) config.tabelaPrecos = apiData.tabela_precos;
     if (apiData.faixas_potencia !== undefined) config.faixasPotencia = apiData.faixas_potencia;
     if (apiData.dados_bancarios !== undefined) config.dadosBancarios = apiData.dados_bancarios;
+    if (apiData.responsavel_tecnico !== undefined) config.responsavelTecnico = apiData.responsavel_tecnico;
+    if (apiData.texto_procuracao !== undefined) config.textoProcuracao = apiData.texto_procuracao;
+    if (apiData.precificacao_manual !== undefined) config.precificacaoManual = apiData.precificacao_manual;
 
     logger.info('[ConfigService] Configurações obtidas via API com sucesso');
     return config;
@@ -96,6 +114,14 @@ export async function salvarConfiguracaoGeral(config: ConfiguracaoSistema): Prom
 
     if (config.dadosBancarios) {
       promises.push(atualizarDadosBancarios(config.dadosBancarios));
+    }
+
+    if (config.responsavelTecnico) {
+      promises.push(atualizarResponsavelTecnico(config.responsavelTecnico));
+    }
+
+    if (config.textoProcuracao) {
+      promises.push(atualizarTextoProcuracao(config.textoProcuracao));
     }
 
     if (config.tabelaPrecos) {
@@ -241,6 +267,144 @@ export async function atualizarDadosBancarios(dados: DadosBancarios): Promise<bo
 }
 
 /**
+ * Atualiza dados do responsável técnico
+ * ✅ Agora usa API route segura
+ */
+export async function atualizarResponsavelTecnico(dados: ResponsavelTecnico): Promise<boolean> {
+  try {
+    logger.info('[ConfigService] Atualizando dados do responsável técnico via API');
+
+    const response = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: 'responsavel_tecnico',
+        value: dados,
+        description: 'Dados do responsável técnico para geração de procurações'
+      })
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      logger.error('[ConfigService] Erro na API ao atualizar responsável técnico:', result.error);
+      return false;
+    }
+
+    logger.info('[ConfigService] Dados do responsável técnico atualizados com sucesso');
+    return true;
+
+  } catch (error) {
+    logger.error('[ConfigService] Exceção ao atualizar responsável técnico:', error);
+    return false;
+  }
+}
+
+/**
+ * Atualiza texto da procuração
+ * ✅ Agora usa API route segura
+ */
+export async function atualizarTextoProcuracao(texto: string): Promise<boolean> {
+  try {
+    logger.info('[ConfigService] Atualizando texto da procuração via API');
+
+    const response = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: 'texto_procuracao',
+        value: texto,
+        description: 'Texto padrão da procuração com variáveis para substituição'
+      })
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      logger.error('[ConfigService] Erro na API ao atualizar texto da procuração:', result.error);
+      return false;
+    }
+
+    logger.info('[ConfigService] Texto da procuração atualizado com sucesso');
+    return true;
+
+  } catch (error) {
+    logger.error('[ConfigService] Exceção ao atualizar texto da procuração:', error);
+    return false;
+  }
+}
+
+/**
+ * Atualiza modo de precificação manual
+ * ✅ Usa API route segura
+ */
+export async function atualizarPrecificacaoManual(ativado: boolean): Promise<boolean> {
+  try {
+    logger.info('[ConfigService] Atualizando modo de precificação manual via API');
+
+    // 🔍 DEBUG: Log detalhado da requisição
+    logger.info('[ConfigService] Fazendo fetch para /api/admin/config');
+    logger.info('[ConfigService] Body:', {
+      key: 'precificacao_manual',
+      value: ativado
+    });
+
+    const response = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: 'precificacao_manual',
+        value: ativado,
+        description: 'Controle manual de preços - quando ativado, novos projetos avulsos são criados com R$ 0,00'
+      })
+    });
+
+    // 🔍 DEBUG: Log da resposta HTTP
+    logger.info('[ConfigService] Response status:', response.status);
+    logger.info('[ConfigService] Response ok:', response.ok);
+    logger.info('[ConfigService] Response headers:', Object.fromEntries(response.headers.entries()));
+
+    // Tentar ler o body mesmo se houver erro
+    let result;
+    try {
+      const text = await response.text();
+      logger.info('[ConfigService] Response text:', text);
+      result = JSON.parse(text);
+    } catch (parseError) {
+      logger.error('[ConfigService] Erro ao fazer parse do JSON da resposta:', parseError);
+      return false;
+    }
+
+    if (!result.success) {
+      logger.error('[ConfigService] Erro na API ao atualizar precificação manual:', result.error);
+      logger.error('[ConfigService] Detalhes completos do erro:', result);
+      return false;
+    }
+
+    logger.info('[ConfigService] Modo de precificação manual atualizado com sucesso:', ativado);
+    return true;
+
+  } catch (error) {
+    // 🔍 DEBUG: Log detalhado do erro
+    logger.error('[ConfigService] Exceção ao atualizar precificação manual:', error);
+    logger.error('[ConfigService] Tipo do erro:', typeof error);
+    logger.error('[ConfigService] Nome do erro:', (error as any)?.name);
+    logger.error('[ConfigService] Mensagem do erro:', (error as any)?.message);
+    logger.error('[ConfigService] Stack:', (error as any)?.stack);
+    if (error instanceof TypeError) {
+      logger.error('[ConfigService] TypeError detectado - provavelmente erro de rede ou CORS');
+    }
+    return false;
+  }
+}
+
+/**
  * Cria configuração padrão do sistema
  */
 export async function criarConfiguracaoPadrao(): Promise<ConfiguracaoSistema> {
@@ -274,6 +438,44 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
     { potenciaMin: 300, potenciaMax: 999999, valorBase: 4000 },
   ];
 
+  const defaultProcuracao = `<div style="text-align: center; margin-bottom: 40px;">
+<h2 style="font-weight: bold; font-size: 20px; letter-spacing: 2px;">PROCURAÇÃO</h2>
+</div>
+
+<div style="text-align: justify; line-height: 1.8; margin-bottom: 20px;">
+<p style="margin-bottom: 15px;">
+<strong>OUTORGANTE:</strong> Por este instrumento de procuração, {{cliente_nome}}, {{cliente_tipo}}, portador do RG nº {{cliente_rg}} e inscrito no CPF sob o nº {{cliente_cpf}}.
+</p>
+
+<p style="margin-bottom: 15px;">
+<strong>OUTORGADO:</strong> Nomeia e constitui o seu bastante procurador {{responsavel_nome}}, portador do RG nº {{responsavel_rg}} {{responsavel_orgao_expeditor}} e inscrito no CPF sob o nº {{responsavel_cpf}}, {{responsavel_profissao}} inscrito no {{responsavel_instituicao}}-{{responsavel_estado}} sob o nº {{responsavel_registro}}.
+</p>
+
+<p style="margin-bottom: 15px;">
+<strong>PODERES:</strong> Para o fim especial de representar o OUTORGANTE perante à {{distribuidora}} no tocante as solicitações de parecer de acesso para micro geração ou mini geração, pedidos de vistoria de micro geração ou mini geração, pedidos de alteração de carga alteração de demanda, assim tendo ainda o OUTORGADO, na qualidade de procurador do OUTORGANTE, os poderes suficientes e necessários de representação para dar entrada em processos administrativos, protocolar requerimentos, apresentar documentação em cumprimento às exigências técnicas e administrativas e, ainda, assinatura dos seguintes documentos: formulário de solicitação de acesso, formulário de registro, formulário de compensação, ART/TRT, identificação do consumidor, termo de responsabilidade, cadastro de geração distribuída, solicitação de vistoria, formulário de troca do padrão/aumento de carga e formulário de ligação nova.
+</p>
+
+<p style="margin-bottom: 20px;">
+Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatura desta procuração.
+</p>
+
+<p style="margin-bottom: 30px;">
+{{cidade}}-{{estado}}, {{data}}.
+</p>
+</div>
+
+<div style="text-align: center; margin-top: 60px;">
+<div style="display: inline-block; border-top: 2px solid #000; width: 350px; padding-top: 8px; margin-bottom: 15px;">
+<strong>Assinatura</strong>
+</div>
+<div style="margin-top: 12px; font-size: 14px;">
+<strong>Nome completo:</strong> {{cliente_nome}}
+</div>
+<div style="margin-top: 8px; font-size: 14px;">
+<strong>CPF:</strong> {{cliente_cpf}}
+</div>
+</div>`;
+
   const defaultConfig: ConfiguracaoSistema = {
     id: 'geral',
     mensagemChecklist: defaultChecklist,
@@ -290,7 +492,18 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
       favorecido: '',
       documento: '',
       chavePix: ''
-    }
+    },
+    responsavelTecnico: {
+      nomeCompleto: '',
+      cpf: '',
+      rg: '',
+      orgaoExpeditor: '',
+      profissao: '',
+      numeroRegistro: '',
+      instituicao: 'CREA',
+      estadoRegistro: ''
+    },
+    textoProcuracao: defaultProcuracao
   };
 
   // ✅ PRODUÇÃO - Não tentar salvar no frontend
