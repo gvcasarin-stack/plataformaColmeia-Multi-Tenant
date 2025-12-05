@@ -163,7 +163,6 @@ export async function POST(request: NextRequest) {
           value: value,  // Supabase aceita qualquer tipo e converte para JSONB automaticamente
           description: description || `Configuração ${key}`,
           category: key.includes('preco') || key.includes('potencia') ? 'pricing' : 'business',
-          is_active: true,
           tenant_id: tenantId,  // ✅ CRÍTICO: Associar ao tenant
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()

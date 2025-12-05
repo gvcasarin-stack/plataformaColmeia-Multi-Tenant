@@ -157,7 +157,6 @@ export async function GET(request: NextRequest) {
           value: testValue,
           description: 'Configuração de teste para diagnóstico',
           category: 'test',
-          is_active: true,
           tenant_id: tenantId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
