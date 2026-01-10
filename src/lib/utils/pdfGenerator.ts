@@ -1,8 +1,27 @@
 import { devLog } from "@/lib/utils/productionLogger";
 
 /**
+ * ⚠️ IMPORTANTE - NÃO SUBSTITUIR ESTE ARQUIVO
+ *
+ * @file pdfGenerator.ts
+ * @description Utilitário EXCLUSIVO para gerar PDFs de FATURAS (INVOICES)
+ *
+ * HISTÓRICO:
+ * - Este arquivo contém as funções de geração de faturas para clientes
+ * - Para DIMENSIONAMENTO, use pdfGeneratorDimensionamento.ts
+ * - pdfGenerator.ts = FATURAS (este arquivo)
+ * - pdfGeneratorDimensionamento.ts = DIMENSIONAMENTO
+ *
+ * ⚠️ ATENÇÃO: Não mescle ou substitua este arquivo com código de dimensionamento
+ * Cada arquivo tem uma responsabilidade única e específica.
+ *
+ * FUNÇÕES EXPORTADAS:
+ * - generateInvoiceHTML() - Gera HTML de fatura individual
+ * - generateConsolidatedInvoiceHTML() - Gera HTML de fatura consolidada
+ * - downloadHTMLAsPDF() - Converte HTML para PDF e faz download
+ *
  * PDF Generator Utility
- * 
+ *
  * This utility provides functions to generate PDF-like documents using HTML
  * that can be downloaded and printed as PDFs by the user.
  */
