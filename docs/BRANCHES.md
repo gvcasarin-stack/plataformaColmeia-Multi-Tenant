@@ -72,6 +72,14 @@ origin	https://github.com/gvcasarin-stack/plataformaColmeiav0.4.git (push)
 
 ## 📝 ÚLTIMAS ATUALIZAÇÕES
 
+- **2026-01-10**: Correção crítica - Restauração de funções de geração de faturas
+- **Commit**: `310cf61` - fix: restaurar funções de geração de faturas e separar dimensionamento
+- **Mudanças**:
+  - Restaurado pdfGenerator.ts do git (commit a17030b)
+  - Criado pdfGeneratorDimensionamento.ts separado
+  - Funções de fatura restauradas: generateInvoiceHTML, generateConsolidatedInvoiceHTML, downloadHTMLAsPDF
+  - Adicionados comentários preventivos para evitar substituições futuras
+
 - **2025-08-31**: Funcionalidade "Assumir Responsabilidade" reativada com Supabase
 - **Commit**: `0f2d010` - feat: reativar funcionalidade 'Assumir Responsabilidade' com Supabase
 
