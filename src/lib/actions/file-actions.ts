@@ -126,7 +126,7 @@ export async function uploadProjectFileAction(
     devLog.log('🚨 [CRITICAL DEBUG] Buscando projeto na base:', projectId);
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, created_by, nome_cliente_final, number')
+      .select('id, created_by, owner_id, nome_cliente_final, number')
       .eq('id', projectId)
       .eq('tenant_id', userInfo.tenant_id)  // ✅ CRÍTICO: Verificar tenant
       .single();
@@ -145,8 +145,10 @@ export async function uploadProjectFileAction(
     }
 
     // ✅ CORRIGIDO: Verificar permissão com role correto
-    const isOwner = project.created_by === user.id;
-    const isAdmin = finalProfile.role === 'admin' || finalProfile.role === 'superadmin';
+    // isOwner: considera tanto created_by quanto owner_id (campo mais recente que separa criador de proprietário)
+    const isOwner = project.created_by === user.id || project.owner_id === user.id;
+    // isAdmin: colaborador tem acesso administrativo a projetos, consistente com o restante da aplicação
+    const isAdmin = finalProfile.role === 'admin' || finalProfile.role === 'superadmin' || finalProfile.role === 'colaborador';
     
     devLog.log('🚨 [CRITICAL DEBUG] Verificação de permissões:', {
       userId: user.id,
