@@ -96,6 +96,13 @@ interface TeamMember {
   email?: string;
 }
 
+interface OpportunityStatus {
+  id: string;
+  name: string;
+  color: string;
+  position: number;
+}
+
 
 interface LeadFormData {
   name: string;
@@ -133,31 +140,7 @@ const formatDate = (dateString: string | undefined): string => {
   }
 };
 
-const getStatusBadgeColor = (status: string): string => {
-  const statusColors: Record<string, string> = {
-    'novo': 'bg-blue-100 text-blue-700 border-blue-300',
-    'contatado': 'bg-purple-100 text-purple-700 border-purple-300',
-    'qualificado': 'bg-green-100 text-green-700 border-green-300',
-    'proposta_enviada': 'bg-yellow-100 text-yellow-700 border-yellow-300',
-    'em_negociacao': 'bg-orange-100 text-orange-700 border-orange-300',
-    'ganho': 'bg-emerald-100 text-emerald-700 border-emerald-300',
-    'perdido': 'bg-red-100 text-red-700 border-red-300'
-  };
-  return statusColors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
-};
-
-const getStatusLabel = (status: string): string => {
-  const statusLabels: Record<string, string> = {
-    'novo': 'Novo',
-    'contatado': 'Contatado',
-    'qualificado': 'Qualificado',
-    'proposta_enviada': 'Proposta Enviada',
-    'em_negociacao': 'Em Negociação',
-    'ganho': 'Ganho',
-    'perdido': 'Perdido'
-  };
-  return statusLabels[status] || status;
-};
+// Funções auxiliares removidas - agora usamos dados dinâmicos do banco
 
 const getInteractionIcon = (type: string | undefined) => {
   if (!type) return null;
@@ -197,6 +180,7 @@ export default function AdminLeadsPage() {
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [opportunityStatuses, setOpportunityStatuses] = useState<OpportunityStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
@@ -224,6 +208,21 @@ export default function AdminLeadsPage() {
 
   // ✅ Ref para evitar carregamento ao trocar de abas
   const hasLoadedRef = useRef(false);
+
+  // Funções auxiliares para buscar dados de status dinamicamente
+  const getStatusData = useCallback((statusId: string) => {
+    return opportunityStatuses.find(s => s.id === statusId);
+  }, [opportunityStatuses]);
+
+  const getStatusLabel = useCallback((statusId: string): string => {
+    const status = getStatusData(statusId);
+    return status?.name || 'Desconhecido';
+  }, [getStatusData]);
+
+  const getStatusColor = useCallback((statusId: string): string => {
+    const status = getStatusData(statusId);
+    return status?.color || '#6B7280'; // Cor cinza padrão
+  }, [getStatusData]);
 
   // ✅ Função para calcular métricas a partir do array de leads
   const calculateMetrics = useCallback((leadsData: Lead[]) => {
@@ -328,6 +327,27 @@ export default function AdminLeadsPage() {
     }
     // fetchTeamMembers(); // TODO: Implementar quando necessário
   }, [user, router]);
+
+  // Buscar status de oportunidades dinamicamente
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const response = await fetch('/api/opportunity-statuses');
+        const data = await response.json();
+
+        if (data.success) {
+          setOpportunityStatuses(data.data || []);
+          devLog.log('[Leads] Status carregados:', data.data?.length || 0);
+        }
+      } catch (error) {
+        devLog.error('[Leads] Erro ao carregar status:', error);
+      }
+    };
+
+    if (user) {
+      fetchStatuses();
+    }
+  }, [user]);
 
   // Filtrar leads
   const filteredLeads = leads.filter(lead => {
@@ -715,13 +735,19 @@ export default function AdminLeadsPage() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="novo">Novo</SelectItem>
-                  <SelectItem value="contatado">Contatado</SelectItem>
-                  <SelectItem value="qualificado">Qualificado</SelectItem>
-                  <SelectItem value="proposta_enviada">Proposta Enviada</SelectItem>
-                  <SelectItem value="em_negociacao">Em Negociação</SelectItem>
-                  <SelectItem value="ganho">Ganho</SelectItem>
-                  <SelectItem value="perdido">Perdido</SelectItem>
+                  {opportunityStatuses
+                    .sort((a, b) => a.position - b.position)
+                    .map((status) => (
+                      <SelectItem key={status.id} value={status.id}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: status.color }}
+                          />
+                          {status.name}
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
 
@@ -849,7 +875,13 @@ export default function AdminLeadsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge className={`${getStatusBadgeColor(lead.status)} border`}>
+                          <Badge
+                            className="border text-white"
+                            style={{
+                              backgroundColor: getStatusColor(lead.status),
+                              borderColor: getStatusColor(lead.status)
+                            }}
+                          >
                             {getStatusLabel(lead.status)}
                           </Badge>
                         </TableCell>

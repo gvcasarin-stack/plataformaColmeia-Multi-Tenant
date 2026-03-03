@@ -27,6 +27,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createTenantHeaders } from "@/lib/utils/tenant-helper";
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService';
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Adicionar tipo à interface Window
 declare global {
@@ -87,11 +95,13 @@ const getStatusConfig = (statusSlug: string) => {
 export default function ClientProjects() {
   const router = useRouter();
   const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
   const [statusLoading, setStatusLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table'); // Estado para alternar entre tabela e kanban
   const { user } = useAuth();
   const { projects: allProjects, loading: projectsLoading, addProject } = useProjects();
   const isMobile = useIsMobile();
@@ -170,12 +180,29 @@ export default function ClientProjects() {
   // Server action getProjectsForUserAction já retorna apenas projetos do cliente
   const projects = allProjects;
   
-  // Filter projects based on selected status filter (usando slugs)
+  // Filter projects based on selected status filter and search query
   const filteredProjects = projects.filter(project => {
-    if (filter === "all") return true;
-    // Se o filtro for um nome de status, encontrar o slug correspondente
-    const statusInfo = availableStatuses.find(s => s.name === filter || s.slug === filter);
-    return statusInfo ? project.status === statusInfo.slug : project.status === filter;
+    // Filtro de status
+    const statusMatch = (() => {
+      if (filter === "all") return true;
+      // Se o filtro for um nome de status, encontrar o slug correspondente
+      const statusInfo = availableStatuses.find(s => s.name === filter || s.slug === filter);
+      return statusInfo ? project.status === statusInfo.slug : project.status === filter;
+    })();
+
+    // Filtro de busca
+    const searchMatch = (() => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        project.number?.toLowerCase().includes(query) ||
+        project.nomeClienteFinal?.toLowerCase().includes(query) ||
+        project.distribuidora?.toLowerCase().includes(query) ||
+        project.empresaIntegradora?.toLowerCase().includes(query)
+      );
+    })();
+
+    return statusMatch && searchMatch;
   });
   
   devLog.log("Filtered projects:", filteredProjects);
@@ -485,35 +512,19 @@ export default function ClientProjects() {
   };
 
   return (
-    <div className="space-y-8 p-6">
-      {/* Header with Gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-6 sm:p-10 text-white shadow-xl">
+    <div className="space-y-6 p-4">
+      {/* Header with Gradient - Reduzido */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white shadow-lg">
         <div className="relative z-10">
-          <h1 className="text-2xl sm:text-4xl font-bold mb-2">Meus Projetos</h1>
-          <p className="mt-2 text-blue-100 text-sm sm:text-lg">
+          <h1 className="text-2xl font-bold mb-1">Meus Projetos</h1>
+          <p className="text-blue-100 text-sm">
             Acompanhe o status e progresso dos seus projetos
           </p>
-          
-          {!isPendingApproval && (
-            <Button 
-              className="mt-4 bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium transition-all hover:shadow-lg text-sm sm:text-base"
-              onClick={() => {
-                devLog.log('Projects header button clicked');
-                setIsCreateModalOpen(true);
-              }}
-            >
-              <Icons.PlusCircle className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Novo Projeto</span>
-              <span className="sm:hidden">Novo</span>
-            </Button>
-          )}
         </div>
         
-        {/* Enhanced decorative elements */}
-        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-gradient-to-br from-blue-400/40 to-indigo-500/30 blur-md"></div>
-        <div className="absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-gradient-to-tr from-indigo-400/40 to-blue-500/30 blur-md"></div>
-        <div className="absolute right-1/4 bottom-0 h-24 w-24 rounded-full bg-white/10"></div>
-        <div className="absolute left-1/3 top-1/4 h-16 w-16 rounded-full bg-white/10"></div>
+        {/* Decorative elements simplificados */}
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
+        <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
       </div>
 
       {/* Status Alerts */}
@@ -532,46 +543,96 @@ export default function ClientProjects() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pb-2 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
-        <div className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
-          <Icons.Filter className="h-4 w-4 mr-2" />
-          <span className="text-sm sm:text-base">Filtrar por status:</span>
+      {/* Barra de Ações: Busca, Filtros e Botões */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
+        {/* Linha 1: Busca */}
+        <div className="relative">
+          <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Buscar por número, cliente, distribuidora ou empresa..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-10"
+          />
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button
-            variant={filter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter("all")}
-            className="rounded-full shadow-sm text-xs sm:text-sm"
-          >
-            Todos
-          </Button>
-          {statusLoading ? (
-            <div className="text-sm text-gray-500">Carregando status...</div>
-          ) : (
-            availableStatuses
-              .sort((a, b) => a.order - b.order)
-              .map((status) => (
-                <Button
-                  key={status.id}
-                  variant={filter === status.name ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilter(status.name)}
-                  className="rounded-full shadow-sm text-xs sm:text-sm flex items-center gap-1"
-                >
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: status.color }}
-                  />
-                  {status.name}
-                </Button>
-              ))
-          )}
+        
+        {/* Linha 2: Filtro de Status e Ações */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+            <div className="flex items-center text-gray-700 dark:text-gray-300 font-medium min-w-fit">
+              <Icons.Filter className="h-4 w-4 mr-2" />
+              <span className="text-sm">Status:</span>
+            </div>
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-full sm:w-[250px]">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                {statusLoading ? (
+                  <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                ) : (
+                  availableStatuses
+                    .sort((a, b) => a.order - b.order)
+                    .map((status) => (
+                      <SelectItem key={status.id} value={status.name}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: status.color }}
+                          />
+                          {status.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Toggle de Visualização e Botão Novo Projeto */}
+          <div className="flex items-center gap-2">
+            {/* Toggle de Visualização */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className={`h-8 px-3 ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'}`}
+                title="Visualização em Tabela"
+              >
+                <Icons.Table className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode('kanban')}
+                className={`h-8 px-3 ${viewMode === 'kanban' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'}`}
+                title="Visualização em Kanban"
+              >
+                <Icons.LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Botão Novo Projeto */}
+            {!isPendingApproval && (
+              <Button 
+                className="bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium transition-all h-8"
+                onClick={() => {
+                  devLog.log('Projects header button clicked');
+                  setIsCreateModalOpen(true);
+                }}
+              >
+                <Icons.PlusCircle className="h-4 w-4 mr-2" />
+                Novo Projeto
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Projects Table */}
+      {/* Projects Table ou Kanban */}
       {projectsLoading ? (
         <div className="flex justify-center items-center py-16">
           <div className="relative">
@@ -582,6 +643,118 @@ export default function ClientProjects() {
           </div>
         </div>
       ) : filteredProjects.length > 0 ? (
+        viewMode === 'kanban' ? (
+          // Visualização Kanban (somente visual, sem drag and drop)
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-4 min-w-max">
+              {availableStatuses
+                .sort((a, b) => a.order - b.order)
+                .map((status) => {
+                  const statusProjects = filteredProjects.filter(p => p.status === status.slug);
+                  
+                  return (
+                    <div 
+                      key={status.id} 
+                      className="flex-shrink-0 w-80 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700"
+                    >
+                      {/* Header da coluna */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: status.color }}
+                          />
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                            {status.name}
+                          </h3>
+                        </div>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                          {statusProjects.length}
+                        </span>
+                      </div>
+                      
+                      {/* Cards dos projetos */}
+                      <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                        {statusProjects.length === 0 ? (
+                          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
+                            Nenhum projeto
+                          </p>
+                        ) : (
+                          statusProjects.map((project, index) => {
+                            const statusConfig = getStatusConfig(project.status);
+                            const StatusIcon = statusConfig.icon;
+                            
+                            return (
+                              <Card 
+                                key={`${project.id}-${index}`}
+                                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-all cursor-pointer"
+                                onClick={() => handleViewProject(project.id)}
+                              >
+                                <CardContent className="p-4">
+                                  <div className="space-y-3">
+                                    {/* Número do projeto */}
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center">
+                                          <Icons.Lightbulb className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                                        </div>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                          {project.number}
+                                        </span>
+                                      </div>
+                                      <StatusIcon className="w-4 h-4" style={{ color: status.color }} />
+                                    </div>
+                                    
+                                    {/* Informações do projeto */}
+                                    <div className="space-y-2 text-sm">
+                                      <div className="flex items-start gap-2">
+                                        <Icons.User className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <span className="text-gray-700 dark:text-gray-300 line-clamp-2">
+                                          {project.nomeClienteFinal || 'N/A'}
+                                        </span>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-2">
+                                        <Icons.Zap className="h-4 w-4 text-amber-500" />
+                                        <span className="text-gray-700 dark:text-gray-300">
+                                          {project.potencia || 0} kWp
+                                        </span>
+                                      </div>
+                                      
+                                      <div className="flex items-start gap-2">
+                                        <Icons.Building2 className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <span className="text-gray-600 dark:text-gray-400 text-xs line-clamp-1">
+                                          {project.distribuidora || 'N/A'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Botão de ação */}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full h-8 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewProject(project.id);
+                                      }}
+                                    >
+                                      <Icons.Eye className="h-3 w-3 mr-1" />
+                                      Ver Detalhes
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        ) : (
         // Layout responsivo: Cards em mobile, tabela em desktop
         isMobile ? (
           // Layout de cards para mobile
@@ -601,15 +774,7 @@ export default function ClientProjects() {
                     <div className="flex flex-col space-y-3">
                       {/* Header do card */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center shadow-sm">
-                            <Icons.Lightbulb className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{project.number}</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Projeto</p>
-                          </div>
-                        </div>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{project.number}</h3>
                         <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm`}>
                           <StatusIcon className="w-3 h-3" />
                           <span className="text-xs font-medium">{statusName}</span>
@@ -617,22 +782,44 @@ export default function ClientProjects() {
                       </div>
 
                       {/* Informações principais */}
-                      <div className="grid grid-cols-1 gap-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Cliente Final:</span>
-                          <span className="text-gray-900 dark:text-gray-100 font-medium text-right">{project.nomeClienteFinal || 'N/A'}</span>
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        {/* Empresa Integradora */}
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Icons.Building2 className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Empresa Integradora</p>
+                            <p className="text-gray-700 dark:text-gray-300 font-medium truncate">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Potência:</span>
-                          <span className="text-gray-900 dark:text-gray-100 font-medium">{project.potencia || 0} kWp</span>
+                        
+                        {/* Cliente Final */}
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Icons.User className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Cliente Final</p>
+                            <p className="text-gray-700 dark:text-gray-300 font-medium truncate">{project.nomeClienteFinal || 'N/A'}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Distribuidora:</span>
-                          <span className="text-gray-900 dark:text-gray-100 font-medium text-right truncate max-w-[150px]">{project.distribuidora || 'N/A'}</span>
+                        
+                        {/* Distribuidora - SEM ícone como na tabela */}
+                        <div className="flex flex-col">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Distribuidora</p>
+                          <p className="text-gray-700 dark:text-gray-300 font-medium truncate">{project.distribuidora || 'N/A'}</p>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Empresa:</span>
-                          <span className="text-gray-900 dark:text-gray-100 font-medium text-right truncate max-w-[150px]">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</span>
+                        
+                        {/* Potência */}
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Icons.Zap className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Potência</p>
+                            <p className="text-gray-700 dark:text-gray-300 font-medium">{project.potencia || 0} kWp</p>
+                          </div>
                         </div>
                       </div>
 
@@ -734,7 +921,7 @@ export default function ClientProjects() {
             </Table>
           </div>
         )
-      ) : (
+      )) : (
         <div className="col-span-full">
           <Card className="border border-gray-200/60 dark:border-gray-700/60 shadow-lg bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 overflow-hidden">
             <CardContent className="p-16 text-center">

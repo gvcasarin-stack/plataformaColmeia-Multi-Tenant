@@ -18,7 +18,7 @@ import { toast } from "@/components/ui/use-toast"
 import { devLog } from "@/lib/utils/productionLogger";
 import React from 'react'
 import { TrialExpiredBlocker } from '@/components/security/TrialExpiredBlocker'
-import { canViewProjects } from '@/lib/utils/check-permissions'
+import { canViewProjects, canCreateProjects } from '@/lib/utils/check-permissions'
 import { saveProjectFilters, getProjectFilters, resetProjectFilters, type ProjectFiltersPreference } from '@/lib/services/userPreferencesService'
 
 // ✅ CORREÇÃO: Importar KanbanBoard diretamente (sem lazy loading)
@@ -192,14 +192,26 @@ export default function ProjetosPage() {
       result = result.filter(project => project.adminResponsibleId === selectedResponsible)
     }
 
-    // 2. Aplicar busca textual
+    // 2. Aplicar busca textual (projetos, comentários, materiais, etc.)
     if (searchQuery.trim()) {
       const searchLower = searchQuery.toLowerCase();
-      result = result.filter(project =>
-        project.number.toLowerCase().includes(searchLower) ||
-        project.nomeClienteFinal.toLowerCase().includes(searchLower) ||
-        project.empresaIntegradora.toLowerCase().includes(searchLower)
-      );
+      result = result.filter(project => {
+        // Busca nos campos principais do projeto
+        const matchesBasicFields =
+          project.number.toLowerCase().includes(searchLower) ||
+          project.nomeClienteFinal.toLowerCase().includes(searchLower) ||
+          project.empresaIntegradora.toLowerCase().includes(searchLower);
+
+        // Busca na lista de materiais
+        const matchesMaterials = project.listaMateriais?.toLowerCase().includes(searchLower);
+
+        // Busca nos comentários e eventos da timeline
+        const matchesTimeline = project.timelineEvents?.some(event =>
+          event.content?.toLowerCase().includes(searchLower)
+        );
+
+        return matchesBasicFields || matchesMaterials || matchesTimeline;
+      });
     }
 
     return result;
@@ -402,8 +414,8 @@ export default function ProjetosPage() {
                 }}
               />
 
-              {/* 🆕 Botão Novo Projeto (apenas admin/superadmin) */}
-              {(user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin') && (
+              {/* 🆕 Botão Novo Projeto (admin, superadmin ou colaborador com permissão) */}
+              {canCreateProjects(user) && (
                 <Button
                   onClick={() => setShowCreateProjectModal(true)}
                   className="bg-green-600 hover:bg-green-700 text-white shadow-md"
@@ -420,7 +432,7 @@ export default function ProjetosPage() {
         {/* Search bar in header */}
         <div className="relative max-w-md mt-6 z-10">
           <Input
-            placeholder="Buscar projetos..."
+            placeholder="Buscar projetos, comentários, materiais..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-3 bg-white/10 border-white/20 text-white placeholder:text-blue-100 focus:bg-white/20 focus:border-orange-300/50"

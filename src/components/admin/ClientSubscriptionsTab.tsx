@@ -20,6 +20,7 @@ import { Loader2, Users, Package, CalendarCheck, CreditCard, RefreshCw, Edit, X,
 import { format } from 'date-fns/format';
 import { ptBR } from 'date-fns/locale';
 import { differenceInDays } from 'date-fns';
+import { QuickBillingModal } from './QuickBillingModal';
 
 interface BillingInfo {
   billing_mode: 'avulso' | 'pacote' | 'assinatura';
@@ -493,26 +494,17 @@ export function ClientSubscriptionsTab() {
       );
     }
 
-    // Modo avulso - opções de conversão
+    // Modo avulso - botão de atalho para modalidade de faturamento
     return (
       <div className="flex items-center gap-2 flex-wrap justify-end">
         <Button
           size="sm"
-          variant="outline"
-          className="gap-2 text-purple-600 border-purple-200 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-          onClick={() => handleConvertToPackage(client)}
+          variant="default"
+          className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+          onClick={() => handleOpenBillingModal(client)}
         >
           <Package className="w-4 h-4" />
-          Converter
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-          onClick={() => handleConvertToSubscription(client)}
-        >
-          <CalendarCheck className="w-4 h-4" />
-          Assinatura
+          Modalidade de Faturamento
         </Button>
       </div>
     );
@@ -607,14 +599,19 @@ export function ClientSubscriptionsTab() {
     setCancelModalOpen(true);
   };
 
-  const handleConvertToPackage = (client: ClientWithBilling) => {
-    console.log('Converter para pacote:', client);
-    // TODO: Implementar modal de conversão para pacote
+  // 🆕 Estados para modal rápido de faturamento
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
+  const [selectedClientForBilling, setSelectedClientForBilling] = useState<ClientWithBilling | null>(null);
+
+  // 🆕 Handler para abrir modal de faturamento
+  const handleOpenBillingModal = (client: ClientWithBilling) => {
+    setSelectedClientForBilling(client);
+    setBillingModalOpen(true);
   };
 
-  const handleConvertToSubscription = (client: ClientWithBilling) => {
-    console.log('Converter para assinatura:', client);
-    // TODO: Implementar modal de conversão para assinatura
+  // 🆕 Handler para sucesso do modal de faturamento
+  const handleBillingSuccess = async () => {
+    await loadBillingInfo();
   };
 
   // Função para confirmar cancelamento
@@ -1361,6 +1358,18 @@ export function ClientSubscriptionsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 🆕 Modal Rápido de Modalidade de Faturamento */}
+      <QuickBillingModal
+        open={billingModalOpen}
+        onOpenChange={setBillingModalOpen}
+        client={selectedClientForBilling ? {
+          id: selectedClientForBilling.id,
+          name: selectedClientForBilling.name,
+          email: selectedClientForBilling.email
+        } : null}
+        onSuccess={handleBillingSuccess}
+      />
     </div>
   );
 }

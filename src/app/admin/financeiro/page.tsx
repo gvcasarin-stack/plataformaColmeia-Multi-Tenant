@@ -23,12 +23,12 @@ import {
   ChevronsUpDown,
   ArrowUpDown,
   X,
-  FileSpreadsheet,
-  AlertCircle,
-  TrendingUp,
   FileText,
-  CircleDollarSign,
-  CalendarCheck
+  AlertCircle,
+  TrendingDown,
+  Calendar,
+  MoreHorizontal,
+  ArrowRightLeft
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -44,12 +44,14 @@ const Icons = {
   ChevronsUpDown,
   ArrowUpDown,
   X,
-  FileSpreadsheet,
+  FileSpreadsheet: FileText,
   AlertCircle,
-  TrendingUp,
+  TrendingUp: TrendingDown,
   FileText,
-  CircleDollarSign,
-  CalendarCheck
+  CircleDollarSign: DollarSign,
+  CalendarCheck: Calendar,
+  MoreVertical: MoreHorizontal,
+  ArrowLeftRight: ArrowRightLeft
 };
 
 import {
@@ -99,6 +101,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import FinancialHistoryPanel from '@/components/financial/FinancialHistoryPanel';
 
 interface ProjectWithBilling extends Project {
@@ -255,6 +265,11 @@ export default function AdminBillingPage() {
   const [loadingBillingOptions, setLoadingBillingOptions] = useState(false);
   const [convertingProject, setConvertingProject] = useState(false);
 
+  // 🆕 ESTADOS PARA MODAL DE CONFIRMAÇÃO DE CONVERSÃO PARA AVULSO
+  const [showConvertToAvulsoModal, setShowConvertToAvulsoModal] = useState(false);
+  const [projectToConvertToAvulso, setProjectToConvertToAvulso] = useState<any | null>(null);
+  const [convertingToAvulso, setConvertingToAvulso] = useState(false);
+
   // ✅ NOVOS FILTROS
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>('');
@@ -271,6 +286,38 @@ export default function AdminBillingPage() {
     parcela1Projects: 0,
     projectsThisMonth: 0,
     paidProjectsThisMonth: 0
+  });
+
+  // 🆕 Métricas específicas de Pacotes
+  const [pacotesMetrics, setPacotesMetrics] = useState({
+    pendenteAtivos: 0,
+    pendenteInativos: 0,
+    totalRecebido: 0,
+    contratosAtivos: 0,
+    renovadosMes: 0,
+    expirandoSete: 0,
+    pacotesAtivos: 0,
+    pacotesPendentesAtivos: 0,
+    pacotesPendentesInativos: 0,
+    pacotesRecebidos: 0,
+    valorRenovacoes: 0,
+    valorExpirando: 0
+  });
+
+  // 🆕 Estado para filtro de período (Pacotes)
+  const [periodoFiltroPacotes, setPeriodoFiltroPacotes] = useState<30 | 60 | 90 | 0>(30);
+
+  // 🆕 Métricas específicas de Assinaturas
+  const [assinaturasMetrics, setAssinaturasMetrics] = useState({
+    mrr: 0,
+    recebidoMes: 0,
+    pendenteMes: 0,
+    utilizacao: 0,
+    cancelamentos: 0,
+    renovacoesSete: 0,
+    assinaturasAtivas: 0,
+    projetosUsados: 0,
+    projetosDisponiveis: 0
   });
 
   // Estados para seleção de projetos
@@ -378,6 +425,294 @@ export default function AdminBillingPage() {
     }
   }, [billingModeTab]);
 
+  // 🆕 Calcular métricas de Pacotes
+  useEffect(() => {
+    devLog.log('[AdminFinanceiro] Iniciando cálculo de métricas de Pacotes', {
+      totalPacotes: clientePacotes.length,
+      periodoSelecionado: periodoFiltroPacotes,
+      primeiroPacote: clientePacotes[0]
+    });
+
+    if (clientePacotes.length === 0) {
+      setPacotesMetrics({
+        pendenteAtivos: 0,
+        pendenteInativos: 0,
+        totalRecebido: 0,
+        contratosAtivos: 0,
+        renovadosMes: 0,
+        expirandoSete: 0,
+        pacotesAtivos: 0,
+        pacotesPendentesAtivos: 0,
+        pacotesPendentesInativos: 0,
+        pacotesRecebidos: 0,
+        valorRenovacoes: 0,
+        valorExpirando: 0
+      });
+      return;
+    }
+
+    const now = new Date();
+    const seteDiasFrente = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const trintaDiasAtras = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // 🔹 Filtrar pacotes por período
+    const dataLimitePeriodo = periodoFiltroPacotes === 0 
+      ? new Date(0) // Todo período
+      : new Date(now.getTime() - periodoFiltroPacotes * 24 * 60 * 60 * 1000);
+
+    const pacotesFiltrados = clientePacotes.filter((pacote: any) => {
+      if (periodoFiltroPacotes === 0) return true; // Todo período
+      
+      const dataAtivacao = pacote.data_ativacao ? new Date(pacote.data_ativacao) : null;
+      const dataExpiracao = pacote.data_expiracao ? new Date(pacote.data_expiracao) : null;
+      const dataAtualizacao = pacote.updated_at ? new Date(pacote.updated_at) : null;
+      const paymentStatus = pacote.payment_status || 'pendente';
+      
+      // Incluir se teve atividade no período OU se está ativo OU se foi pago
+      return (
+        (dataAtivacao && dataAtivacao >= dataLimitePeriodo) ||
+        (dataExpiracao && dataExpiracao >= dataLimitePeriodo) ||
+        (dataAtualizacao && dataAtualizacao >= dataLimitePeriodo) ||
+        pacote.status === 'ativo' ||
+        paymentStatus === 'pago' ||
+        paymentStatus === 'parcial'
+      );
+    });
+
+    let pendenteAtivos = 0;
+    let pendenteInativos = 0;
+    let totalRecebido = 0;
+    let contratosAtivos = 0;
+    let pacotesAtivos = 0;
+    let renovadosMes = 0;
+    let expirandoSete = 0;
+    let pacotesPendentesAtivos = 0;
+    let pacotesPendentesInativos = 0;
+    let pacotesRecebidos = 0;
+    let valorRenovacoes = 0;
+    let valorExpirando = 0;
+
+    // Calcular métricas dos pacotes filtrados
+    pacotesFiltrados.forEach((pacote: any) => {
+      // 🔍 O valor vem do JOIN com pacotes_definicoes
+      const valor = parseFloat(pacote.pacotes_definicoes?.valor || pacote.valor || pacote.preco || 0);
+      const status = pacote.status || 'ativo';
+      const statusPagamento = pacote.payment_status || 'pendente';
+
+      // 🔴 PENDENTE (ATIVOS)
+      if (status === 'ativo' && statusPagamento === 'pendente') {
+        pendenteAtivos += valor;
+        pacotesPendentesAtivos++;
+      } else if (status === 'ativo' && statusPagamento === 'parcial') {
+        pendenteAtivos += valor / 2;
+        pacotesPendentesAtivos++;
+      }
+
+      // 🟡 PENDENTE (INATIVOS) - Exceto cancelados
+      if (status !== 'ativo' && status !== 'cancelado' && statusPagamento === 'pendente') {
+        pendenteInativos += valor;
+        pacotesPendentesInativos++;
+      } else if (status !== 'ativo' && status !== 'cancelado' && statusPagamento === 'parcial') {
+        pendenteInativos += valor / 2;
+        pacotesPendentesInativos++;
+      }
+
+      // ✅ RECEBIDO (Todos os pagos, qualquer status)
+      if (statusPagamento === 'pago') {
+        totalRecebido += valor;
+        pacotesRecebidos++;
+      } else if (statusPagamento === 'parcial') {
+        totalRecebido += valor / 2;
+      }
+
+      // Renovações nos últimos 30 dias
+      if (pacote.data_renovacao) {
+        const dataRenovacao = new Date(pacote.data_renovacao);
+        if (dataRenovacao >= trintaDiasAtras) {
+          renovadosMes++;
+          valorRenovacoes += valor;
+        }
+      } else if (pacote.data_ativacao && status === 'ativo') {
+        // Se não tiver data_renovacao, verificar se foi ativado recentemente
+        const dataAtivacao = new Date(pacote.data_ativacao);
+        if (dataAtivacao >= trintaDiasAtras) {
+          renovadosMes++;
+          valorRenovacoes += valor;
+        }
+      }
+    });
+
+    // 💼 CONTRATOS ATIVOS: Sempre calcula de TODOS os pacotes (sem filtro de período)
+    clientePacotes.forEach((pacote: any) => {
+      // 🔍 O valor vem do JOIN com pacotes_definicoes
+      const valor = parseFloat(pacote.pacotes_definicoes?.valor || pacote.valor || pacote.preco || 0);
+      const status = pacote.status || 'ativo';
+
+      if (status === 'ativo') {
+        pacotesAtivos++;
+        contratosAtivos += valor;
+
+        // Verificar se expira nos próximos 7 dias
+        if (pacote.data_expiracao) {
+          const dataExpiracao = new Date(pacote.data_expiracao);
+          if (dataExpiracao >= now && dataExpiracao <= seteDiasFrente) {
+            expirandoSete++;
+            valorExpirando += valor;
+          }
+        }
+      }
+    });
+
+    setPacotesMetrics({
+      pendenteAtivos,
+      pendenteInativos,
+      totalRecebido,
+      contratosAtivos,
+      renovadosMes,
+      expirandoSete,
+      pacotesAtivos,
+      pacotesPendentesAtivos,
+      pacotesPendentesInativos,
+      pacotesRecebidos,
+      valorRenovacoes,
+      valorExpirando
+    });
+
+    devLog.log('[AdminFinanceiro] Métricas de Pacotes calculadas:', {
+      periodoFiltroPacotes,
+      totalPacotes: clientePacotes.length,
+      pacotesFiltrados: pacotesFiltrados.length,
+      pendenteAtivos,
+      pendenteInativos,
+      totalRecebido,
+      contratosAtivos,
+      renovadosMes,
+      expirandoSete,
+      detalhePacotes: pacotesFiltrados.map(p => ({
+        id: p.id,
+        status: p.status,
+        payment_status: p.payment_status,
+        valor_objeto: p.pacotes_definicoes?.valor,
+        valor_direto: p.valor,
+        valor_preco: p.preco,
+        estrutura_completa: {
+          tem_pacotes_definicoes: !!p.pacotes_definicoes,
+          keys: Object.keys(p)
+        }
+      }))
+    });
+  }, [clientePacotes, periodoFiltroPacotes]);
+
+  // 🆕 Calcular métricas de Assinaturas
+  useEffect(() => {
+    if (clienteAssinaturas.length === 0) {
+      setAssinaturasMetrics({
+        mrr: 0,
+        recebidoMes: 0,
+        pendenteMes: 0,
+        utilizacao: 0,
+        cancelamentos: 0,
+        renovacoesSete: 0,
+        assinaturasAtivas: 0,
+        projetosUsados: 0,
+        projetosDisponiveis: 0
+      });
+      return;
+    }
+
+    let mrr = 0;
+    let recebidoMes = 0;
+    let pendenteMes = 0;
+    let assinaturasAtivas = 0;
+    let projetosUsados = 0;
+    let projetosDisponiveis = 0;
+    let cancelamentos = 0;
+    let renovacoesSete = 0;
+
+    const now = new Date();
+    const seteDiasFrente = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const trintaDiasAtras = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    clienteAssinaturas.forEach((assinatura: any) => {
+      // ✅ CORREÇÃO: Buscar valor_mensal do plano vinculado (planos_assinatura)
+      const valorMensal = parseFloat(
+        assinatura.valor_mensal || 
+        assinatura.planos_assinatura?.valor_mensal || 
+        assinatura.plano?.valor_mensal || 
+        0
+      );
+      const status = assinatura.status || 'ativa';
+      const statusPagamento = assinatura.status_pagamento || 'pendente';
+      const projetosMensais = parseInt(assinatura.projetos_mensais || assinatura.quantidade_mensal || 0);
+      const projetosUsadosMes = parseInt(assinatura.projetos_usados_mes_atual || 0);
+
+      // Contar apenas assinaturas ativas
+      if (status === 'ativa') {
+        assinaturasAtivas++;
+        mrr += valorMensal;
+        projetosUsados += projetosUsadosMes;
+        projetosDisponiveis += projetosMensais;
+
+        // Calcular recebido/pendente deste mês
+        if (statusPagamento === 'pago') {
+          recebidoMes += valorMensal;
+        } else if (statusPagamento === 'pendente') {
+          pendenteMes += valorMensal;
+        }
+
+        // Verificar renovações nos próximos 7 dias
+        if (assinatura.proximo_reset) {
+          const proximoReset = new Date(assinatura.proximo_reset);
+          if (proximoReset >= now && proximoReset <= seteDiasFrente) {
+            renovacoesSete++;
+          }
+        }
+      }
+
+      // Contar cancelamentos nos últimos 30 dias
+      // ⚠️ NOTA: Campo 'data_cancelamento' não existe na tabela cliente_assinaturas
+      // Por enquanto, contar todas as assinaturas canceladas
+      if (status === 'cancelada') {
+        // Se no futuro adicionar campo 'data_cancelamento', descomentar filtro de data:
+        // const dataCancelamento = new Date(assinatura.data_cancelamento);
+        // if (dataCancelamento >= trintaDiasAtras) {
+        cancelamentos++;
+        // }
+      }
+    });
+
+    const utilizacao = projetosDisponiveis > 0 ? (projetosUsados / projetosDisponiveis) * 100 : 0;
+
+    setAssinaturasMetrics({
+      mrr,
+      recebidoMes,
+      pendenteMes,
+      utilizacao: Math.round(utilizacao),
+      cancelamentos,
+      renovacoesSete,
+      assinaturasAtivas,
+      projetosUsados,
+      projetosDisponiveis
+    });
+
+    devLog.log('[AdminFinanceiro] Métricas de Assinaturas calculadas:', {
+      mrr,
+      recebidoMes,
+      pendenteMes,
+      utilizacao,
+      cancelamentos,
+      renovacoesSete,
+      assinaturasAtivas,
+      totalAssinaturas: clienteAssinaturas.length,
+      sampleAssinatura: clienteAssinaturas[0] ? {
+        tem_valor_mensal_direto: !!clienteAssinaturas[0].valor_mensal,
+        tem_plano_objeto: !!clienteAssinaturas[0].planos_assinatura,
+        valor_do_plano: clienteAssinaturas[0].planos_assinatura?.valor_mensal
+      } : null
+    });
+  }, [clienteAssinaturas]);
+
   useEffect(() => {
     if (projects.length === 0) return;
 
@@ -407,6 +742,15 @@ export default function AdminBillingPage() {
     let paidCurrentMonthCount = 0;
 
     projects.forEach(project => {
+      // ✅ FILTRO CRÍTICO: Considerar apenas projetos AVULSOS para os contadores
+      // Projetos em pacotes/assinaturas não devem impactar métricas de avulsos
+      const isAvulso = !project.billing_mode || project.billing_mode === 'avulso';
+      
+      if (!isAvulso) {
+        // Projeto está em pacote ou assinatura - não contar
+        return;
+      }
+
       const price = project.valor_projeto || project.valorProjeto || 0;
       const isCurrentMonth = isProjectFromCurrentMonth(project);
 
@@ -877,7 +1221,11 @@ export default function AdminBillingPage() {
 
       setShowConvertModal(false);
       setProjectToConvert(null);
+      
+      // ✅ Recarregar todos os dados para atualizar o frontend
       await fetchData(true);
+      await loadClientePacotes();
+      await loadClienteAssinaturas();
 
       // Notificar painel sobre atualização
       window.dispatchEvent(new CustomEvent('billing-updated', {
@@ -893,6 +1241,67 @@ export default function AdminBillingPage() {
       });
     } finally {
       setConvertingProject(false);
+    }
+  };
+
+  // 🆕 FUNÇÃO PARA CONVERTER PARA AVULSO (COM MODAL DE CONFIRMAÇÃO)
+  const handleConvertToAvulso = async () => {
+    if (!projectToConvertToAvulso) return;
+
+    try {
+      setConvertingToAvulso(true);
+
+      toast({
+        title: 'Convertendo projeto...',
+        description: 'Aguarde enquanto removemos o projeto do pacote/assinatura.',
+        variant: 'default',
+      });
+
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user?.id || '');
+
+      const response = await fetch(`/api/admin/projects/${projectToConvertToAvulso.id}/convert-billing`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ target_type: 'avulso' })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao converter');
+      }
+
+      toast({
+        title: 'Projeto convertido',
+        description: 'Projeto convertido para avulso com sucesso.',
+        variant: 'default',
+      });
+
+      setShowConvertToAvulsoModal(false);
+      setProjectToConvertToAvulso(null);
+      
+      // ✅ Recarregar todos os dados para atualizar o frontend
+      await fetchData(true);
+      await loadClientePacotes();
+      await loadClienteAssinaturas();
+
+      // Notificar painel sobre atualização
+      window.dispatchEvent(new CustomEvent('billing-updated', {
+        detail: { action: 'convert-to-avulso', projectId: projectToConvertToAvulso.id }
+      }));
+
+    } catch (error: any) {
+      devLog.error('[HandleConvertToAvulso] Error:', error);
+      toast({
+        title: 'Erro ao converter',
+        description: error.message || 'Ocorreu um erro ao converter o projeto.',
+        variant: 'destructive',
+      });
+    } finally {
+      setConvertingToAvulso(false);
     }
   };
 
@@ -1022,7 +1431,7 @@ export default function AdminBillingPage() {
         variant: 'default',
       });
 
-      await fetchAssinaturas();
+      await loadClienteAssinaturas();
 
     } catch (error) {
       devLog.error('[MarkAssinaturaAsPaid] Error:', error);
@@ -1056,7 +1465,7 @@ export default function AdminBillingPage() {
         variant: 'default',
       });
 
-      await fetchAssinaturas();
+      await loadClienteAssinaturas();
 
     } catch (error) {
       devLog.error('[MarkAssinaturaAsParcela1] Error:', error);
@@ -1090,7 +1499,7 @@ export default function AdminBillingPage() {
         variant: 'default',
       });
 
-      await fetchAssinaturas();
+      await loadClienteAssinaturas();
 
     } catch (error) {
       devLog.error('[ResetAssinaturaPaymentStatus] Error:', error);
@@ -1738,14 +2147,43 @@ export default function AdminBillingPage() {
       <div className="mb-8">
         <nav className="flex space-x-2" aria-label="Tabs">
           <button
-            onClick={() => setActiveTab('cobrancas')}
+            onClick={() => {
+              setActiveTab('cobrancas');
+              setBillingModeTab('avulsos');
+            }}
             className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-              activeTab === 'cobrancas'
+              activeTab === 'cobrancas' && billingModeTab === 'avulsos'
                 ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
-            Cobranças
+            Avulsos
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('cobrancas');
+              setBillingModeTab('pacotes');
+            }}
+            className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+              activeTab === 'cobrancas' && billingModeTab === 'pacotes'
+                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Pacotes
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('cobrancas');
+              setBillingModeTab('assinaturas');
+            }}
+            className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+              activeTab === 'cobrancas' && billingModeTab === 'assinaturas'
+                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Assinaturas
           </button>
           <button
             onClick={() => setActiveTab('historico')}
@@ -1801,7 +2239,10 @@ export default function AdminBillingPage() {
             </div>
           ) : (
             <>
-          {/* Bloco de Métricas Principais */}
+          {/* 🎯 Cards condicionais baseados na aba selecionada */}
+          {billingModeTab === 'avulsos' && (
+          <>
+          {/* Bloco de Métricas Principais - AVULSOS */}
           <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900/50 rounded-2xl p-6 mb-8 border border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
@@ -1941,42 +2382,308 @@ export default function AdminBillingPage() {
               </Card>
             </div>
           </div>
+          </>
+          )}
 
-          {/* Tabs de Modalidades de Cobrança */}
-          <div className="mb-8">
-            <nav className="flex space-x-2" aria-label="Billing Mode Tabs">
-              <button
-                onClick={() => setBillingModeTab('avulsos')}
-                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                  billingModeTab === 'avulsos'
-                    ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
+          {/* 📦 Bloco de Métricas - PACOTES */}
+          {billingModeTab === 'pacotes' && (
+          <>
+          {/* Botões de Filtro de Período */}
+          <div className="mb-6">
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={periodoFiltroPacotes === 30 ? 'default' : 'outline'}
+                onClick={() => setPeriodoFiltroPacotes(30)}
+                className={periodoFiltroPacotes === 30 ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
               >
-                Avulsos
-              </button>
-              <button
-                onClick={() => setBillingModeTab('pacotes')}
-                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                  billingModeTab === 'pacotes'
-                    ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
+                30 dias
+              </Button>
+              <Button
+                size="sm"
+                variant={periodoFiltroPacotes === 60 ? 'default' : 'outline'}
+                onClick={() => setPeriodoFiltroPacotes(60)}
+                className={periodoFiltroPacotes === 60 ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
               >
-                Pacotes
-              </button>
-              <button
-                onClick={() => setBillingModeTab('assinaturas')}
-                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                  billingModeTab === 'assinaturas'
-                    ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
+                60 dias
+              </Button>
+              <Button
+                size="sm"
+                variant={periodoFiltroPacotes === 90 ? 'default' : 'outline'}
+                onClick={() => setPeriodoFiltroPacotes(90)}
+                className={periodoFiltroPacotes === 90 ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
               >
-                Assinaturas
-              </button>
-            </nav>
+                90 dias
+              </Button>
+              <Button
+                size="sm"
+                variant={periodoFiltroPacotes === 0 ? 'default' : 'outline'}
+                onClick={() => setPeriodoFiltroPacotes(0)}
+                className={periodoFiltroPacotes === 0 ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+              >
+                Todo Período
+              </Button>
+            </div>
           </div>
+
+          <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900/50 rounded-2xl p-6 mb-8 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* Card 1: 🔴 Pendente (Ativos) */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-red-500 rounded-full">
+                      <Icons.AlertCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Pendente (Ativos)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(pacotesMetrics.pendenteAtivos)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(pacotesMetrics.pacotesPendentesAtivos)} {pacotesMetrics.pacotesPendentesAtivos === 1 ? 'pacote' : 'pacotes'} aguardando pagamento
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Card 2: 🟡 Pendente (Inativos) */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-orange-500 rounded-full">
+                      <Icons.AlertCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Pendente (Inativos)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(pacotesMetrics.pendenteInativos)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(pacotesMetrics.pacotesPendentesInativos)} {pacotesMetrics.pacotesPendentesInativos === 1 ? 'pacote expirado' : 'pacotes expirados'} sem pagamento
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Card 3: ✅ Total Recebido */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-green-500 rounded-full">
+                      <Icons.CircleDollarSign className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Total Recebido</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(pacotesMetrics.totalRecebido)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(pacotesMetrics.pacotesRecebidos)} {pacotesMetrics.pacotesRecebidos === 1 ? 'pacote pago' : 'pacotes pagos'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Card 4: 💼 Contratos Ativos */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-purple-500 rounded-full">
+                      <Icons.FileText className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Contratos Ativos</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(pacotesMetrics.contratosAtivos)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(pacotesMetrics.pacotesAtivos)} {pacotesMetrics.pacotesAtivos === 1 ? 'pacote ativo' : 'pacotes ativos'} agora
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Card 5: 🔄 Renovados Este Mês */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-cyan-500 rounded-full">
+                      <Icons.ArrowLeftRight className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Renovados Este Mês</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {safeString(pacotesMetrics.renovadosMes)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {formatCurrency(pacotesMetrics.valorRenovacoes)} em renovações
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Card 6: ⚠️ Expirando (7 dias) */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-orange-500 rounded-full">
+                      <Icons.AlertCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Expirando (7 dias)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {safeString(pacotesMetrics.expirandoSete)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {formatCurrency(pacotesMetrics.valorExpirando)} em risco
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          </>
+          )}
+
+          {/* 🔄 Bloco de Métricas - ASSINATURAS */}
+          {billingModeTab === 'assinaturas' && (
+          <>
+          <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900/50 rounded-2xl p-6 mb-8 border border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* MRR */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-purple-500 rounded-full">
+                      <Icons.CircleDollarSign className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">MRR</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(assinaturasMetrics.mrr)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(assinaturasMetrics.assinaturasAtivas)} assinaturas ativas
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Recebido Este Mês */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-green-500 rounded-full">
+                      <Icons.CheckCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Recebido Este Mês</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(assinaturasMetrics.recebidoMes)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Pagamentos confirmados
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Pendente Este Mês */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-red-500 rounded-full">
+                      <Icons.AlertCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Pendente Este Mês</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(assinaturasMetrics.pendenteMes)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Pagamentos aguardando confirmação
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Taxa de Utilização */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-blue-500 rounded-full">
+                      <Icons.TrendingUp className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Taxa de Utilização</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {safeString(assinaturasMetrics.utilizacao)}%
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {safeString(assinaturasMetrics.projetosUsados)} de {safeString(assinaturasMetrics.projetosDisponiveis)} projetos usados
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Cancelamentos */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-red-600 rounded-full">
+                      <Icons.X className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Cancelamentos Este Mês</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {safeString(assinaturasMetrics.cancelamentos)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Assinaturas canceladas nos últimos 30 dias
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Renovações Próximas */}
+              <Card className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-teal-500 rounded-full">
+                      <Icons.CalendarCheck className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Renovações (7 dias)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {safeString(assinaturasMetrics.renovacoesSete)}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Assinaturas renovando nos próximos 7 dias
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          </>
+          )}
 
           {/* Bloco de Filtros */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-8 border-2 border-gray-200 dark:border-gray-700 shadow-sm">
@@ -2299,7 +3006,7 @@ export default function AdminBillingPage() {
                                               </DropdownMenuItem>
                                             )}
                                             {/* 🆕 CONVERSÃO: Apenas para projetos avulsos */}
-                                            {project.billing_mode === 'avulso' && (
+                                            {(!project.billing_mode || project.billing_mode === 'avulso') && (
                                               <>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem onClick={() => openConvertModal(project)} className="text-blue-600 dark:text-blue-400">
@@ -2519,6 +3226,7 @@ export default function AdminBillingPage() {
                                     <TableHead className="text-left">Potência</TableHead>
                                     <TableHead className="text-left">Status</TableHead>
                                     <TableHead className="text-left">Data de Solicitação</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -2545,6 +3253,27 @@ export default function AdminBillingPage() {
                                       </TableCell>
                                       <TableCell className="text-sm text-gray-500">
                                         {new Date(projeto.created_at).toLocaleDateString('pt-BR')}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                              <Icons.MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuItem 
+                                              onClick={() => {
+                                                setProjectToConvertToAvulso(projeto);
+                                                setShowConvertToAvulsoModal(true);
+                                              }}
+                                              className="text-orange-600 dark:text-orange-400"
+                                            >
+                                              <Icons.ArrowLeftRight className="h-4 w-4 mr-2" />
+                                              Converter para Avulso
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
                                       </TableCell>
                                     </TableRow>
                                   ))}
@@ -2591,7 +3320,8 @@ export default function AdminBillingPage() {
                     const hoje = new Date();
                     const diasParaRenovacao = proximoReset ? Math.ceil((proximoReset.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)) : 0;
                     const proximoRenovar = diasParaRenovacao > 0 && diasParaRenovacao <= 5;
-                    const projetosDoMes = assinatura.projetosDoMesAtual?.length || 0;
+                    // ✅ CORREÇÃO: Usar contador do banco de dados ao invés de array length
+                    const projetosDoMes = parseInt(assinatura.projetos_usados_mes_atual || 0);
                     const percentualUsado = assinatura.projetos_mensais > 0 ? (projetosDoMes / assinatura.projetos_mensais) * 100 : 0;
                     const quaseEsgotado = percentualUsado >= 80 && percentualUsado < 100;
                     const esgotado = percentualUsado >= 100;
@@ -2743,6 +3473,7 @@ export default function AdminBillingPage() {
                                       <TableHead className="text-left">Potência</TableHead>
                                       <TableHead className="text-left">Status</TableHead>
                                       <TableHead className="text-left">Data de Solicitação</TableHead>
+                                      <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -2769,6 +3500,27 @@ export default function AdminBillingPage() {
                                         </TableCell>
                                         <TableCell className="text-sm text-gray-500">
                                           {new Date(projeto.created_at).toLocaleDateString('pt-BR')}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                <Icons.MoreVertical className="h-4 w-4" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuItem 
+                                                onClick={() => {
+                                                  setProjectToConvertToAvulso(projeto);
+                                                  setShowConvertToAvulsoModal(true);
+                                                }}
+                                                className="text-orange-600 dark:text-orange-400"
+                                              >
+                                                <Icons.ArrowLeftRight className="h-4 w-4 mr-2" />
+                                                Converter para Avulso
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
                                         </TableCell>
                                       </TableRow>
                                     ))}
@@ -2985,6 +3737,47 @@ export default function AdminBillingPage() {
           </div>
         </div>
       )}
+
+      {/* 🆕 Modal de Confirmação: Converter para Avulso */}
+      <Dialog open={showConvertToAvulsoModal} onOpenChange={setShowConvertToAvulsoModal}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+              Converter projeto para avulso?
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400 mt-2">
+              Tem certeza que deseja converter o projeto{' '}
+              <span className="font-semibold text-gray-900 dark:text-white">
+                #{projectToConvertToAvulso?.number}
+              </span>{' '}
+              para avulso?
+              <br />
+              <br />
+              O projeto será removido do {projectToConvertToAvulso?.billing_mode === 'pacote' ? 'pacote' : 'assinatura'} e voltará a ser cobrado individualmente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConvertToAvulsoModal(false);
+                setProjectToConvertToAvulso(null);
+              }}
+              disabled={convertingToAvulso}
+              className="border-gray-300 hover:bg-gray-50"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConvertToAvulso}
+              disabled={convertingToAvulso}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {convertingToAvulso ? 'Convertendo...' : 'Converter para Avulso'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

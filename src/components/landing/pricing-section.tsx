@@ -8,12 +8,13 @@ export default function PricingSection() {
     {
       name: "Básico",
       price: "199",
+      subtitle: "Para iniciar",
       description: "Ideal para empresas pequenas",
       features: [
-        "60 projetos",
-        "10GB de armazenamento",
-        "10 usuários",
-        "100 clientes",
+        "Gerencie até 60 projetos ativos",
+        "Armazene milhares de documentos (10GB)",
+        "Até 10 usuários na equipe",
+        "Cadastre até 100 clientes",
         "Suporte por email"
       ],
       popular: false
@@ -21,12 +22,13 @@ export default function PricingSection() {
     {
       name: "Profissional",
       price: "349",
+      subtitle: "Para crescer",
       description: "Perfeito para empresas em crescimento",
       features: [
-        "500 projetos",
-        "100GB de armazenamento",
-        "50 usuários",
-        "1.000 clientes",
+        "Gerencie até 500 projetos ativos",
+        "Armazenamento ampliado (100GB)",
+        "Até 50 usuários na equipe",
+        "Cadastre até 1.000 clientes",
         "Suporte prioritário",
         "Relatórios avançados"
       ],
@@ -39,23 +41,33 @@ export default function PricingSection() {
       <div className="container mx-auto px-4 md:px-6 max-w-7xl">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-slate-800 mb-4">
-            Um Plano para Cada Fase do Seu Negócio
+            Um Plano para Cada Fase do <span className="text-blue-600 font-bold">Seu Negócio</span>
           </h2>
           <p className="mx-auto max-w-[700px] text-slate-600 md:text-xl">
-            Comece hoje com 7 dias de teste gratuito. Sem compromisso e sem a necessidade de cartão de crédito.
+            Comece hoje com <span className="text-blue-600 font-bold">7 dias de teste gratuito</span>. Sem compromisso e sem a necessidade de cartão de crédito.
           </p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
           {plans.map((plan, index) => (
-            <div key={index} className={`rounded-xl border p-6 bg-white shadow-lg ${plan.popular ? 'border-blue-500 ring-1 ring-blue-100' : 'border-gray-200'}`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold">{plan.name}</h3>
-                {plan.popular && <span className="px-3 py-1 text-sm rounded-full bg-blue-100 text-blue-700">Mais popular</span>}
+            <div key={index} className={`rounded-xl border p-6 bg-white shadow-lg transition-all duration-300 ${plan.popular ? 'border-blue-500 ring-2 ring-blue-100 md:scale-105 shadow-2xl' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-sm text-blue-600 font-semibold mb-1">{plan.subtitle}</p>
+                  <h3 className="text-2xl font-bold">{plan.name}</h3>
+                </div>
+                {plan.popular && <span className="px-3 py-1 text-sm rounded-full bg-blue-100 text-blue-700 font-semibold">Mais popular</span>}
               </div>
-              <div className="flex items-end gap-1 mb-6">
+
+              <div className="mb-4">
+                <span className="inline-block px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 font-semibold">
+                  7 dias grátis
+                </span>
+              </div>
+
+              <div className="flex items-end gap-1 mb-4">
                 <span className="text-4xl font-extrabold text-blue-600">R$ {plan.price}</span>
-                <span className="text-gray-500">/mês</span>
+                <span className="text-gray-500 text-sm">/mês</span>
               </div>
               <p className="text-gray-600 mb-6">{plan.description}</p>
 
@@ -70,12 +82,12 @@ export default function PricingSection() {
                 ))}
               </ul>
 
-              <Button asChild className="w-full">
-                <a href="https://registro.gerenciamentofotovoltaico.com.br">Começar agora</a>
+              <Button asChild className="w-full hover:scale-105 transition-all duration-300">
+                <a href="https://registro.gerenciamentofotovoltaico.com.br">Começar teste grátis</a>
               </Button>
 
-              <p className="text-center text-sm text-gray-500 mt-3">
-                Tem dúvidas? <a href="https://wa.me/554899000387" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Fale conosco</a>
+              <p className="text-center text-xs text-gray-500 mt-4">
+                Cancele quando quiser • Sem fidelidade
               </p>
             </div>
           ))}

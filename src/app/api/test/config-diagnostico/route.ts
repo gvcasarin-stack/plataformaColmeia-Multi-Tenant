@@ -101,9 +101,78 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // ETAPA 4: Verificar se config já existe
+    // ETAPA 4: Buscar usuário para created_by
     diagnostico.etapas.push({
-      etapa: '4. Verificar config existente',
+      etapa: '4. Buscar usuário para created_by',
+      status: 'buscando...'
+    });
+
+    let userId: string | null = null;
+
+    try {
+      // Tentar buscar admin/superadmin primeiro
+      const { data: adminUser, error: adminError } = await supabase
+        .from('users')
+        .select('id, role, email')
+        .eq('tenant_id', tenantId)
+        .in('role', ['superadmin', 'admin'])
+        .limit(1)
+        .maybeSingle();
+
+      if (adminUser && !adminError) {
+        userId = adminUser.id;
+        diagnostico.etapas[3].status = '✅ Admin encontrado';
+        diagnostico.etapas[3].admin = {
+          id: adminUser.id,
+          role: adminUser.role,
+          email: adminUser.email
+        };
+      } else {
+        diagnostico.etapas[3].status = '⚠️ Admin não encontrado, buscando qualquer usuário...';
+        diagnostico.etapas[3].adminError = adminError;
+
+        // Se não encontrou admin, buscar qualquer usuário do tenant
+        const { data: anyUser, error: anyUserError } = await supabase
+          .from('users')
+          .select('id, role, email')
+          .eq('tenant_id', tenantId)
+          .limit(1)
+          .maybeSingle();
+
+        if (anyUser && !anyUserError) {
+          userId = anyUser.id;
+          diagnostico.etapas[3].status = '✅ Usuário encontrado';
+          diagnostico.etapas[3].user = {
+            id: anyUser.id,
+            role: anyUser.role,
+            email: anyUser.email
+          };
+        } else {
+          diagnostico.etapas[3].status = '❌ Nenhum usuário encontrado';
+          diagnostico.etapas[3].userError = anyUserError;
+
+          // Contar quantos usuários existem no tenant
+          const { count } = await supabase
+            .from('users')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId);
+
+          diagnostico.etapas[3].userCount = count;
+        }
+      }
+    } catch (error: any) {
+      diagnostico.etapas[3].status = '❌ Exceção ao buscar usuário';
+      diagnostico.etapas[3].error = {
+        message: error.message,
+        stack: error.stack
+      };
+    }
+
+    diagnostico.etapas[3].userId = userId;
+
+    // ETAPA 5: Verificar se config já existe
+    diagnostico.etapas.push({
+      etapa: '5. Verificar config existente',
       status: 'verificando...'
     });
 
@@ -116,28 +185,59 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (checkError) {
-        diagnostico.etapas[3].status = '⚠️ Erro ao verificar';
-        diagnostico.etapas[3].error = {
+        diagnostico.etapas[4].status = '⚠️ Erro ao verificar';
+        diagnostico.etapas[4].error = {
           message: checkError.message,
           code: checkError.code,
           details: checkError.details,
           hint: checkError.hint
         };
       } else {
-        diagnostico.etapas[3].status = existing ? '✅ Config já existe' : '✅ Config não existe';
-        diagnostico.etapas[3].existing = existing;
+        diagnostico.etapas[4].status = existing ? '✅ Config já existe' : '✅ Config não existe';
+        diagnostico.etapas[4].existing = existing;
       }
     } catch (error: any) {
-      diagnostico.etapas[3].status = '❌ Exceção ao verificar';
-      diagnostico.etapas[3].error = {
+      diagnostico.etapas[4].status = '❌ Exceção ao verificar';
+      diagnostico.etapas[4].error = {
         message: error.message,
         stack: error.stack
       };
     }
 
-    // ETAPA 5: Tentar INSERT
+    // ETAPA 6: Buscar categoria válida
     diagnostico.etapas.push({
-      etapa: '5. Tentar INSERT',
+      etapa: '6. Buscar categoria válida',
+      status: 'buscando...'
+    });
+
+    let categoryValida = 'general';  // fallback padrão
+    try {
+      const { data: exampleConfig } = await supabase
+        .from('configs')
+        .select('category')
+        .eq('tenant_id', tenantId)
+        .limit(1)
+        .maybeSingle();
+
+      if (exampleConfig?.category) {
+        categoryValida = exampleConfig.category;
+        diagnostico.etapas[5].status = '✅ Categoria válida encontrada';
+        diagnostico.etapas[5].category = categoryValida;
+      } else {
+        diagnostico.etapas[5].status = '⚠️ Nenhuma config existente, usando fallback';
+        diagnostico.etapas[5].category = categoryValida;
+      }
+    } catch (catError: any) {
+      diagnostico.etapas[5].status = '⚠️ Erro ao buscar categoria, usando fallback';
+      diagnostico.etapas[5].error = {
+        message: catError.message
+      };
+      diagnostico.etapas[5].category = categoryValida;
+    }
+
+    // ETAPA 7: Tentar INSERT
+    diagnostico.etapas.push({
+      etapa: '7. Tentar INSERT',
       status: 'tentando...'
     });
 
@@ -151,49 +251,53 @@ export async function GET(request: NextRequest) {
     try {
       const { data: insertData, error: insertError } = await supabase
         .from('configs')
-        .insert({
+        .insert([{
           id: testId,
           key: 'test_diagnostico',
           value: testValue,
           description: 'Configuração de teste para diagnóstico',
-          category: 'test',
+          category: categoryValida,  // ✅ Usar categoria válida do banco
           tenant_id: tenantId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+          is_system: false,
+          is_encrypted: false,
+          created_by: userId,
+          updated_by: userId
+        }])
         .select()
         .single();
 
       if (insertError) {
-        diagnostico.etapas[4].status = '❌ Erro no INSERT';
-        diagnostico.etapas[4].error = {
+        diagnostico.etapas[6].status = '❌ Erro no INSERT';
+        diagnostico.etapas[6].error = {
           message: insertError.message,
           code: insertError.code,
           details: insertError.details,
           hint: insertError.hint
         };
-        diagnostico.etapas[4].insertPayload = {
+        diagnostico.etapas[6].insertPayload = {
           id: testId,
           key: 'test_diagnostico',
           tenant_id: tenantId,
-          valueType: typeof testValue
+          valueType: typeof testValue,
+          userId: userId,
+          category: categoryValida
         };
       } else {
-        diagnostico.etapas[4].status = '✅ INSERT bem-sucedido!';
-        diagnostico.etapas[4].insertedData = insertData;
+        diagnostico.etapas[6].status = '✅ INSERT bem-sucedido!';
+        diagnostico.etapas[6].insertedData = insertData;
       }
     } catch (error: any) {
-      diagnostico.etapas[4].status = '❌ Exceção no INSERT';
-      diagnostico.etapas[4].error = {
+      diagnostico.etapas[6].status = '❌ Exceção no INSERT';
+      diagnostico.etapas[6].error = {
         name: error.name,
         message: error.message,
         stack: error.stack
       };
     }
 
-    // ETAPA 6: Tentar UPDATE
+    // ETAPA 8: Tentar UPDATE
     diagnostico.etapas.push({
-      etapa: '6. Tentar UPDATE',
+      etapa: '8. Tentar UPDATE',
       status: 'tentando...'
     });
 
@@ -210,29 +314,29 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (updateError) {
-        diagnostico.etapas[5].status = '❌ Erro no UPDATE';
-        diagnostico.etapas[5].error = {
+        diagnostico.etapas[7].status = '❌ Erro no UPDATE';
+        diagnostico.etapas[7].error = {
           message: updateError.message,
           code: updateError.code,
           details: updateError.details,
           hint: updateError.hint
         };
       } else {
-        diagnostico.etapas[5].status = updateData ? '✅ UPDATE bem-sucedido!' : '⚠️ Nenhum registro atualizado';
-        diagnostico.etapas[5].updatedData = updateData;
+        diagnostico.etapas[7].status = updateData ? '✅ UPDATE bem-sucedido!' : '⚠️ Nenhum registro atualizado';
+        diagnostico.etapas[7].updatedData = updateData;
       }
     } catch (error: any) {
-      diagnostico.etapas[5].status = '❌ Exceção no UPDATE';
-      diagnostico.etapas[5].error = {
+      diagnostico.etapas[7].status = '❌ Exceção no UPDATE';
+      diagnostico.etapas[7].error = {
         name: error.name,
         message: error.message,
         stack: error.stack
       };
     }
 
-    // ETAPA 7: Limpar teste (DELETE)
+    // ETAPA 9: Limpar teste (DELETE)
     diagnostico.etapas.push({
-      etapa: '7. Limpar teste (DELETE)',
+      etapa: '9. Limpar teste (DELETE)',
       status: 'limpando...'
     });
 
@@ -244,17 +348,17 @@ export async function GET(request: NextRequest) {
         .eq('tenant_id', tenantId);
 
       if (deleteError) {
-        diagnostico.etapas[6].status = '⚠️ Erro ao limpar (não crítico)';
-        diagnostico.etapas[6].error = {
+        diagnostico.etapas[8].status = '⚠️ Erro ao limpar (não crítico)';
+        diagnostico.etapas[8].error = {
           message: deleteError.message,
           code: deleteError.code
         };
       } else {
-        diagnostico.etapas[6].status = '✅ Teste limpo';
+        diagnostico.etapas[8].status = '✅ Teste limpo';
       }
     } catch (error: any) {
-      diagnostico.etapas[6].status = '⚠️ Exceção ao limpar (não crítico)';
-      diagnostico.etapas[6].error = {
+      diagnostico.etapas[8].status = '⚠️ Exceção ao limpar (não crítico)';
+      diagnostico.etapas[8].error = {
         message: error.message
       };
     }

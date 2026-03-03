@@ -36,6 +36,14 @@ interface FormData {
   permissions: UserPermissions;
 }
 
+interface Cliente {
+  id: string;
+  name: string;
+  email: string;
+  company_name?: string;
+  billing_mode?: string;
+}
+
 export default function EquipePage() {
   const { user, refreshUserProfile } = useAuth();
   const router = useRouter();
@@ -61,6 +69,14 @@ export default function EquipePage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
 
+  // 🆕 CLIENTES PERMITIDOS: Estados para controlar acesso de colaboradores
+  const [clientesDisponiveis, setClientesDisponiveis] = useState<Cliente[]>([]);
+  const [clientesSelecionados, setClientesSelecionados] = useState<string[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [buscaCliente, setBuscaCliente] = useState('');
+  const [permitirTodosClientes, setPermitirTodosClientes] = useState(true);
+  const [clientesPermitidosCarregados, setClientesPermitidosCarregados] = useState(false);
+
   // Filtrar membros baseado na busca
   const filteredMembers = teamMembers.filter(member =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,6 +89,119 @@ export default function EquipePage() {
       fetchTeamMembers();
     }
   }, [user]);
+
+  // 🆕 Carregar clientes disponíveis do tenant
+  const fetchClientesDisponiveis = async () => {
+    if (!user?.id) return [];
+
+    try {
+      setLoadingClientes(true);
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+
+      const response = await fetch('/api/admin/clientes', { headers });
+      const result = await response.json();
+
+      if (result.success) {
+        setClientesDisponiveis(result.data || []);
+        devLog.log('[EquipePage] Clientes carregados:', result.data?.length || 0);
+        return result.data || [];
+      }
+      return [];
+    } catch (error) {
+      devLog.error('[EquipePage] Erro ao carregar clientes:', error);
+      return [];
+    } finally {
+      setLoadingClientes(false);
+    }
+  };
+
+  // 🆕 Carregar clientes permitidos de um colaborador
+  const fetchClientesPermitidos = async (colaboradorId: string, clientesDisponiveisParam: Cliente[]) => {
+    if (!user?.id) return;
+
+    try {
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+
+      const response = await fetch(`/api/admin/team-members/${colaboradorId}/clientes-permitidos`, { headers });
+      const result = await response.json();
+
+      if (result.success) {
+        const clienteIds = result.cliente_ids || [];
+        const temRestricao = result.tem_restricao || false;
+
+        setClientesSelecionados(clienteIds);
+
+        // ✅ LÓGICA CORRIGIDA:
+        // - Se NÃO tem restrição → Checkbox "permitir todos" = true
+        // - Se TEM restrição e tem TODOS os clientes → Checkbox = true
+        // - Caso contrário → Checkbox = false
+        if (!temRestricao) {
+          setPermitirTodosClientes(true);
+        } else {
+          // ✅ CORREÇÃO RACE CONDITION: Usar parâmetro ao invés do estado React
+          const todosClientesIds = clientesDisponiveisParam.map(c => c.id);
+          const temTodos = todosClientesIds.length > 0 &&
+                          clienteIds.length === todosClientesIds.length &&
+                          todosClientesIds.every(id => clienteIds.includes(id));
+          setPermitirTodosClientes(temTodos);
+        }
+
+        devLog.log('[EquipePage] Clientes permitidos carregados:', {
+          quantidade: clienteIds.length,
+          temRestricao,
+          permitirTodos: !temRestricao
+        });
+
+        // ✅ Marcar como carregado
+        setClientesPermitidosCarregados(true);
+      }
+    } catch (error) {
+      devLog.error('[EquipePage] Erro ao carregar clientes permitidos:', error);
+      setClientesPermitidosCarregados(true); // Marcar como carregado mesmo com erro
+    }
+  };
+
+  // 🆕 Salvar clientes permitidos
+  const salvarClientesPermitidos = async (colaboradorId: string) => {
+    if (!user?.id) return;
+
+    try {
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+
+      // ✅ Enviar array real de IDs selecionados (API decide a lógica)
+      const clienteIds = clientesSelecionados;
+
+      const response = await fetch(`/api/admin/team-members/${colaboradorId}/clientes-permitidos`, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cliente_ids: clienteIds }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao salvar clientes permitidos');
+      }
+
+      devLog.log('[EquipePage] Clientes permitidos salvos:', {
+        quantidade: clienteIds.length,
+        temRestricao: result.tem_restricao
+      });
+    } catch (error) {
+      devLog.error('[EquipePage] Erro ao salvar clientes permitidos:', error);
+      toast({
+        title: 'Aviso',
+        description: 'Membro salvo, mas houve erro ao atualizar clientes permitidos.',
+        variant: 'default'
+      });
+    }
+  };
 
   // 🔒 VALIDAÇÃO DE EMAIL: Verificar se email já existe no sistema
   const checkEmailAvailability = async (email: string) => {
@@ -195,6 +324,37 @@ export default function EquipePage() {
     }));
   };
 
+  // 🆕 Handlers para Clientes Permitidos
+  const handleTogglePermitirTodos = () => {
+    const novoEstado = !permitirTodosClientes;
+    setPermitirTodosClientes(novoEstado);
+
+    if (novoEstado) {
+      // ✅ Marcou "permitir todos" → Selecionar TODOS os clientes
+      setClientesSelecionados(clientesDisponiveis.map(c => c.id));
+    } else {
+      // ✅ Desmarcou "permitir todos" → Limpar array (sem acesso)
+      setClientesSelecionados([]);
+    }
+  };
+
+  const handleToggleCliente = (clienteId: string) => {
+    setClientesSelecionados(prev => {
+      const novoArray = prev.includes(clienteId)
+        ? prev.filter(id => id !== clienteId)
+        : [...prev, clienteId];
+
+      // ✅ Atualizar checkbox "permitir todos" baseado na seleção
+      const todosClientesIds = clientesDisponiveis.map(c => c.id);
+      const temTodos = todosClientesIds.length > 0 &&
+                      novoArray.length === todosClientesIds.length &&
+                      todosClientesIds.every(id => novoArray.includes(id));
+      setPermitirTodosClientes(temTodos);
+
+      return novoArray;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -239,6 +399,12 @@ export default function EquipePage() {
 
       if (response.ok) {
         if (result.success) {
+          // 🆕 Salvar clientes permitidos (apenas para colaboradores)
+          if (formData.role === 'colaborador' && (editMode || result.userId)) {
+            const userId = editMode ? currentUserId : result.userId;
+            await salvarClientesPermitidos(userId!);
+          }
+
           toast({
             title: 'Sucesso',
             description: editMode ? 'Membro atualizado com sucesso!' : 'Membro adicionado com sucesso!',
@@ -272,7 +438,7 @@ export default function EquipePage() {
     }
   };
 
-  const handleEdit = (member: TeamMember) => {
+  const handleEdit = async (member: TeamMember) => {
     // ✅ Carregar permissions do membro (com fallback baseado no role)
     const memberPermissions = (member as any).permissions ||
       (member.role === 'admin' || member.role === 'superadmin' ? ADMIN_PERMISSIONS : COLABORADOR_PERMISSIONS);
@@ -288,6 +454,13 @@ export default function EquipePage() {
     setCurrentUserId(member.id);
     setEditMode(true);
     setOpen(true);
+
+    // 🆕 Carregar clientes disponíveis e clientes permitidos para colaboradores
+    if (member.role === 'colaborador') {
+      // ✅ CORREÇÃO RACE CONDITION: Passar dados diretamente ao invés de depender do estado
+      const clientes = await fetchClientesDisponiveis();
+      await fetchClientesPermitidos(member.id, clientes || []);
+    }
   };
 
   const handleDeleteClick = async (memberId: string, memberName: string) => {
@@ -384,11 +557,28 @@ export default function EquipePage() {
     setEmailCheckLoading(false);
     setEmailError(null);
     setEmailAvailable(null);
+    // 🆕 Resetar estados de clientes permitidos
+    setClientesSelecionados([]);
+    setBuscaCliente('');
+    setPermitirTodosClientes(true);
+    setClientesPermitidosCarregados(false); // ✅ Resetar flag de carregamento
   };
 
   // ✅ Função para abrir modal de adicionar (usado pelos botões "Adicionar Membro")
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     resetForm();
+    // 🆕 Carregar clientes disponíveis quando abrir para adicionar novo membro
+    const clientes = await fetchClientesDisponiveis();
+
+    // ✅ Inicializar novo colaborador com todos os clientes selecionados
+    if (clientes && clientes.length > 0) {
+      setClientesSelecionados(clientes.map(c => c.id));
+      setPermitirTodosClientes(true);
+    }
+
+    // ✅ Marcar como carregado (novo membro não tem dados para carregar)
+    setClientesPermitidosCarregados(true);
+
     setOpen(true);
   };
 
@@ -403,6 +593,7 @@ export default function EquipePage() {
       });
     }
   }, [user]);
+
 
   // ✅ CORREÇÃO: Verificar se é admin completo ou tem permissão de gerenciar equipe
   const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
@@ -478,8 +669,8 @@ export default function EquipePage() {
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button 
-              onClick={resetForm}
+            <Button
+              onClick={handleAddMember}
               className="bg-teal-600 hover:bg-teal-700 text-white"
             >
               <PlusCircle className="h-4 w-4 mr-2" />
@@ -613,6 +804,147 @@ export default function EquipePage() {
                 permissions={formData.permissions}
                 onChange={handlePermissionsChange}
               />
+
+              {/* 🆕 CLIENTES PERMITIDOS - Apenas para Colaboradores */}
+              {formData.role === 'colaborador' && (
+                <div className="space-y-4 mt-6 pt-6 border-t">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-teal-600" />
+                    <Label className="text-base font-semibold">Clientes Permitidos</Label>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Selecione os clientes cujos projetos este colaborador pode acessar
+                  </p>
+
+                  {/* ✅ Loading skeleton enquanto carrega */}
+                  {editMode && !clientesPermitidosCarregados ? (
+                    <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg animate-pulse">
+                      <div className="h-4 w-4 bg-gray-300 rounded"></div>
+                      <div className="h-4 bg-gray-300 rounded w-64"></div>
+                    </div>
+                  ) : (
+                    /* Checkbox: Permitir todos */
+                    <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                      <input
+                        type="checkbox"
+                        id="permitir-todos-clientes"
+                        checked={permitirTodosClientes}
+                        onChange={handleTogglePermitirTodos}
+                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor="permitir-todos-clientes"
+                        className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer"
+                      >
+                        Permitir acesso a todos os clientes ({clientesDisponiveis.length})
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Busca de Clientes */}
+                  {!permitirTodosClientes && (
+                    <>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Buscar cliente..."
+                          value={buscaCliente}
+                          onChange={(e) => setBuscaCliente(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+
+                      {/* Lista de Clientes */}
+                      <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3 bg-white dark:bg-gray-900">
+                        {loadingClientes ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                          </div>
+                        ) : clientesDisponiveis.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            Nenhum cliente cadastrado
+                          </p>
+                        ) : (
+                          <>
+                            {/* Selecionados */}
+                            {clientesSelecionados.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                  Selecionados ({clientesSelecionados.length})
+                                </p>
+                                {clientesDisponiveis
+                                  .filter(cliente => 
+                                    clientesSelecionados.includes(cliente.id) &&
+                                    (cliente.company_name || cliente.name).toLowerCase().includes(buscaCliente.toLowerCase())
+                                  )
+                                  .map(cliente => (
+                                    <div key={cliente.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
+                                      <input
+                                        type="checkbox"
+                                        id={`cliente-${cliente.id}`}
+                                        checked={true}
+                                        onChange={() => handleToggleCliente(cliente.id)}
+                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                      />
+                                      <label 
+                                        htmlFor={`cliente-${cliente.id}`}
+                                        className="text-sm text-gray-900 dark:text-gray-100 cursor-pointer flex-1"
+                                      >
+                                        {cliente.company_name || cliente.name}
+                                        {cliente.email && (
+                                          <span className="text-xs text-gray-500 ml-2">({cliente.email})</span>
+                                        )}
+                                      </label>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+
+                            {/* Disponíveis */}
+                            {clientesDisponiveis.some(c => !clientesSelecionados.includes(c.id)) && (
+                              <div className="space-y-2 mt-4">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                  Disponíveis ({clientesDisponiveis.filter(c => !clientesSelecionados.includes(c.id)).length})
+                                </p>
+                                {clientesDisponiveis
+                                  .filter(cliente => 
+                                    !clientesSelecionados.includes(cliente.id) &&
+                                    (cliente.company_name || cliente.name).toLowerCase().includes(buscaCliente.toLowerCase())
+                                  )
+                                  .map(cliente => (
+                                    <div key={cliente.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
+                                      <input
+                                        type="checkbox"
+                                        id={`cliente-${cliente.id}`}
+                                        checked={false}
+                                        onChange={() => handleToggleCliente(cliente.id)}
+                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                      />
+                                      <label 
+                                        htmlFor={`cliente-${cliente.id}`}
+                                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1"
+                                      >
+                                        {cliente.company_name || cliente.name}
+                                        {cliente.email && (
+                                          <span className="text-xs text-gray-500 ml-2">({cliente.email})</span>
+                                        )}
+                                      </label>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-gray-500 dark:text-gray-400 italic flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        Dica: Deixe vazio para bloquear acesso a todos os clientes
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
               </div>
 
               <DialogFooter className="flex-shrink-0 mt-4 pt-4 border-t">

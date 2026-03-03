@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown } from "lucide-react"
-import { TechBackground } from "./tech-background"
-import { CircuitPattern } from "./circuit-pattern"
 
 interface FaqItemProps {
   question: string
@@ -101,20 +99,10 @@ export default function FaqSection() {
   ]
 
   return (
-    <section ref={sectionRef} className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden" id="faq">
-      <TechBackground variant="light" intensity="low" showParticles={false} />
-
-      <CircuitPattern className="top-20 left-10 opacity-20 -rotate-12 scale-75" />
-      <CircuitPattern className="bottom-20 right-10 opacity-20 rotate-12 scale-75" color="text-green-200" />
-
+    <section ref={sectionRef} className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden bg-gray-100" id="faq">
       <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-7xl">
         <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
           <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 rounded-full bg-gradient-to-r from-blue-100 to-green-100 px-4 py-1 text-sm text-blue-700 shadow-sm border border-blue-200/50">
-              <span className="w-1 h-1 rounded-full bg-blue-700"></span>
-              <span>FAQ</span>
-              <span className="w-1 h-1 rounded-full bg-blue-700"></span>
-            </div>
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-gray-800 drop-shadow-sm">
               Perguntas Frequentes
             </h2>

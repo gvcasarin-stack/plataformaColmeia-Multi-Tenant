@@ -342,7 +342,7 @@ export async function atualizarTextoProcuracao(texto: string): Promise<boolean> 
  * Atualiza modo de precificação manual
  * ✅ Usa API route segura
  */
-export async function atualizarPrecificacaoManual(ativado: boolean): Promise<boolean> {
+export async function atualizarPrecificacaoManual(ativado: boolean, userId: string): Promise<boolean> {
   try {
     logger.info('[ConfigService] Atualizando modo de precificação manual via API');
 
@@ -350,7 +350,8 @@ export async function atualizarPrecificacaoManual(ativado: boolean): Promise<boo
     logger.info('[ConfigService] Fazendo fetch para /api/admin/config');
     logger.info('[ConfigService] Body:', {
       key: 'precificacao_manual',
-      value: ativado
+      value: ativado,
+      user_id: userId
     });
 
     const response = await fetch('/api/admin/config', {
@@ -361,7 +362,8 @@ export async function atualizarPrecificacaoManual(ativado: boolean): Promise<boo
       body: JSON.stringify({
         key: 'precificacao_manual',
         value: ativado,
-        description: 'Controle manual de preços - quando ativado, novos projetos avulsos são criados com R$ 0,00'
+        description: 'Controle manual de preços - quando ativado, novos projetos avulsos são criados com R$ 0,00',
+        user_id: userId  // ✅ CRÍTICO: Enviar user_id para preencher created_by/updated_by
       })
     });
 
@@ -444,26 +446,25 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
 
 <div style="text-align: justify; line-height: 1.8; margin-bottom: 20px;">
 <p style="margin-bottom: 15px;">
-<strong>OUTORGANTE:</strong> Por este instrumento de procuração, {{cliente_nome}}, {{cliente_tipo}}, portador do RG nº {{cliente_rg}} e inscrito no CPF sob o nº {{cliente_cpf}}.
+<strong>OUTORGANTE:</strong> Por este instrumento de procuração, <strong>{{cliente_nome}}</strong>, inscrito no CPF sob o nº <strong>{{cliente_cpf}}</strong>.
 </p>
 
 <p style="margin-bottom: 15px;">
-<strong>OUTORGADO:</strong> Nomeia e constitui o seu bastante procurador {{responsavel_nome}}, portador do RG nº {{responsavel_rg}} {{responsavel_orgao_expeditor}} e inscrito no CPF sob o nº {{responsavel_cpf}}, {{responsavel_profissao}} inscrito no {{responsavel_instituicao}}-{{responsavel_estado}} sob o nº {{responsavel_registro}}.
+<strong>OUTORGADO:</strong> Nomeia e constitui o seu bastante procurador <strong>{{responsavel_nome}}</strong>, portador do RG nº <strong>{{responsavel_rg}} {{responsavel_orgao_expeditor}}</strong> e inscrito no CPF sob o nº <strong>{{responsavel_cpf}}</strong>, <strong>{{responsavel_profissao}}</strong> inscrito no <strong>{{responsavel_instituicao}} {{responsavel_estado}}</strong> sob o nº <strong>{{responsavel_registro}}</strong>.
 </p>
 
 <p style="margin-bottom: 15px;">
-<strong>PODERES:</strong> Para o fim especial de representar o OUTORGANTE perante à {{distribuidora}} no tocante as solicitações de parecer de acesso para micro geração ou mini geração, pedidos de vistoria de micro geração ou mini geração, pedidos de alteração de carga alteração de demanda, assim tendo ainda o OUTORGADO, na qualidade de procurador do OUTORGANTE, os poderes suficientes e necessários de representação para dar entrada em processos administrativos, protocolar requerimentos, apresentar documentação em cumprimento às exigências técnicas e administrativas e, ainda, assinatura dos seguintes documentos: formulário de solicitação de acesso, formulário de registro, formulário de compensação, ART/TRT, identificação do consumidor, termo de responsabilidade, cadastro de geração distribuída, solicitação de vistoria, formulário de troca do padrão/aumento de carga e formulário de ligação nova.
+<strong>PODERES:</strong> Para o fim especial de representar o <strong>OUTORGANTE</strong> perante à <strong style="text-transform: uppercase;">{{distribuidora}}</strong> no tocante as solicitações de parecer de acesso para micro geração ou mini geração, pedidos de vistoria de micro geração ou mini geração, pedidos de alteração de carga alteração de demanda, assim tendo ainda o <strong>OUTORGADO</strong>, na qualidade de procurador do <strong>OUTORGANTE</strong>, os poderes suficientes e necessários de representação para dar entrada em processos administrativos, protocolar requerimentos, apresentar documentação em cumprimento às exigências técnicas e administrativas e, ainda, assinatura dos seguintes documentos: formulário de solicitação de acesso, formulário de registro, formulário de compensação, ART/TRT, identificação do consumidor, termo de responsabilidade, cadastro de geração distribuída, solicitação de vistoria, formulário de troca do padrão/aumento de carga e formulário de ligação nova.
 </p>
 
-<p style="margin-bottom: 20px;">
-Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatura desta procuração.
-</p>
-
+<br>
 <p style="margin-bottom: 30px;">
 {{cidade}}-{{estado}}, {{data}}.
 </p>
 </div>
 
+<br>
+<br>
 <div style="text-align: center; margin-top: 60px;">
 <div style="display: inline-block; border-top: 2px solid #000; width: 350px; padding-top: 8px; margin-bottom: 15px;">
 <strong>Assinatura</strong>

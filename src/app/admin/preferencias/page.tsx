@@ -12,46 +12,44 @@ import {
   atualizarMensagemChecklist,
   atualizarFaixasPotencia,
   atualizarDadosBancarios,
+  atualizarResponsavelTecnico,
+  atualizarTextoProcuracao,
+  atualizarPrecificacaoManual,
   criarConfiguracaoPadrao,
   type FaixaPotenciaPreco,
   type DadosBancarios,
+  type ResponsavelTecnico,
   type ConfiguracaoSistema
 } from '@/lib/services/configService.supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail, Bell, FileUp, MessageSquare, FolderPlus } from 'lucide-react';
 import { devLog } from "@/lib/utils/productionLogger";
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { getProjectStatuses, updateStatusSLA, type ProjectStatusInfo } from '@/lib/services/kanbanService';
 import { PackagesTab } from '@/components/admin/PackagesTab';
 import { SubscriptionPlansTab } from '@/components/admin/SubscriptionPlansTab';
 
-// Componente de Abas (Estilo Pill/Botão)
+// Componente de Abas (Estilo Botões Azuis com Ícones)
 function Tabs({ tabs, activeTab, onTabChange }: { tabs: { id: string; label: string; icon: React.ReactNode }[]; activeTab: string; onTabChange: (tabId: string) => void }) {
   return (
-    <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-1">
-      <nav className="flex gap-1" aria-label="Tabs">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className={cn(
-              "group inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200",
-              activeTab === tab.id
-                ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm"
-                : "bg-transparent text-gray-600 hover:bg-white dark:hover:bg-slate-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-            )}
-          >
-            <span className={cn(
-              "transition-colors duration-200",
-              activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"
-            )}>
-              {tab.icon}
-            </span>
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+    <div className="flex gap-2">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={cn(
+            "inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200",
+            activeTab === tab.id
+              ? "bg-blue-600 text-white shadow-md hover:bg-blue-700"
+              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+          )}
+        >
+          {tab.icon}
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -189,6 +187,52 @@ export default function PreferenciasPage() {
   const [editandoKanban, setEditandoKanban] = useState(false);
   const [slaConfigOriginal, setSlaConfigOriginal] = useState<Record<string, { sla_days: number | null; sla_exclude_weekends: boolean }>>({});
 
+  // Estados para Preferências de E-mail
+  const [emailPreferences, setEmailPreferences] = useState({
+    notify_project_created: true,
+    notify_status_change: true,
+    notify_document_added: true,
+    notify_comment_added: true
+  });
+  const [loadingEmailPrefs, setLoadingEmailPrefs] = useState(false);
+  const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
+
+  // Estados para Documentos - Responsável Técnico
+  const [responsavelTecnico, setResponsavelTecnico] = useState<ResponsavelTecnico>({
+    nomeCompleto: '',
+    cpf: '',
+    rg: '',
+    orgaoExpeditor: '',
+    profissao: '',
+    numeroRegistro: '',
+    instituicao: 'CREA',
+    estadoRegistro: ''
+  });
+  const [editandoResponsavel, setEditandoResponsavel] = useState(false);
+  const [responsavelOriginal, setResponsavelOriginal] = useState<ResponsavelTecnico>({
+    nomeCompleto: '',
+    cpf: '',
+    rg: '',
+    orgaoExpeditor: '',
+    profissao: '',
+    numeroRegistro: '',
+    instituicao: 'CREA',
+    estadoRegistro: ''
+  });
+
+  // Estados para Texto da Procuração
+  const [textoProcuracao, setTextoProcuracao] = useState('');
+  const [editandoProcuracao, setEditandoProcuracao] = useState(false);
+  const [textoProcuracaoOriginal, setTextoProcuracaoOriginal] = useState('');
+
+  // Estado para Precificação Manual
+  const [precificacaoManual, setPrecificacaoManual] = useState(false);
+  const [salvandoPrecificacao, setSalvandoPrecificacao] = useState(false);
+
+  // Estado para controlar se o aviso de faixas vazias foi dispensado
+  const [avisoFaixasVaziasDismissed, setAvisoFaixasVaziasDismissed] = useState(false);
+  const [restaurandoFaixas, setRestaurandoFaixas] = useState(false);
+
   const defaultChecklist = `Checklist de Documentos Necessários para o Projeto
 
 Seu projeto está prestes a ser desenvolvido. Porém antes vamos precisar que você nos encaminhe os seguintes documentos:
@@ -205,6 +249,44 @@ Fotos complementares de onde será feita a instalação. Caso possuir, encaminha
 Para os projetos na distribuidora ENEL ou EQUATORIAL, encaminhar foto que contenha o número do poste que alimenta a unidade consumidora, ou o poste mais próximo do local de atendimento.
 
 Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em até 24h retornará informando se a documentação está de acordo, ou se necessita de alguma correção ou adição de documentos. Se tudo estiver correto, seu projeto seguirá para a próxima etapa para ser desenvolvido.`;
+
+  const defaultProcuracao = `<div style="text-align: center; margin-bottom: 40px;">
+<h2 style="font-weight: bold; font-size: 20px; letter-spacing: 2px;">PROCURAÇÃO</h2>
+</div>
+
+<div style="text-align: justify; line-height: 1.8; margin-bottom: 20px;">
+<p style="margin-bottom: 15px;">
+<strong>OUTORGANTE:</strong> Por este instrumento de procuração, {{cliente_nome}}, {{cliente_tipo}}, portador do RG nº {{cliente_rg}} e inscrito no CPF sob o nº {{cliente_cpf}}.
+</p>
+
+<p style="margin-bottom: 15px;">
+<strong>OUTORGADO:</strong> Nomeia e constitui o seu bastante procurador {{responsavel_nome}}, portador do RG nº {{responsavel_rg}} {{responsavel_orgao_expeditor}} e inscrito no CPF sob o nº {{responsavel_cpf}}, {{responsavel_profissao}} inscrito no {{responsavel_instituicao}}-{{responsavel_estado}} sob o nº {{responsavel_registro}}.
+</p>
+
+<p style="margin-bottom: 15px;">
+<strong>PODERES:</strong> Para o fim especial de representar o OUTORGANTE perante à {{distribuidora}} no tocante as solicitações de parecer de acesso para micro geração ou mini geração, pedidos de vistoria de micro geração ou mini geração, pedidos de alteração de carga alteração de demanda, assim tendo ainda o OUTORGADO, na qualidade de procurador do OUTORGANTE, os poderes suficientes e necessários de representação para dar entrada em processos administrativos, protocolar requerimentos, apresentar documentação em cumprimento às exigências técnicas e administrativas e, ainda, assinatura dos seguintes documentos: formulário de solicitação de acesso, formulário de registro, formulário de compensação, ART/TRT, identificação do consumidor, termo de responsabilidade, cadastro de geração distribuída, solicitação de vistoria, formulário de troca do padrão/aumento de carga e formulário de ligação nova.
+</p>
+
+<p style="margin-bottom: 20px;">
+Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatura desta procuração.
+</p>
+
+<p style="margin-bottom: 30px;">
+{{cidade}}-{{estado}}, {{data}}.
+</p>
+</div>
+
+<div style="text-align: center; margin-top: 60px;">
+<div style="display: inline-block; border-top: 2px solid #000; width: 350px; padding-top: 8px; margin-bottom: 15px;">
+<strong>Assinatura</strong>
+</div>
+<div style="margin-top: 12px; font-size: 14px;">
+<strong>Nome completo:</strong> {{cliente_nome}}
+</div>
+<div style="margin-top: 8px; font-size: 14px;">
+<strong>CPF:</strong> {{cliente_cpf}}
+</div>
+</div>`;
 
   // Função para criar uma tabela de faixas de potência padrão
   const criarFaixasPotenciaPadrao = (): FaixaPotenciaPreco[] => {
@@ -249,12 +331,36 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
             setDadosBancarios(data.dadosBancarios);
             setDadosBancariosOriginal(data.dadosBancarios);
           }
+
+          // Carregar dados do responsável técnico
+          if (data.responsavelTecnico) {
+            setResponsavelTecnico(data.responsavelTecnico);
+            setResponsavelOriginal(data.responsavelTecnico);
+          }
+
+          // Carregar texto da procuração
+          if (data.textoProcuracao) {
+            setTextoProcuracao(data.textoProcuracao);
+            setTextoProcuracaoOriginal(data.textoProcuracao);
+          } else {
+            setTextoProcuracao(defaultProcuracao);
+            setTextoProcuracaoOriginal(defaultProcuracao);
+          }
+
+          // Carregar modo de precificação manual
+          if (data.precificacaoManual !== undefined) {
+            setPrecificacaoManual(data.precificacaoManual);
+          }
         } else {
           setMensagemChecklist(defaultChecklist);
           setOriginalMessage(defaultChecklist);
           const faixasPadrao = criarFaixasPotenciaPadrao();
           setFaixasPotencia(faixasPadrao);
           setFaixasPotenciaOriginal(faixasPadrao);
+          
+          // Inicializar texto da procuração com o padrão
+          setTextoProcuracao(defaultProcuracao);
+          setTextoProcuracaoOriginal(defaultProcuracao);
 
           await criarConfiguracaoPadrao();
         }
@@ -279,6 +385,13 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
       carregarStatusKanban();
     }
   }, [activeTab]);
+
+  // Carregar preferências de email quando a aba E-mails for acessada
+  useEffect(() => {
+    if (activeTab === 'emails' && user) {
+      carregarPreferenciasEmail();
+    }
+  }, [activeTab, user]);
 
   const carregarStatusKanban = async () => {
     try {
@@ -351,6 +464,103 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
   const cancelarEdicaoKanban = () => {
     setSlaConfig(JSON.parse(JSON.stringify(slaConfigOriginal))); // Restaurar valores originais
     setEditandoKanban(false);
+  };
+
+  // Função para carregar preferências de email
+  const carregarPreferenciasEmail = async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoadingEmailPrefs(true);
+      const response = await fetch(`/api/admin/email-notifications?user_id=${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao carregar preferências de email');
+      }
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        setEmailPreferences(result.data);
+      }
+    } catch (error) {
+      devLog.error('Erro ao carregar preferências de email:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as preferências de email.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingEmailPrefs(false);
+    }
+  };
+
+  // Função para atualizar uma preferência de email
+  const atualizarPreferenciaEmail = async (preferenciaKey: keyof typeof emailPreferences, valor: boolean) => {
+    if (!user?.id) {
+      toast({
+        title: 'Erro',
+        description: 'Usuário não autenticado. Faça login novamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSavingEmailPrefs(true);
+
+      // Atualizar estado local imediatamente para UX responsivo
+      setEmailPreferences(prev => ({
+        ...prev,
+        [preferenciaKey]: valor
+      }));
+
+      const response = await fetch('/api/admin/email-notifications', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          [preferenciaKey]: valor
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar preferência');
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao atualizar preferência');
+      }
+
+      toast({
+        title: 'Preferência atualizada',
+        description: 'Sua preferência de notificação foi salva com sucesso.',
+      });
+    } catch (error) {
+      devLog.error('Erro ao atualizar preferência de email:', error);
+
+      // Reverter mudança local em caso de erro
+      setEmailPreferences(prev => ({
+        ...prev,
+        [preferenciaKey]: !valor
+      }));
+
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar a preferência.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingEmailPrefs(false);
+    }
   };
 
   const salvarMensagemChecklist = async () => {
@@ -551,11 +761,101 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
     }
   };
 
+  const alternarPrecificacaoManual = async (ativado: boolean) => {
+    if (!user) return;
+
+    try {
+      setSalvandoPrecificacao(true);
+      setPrecificacaoManual(ativado);
+
+      const sucesso = await atualizarPrecificacaoManual(ativado, user.id);
+
+      if (sucesso) {
+        toast({
+          title: 'Configuração atualizada',
+          description: ativado
+            ? 'Modo de precificação manual ativado. Novos projetos avulsos serão criados com R$ 0,00.'
+            : 'Modo de precificação manual desativado. Novos projetos avulsos usarão a tabela de preços.',
+        });
+
+        devLog.log('Modo de precificação manual alterado:', ativado);
+      } else {
+        // Reverter em caso de erro
+        setPrecificacaoManual(!ativado);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível atualizar a configuração de precificação.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      // Reverter em caso de erro
+      setPrecificacaoManual(!ativado);
+      devLog.error('Erro ao alterar precificação manual:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar a configuração de precificação.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSalvandoPrecificacao(false);
+    }
+  };
+
+  const restaurarFaixasPadrao = async () => {
+    if (!user) return;
+
+    try {
+      setRestaurandoFaixas(true);
+
+      const faixasPadrao = criarFaixasPotenciaPadrao();
+      const sucesso = await atualizarFaixasPotencia(faixasPadrao);
+
+      if (sucesso) {
+        setFaixasPotencia(faixasPadrao);
+        setFaixasPotenciaOriginal(faixasPadrao);
+        setAvisoFaixasVaziasDismissed(false);
+
+        toast({
+          title: 'Faixas restauradas',
+          description: 'As faixas de potência padrão foram restauradas com sucesso.',
+        });
+
+        devLog.log('Faixas de potência padrão restauradas');
+      } else {
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível restaurar as faixas padrão.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      devLog.error('Erro ao restaurar faixas padrão:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível restaurar as faixas padrão.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRestaurandoFaixas(false);
+    }
+  };
+
+  const ativarPrecificacaoManualEFecharAviso = async () => {
+    await alternarPrecificacaoManual(true);
+    setAvisoFaixasVaziasDismissed(true);
+  };
+
+  const dispensarAvisoFaixasVazias = () => {
+    setAvisoFaixasVaziasDismissed(true);
+  };
+
   const tabs = [
     { id: 'geral', label: 'Geral', icon: <Settings className="h-4 w-4" /> },
     { id: 'projetos', label: 'Projetos', icon: <FileText className="h-4 w-4" /> },
     { id: 'kanban', label: 'Kanban', icon: <Columns3 className="h-4 w-4" /> },
     { id: 'financeiro', label: 'Financeiro', icon: <DollarSign className="h-4 w-4" /> },
+    { id: 'documentos', label: 'Documentos', icon: <FileText className="h-4 w-4" /> },
     { id: 'emails', label: 'E-mails', icon: <Mail className="h-4 w-4" /> }
   ];
 
@@ -761,6 +1061,136 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
                 icon={<BarChart3 className="h-5 w-5" />}
               >
                   <div className="space-y-4">
+                    {/* Indicador de Status: Modo Ativo */}
+                    <div className={cn(
+                      "rounded-lg border-2 p-4 transition-all duration-200 shadow-sm",
+                      precificacaoManual
+                        ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700"
+                        : "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700"
+                    )}>
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          {precificacaoManual ? (
+                            <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          ) : (
+                            <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className={cn(
+                            "text-base font-bold mb-1",
+                            precificacaoManual
+                              ? "text-red-900 dark:text-red-100"
+                              : "text-emerald-900 dark:text-emerald-100"
+                          )}>
+                            {precificacaoManual ? "⚠️ Precificação Manual ATIVA" : "✓ Precificação Automática ATIVA"}
+                          </h4>
+                          <p className={cn(
+                            "text-sm",
+                            precificacaoManual
+                              ? "text-red-800 dark:text-red-200"
+                              : "text-emerald-800 dark:text-emerald-200"
+                          )}>
+                            {precificacaoManual
+                              ? "Novos projetos avulsos serão criados com R$ 0,00. A tabela de preços abaixo será ignorada."
+                              : "Novos projetos avulsos usarão a tabela de preços abaixo para calcular o valor automaticamente."
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Banner de Aviso: Nenhuma Faixa Configurada */}
+                    {faixasPotencia.length === 0 && !avisoFaixasVaziasDismissed && (
+                      <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 p-6 shadow-lg">
+                        <div className="flex items-start gap-4">
+                          {/* Ícone de Alerta */}
+                          <div className="flex-shrink-0 mt-1">
+                            <svg className="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+
+                          {/* Conteúdo */}
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2">
+                              ⚠️ Atenção: Nenhuma faixa de potência configurada!
+                            </h3>
+                            <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
+                              Sua tabela de preços está vazia. Novos projetos avulsos serão criados com <strong>valor R$ 0,00</strong> até que você configure as faixas de potência ou ative o modo de precificação manual.
+                            </p>
+
+                            {/* Opções */}
+                            <div className="space-y-3">
+                              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                Escolha uma das opções abaixo:
+                              </p>
+
+                              <div className="flex flex-wrap gap-3">
+                                {/* Opção 1: Restaurar Faixas Padrão */}
+                                <Button
+                                  onClick={restaurarFaixasPadrao}
+                                  disabled={restaurandoFaixas}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                  {restaurandoFaixas ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Restaurando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                      </svg>
+                                      Restaurar Faixas Padrão
+                                    </>
+                                  )}
+                                </Button>
+
+                                {/* Opção 2: Ativar Precificação Manual */}
+                                <Button
+                                  onClick={ativarPrecificacaoManualEFecharAviso}
+                                  disabled={salvandoPrecificacao}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                >
+                                  {salvandoPrecificacao ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Ativando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                      Ativar Precificação Manual
+                                    </>
+                                  )}
+                                </Button>
+
+                                {/* Opção 3: Dispensar Aviso */}
+                                <Button
+                                  onClick={dispensarAvisoFaixasVazias}
+                                  variant="outline"
+                                  className="border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                                >
+                                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Entendi, vou adicionar manualmente
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="rounded-lg border overflow-hidden">
                       <Table>
                         <TableHeader>
@@ -901,6 +1331,64 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
                           </Button>
                         </>
                       )}
+                    </div>
+
+                    {/* Controle de Precificação Manual */}
+                    <div className="pt-6 border-t space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          Controle Manual de Preços
+                        </h3>
+                      </div>
+                <div className="space-y-4">
+                  {/* Informação sobre o que é precificação manual */}
+                  <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                          O que é Precificação Manual?
+                        </h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          Quando ativada, todos os novos <strong>projetos avulsos</strong> criados por clientes, administradores ou colaboradores serão criados automaticamente com <strong>valor R$ 0,00</strong>. Você poderá então ajustar manualmente o preço de cada projeto conforme necessário.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Switch de controle */}
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                        Ativar Precificação Manual
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {precificacaoManual
+                          ? "Desative para voltar a usar a tabela de preços automática"
+                          : "Ative para definir preços manualmente em cada projeto"
+                        }
+                      </p>
+                    </div>
+                    <Switch
+                      checked={precificacaoManual}
+                      onCheckedChange={alternarPrecificacaoManual}
+                      disabled={salvandoPrecificacao}
+                      className="ml-4"
+                    />
+                  </div>
+
+                  {salvandoPrecificacao && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Salvando configuração...</span>
+                    </div>
+                  )}
+                </div>
                     </div>
                   </div>
               </CollapsibleSection>
@@ -1137,19 +1625,431 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
             </CollapsibleSection>
           )}
 
+          {/* ABA DOCUMENTOS */}
+          {activeTab === 'documentos' && (
+            <div className="space-y-6">
+              {/* Dados do Responsável Técnico */}
+              <CollapsibleSection
+                title="Dados do Responsável Técnico"
+                description="Configure os dados do responsável técnico para geração de procurações."
+                defaultOpen={false}
+                borderColor="blue-500"
+                icon={<FileText className="h-5 w-5" />}
+              >
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Nome Completo</label>
+                      <Input
+                        type="text"
+                        value={responsavelTecnico.nomeCompleto}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, nomeCompleto: e.target.value }))}
+                        placeholder="Ex: João da Silva Santos"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">CPF</label>
+                      <Input
+                        type="text"
+                        value={responsavelTecnico.cpf}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, cpf: e.target.value }))}
+                        placeholder="Ex: 000.000.000-00"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">RG</label>
+                      <Input
+                        type="text"
+                        value={responsavelTecnico.rg}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, rg: e.target.value }))}
+                        placeholder="Ex: 12.345.678-9"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Órgão Expeditor</label>
+                      <Input
+                        type="text"
+                        value={responsavelTecnico.orgaoExpeditor}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, orgaoExpeditor: e.target.value }))}
+                        placeholder="Ex: SSP"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Profissão</label>
+                      <Input
+                        type="text"
+                        value={responsavelTecnico.profissao}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, profissao: e.target.value }))}
+                        placeholder="Ex: Engenheiro Eletricista"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Número de Registro Profissional</label>
+                      <Input
+                        type="text"
+                        value={responsavelTecnico.numeroRegistro}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, numeroRegistro: e.target.value }))}
+                        placeholder="Ex: 123456"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Instituição</label>
+                      <select
+                        value={responsavelTecnico.instituicao}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ 
+                          ...prev, 
+                          instituicao: e.target.value,
+                          // Limpar estado do registro se CFT for selecionado
+                          estadoRegistro: e.target.value === 'CFT' ? '' : prev.estadoRegistro
+                        }))}
+                        disabled={!editandoResponsavel}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="CREA">CREA</option>
+                        <option value="CFT">CFT</option>
+                      </select>
+                    </div>
+
+                    {/* Estado do Registro - Apenas para CREA */}
+                    {responsavelTecnico.instituicao === 'CREA' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Estado do Registro</label>
+                        <select
+                          value={responsavelTecnico.estadoRegistro}
+                          onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, estadoRegistro: e.target.value }))}
+                          disabled={!editandoResponsavel}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Selecione o estado</option>
+                          <option value="AC">Acre</option>
+                          <option value="AL">Alagoas</option>
+                          <option value="AP">Amapá</option>
+                          <option value="AM">Amazonas</option>
+                          <option value="BA">Bahia</option>
+                          <option value="CE">Ceará</option>
+                          <option value="DF">Distrito Federal</option>
+                          <option value="ES">Espírito Santo</option>
+                          <option value="GO">Goiás</option>
+                          <option value="MA">Maranhão</option>
+                          <option value="MT">Mato Grosso</option>
+                          <option value="MS">Mato Grosso do Sul</option>
+                          <option value="MG">Minas Gerais</option>
+                          <option value="PA">Pará</option>
+                          <option value="PB">Paraíba</option>
+                          <option value="PR">Paraná</option>
+                          <option value="PE">Pernambuco</option>
+                          <option value="PI">Piauí</option>
+                          <option value="RJ">Rio de Janeiro</option>
+                          <option value="RN">Rio Grande do Norte</option>
+                          <option value="RS">Rio Grande do Sul</option>
+                          <option value="RO">Rondônia</option>
+                          <option value="RR">Roraima</option>
+                          <option value="SC">Santa Catarina</option>
+                          <option value="SP">São Paulo</option>
+                          <option value="SE">Sergipe</option>
+                          <option value="TO">Tocantins</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4 border-t">
+                    {!editandoResponsavel ? (
+                      <Button
+                        onClick={() => setEditandoResponsavel(true)}
+                        disabled={isLoading}
+                      >
+                        Editar Dados do Responsável Técnico
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => {
+                            setResponsavelTecnico({...responsavelOriginal});
+                            setEditandoResponsavel(false);
+                          }}
+                          variant="outline"
+                          disabled={isLoading}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={async () => {
+                            setIsLoading(true);
+                            const sucesso = await atualizarResponsavelTecnico(responsavelTecnico);
+                            
+                            if (sucesso) {
+                              setResponsavelOriginal({...responsavelTecnico});
+                              setEditandoResponsavel(false);
+                              toast({
+                                title: 'Dados salvos',
+                                description: 'Os dados do responsável técnico foram salvos com sucesso.',
+                              });
+                            } else {
+                              toast({
+                                title: 'Erro',
+                                description: 'Não foi possível salvar os dados do responsável técnico.',
+                                variant: 'destructive',
+                              });
+                            }
+                            setIsLoading(false);
+                          }}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? 'Salvando...' : 'Salvar Dados'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* Texto da Procuração */}
+              <CollapsibleSection
+                title="Texto da Procuração"
+                description="Configure o texto padrão da procuração com as variáveis disponíveis."
+                defaultOpen={false}
+                borderColor="emerald-500"
+                icon={<FileText className="h-5 w-5" />}
+              >
+                <div className="space-y-4">
+                  {editandoProcuracao ? (
+                    <>
+                      {/* Informação sobre variáveis disponíveis - APENAS no modo de edição */}
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                          Variáveis Disponíveis
+                        </h4>
+                        <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                          <p><strong>Do Cliente:</strong> {`{{cliente_nome}}, {{cliente_tipo}}, {{cliente_rg}}, {{cliente_cpf}}, {{cliente_cnpj}}`}</p>
+                          <p><strong>Do Responsável Técnico:</strong> {`{{responsavel_nome}}, {{responsavel_cpf}}, {{responsavel_rg}}, {{responsavel_orgao_expeditor}}, {{responsavel_profissao}}, {{responsavel_registro}}, {{responsavel_instituicao}}, {{responsavel_estado}}`}</p>
+                          <p><strong>Do Projeto:</strong> {`{{distribuidora}}, {{cidade}}, {{estado}}, {{data}}`}</p>
+                          <p className="text-xs italic mt-2">
+                            <strong>Nota:</strong> Você pode usar HTML inline (como &lt;div&gt;, &lt;strong&gt;, estilos CSS) para formatar o documento.
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {editandoProcuracao ? (
+                    <Textarea
+                      value={textoProcuracao}
+                      onChange={(e) => setTextoProcuracao(e.target.value)}
+                      placeholder="Digite o texto padrão da procuração..."
+                      className="min-h-[400px] font-mono"
+                    />
+                  ) : (
+                    <div className="rounded-md border border-gray-200 dark:border-gray-700 p-4">
+                      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                        <div 
+                          className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm"
+                          dangerouslySetInnerHTML={{ __html: textoProcuracao || defaultProcuracao }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2">
+                    {!editandoProcuracao ? (
+                      <Button
+                        onClick={() => setEditandoProcuracao(true)}
+                        disabled={isLoading}
+                      >
+                        Editar Texto da Procuração
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => {
+                            setTextoProcuracao(textoProcuracaoOriginal);
+                            setEditandoProcuracao(false);
+                          }}
+                          variant="outline"
+                          disabled={isLoading}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={async () => {
+                            setIsLoading(true);
+
+                            try {
+                              const sucesso = await atualizarTextoProcuracao(textoProcuracao);
+
+                              if (sucesso) {
+                                setTextoProcuracaoOriginal(textoProcuracao);
+                                setEditandoProcuracao(false);
+                                toast({
+                                  title: 'Texto salvo',
+                                  description: 'O texto da procuração foi salvo com sucesso.',
+                                });
+                              } else {
+                                toast({
+                                  title: 'Erro',
+                                  description: 'Não foi possível salvar o texto da procuração.',
+                                  variant: 'destructive',
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: 'Erro',
+                                description: 'Ocorreu um erro ao salvar o texto da procuração.',
+                                variant: 'destructive',
+                              });
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          }}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? 'Salvando...' : 'Salvar Texto'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleSection>
+            </div>
+          )}
+
           {/* ABA E-MAILS */}
           {activeTab === 'emails' && (
             <CollapsibleSection
-              title="Configurações de E-mails"
-              description="Configure os e-mails que são disparados para o administrador."
+              title="Notificações por E-mail"
+              description="Configure quais notificações você deseja receber por e-mail."
               defaultOpen={true}
               borderColor="rose-500"
               icon={<Mail className="h-5 w-5" />}
             >
-              <div className="text-center py-12 text-gray-500">
-                <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Configurações de e-mails serão implementadas em breve...</p>
-              </div>
+              {loadingEmailPrefs ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-rose-600" />
+                  <span className="ml-3 text-gray-600">Carregando preferências...</span>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Escolha quais tipos de notificações você deseja receber por e-mail. Você pode ativar ou desativar cada tipo de notificação individualmente.
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Notificação de Projeto Criado */}
+                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                          <FolderPlus className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                            Novo Projeto Criado
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Receba um e-mail quando um cliente criar um novo projeto.
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={emailPreferences.notify_project_created}
+                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_project_created', checked)}
+                        disabled={savingEmailPrefs}
+                      />
+                    </div>
+
+                    {/* Notificação de Mudança de Status */}
+                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                          <Bell className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                            Mudança de Status
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Receba um e-mail quando o status de um projeto for alterado.
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={emailPreferences.notify_status_change}
+                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_status_change', checked)}
+                        disabled={savingEmailPrefs}
+                      />
+                    </div>
+
+                    {/* Notificação de Documento Adicionado */}
+                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
+                          <FileUp className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                            Documento Adicionado
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Receba um e-mail quando um documento for adicionado a um projeto.
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={emailPreferences.notify_document_added}
+                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_document_added', checked)}
+                        disabled={savingEmailPrefs}
+                      />
+                    </div>
+
+                    {/* Notificação de Comentário Adicionado */}
+                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                          <MessageSquare className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                            Comentário Adicionado
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Receba um e-mail quando um comentário for adicionado a um projeto.
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={emailPreferences.notify_comment_added}
+                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_comment_added', checked)}
+                        disabled={savingEmailPrefs}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div className="flex-1">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                          Sobre as notificações
+                        </h5>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          Todas as notificações estão habilitadas por padrão. Você pode desativá-las a qualquer momento usando os controles acima. As mudanças são salvas automaticamente.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CollapsibleSection>
           )}
         </div>

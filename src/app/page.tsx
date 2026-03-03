@@ -8,6 +8,8 @@ import PricingSection from "@/components/landing/pricing-section"
 import CtaSection from "@/components/landing/cta-section"
 import FaqSection from "@/components/landing/faq-section"
 import Footer from "@/components/landing/footer"
+import { JsonLd } from "@/components/seo/JsonLd"
+import { getAllHomeSchemas } from "@/lib/seo/structured-data"
 
 export default function HomePage() {
   const headersList = headers();
@@ -43,15 +45,20 @@ export default function HomePage() {
 
   // Landing Page de Marketing Completa
   return (
-    <main className="flex min-h-screen flex-col">
-      <HeroSection />
-      <BenefitsSection />
-      <FeaturesSection />
-      <TestimonialsSection />
-      <PricingSection />
-      <CtaSection />
-      <FaqSection />
-      <Footer />
-    </main>
+    <>
+      {/* SEO: Structured Data (JSON-LD) para melhor indexação */}
+      <JsonLd data={getAllHomeSchemas()} />
+      
+      <main className="flex min-h-screen flex-col">
+        <HeroSection />
+        <BenefitsSection />
+        <FeaturesSection />
+        <TestimonialsSection />
+        <PricingSection />
+        <CtaSection />
+        <FaqSection />
+        <Footer />
+      </main>
+    </>
   );
 }

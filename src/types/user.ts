@@ -34,6 +34,9 @@ export interface UserPermissions {
   /** Pode deletar projetos */
   can_delete_projects: boolean;
 
+  /** Pode visualizar todos os projetos (se false, vê apenas projetos onde é responsável) */
+  can_view_all_projects: boolean;
+
   /** Pode visualizar clientes */
   can_view_clients: boolean;
 
@@ -65,6 +68,7 @@ export const ADMIN_PERMISSIONS: UserPermissions = {
   can_create_projects: true,
   can_edit_projects: true,
   can_delete_projects: true,
+  can_view_all_projects: true,
   can_view_clients: true,
   can_edit_clients: true,
   can_view_financials: true,
@@ -83,6 +87,7 @@ export const COLABORADOR_PERMISSIONS: UserPermissions = {
   can_create_projects: true,
   can_edit_projects: true,
   can_delete_projects: false,
+  can_view_all_projects: true,          // ✅ Por padrão vê todos os projetos (comportamento atual)
   can_view_clients: false,              // ❌ Desmarcado por padrão
   can_edit_clients: false,              // ❌ Desmarcado por padrão
   can_view_financials: false,           // ❌ Sem acesso à aba Financeiro

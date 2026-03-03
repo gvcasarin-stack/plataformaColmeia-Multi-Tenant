@@ -108,7 +108,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       )}
       
       {/* Conteúdo principal */}
-      <main className="flex-1 overflow-auto p-6 relative">
+      <main className="flex-1 overflow-auto p-4 relative">
         {/* Indicador de navegação */}
         {isChangingPage && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500 animate-pulse z-50" />

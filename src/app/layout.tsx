@@ -12,8 +12,24 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Colmeia Projetos",
-  description: "Plataforma de gerenciamento de projetos",
+  title: "Sistema de Gerenciamento para Projetos Fotovoltaicos e Homologação | SGF",
+  description: "Sistema completo de gestão para projetistas fotovoltaicos e empresas de homologação. Gerencie projetos, documentos, notificações, financeiro e acompanhamento de clientes em tempo real.",
+  keywords: [
+    "sistema gerenciamento fotovoltaico",
+    "software projetos fotovoltaicos",
+    "gestão homologação fotovoltaica",
+    "sistema projetistas fotovoltaicos",
+    "plataforma homologação energia solar",
+    "gestão projetos energia solar",
+    "software homologação distribuidora",
+    "controle projetos fotovoltaicos",
+    "portal cliente projetos solares",
+    "gerenciamento homologação ANEEL"
+  ],
+  authors: [{ name: "Colmeia Solar" }],
+  creator: "Colmeia Solar",
+  publisher: "Colmeia Solar",
+  category: "Software de Gestão Fotovoltaica",
   icons: {
     icon: [
       { url: "/lightning-icon.svg", type: "image/svg+xml" },
@@ -24,12 +40,12 @@ export const metadata: Metadata = {
     ],
     shortcut: { url: "/favicon.ico", type: "image/x-icon" },
   },
-  // Adicionando Open Graph para melhor compartilhamento
+  // Open Graph otimizado para compartilhamento em redes sociais
   openGraph: {
-    title: "Colmeia Projetos",
-    description: "Plataforma de gerenciamento de projetos",
-    url: "https://colmeia.app",
-    siteName: "Colmeia Projetos",
+    title: "SGF - Sistema de Gerenciamento para Projetos Fotovoltaicos e Homologação",
+    description: "Gerencie solicitações de projeto, documentos, comentários, notificações e o financeiro do seu escritório de homologações. Status de todos os projetos em tempo real.",
+    url: "https://www.gerenciamentofotovoltaico.com.br",
+    siteName: "SGF - Sistema de Gerenciamento Fotovoltaico",
     locale: "pt_BR",
     type: "website",
     images: [
@@ -37,9 +53,31 @@ export const metadata: Metadata = {
         url: "/lightning-icon.svg",
         width: 512,
         height: 512,
-        alt: "Colmeia Projetos Logo",
+        alt: "SGF - Sistema de Gerenciamento Fotovoltaico",
       },
     ],
+  },
+  // Twitter Cards para melhor compartilhamento
+  twitter: {
+    card: "summary_large_image",
+    title: "SGF - Sistema de Gerenciamento Fotovoltaico",
+    description: "Sistema completo de gestão para projetistas fotovoltaicos e empresas de homologação.",
+    images: ["/lightning-icon.svg"],
+  },
+  // Informações adicionais para SEO
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: "https://www.gerenciamentofotovoltaico.com.br",
   },
 };
 
@@ -59,6 +97,19 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        {/* SEO: Meta tags adicionais */}
+        <meta name="author" content="Colmeia Solar" />
+        <meta name="category" content="Software de Gestão Fotovoltaica" />
+        <meta name="coverage" content="Brasil" />
+        <meta name="distribution" content="global" />
+        <meta name="rating" content="general" />
+        <meta name="revisit-after" content="7 days" />
+        <meta name="target" content="projetistas fotovoltaicos, empresas de homologação, integradores solares" />
+        
+        {/* SEO: Geo tags para Brasil */}
+        <meta name="geo.region" content="BR" />
+        <meta name="geo.placename" content="Brasil" />
+        
         {/* Forçar o navegador a usar nosso ícone (quadrado com raio amarelo) */}
         <link rel="icon" href="/lightning-icon.svg" type="image/svg+xml" />
         {/* Evitar 404 de /favicon.ico em subdomínios: usar o mesmo ícone padrão */}
@@ -69,7 +120,7 @@ export default function RootLayout({
         {/* Garantir que a Apple não aplique seu estilo */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Colmeia" />
+        <meta name="apple-mobile-web-app-title" content="SGF" />
         
         {/* Adicionar tag para navegadores modernos (resolve o aviso de obsolescência) */}
         <meta name="mobile-web-app-capable" content="yes" />

@@ -17,16 +17,18 @@ export async function GET(request: NextRequest) {
   try {
     devLog.log('[API Unified] ========== INICIANDO BUSCA DE PROJETOS ==========');
 
-    // ✅ SEGURANÇA: Obter tenant_id dos headers
+    // ✅ SEGURANÇA: Obter tenant_id e user_id dos headers
     const headersList = headers();
     const tenantId = headersList.get('x-tenant-id');
     const tenantName = headersList.get('x-tenant-name');
     const tenantSlug = headersList.get('x-tenant-slug');
+    const userId = headersList.get('x-user-id'); // 🆕 ID do usuário fazendo a requisição
 
     devLog.log('[API Unified] Headers recebidos:', {
       tenantId,
       tenantName,
-      tenantSlug
+      tenantSlug,
+      userId
     });
 
     if (!tenantId) {
@@ -56,9 +58,61 @@ export async function GET(request: NextRequest) {
     devLog.log('[API Unified] Criando cliente Supabase...');
     const supabase = createSupabaseServiceRoleClient();
 
+    // 🆕 FILTRO DE CLIENTES PERMITIDOS E PERMISSÕES: Verificar restrições do usuário
+    let clientesPermitidos: string[] | null = null;
+    let canViewAllProjects = true; // Default: pode ver todos
+    let isAdmin = false;
+
+    if (userId) {
+      // Buscar role, clientes_permitidos, tem_restricao_clientes e permissions do usuário
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role, clientes_permitidos, tem_restricao_clientes, permissions')
+        .eq('id', userId)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (!userError && userData) {
+        // Verificar se é admin (admins sempre veem tudo)
+        isAdmin = userData.role === 'admin' || userData.role === 'superadmin';
+
+        // 🆕 NOVA PERMISSÃO: Verificar se pode ver todos os projetos
+        const permissions = userData.permissions || {};
+        canViewAllProjects = permissions.can_view_all_projects !== false; // Default true se não definido
+
+        devLog.log('[API Unified] Permissões do usuário:', {
+          role: userData.role,
+          isAdmin,
+          canViewAllProjects
+        });
+
+        // Verificar clientes permitidos (apenas para colaboradores)
+        if (userData.role === 'colaborador') {
+          devLog.log('[API Unified] Usuário é colaborador, verificando clientes permitidos...');
+
+          const temRestricao = userData.tem_restricao_clientes || false;
+          const permitidos = userData.clientes_permitidos || [];
+
+          if (temRestricao) {
+            // Tem restrição: usar array de IDs (pode ser vazio = sem acesso)
+            clientesPermitidos = permitidos;
+            devLog.log('[API Unified] Colaborador COM restrição:', {
+              quantidade: clientesPermitidos.length,
+              acesso: clientesPermitidos.length > 0 ? 'parcial' : 'bloqueado'
+            });
+          } else {
+            // Sem restrição: acesso total (não aplicar filtro)
+            devLog.log('[API Unified] Colaborador SEM restrição (acesso total)');
+          }
+        }
+      }
+    }
+
     devLog.log('[API Unified] Executando query para buscar projetos...');
+
     // 🆕 CORREÇÃO: Adicionar LEFT JOIN com users para buscar dados do proprietário
-    const { data, error } = await supabase
+    // ✅ PROCURAÇÃO: Incluir explicitamente todos os campos necessários
+    let query = supabase
       .from('projects')
       .select(`
         *,
@@ -69,8 +123,21 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Filtrar por tenant
-      .is('deleted_at', null)  // ✅ SOFT DELETE: Excluir projetos arquivados
-      .order('created_at', { ascending: false });
+      .is('deleted_at', null);  // ✅ SOFT DELETE: Excluir projetos arquivados
+
+    // 🆕 Aplicar filtro de clientes permitidos se houver restrição
+    if (clientesPermitidos && clientesPermitidos.length > 0) {
+      devLog.log('[API Unified] Aplicando filtro de clientes permitidos');
+      query = query.in('owner_id', clientesPermitidos);
+    }
+
+    // 🆕 NOVA FUNCIONALIDADE: Filtrar apenas projetos atribuídos ao usuário se permissão desabilitada
+    if (!isAdmin && !canViewAllProjects && userId) {
+      devLog.log('[API Unified] Aplicando filtro: apenas projetos onde usuário é responsável');
+      query = query.eq('responsible_id', userId);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     devLog.log('[API Unified] Query executada. Resultado:', {
       hasData: !!data,
@@ -90,7 +157,8 @@ export async function GET(request: NextRequest) {
       });
       
       // Fallback: buscar projetos com status simples
-      const { data: projectsOnly, error: fallbackError } = await supabase
+      // ✅ PROCURAÇÃO: Fallback usa * para incluir todos os campos
+      let fallbackQuery = supabase
         .from('projects')
         .select(`
           *,
@@ -105,8 +173,18 @@ export async function GET(request: NextRequest) {
         .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Fallback também deve filtrar por tenant
         .is('deleted_at', null)  // ✅ SOFT DELETE: Excluir projetos arquivados
         .eq('project_statuses.tenant_id', tenantId) // Status do mesmo tenant
-        .eq('status', 'project_statuses.slug') // JOIN por slug
-        .order('created_at', { ascending: false });
+        .eq('status', 'project_statuses.slug'); // JOIN por slug
+
+      // Aplicar os mesmos filtros do query principal
+      if (clientesPermitidos && clientesPermitidos.length > 0) {
+        fallbackQuery = fallbackQuery.in('owner_id', clientesPermitidos);
+      }
+
+      if (!isAdmin && !canViewAllProjects && userId) {
+        fallbackQuery = fallbackQuery.eq('responsible_id', userId);
+      }
+
+      const { data: projectsOnly, error: fallbackError } = await fallbackQuery.order('created_at', { ascending: false });
 
       if (fallbackError) {
         devLog.error('[API Unified] Erro no fallback:', fallbackError);
@@ -132,6 +210,9 @@ export async function GET(request: NextRequest) {
         disjuntorPadraoEntrada: project.disjuntor_padrao_entrada,
         cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final,
         endereco_local: project.endereco_local,
+        // ✅ PROCURAÇÃO: Garantir que cidade e estado sejam incluídos
+        client_city: project.client_city,
+        client_state: project.client_state,
         // ✅ NOVO: Informações do status mesmo no fallback com proteção adicional
         statusInfo: project.status_info ? {
           id: project.status_info.id,
@@ -149,9 +230,16 @@ export async function GET(request: NextRequest) {
         }
       })) || [];
 
+      // ✅ CACHE: Desabilitar cache no fallback também
       return NextResponse.json({
         success: true,
         data: projectsWithBilling
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
     }
 
@@ -163,6 +251,17 @@ export async function GET(request: NextRequest) {
         pagamento: p.pagamento // Log para debug
       }))
     });
+
+    // 🔍 DEBUG PROCURAÇÃO: Verificar dados ANTES do mapeamento
+    const carlinhosRaw = data?.find(p => p.id === '6ac0376e-dd8b-4718-83f1-7fe33b47d661');
+    if (carlinhosRaw) {
+      devLog.log('🔍 [API UNIFIED] CARLINHOS MAIA - ANTES do map:', {
+        id: carlinhosRaw.id,
+        client_city: carlinhosRaw.client_city,
+        client_state: carlinhosRaw.client_state,
+        cpf_cnpj: carlinhosRaw.cpf_cnpj_cliente_final
+      });
+    }
 
     // ✅ CORREÇÃO: Mapear dados básicos com cálculo dinâmico de empresaIntegradora
     const projectsWithBilling = data?.map(project => {
@@ -188,6 +287,9 @@ export async function GET(request: NextRequest) {
         disjuntorPadraoEntrada: project.disjuntor_padrao_entrada,
         cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final,
         endereco_local: project.endereco_local,
+        // ✅ PROCURAÇÃO: Garantir que cidade e estado sejam incluídos
+        client_city: project.client_city,
+        client_state: project.client_state,
         valorProjeto: project.valor_projeto || project.valorProjeto || 0,
         // ✅ FALLBACK: Dados básicos do status (será melhorado em próximo request)
         statusInfo: {
@@ -200,14 +302,32 @@ export async function GET(request: NextRequest) {
       };
     }) || [];
 
+    // 🔍 DEBUG PROCURAÇÃO: Verificar dados DEPOIS do mapeamento
+    const carlinhosMapped = projectsWithBilling.find(p => p.id === '6ac0376e-dd8b-4718-83f1-7fe33b47d661');
+    if (carlinhosMapped) {
+      devLog.log('🔍 [API UNIFIED] CARLINHOS MAIA - DEPOIS do map:', {
+        id: carlinhosMapped.id,
+        client_city: carlinhosMapped.client_city,
+        client_state: carlinhosMapped.client_state,
+        cpf_cnpj: carlinhosMapped.cpf_cnpj_cliente_final
+      });
+    }
+
     devLog.log('[API Unified] Projetos mapeados:', {
       count: projectsWithBilling.length,
       paymentStatuses: projectsWithBilling.map(p => ({ id: p.id, pagamento: p.pagamento }))
     });
 
+    // ✅ CACHE: Desabilitar cache para garantir dados atualizados
     return NextResponse.json({
       success: true,
       data: projectsWithBilling
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
 
   } catch (error) {

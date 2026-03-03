@@ -125,6 +125,37 @@ export function PermissionsCheckboxes({ role, permissions, onChange }: Permissio
                   )}
                 </span>
               </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={effectivePermissions.can_view_all_projects}
+                  onChange={(e) => handlePermissionChange('can_view_all_projects', e.target.checked)}
+                  disabled={disabled}
+                  className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 disabled:opacity-50"
+                />
+                <span className="text-sm text-gray-700">
+                  Visualizar todos os projetos
+                  {!effectivePermissions.can_view_all_projects && (
+                    <span className="text-xs text-red-600 ml-1">(Bloqueado)</span>
+                  )}
+                </span>
+              </label>
+
+              {/* Nota explicativa */}
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  <span className="font-semibold">ℹ️ Sobre esta permissão:</span>
+                  <br />
+                  <span className="inline-block mt-1">
+                    ✅ <strong>Marcado:</strong> Vê todos os projetos das empresas permitidas
+                  </span>
+                  <br />
+                  <span className="inline-block">
+                    ⚠️ <strong>Desmarcado:</strong> Vê apenas projetos onde é responsável
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
 

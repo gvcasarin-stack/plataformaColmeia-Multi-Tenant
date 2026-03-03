@@ -114,6 +114,10 @@ export interface Project {
   cpf_cnpj_cliente_final?: string;
   endereco_local?: string;
 
+  // ✅ NOVOS CAMPOS: Cidade e Estado do cliente (para procuração)
+  client_city?: string;
+  client_state?: string;
+
   // ✅ NOVO CAMPO: Compensação de Créditos (opcional)
   havera_beneficiarias?: boolean;
 

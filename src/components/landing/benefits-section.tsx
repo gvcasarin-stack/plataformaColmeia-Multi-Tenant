@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { FolderOpen, LayoutGrid, Bell, Calendar, CreditCard, Users } from "lucide-react"
+import { FileStack, Sun, Bell, Calendar, Receipt, Network } from "lucide-react"
 
 export default function BenefitsSection() {
   const [isVisible, setIsVisible] = useState(false)
@@ -29,58 +29,79 @@ export default function BenefitsSection() {
 
   const benefits = [
     {
-      icon: <FolderOpen className="h-10 w-10 text-blue-500" />,
+      icon: <FileStack className="h-10 w-10 text-white" />,
       title: "Chega de links bagunçados e pastas soltas",
-      description: "Centralize toda a documentação em um portal único e transmita mais controle e credibilidade ao seu cliente.",
+      description: "Centralize documentos e histórico em um portal profissional, eliminando o caos de links e pastas no WhatsApp.",
       delay: 0,
-      bgColor: "bg-blue-50",
+      iconBg: "bg-gradient-to-br from-blue-500 to-blue-600",
+      borderColor: "border-blue-200 hover:border-blue-500",
+      highlightWords: ["portal profissional", "caos de links e pastas"],
     },
     {
-      icon: <LayoutGrid className="h-10 w-10 text-blue-400" />,
-      title: "Trello é bom, mas não foi feito para projetos fotovoltaicos",
-      description: "O SGF oferece a estrutura que seu trabalho exige: gestão de documentos, finanças e clientes em um só lugar para você ganhar agilidade e entregar mais valor.",
+      icon: <Sun className="h-10 w-10 text-white" />,
+      title: "Sistema específico para gestão de homologação fotovoltaica",
+      description: "Plataforma desenhada para o fluxo solar: do gerenciamento de documentos técnicos ao controle financeiro.",
       delay: 100,
-      bgColor: "bg-blue-50",
+      iconBg: "bg-gradient-to-br from-cyan-500 to-blue-600",
+      borderColor: "border-cyan-200 hover:border-cyan-500",
+      highlightWords: ["fluxo solar", "documentos técnicos", "controle financeiro"],
     },
     {
-      icon: <Bell className="h-10 w-10 text-green-500" />,
+      icon: <Bell className="h-10 w-10 text-white" />,
       title: "Responda às perguntas do seu cliente. Antes mesmo que ele precise perguntar",
-      description: "Nossas notificações automáticas mantêm todos informados sobre cada avanço do projeto, liberando seu tempo e transmitindo máximo profissionalismo.",
+      description: "Mantenha o integrador informado automaticamente sobre cada avanço do protocolo, reduzindo mensagens de suporte.",
       delay: 200,
-      bgColor: "bg-green-50",
+      iconBg: "bg-gradient-to-br from-green-500 to-emerald-600",
+      borderColor: "border-green-200 hover:border-green-500",
+      highlightWords: ["integrador informado automaticamente", "reduzindo mensagens de suporte"],
     },
     {
-      icon: <Calendar className="h-10 w-10 text-purple-500" />,
+      icon: <Calendar className="h-10 w-10 text-white" />,
       title: "Troque a incerteza das planilhas pela previsibilidade de um cronograma inteligente",
-      description: "Gerencie todas as etapas do seu projeto com uma visão clara do que já foi feito e do que está por vir, garantindo as entregas no prazo.",
+      description: "Tenha uma visão clara das etapas concluídas e dos próximos prazos, garantindo entregas rigorosas.",
       delay: 300,
-      bgColor: "bg-purple-50",
+      iconBg: "bg-gradient-to-br from-purple-500 to-purple-600",
+      borderColor: "border-purple-200 hover:border-purple-500",
+      highlightWords: ["visão clara", "entregas rigorosas"],
     },
     {
-      icon: <CreditCard className="h-10 w-10 text-orange-500" />,
+      icon: <Receipt className="h-10 w-10 text-white" />,
       title: "Receba pagamentos mais rápido e sem complicação",
-      description: "Gere cobranças profissionais com um clique e acompanhe o status em tempo real para um fluxo de caixa sempre saudável.",
+      description: "Gere cobranças profissionais com um clique e acompanhe a saúde do seu fluxo de caixa em tempo real.",
       delay: 400,
-      bgColor: "bg-orange-50",
+      iconBg: "bg-gradient-to-br from-orange-500 to-orange-600",
+      borderColor: "border-orange-200 hover:border-orange-500",
+      highlightWords: ["cobranças profissionais", "fluxo de caixa em tempo real"],
     },
     {
-      icon: <Users className="h-10 w-10 text-indigo-500" />,
+      icon: <Network className="h-10 w-10 text-white" />,
       title: "Alinhe sua equipe. Garanta a satisfação do cliente",
-      description: "Simplifique a colaboração interna e a comunicação externa com uma plataforma que conecta, de forma inteligente, todos os envolvidos no projeto.",
+      description: "Centralize a comunicação interna e externa, conectando sua equipe e clientes de forma inteligente e rastreável.",
       delay: 500,
-      bgColor: "bg-indigo-50",
+      iconBg: "bg-gradient-to-br from-indigo-500 to-indigo-600",
+      borderColor: "border-indigo-200 hover:border-indigo-500",
+      highlightWords: ["comunicação interna e externa", "inteligente e rastreável"],
     },
   ]
+
+  const highlightText = (text: string, highlights: string[]) => {
+    let result = text
+    highlights.forEach((highlight) => {
+      const regex = new RegExp(`(${highlight})`, 'gi')
+      result = result.replace(regex, '<strong>$1</strong>')
+    })
+    return result
+  }
 
   return (
     <section ref={sectionRef} className="w-full py-12 md:py-16 lg:py-20 bg-white relative">
       <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-7xl">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-gray-900 mb-4">
-            Por que escolher o SGF?
+            A <span className="text-blue-600 font-bold">infraestrutura digital</span> completa para sua Engenharia
           </h2>
           <p className="mx-auto max-w-[700px] text-gray-600 md:text-xl">
-            Com o SGF, você substitui planilhas e processos manuais por uma plataforma inteligente que garante controle total, agilidade nas aprovações e uma imagem profissional inquestionável.
+            Substitua planilhas e processos manuais por um sistema <span className="text-blue-600 font-bold">desenvolvido para o fluxo da homologação</span>. Ganhe agilidade nas aprovações e transmita máxima credibilidade aos seus parceiros.
           </p>
         </div>
 
@@ -88,7 +109,7 @@ export default function BenefitsSection() {
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className={`group relative p-6 rounded-lg ${benefit.bgColor} border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 transform ${
+              className={`group relative p-6 rounded-xl bg-white border-2 ${benefit.borderColor} shadow-sm hover:shadow-xl transition-all duration-300 transform ${
                 isVisible
                   ? "translate-y-0 opacity-100"
                   : "translate-y-8 opacity-0"
@@ -98,15 +119,15 @@ export default function BenefitsSection() {
               }}
             >
               <div className="flex flex-col items-center text-center space-y-4">
-                <div className="p-3 rounded-full bg-white shadow-md group-hover:scale-110 transition-transform duration-300">
+                <div className={`p-4 rounded-xl ${benefit.iconBg} shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}>
                   {benefit.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {benefit.title}
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {benefit.description}
-                </p>
+                <p
+                  className="text-gray-700 text-base leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: highlightText(benefit.description, benefit.highlightWords)
+                  }}
+                />
               </div>
             </div>
           ))}

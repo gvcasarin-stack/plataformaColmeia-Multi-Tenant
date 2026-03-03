@@ -4,11 +4,21 @@ import { devLog } from '@/lib/utils/productionLogger';
 import { headers } from 'next/headers';
 
 /**
- * PATCH: Converter projeto avulso para pacote ou assinatura
+ * PATCH: Converter projeto entre modalidades de faturamento
  *
- * Body: {
+ * Cenários suportados:
+ * 1. Avulso → Pacote
+ * 2. Avulso → Assinatura
+ * 3. Pacote → Avulso
+ * 4. Assinatura → Avulso
+ *
+ * Body para conversão PARA pacote/assinatura: {
  *   target_type: 'pacote' | 'assinatura',
  *   target_id: 'uuid-do-pacote-ou-assinatura'
+ * }
+ *
+ * Body para conversão PARA avulso: {
+ *   target_type: 'avulso'
  * }
  */
 export async function PATCH(
@@ -32,16 +42,24 @@ export async function PATCH(
     const { target_type, target_id } = body;
 
     // Validar parâmetros
-    if (!target_type || !target_id) {
+    if (!target_type) {
       return NextResponse.json(
-        { success: false, error: 'target_type e target_id são obrigatórios' },
+        { success: false, error: 'target_type é obrigatório' },
         { status: 400 }
       );
     }
 
-    if (target_type !== 'pacote' && target_type !== 'assinatura') {
+    if (target_type !== 'pacote' && target_type !== 'assinatura' && target_type !== 'avulso') {
       return NextResponse.json(
-        { success: false, error: 'target_type deve ser "pacote" ou "assinatura"' },
+        { success: false, error: 'target_type deve ser "pacote", "assinatura" ou "avulso"' },
+        { status: 400 }
+      );
+    }
+
+    // target_id é obrigatório apenas para conversão PARA pacote/assinatura
+    if ((target_type === 'pacote' || target_type === 'assinatura') && !target_id) {
+      return NextResponse.json(
+        { success: false, error: 'target_id é obrigatório para conversão para pacote/assinatura' },
         { status: 400 }
       );
     }
@@ -62,15 +80,193 @@ export async function PATCH(
       );
     }
 
-    // 2. Validar se projeto é avulso
-    if (project.billing_mode !== 'avulso') {
+    // 2. CENÁRIO: Converter PARA avulso (Pacote/Assinatura → Avulso)
+    if (target_type === 'avulso') {
+      // Validar que projeto NÃO é avulso
+      if (!project.billing_mode || project.billing_mode === 'avulso') {
+        return NextResponse.json(
+          { success: false, error: 'Projeto já está no modo avulso' },
+          { status: 400 }
+        );
+      }
+
+      // Caso: Pacote → Avulso
+      if (project.billing_mode === 'pacote') {
+        const pacoteId = project.cliente_pacote_id;
+
+        if (!pacoteId) {
+          return NextResponse.json(
+            { success: false, error: 'Projeto sem cliente_pacote_id válido' },
+            { status: 400 }
+          );
+        }
+
+        // Buscar pacote para decrementar contador
+        const { data: pacote, error: pacoteError } = await supabase
+          .from('cliente_pacotes')
+          .select('id, projetos_usados, projetos_inclusos, status')
+          .eq('id', pacoteId)
+          .eq('tenant_id', tenantId)
+          .single();
+
+        if (pacoteError || !pacote) {
+          devLog.error('[convert-billing] Pacote não encontrado:', pacoteError);
+          return NextResponse.json(
+            { success: false, error: 'Pacote não encontrado' },
+            { status: 404 }
+          );
+        }
+
+        // Atualizar projeto para avulso
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            billing_mode: 'avulso',
+            cliente_pacote_id: null,
+            pagamento: 'pendente', // Resetar para pendente
+            billing_snapshot: {
+              ...project.billing_snapshot,
+              converted_at: new Date().toISOString(),
+              converted_from: 'pacote',
+              converted_from_id: pacoteId,
+              converted_to: 'avulso'
+            }
+          })
+          .eq('id', projectId);
+
+        if (updateError) {
+          devLog.error('[convert-billing] Erro ao atualizar projeto:', updateError);
+          throw updateError;
+        }
+
+        // Decrementar contador do pacote
+        const novoContador = Math.max(0, pacote.projetos_usados - 1);
+        const { error: pacoteUpdateError } = await supabase
+          .from('cliente_pacotes')
+          .update({
+            projetos_usados: novoContador
+          })
+          .eq('id', pacoteId);
+
+        if (pacoteUpdateError) {
+          devLog.error('[convert-billing] Erro ao decrementar contador:', pacoteUpdateError);
+          throw pacoteUpdateError;
+        }
+
+        devLog.log('[convert-billing] Projeto convertido de pacote para avulso:', {
+          projectId,
+          pacoteId,
+          contador_anterior: pacote.projetos_usados,
+          novo_contador: novoContador
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            projectId,
+            billing_mode: 'avulso',
+            message: 'Projeto convertido para avulso com sucesso'
+          }
+        });
+      }
+
+      // Caso: Assinatura → Avulso
+      if (project.billing_mode === 'assinatura') {
+        const assinaturaId = project.cliente_assinatura_id;
+
+        if (!assinaturaId) {
+          return NextResponse.json(
+            { success: false, error: 'Projeto sem cliente_assinatura_id válido' },
+            { status: 400 }
+          );
+        }
+
+        // Buscar assinatura para decrementar contador
+        const { data: assinatura, error: assinaturaError } = await supabase
+          .from('cliente_assinaturas')
+          .select('id, projetos_usados_mes_atual, projetos_mensais, status')
+          .eq('id', assinaturaId)
+          .eq('tenant_id', tenantId)
+          .single();
+
+        if (assinaturaError || !assinatura) {
+          devLog.error('[convert-billing] Assinatura não encontrada:', assinaturaError);
+          return NextResponse.json(
+            { success: false, error: 'Assinatura não encontrada' },
+            { status: 404 }
+          );
+        }
+
+        // Atualizar projeto para avulso
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            billing_mode: 'avulso',
+            cliente_assinatura_id: null,
+            pagamento: 'pendente', // Resetar para pendente
+            billing_snapshot: {
+              ...project.billing_snapshot,
+              converted_at: new Date().toISOString(),
+              converted_from: 'assinatura',
+              converted_from_id: assinaturaId,
+              converted_to: 'avulso'
+            }
+          })
+          .eq('id', projectId);
+
+        if (updateError) {
+          devLog.error('[convert-billing] Erro ao atualizar projeto:', updateError);
+          throw updateError;
+        }
+
+        // Decrementar contador da assinatura
+        const novoContador = Math.max(0, assinatura.projetos_usados_mes_atual - 1);
+        const { error: assinaturaUpdateError } = await supabase
+          .from('cliente_assinaturas')
+          .update({
+            projetos_usados_mes_atual: novoContador
+          })
+          .eq('id', assinaturaId);
+
+        if (assinaturaUpdateError) {
+          devLog.error('[convert-billing] Erro ao decrementar contador:', assinaturaUpdateError);
+          throw assinaturaUpdateError;
+        }
+
+        devLog.log('[convert-billing] Projeto convertido de assinatura para avulso:', {
+          projectId,
+          assinaturaId,
+          contador_anterior: assinatura.projetos_usados_mes_atual,
+          novo_contador: novoContador
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            projectId,
+            billing_mode: 'avulso',
+            message: 'Projeto convertido para avulso com sucesso'
+          }
+        });
+      }
+
+      // Billing mode desconhecido
       return NextResponse.json(
-        { success: false, error: `Projeto já está no modo "${project.billing_mode}". Apenas projetos avulsos podem ser convertidos.` },
+        { success: false, error: `Modo de faturamento desconhecido: ${project.billing_mode}` },
         { status: 400 }
       );
     }
 
-    // 3. Buscar e validar pacote/assinatura
+    // 3. CENÁRIO: Converter DE avulso PARA pacote/assinatura
+    // Validar se projeto é avulso
+    if (project.billing_mode && project.billing_mode !== 'avulso') {
+      return NextResponse.json(
+        { success: false, error: `Projeto está no modo "${project.billing_mode}". Apenas projetos avulsos podem ser convertidos para pacote/assinatura.` },
+        { status: 400 }
+      );
+    }
+
+    // 4. Buscar e validar pacote/assinatura
     if (target_type === 'pacote') {
       // Buscar pacote
       const { data: pacote, error: pacoteError } = await supabase
@@ -132,7 +328,7 @@ export async function PATCH(
         throw updateError;
       }
 
-      // 5. Incrementar contador do pacote
+      // 6. Incrementar contador do pacote
       const { error: pacoteUpdateError } = await supabase
         .from('cliente_pacotes')
         .update({
@@ -181,9 +377,10 @@ export async function PATCH(
       }
 
       // Validar quota mensal
-      if (assinatura.projetos_usados_mes_atual >= assinatura.plano.projetos_por_mes) {
+      // ✅ CORREÇÃO: Usar campo correto 'quantidade_mensal' ao invés de 'projetos_por_mes'
+      if (assinatura.projetos_usados_mes_atual >= assinatura.plano.quantidade_mensal) {
         return NextResponse.json(
-          { success: false, error: `Cota mensal esgotada (${assinatura.projetos_usados_mes_atual}/${assinatura.plano.projetos_por_mes})` },
+          { success: false, error: `Cota mensal esgotada (${assinatura.projetos_usados_mes_atual}/${assinatura.plano.quantidade_mensal})` },
           { status: 400 }
         );
       }
@@ -196,7 +393,7 @@ export async function PATCH(
         );
       }
 
-      // 4. Converter projeto
+      // 5. Converter projeto
       const { error: updateError } = await supabase
         .from('projects')
         .update({
@@ -222,7 +419,7 @@ export async function PATCH(
         throw updateError;
       }
 
-      // 5. Incrementar contador da assinatura
+      // 6. Incrementar contador da assinatura
       const { error: assinaturaUpdateError } = await supabase
         .from('cliente_assinaturas')
         .update({
@@ -247,7 +444,8 @@ export async function PATCH(
           projectId,
           billing_mode: 'assinatura',
           plano_nome: assinatura.plano?.nome,
-          contador: `${assinatura.projetos_usados_mes_atual + 1}/${assinatura.plano.projetos_por_mes}`
+          // ✅ CORREÇÃO: Usar campo correto 'quantidade_mensal'
+          contador: `${assinatura.projetos_usados_mes_atual + 1}/${assinatura.plano.quantidade_mensal}`
         }
       });
     }

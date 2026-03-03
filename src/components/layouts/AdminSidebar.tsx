@@ -144,16 +144,14 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         icon: LucideIcons.UserPlus,
         color: "bg-indigo-50 text-indigo-700 border-indigo-200/50 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50",
         badge: null,
-        comingSoon: true,
         visible: isFullAdmin // ✅ Apenas admin por enquanto (fase inicial)
       },
       {
         href: "/admin/funil-vendas",
-        label: "Funil de Vendas",
+        label: "Pipeline",
         icon: LucideIcons.TrendingUp,
         color: "bg-violet-50 text-violet-700 border-violet-200/50 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800/50",
         badge: null,
-        comingSoon: true,
         visible: isFullAdmin // ✅ Apenas admin por enquanto (fase inicial)
       },
       {

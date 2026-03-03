@@ -16,7 +16,8 @@ import {
   MessageSquare,
   FileUp,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 export type NotificationIconType =
@@ -24,7 +25,8 @@ export type NotificationIconType =
   | 'new_comment'
   | 'document_upload'
   | 'status_change'
-  | 'system_message';
+  | 'system_message'
+  | 'warning';
 
 interface NotificationIconConfig {
   icon: React.ComponentType<{ className?: string }>;
@@ -76,6 +78,14 @@ const notificationIconConfig: Record<NotificationIconType, NotificationIconConfi
     color: 'text-gray-600 dark:text-gray-400',
     bgColor: 'bg-gray-50 dark:bg-gray-950/30',
     label: 'Mensagem do Sistema'
+  },
+
+  // Aviso - Amarelo/Laranja vibrante (atenção, alerta importante)
+  warning: {
+    icon: AlertTriangle,
+    color: 'text-amber-600 dark:text-amber-400',
+    bgColor: 'bg-amber-50 dark:bg-amber-950/30',
+    label: 'Aviso Importante'
   }
 };
 
@@ -130,7 +140,8 @@ export function getNotificationColor(type: NotificationIconType): string {
     new_comment: '#3b82f6',      // blue-600
     document_upload: '#f97316',  // orange-600
     status_change: '#a855f7',    // purple-600
-    system_message: '#6b7280'    // gray-600
+    system_message: '#6b7280',   // gray-600
+    warning: '#f59e0b'           // amber-600 (amarelo vibrante)
   };
 
   return colorMap[type] || colorMap.system_message;

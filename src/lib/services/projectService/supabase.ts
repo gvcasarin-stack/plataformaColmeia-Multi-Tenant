@@ -154,6 +154,7 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
     const projects: Project[] = data.map(item => ({
       id: item.id,
       userId: item.created_by,
+      owner_id: item.owner_id,
       nome_cliente_final: item.nome_cliente_final,
       number: item.number,
       empresaIntegradora: item.empresa_integradora || '',
@@ -165,6 +166,12 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
       prioridade: item.prioridade || 'Baixa',
       valorProjeto: item.valor_projeto || null,
       pagamento: item.pagamento || undefined,
+
+      // ✅ PROCURAÇÃO: Campos de cidade e estado do cliente
+      cpf_cnpj_cliente_final: item.cpf_cnpj_cliente_final || undefined,
+      endereco_local: item.endereco_local || undefined,
+      client_city: item.client_city || undefined,
+      client_state: item.client_state || undefined,
 
       // 💳 BILLING: Adicionar campos de faturamento
       billing_mode: item.billing_mode || 'avulso',
@@ -343,6 +350,13 @@ export const getProjectsWithFilters = async (filters: {
         valorProjeto: item.valor_projeto || null,
         pagamento: item.pagamento || undefined,
 
+        // ✅ PROCURAÇÃO: Campos de cidade e estado do cliente
+        cpf_cnpj_cliente_final: item.cpf_cnpj_cliente_final || undefined,
+        endereco_local: item.endereco_local || undefined,
+        client_city: item.client_city || undefined,
+        client_state: item.client_state || undefined,
+        havera_beneficiarias: item.havera_beneficiarias || false,
+
         // 💳 BILLING: Adicionar campos de faturamento
         billing_mode: item.billing_mode || 'avulso',
         billing_snapshot: item.billing_snapshot || null,
@@ -359,6 +373,7 @@ export const getProjectsWithFilters = async (filters: {
         comments: item.comments || [],
         history: item.history || [],
         lastUpdateBy: item.last_update_by || undefined,
+        owner_id: item.owner_id,
 
         // ✅ CAMPOS DE SLA (prazo de expiração)
         status_changed_at: item.status_changed_at ? sanitizeDate(item.status_changed_at) : null,

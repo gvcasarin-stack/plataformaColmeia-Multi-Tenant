@@ -11,7 +11,8 @@ interface SwitchProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Switch = React.forwardRef<HTMLDivElement, SwitchProps>(
   ({ className, checked = false, onCheckedChange, disabled = false, ...props }, ref) => {
-    const handleClick = () => {
+    const handleClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
       if (!disabled && onCheckedChange) {
         onCheckedChange(!checked)
       }
@@ -21,7 +22,7 @@ const Switch = React.forwardRef<HTMLDivElement, SwitchProps>(
       <div
         ref={ref}
         className={cn(
-          "relative inline-flex h-5 w-10 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
+          "relative inline-flex h-5 w-10 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors pointer-events-auto z-10",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           checked ? "bg-teal-500" : "bg-gray-200 dark:bg-gray-700",
           disabled && "cursor-not-allowed opacity-50",

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { devLog } from "@/lib/utils/productionLogger";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { handleTempTenant } from '@/lib/utils/temp-tenant-handler';
 import { randomUUID } from 'crypto';
 
@@ -53,7 +54,20 @@ export async function GET(request: NextRequest) {
     // Converter para formato esperado
     const config: any = {};
     data?.forEach(item => {
-      config[item.key] = item.value;
+      let parsedValue = item.value;
+
+      // ✅ CORREÇÃO: Parse dos valores JSONB que vêm como strings serializadas
+      if (typeof item.value === 'string') {
+        try {
+          parsedValue = JSON.parse(item.value);
+          devLog.log(`[API] [Config] Parsed "${item.key}" de string para ${typeof parsedValue}`);
+        } catch (e) {
+          // Se falhar o parse, usar o valor original
+          devLog.log(`[API] [Config] "${item.key}" não precisa de parse, usando valor original`);
+        }
+      }
+
+      config[item.key] = parsedValue;
     });
 
     devLog.log('[API] [Config] Configurações encontradas:', Object.keys(config));
@@ -86,9 +100,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ Usar Service Role Client para operações no banco
     const supabase = createSupabaseServiceRoleClient();
+
     const body = await request.json();
-    
     const { key, value, description } = body;
 
     if (!key || value === undefined) {
@@ -98,7 +113,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    devLog.log('[API] [Config] Salvando configuração:', { key, description, tenantId });
+    // ✅ Obter user_id: tentar autenticação, se falhar buscar admin do tenant
+    let userId: string | null = null;
+    
+    try {
+      const supabaseAuth = createSupabaseServerClient();
+      const { data: { user } } = await supabaseAuth.auth.getUser();
+      if (user) {
+        userId = user.id;
+        devLog.log('[API] [Config] User ID obtido da autenticação:', userId);
+      }
+    } catch (error) {
+      devLog.warn('[API] [Config] Não foi possível obter user_id da autenticação:', error);
+    }
+
+    // ✅ FALLBACK: Se não conseguiu user_id, buscar qualquer usuário do tenant
+    if (!userId) {
+      devLog.log('[API] [Config] Buscando usuário do tenant como fallback...');
+      
+      // Tentar buscar na ordem: superadmin -> admin -> primeiro usuário do tenant
+      const { data: fallbackUser, error: fallbackError } = await supabase
+        .from('users')
+        .select('id, role')
+        .eq('tenant_id', tenantId)
+        .in('role', ['superadmin', 'admin'])
+        .limit(1)
+        .maybeSingle();
+
+      if (fallbackUser && !fallbackError) {
+        userId = fallbackUser.id;
+        devLog.log('[API] [Config] User ID obtido do fallback:', userId, 'role:', fallbackUser.role);
+      } else {
+        // Se não encontrou admin/superadmin, pegar qualquer usuário do tenant
+        devLog.warn('[API] [Config] Não encontrou admin/superadmin, buscando qualquer usuário...');
+        
+        const { data: anyUser, error: anyUserError } = await supabase
+          .from('users')
+          .select('id, role')
+          .eq('tenant_id', tenantId)
+          .limit(1)
+          .maybeSingle();
+
+        if (anyUser && !anyUserError) {
+          userId = anyUser.id;
+          devLog.log('[API] [Config] User ID obtido de qualquer usuário:', userId, 'role:', anyUser.role);
+        } else {
+          devLog.error('[API] [Config] Não foi possível obter user_id:', anyUserError);
+          return NextResponse.json(
+            { 
+              error: 'Não foi possível identificar o usuário. Entre em contato com o suporte.',
+              details: 'created_by é obrigatório e não foi possível obter user_id'
+            },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
+    devLog.log('[API] [Config] Salvando configuração:', { key, description, tenantId, userId });
 
     // ✅ SEGURANÇA: Verificar se configuração já existe no tenant atual
     const { data: existing } = await supabase
@@ -119,6 +191,7 @@ export async function POST(request: NextRequest) {
         .update({
           value: value,  // Supabase aceita qualquer tipo e converte para JSONB automaticamente
           description,
+          updated_by: userId,  // ✅ CRÍTICO: Registrar quem atualizou (pode ser null)
           updated_at: new Date().toISOString()
         })
         .eq('key', key)
@@ -155,18 +228,39 @@ export async function POST(request: NextRequest) {
       const configId = randomUUID();
       devLog.log('[API] [Config] ID gerado para config:', configId);
 
+      // ✅ Descobrir category válida baseada em registros existentes
+      let categoryValida = 'general';  // fallback padrão
+      try {
+        const { data: exampleConfig } = await supabase
+          .from('configs')
+          .select('category')
+          .eq('tenant_id', tenantId)
+          .limit(1)
+          .maybeSingle();
+        
+        if (exampleConfig?.category) {
+          categoryValida = exampleConfig.category;
+          devLog.log('[API] [Config] Category válida obtida:', categoryValida);
+        }
+      } catch (catError) {
+        devLog.warn('[API] [Config] Não foi possível obter category válida, usando fallback');
+      }
+
       const { error } = await supabase
         .from('configs')
-        .insert({
+        .insert([{
           id: configId,  // ✅ CRÍTICO: Fornecer ID explícito
           key,
           value: value,  // Supabase aceita qualquer tipo e converte para JSONB automaticamente
           description: description || `Configuração ${key}`,
-          category: key.includes('preco') || key.includes('potencia') ? 'pricing' : 'business',
+          category: categoryValida,  // ✅ CRÍTICO: Usar category válida do banco
           tenant_id: tenantId,  // ✅ CRÍTICO: Associar ao tenant
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+          is_system: false,  // ✅ Não é configuração de sistema
+          is_encrypted: false,  // ✅ Não precisa criptografar
+          created_by: userId,  // ✅ Registrar quem criou
+          updated_by: userId  // ✅ Registrar quem atualizou
+          // created_at e updated_at serão gerados automaticamente pelo banco
+        }]);
 
       if (error) {
         devLog.error('[API] [Config] Erro ao criar configuração:', error);

@@ -9,16 +9,14 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useForm, Controller } from "react-hook-form"
 import { devLog } from "@/lib/utils/productionLogger"
+import { Loader2 } from 'lucide-react'
 
-const LEAD_STATUS = [
-  { value: 'novo', label: 'Novo' },
-  { value: 'contatado', label: 'Contatado' },
-  { value: 'qualificado', label: 'Qualificado' },
-  { value: 'proposta_enviada', label: 'Proposta Enviada' },
-  { value: 'em_negociacao', label: 'Em Negociação' },
-  { value: 'ganho', label: 'Ganho' },
-  { value: 'perdido', label: 'Perdido' }
-]
+interface OpportunityStatus {
+  id: string;
+  name: string;
+  color: string;
+  position: number;
+}
 
 const LEAD_SOURCES = [
   { value: 'site', label: 'Site' },
@@ -64,6 +62,8 @@ export function AddLeadModal({ open, onOpenChange, onSubmit, teamMembers = [], i
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showOtherSource, setShowOtherSource] = useState(false)
+  const [opportunityStatuses, setOpportunityStatuses] = useState<OpportunityStatus[]>([])
+  const [loadingStatuses, setLoadingStatuses] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors }, setValue, control, watch } = useForm<LeadFormData>({
     defaultValues: {
@@ -88,6 +88,31 @@ export function AddLeadModal({ open, onOpenChange, onSubmit, teamMembers = [], i
   useEffect(() => {
     setShowOtherSource(sourceSelecionada === "outro")
   }, [sourceSelecionada])
+
+  // Buscar status de oportunidades dinamicamente
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      if (!open) return;
+
+      setLoadingStatuses(true);
+      try {
+        const response = await fetch('/api/opportunity-statuses');
+        const data = await response.json();
+
+        if (data.success) {
+          setOpportunityStatuses(data.data || []);
+        }
+      } catch (error) {
+        devLog.error('[AddLeadModal] Erro ao carregar status:', error);
+      } finally {
+        setLoadingStatuses(false);
+      }
+    };
+
+    if (open) {
+      fetchStatuses();
+    }
+  }, [open])
 
   // Preencher formulário quando editando
   useEffect(() => {
@@ -356,36 +381,48 @@ export function AddLeadModal({ open, onOpenChange, onSubmit, teamMembers = [], i
                   <Label htmlFor="status" className="text-xs sm:text-sm font-medium text-gray-700">
                     Status <span className="text-red-500">*</span>
                   </Label>
-                  <Controller
-                    name="status"
-                    control={control}
-                    rules={{ required: true }}
-                    render={({ field }) => (
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <SelectTrigger className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
-                          <SelectValue placeholder="Selecione o status" />
-                        </SelectTrigger>
-                        <SelectContent
-                          position="popper"
-                          side="bottom"
-                          align="start"
-                          sideOffset={4}
-                          avoidCollisions={false}
-                          collisionPadding={20}
-                          className="max-h-[300px] overflow-y-auto"
+                  {loadingStatuses ? (
+                    <div className="flex items-center justify-center h-10 sm:h-11 border border-gray-300 rounded-lg">
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    </div>
+                  ) : (
+                    <Controller
+                      name="status"
+                      control={control}
+                      rules={{ required: true }}
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
                         >
-                          {LEAD_STATUS.map((status) => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
+                          <SelectTrigger className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
+                            <SelectValue placeholder="Selecione o status" />
+                          </SelectTrigger>
+                          <SelectContent
+                            position="popper"
+                            side="bottom"
+                            align="start"
+                            sideOffset={4}
+                            avoidCollisions={false}
+                            collisionPadding={20}
+                            className="max-h-[300px] overflow-y-auto"
+                          >
+                            {opportunityStatuses.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: status.color }}
+                                  />
+                                  {status.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  )}
                   {errors.status && (
                     <p className="text-sm text-red-500 flex items-center mt-1">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

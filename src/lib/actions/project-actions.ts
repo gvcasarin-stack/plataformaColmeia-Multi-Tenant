@@ -8,6 +8,9 @@ import { revalidatePath } from 'next/cache';
 // ✅ SUPABASE - ADICIONADO: Importações do Supabase
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
+// ✅ NOTIFICAÇÕES DE QUOTA: Importar serviço de notificações de esgotamento
+import { sendBillingNotifications } from '@/lib/services/billingNotificationService';
+
 import { Project, UpdatedProject, TimelineEvent, CreateProjectClientData } from '@/types/project';
 
 // Correção da importação:
@@ -58,6 +61,15 @@ import {
 import { getUserDataSupabase } from "@/lib/services/authService.supabase";
 import { devLog } from "@/lib/utils/productionLogger";
 import { getUserDataAdminSupabase } from "@/lib/services/authService.supabase";
+
+// ✅ VALIDAÇÃO: Importar funções de validação para dados do cliente
+import {
+  validarCPForCNPJ,
+  sanitizeNome,
+  validarEstado,
+  normalizarEstado,
+  removerFormatacao
+} from '@/lib/utils/validators';
 
 // ✅ REMOVIDO: Imports antigos de e-mail e notificação separados
 // import { createNotification } from '@/lib/services/notificationService';
@@ -1630,55 +1642,75 @@ export async function createProjectClientAction(
       type: typeof potencia
     });
 
-    // ✅ CORREÇÃO CRÍTICA: SEMPRE recalcular valor no servidor usando configurações do tenant
-    // Ignorar o valor vindo do frontend e sempre calcular baseado nas configurações
-    if (potencia >= 0) { // ✅ CORRIGIDO: Aceitar potência = 0
-      try {
-        // Buscar configurações de faixas de potência do tenant
-        const { data: configData } = await supabase
-          .from('configs')
-          .select('value')
-          .eq('key', 'faixas_potencia')
-          .eq('tenant_id', tenantInfo.tenant_id)
-          .maybeSingle(); // ✅ CORRIGIDO: Usar maybeSingle ao invés de single
+    // ✅ NOVO: Verificar se precificação manual está ativada
+    const { data: precificacaoManualConfig } = await supabase
+      .from('configs')
+      .select('value')
+      .eq('key', 'precificacao_manual')
+      .eq('tenant_id', tenantInfo.tenant_id)
+      .maybeSingle();
 
-        if (configData?.value) {
-          const faixasPotencia = Array.isArray(configData.value) ? configData.value : JSON.parse(configData.value);
-          
-          // ✅ CORREÇÃO CRÍTICA: Lógica de faixas inclusivas
-          // Ordenar faixas por potenciaMin para garantir ordem correta
-          const faixasOrdenadas = [...faixasPotencia].sort((a: any, b: any) => a.potenciaMin - b.potenciaMin);
-          
-          let faixaCorrespondente = null;
-          for (const faixa of faixasOrdenadas) {
-            // ✅ CORRIGIDO: Usar >= para min e < para max (exceto última faixa)
-            if (potencia >= faixa.potenciaMin && potencia < faixa.potenciaMax) {
-              faixaCorrespondente = faixa;
-              break;
+    const precificacaoManual = precificacaoManualConfig?.value === true;
+
+    if (precificacaoManual) {
+      // ✅ PRECIFICAÇÃO MANUAL ATIVA: Definir valor como R$ 0,00
+      valorProjetoFinal = 0;
+      logger.info('[createProjectClientAction] 💰 PRECIFICAÇÃO MANUAL ATIVADA - Projeto criado com R$ 0,00:', {
+        tenantId: tenantInfo.tenant_id,
+        potencia,
+        valorDefinido: 0
+      });
+    } else {
+      // ✅ CORREÇÃO CRÍTICA: SEMPRE recalcular valor no servidor usando configurações do tenant
+      // Ignorar o valor vindo do frontend e sempre calcular baseado nas configurações
+      if (potencia >= 0) { // ✅ CORRIGIDO: Aceitar potência = 0
+        try {
+          // Buscar configurações de faixas de potência do tenant
+          const { data: configData } = await supabase
+            .from('configs')
+            .select('value')
+            .eq('key', 'faixas_potencia')
+            .eq('tenant_id', tenantInfo.tenant_id)
+            .maybeSingle(); // ✅ CORRIGIDO: Usar maybeSingle ao invés de single
+
+          if (configData?.value) {
+            const faixasPotencia = Array.isArray(configData.value) ? configData.value : JSON.parse(configData.value);
+
+            // ✅ CORREÇÃO CRÍTICA: Lógica de faixas inclusivas
+            // Ordenar faixas por potenciaMin para garantir ordem correta
+            const faixasOrdenadas = [...faixasPotencia].sort((a: any, b: any) => a.potenciaMin - b.potenciaMin);
+
+            let faixaCorrespondente = null;
+            for (const faixa of faixasOrdenadas) {
+              // ✅ CORRIGIDO: Usar >= para min e < para max (exceto última faixa)
+              if (potencia >= faixa.potenciaMin && potencia < faixa.potenciaMax) {
+                faixaCorrespondente = faixa;
+                break;
+              }
+            }
+
+            if (faixaCorrespondente) {
+              const valorAnterior = valorProjetoFinal;
+              valorProjetoFinal = faixaCorrespondente.valorBase;
+              logger.info('[createProjectClientAction] ✅ VALOR RECALCULADO NO SERVIDOR (AUTOMÁTICO):', {
+                potencia,
+                valorAnterior: valorAnterior,
+                valorRecalculado: valorProjetoFinal,
+                faixaUsada: faixaCorrespondente,
+                tenantId: tenantInfo.tenant_id,
+                source: 'server_calculation_automatic'
+              });
+            } else {
+              logger.warn('[createProjectClientAction] ❌ NENHUMA FAIXA ENCONTRADA para potência:', {
+                potencia,
+                faixasDisponiveis: faixasPotencia.length,
+                tenantId: tenantInfo.tenant_id
+              });
             }
           }
-          
-          if (faixaCorrespondente) {
-            const valorAnterior = valorProjetoFinal;
-            valorProjetoFinal = faixaCorrespondente.valorBase;
-            logger.info('[createProjectClientAction] ✅ VALOR RECALCULADO NO SERVIDOR:', {
-              potencia,
-              valorAnterior: valorAnterior,
-              valorRecalculado: valorProjetoFinal,
-              faixaUsada: faixaCorrespondente,
-              tenantId: tenantInfo.tenant_id,
-              source: 'server_calculation'
-            });
-          } else {
-            logger.warn('[createProjectClientAction] ❌ NENHUMA FAIXA ENCONTRADA para potência:', {
-              potencia,
-              faixasDisponiveis: faixasPotencia.length,
-              tenantId: tenantInfo.tenant_id
-            });
-          }
+        } catch (error) {
+          logger.warn('[createProjectClientAction] Erro ao calcular valor no servidor, usando valor fornecido:', error);
         }
-      } catch (error) {
-        logger.warn('[createProjectClientAction] Erro ao calcular valor no servidor, usando valor fornecido:', error);
       }
     }
 
@@ -1714,6 +1746,17 @@ export async function createProjectClientAction(
     // 🆕 FIX: Variáveis para armazenar IDs de pacote/assinatura para vincular ao projeto
     let pacoteIdParaVincular: string | null = null;
     let assinaturaIdParaVincular: string | null = null;
+
+    // ✅ NOTIFICAÇÕES DE QUOTA: Array para rastrear situações de esgotamento
+    const quotaWarnings: Array<{
+      type: string;
+      severity?: 'low' | 'medium' | 'high';
+      message: string;
+    }> = [];
+    
+    // Variáveis para notificações
+    let pacoteNome: string | undefined = undefined;
+    let assinaturaNome: string | undefined = undefined;
 
     logger.info('[createProjectClientAction] Billing mode identificado:', {
       ownerId,
@@ -1752,6 +1795,9 @@ export async function createProjectClientAction(
         // Tem pacote, validar expiração e quota
         const agora = new Date();
         const dataExpiracao = new Date(pacote.data_expiracao);
+        
+        // Guardar nome do pacote para notificações
+        pacoteNome = pacote.pacote?.nome;
 
         if (agora > dataExpiracao) {
           // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
@@ -1770,6 +1816,13 @@ export async function createProjectClientAction(
             data_expiracao: pacote.data_expiracao,
             timestamp: new Date().toISOString()
           };
+          
+          // ✅ NOTIFICAÇÕES DE QUOTA: Adicionar warning de pacote expirado
+          quotaWarnings.push({
+            type: 'package_expired',
+            severity: 'high',
+            message: 'Pacote expirado - projeto será cobrado como avulso'
+          });
         } else if (pacote.projetos_usados >= pacote.projetos_inclusos) {
           // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
           logger.warn('[createProjectClientAction] Pacote esgotado - criando como AVULSO:', {
@@ -1788,6 +1841,13 @@ export async function createProjectClientAction(
             projetos_usados: pacote.projetos_usados,
             timestamp: new Date().toISOString()
           };
+          
+          // ✅ NOTIFICAÇÕES DE QUOTA: Adicionar warning de pacote esgotado
+          quotaWarnings.push({
+            type: 'package_exhausted',
+            severity: 'high',
+            message: 'Pacote esgotado - projeto será cobrado como avulso'
+          });
         } else {
           // ✅ Pacote válido - decrementar contador
           const { error: updateError } = await supabase
@@ -1859,6 +1919,9 @@ export async function createProjectClientAction(
         };
       } else {
         // Tem assinatura, validar status e quota
+        // Guardar nome da assinatura para notificações
+        assinaturaNome = assinatura.plano?.nome;
+        
         if (assinatura.status === 'pausada' || assinatura.status === 'cancelada') {
           // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
           logger.warn('[createProjectClientAction] Assinatura com status inválido - criando como AVULSO:', {
@@ -1875,6 +1938,13 @@ export async function createProjectClientAction(
             status_assinatura: assinatura.status,
             timestamp: new Date().toISOString()
           };
+          
+          // ✅ NOTIFICAÇÕES DE QUOTA: Adicionar warning de assinatura suspensa
+          quotaWarnings.push({
+            type: 'subscription_suspended',
+            severity: 'high',
+            message: `Assinatura ${assinatura.status} - projeto será cobrado como avulso`
+          });
         } else if (assinatura.projetos_usados_mes_atual >= assinatura.projetos_mensais) {
           // 🔧 CORREÇÃO: Não bloqueia mais - cria como avulso
           const proximoReset = new Date(assinatura.proximo_reset);
@@ -1896,6 +1966,13 @@ export async function createProjectClientAction(
             proximo_reset: assinatura.proximo_reset,
             timestamp: new Date().toISOString()
           };
+          
+          // ✅ NOTIFICAÇÕES DE QUOTA: Adicionar warning de cota mensal esgotada
+          quotaWarnings.push({
+            type: 'subscription_exhausted',
+            severity: 'high',
+            message: 'Cota mensal esgotada - projeto será cobrado como avulso'
+          });
         } else {
           // ✅ Assinatura válida - decrementar contador mensal
           const { error: updateError } = await supabase
@@ -2107,6 +2184,36 @@ export async function createProjectClientAction(
       // Log notification error but don't fail the entire operation
       logger.error('[createProjectClientAction] Erro ao enviar notificação para admins (projeto criado com sucesso)', {
         notificationError
+      });
+      // Continue without failing - the project was created successfully
+    }
+    
+    // ✅ NOTIFICAÇÕES DE QUOTA: Enviar notificações de esgotamento se houver warnings
+    try {
+      if (quotaWarnings.length > 0) {
+        logger.info(`[createProjectClientAction] Enviando notificações de quota esgotada: ${quotaWarnings.length} warnings`);
+        
+        await sendBillingNotifications({
+          projectId: projectResult.id,
+          projectNumber: projectResult.number,
+          userId: ownerId, // Notificar o dono do projeto
+          userName: clientUser.name || clientUser.email || 'Cliente',
+          userEmail: clientUser.email || '',
+          billingMode,
+          warnings: quotaWarnings,
+          potencia: projectResult.potencia,
+          pacoteNome,
+          assinaturaNome
+        });
+        
+        logger.info(`[createProjectClientAction] Notificações de quota enviadas com sucesso para projeto ${projectResult.number}`);
+      } else {
+        logger.info(`[createProjectClientAction] Nenhuma notificação de quota necessária - projeto criado com quota disponível`);
+      }
+    } catch (quotaNotificationError) {
+      // Log notification error but don't fail the entire operation
+      logger.error('[createProjectClientAction] Erro ao enviar notificações de quota (projeto criado com sucesso)', {
+        quotaNotificationError
       });
       // Continue without failing - the project was created successfully
     }
@@ -2329,6 +2436,8 @@ export async function getProjectAction(projectId: string): Promise<{
       cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final || undefined,
       endereco_local: data.endereco_local || undefined,
       havera_beneficiarias: data.havera_beneficiarias || false,
+      client_city: data.client_city || undefined,
+      client_state: data.client_state || undefined,
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',
       // ✅ FIX: Permitir valor 0, usar ?? ao invés de ||
@@ -2351,6 +2460,11 @@ export async function getProjectAction(projectId: string): Promise<{
       comments: data.comments || [],
       history: data.history || [],
       lastUpdateBy: data.last_update_by || undefined,
+
+      // ✅ CAMPOS DE SLA (prazo de expiração)
+      status_changed_at: data.status_changed_at || null,
+      sla_expires_at: data.sla_expires_at || null,
+      sla_expired: data.sla_expired || false,
     };
 
     logger.info('[getProjectAction] Projeto encontrado:', { projectId: project.id, projectName: project.nome_cliente_final, userId: project.userId });
@@ -3080,11 +3194,237 @@ export async function editProjectAction(
       type: typeof error,
       constructor: error?.constructor?.name
     });
-    
+
     return {
       error: errorMessage,
       message: 'Falha ao editar projeto',
       refresh: false
+    };
+  }
+}
+
+/**
+ * ✅ SERVER ACTION: Atualizar dados do cliente para procuração
+ * Atualiza campos específicos do cliente final no projeto
+ * - nome_cliente_final
+ * - cpf_cnpj_cliente_final
+ * - client_city
+ * - client_state
+ * - distribuidora
+ */
+export async function updateProjectClientData(
+  projectId: string,
+  data: {
+    nome_cliente_final: string;
+    cpf_cnpj_cliente_final: string;
+    client_city: string;
+    client_state: string;
+    distribuidora: string;
+  },
+  userId: string
+) {
+  try {
+    devLog.log('[SERVER] updateProjectClientData - Iniciando:', { projectId, userId });
+
+    // ✅ VALIDAÇÃO: Verificar campos obrigatórios
+    if (!projectId || !userId) {
+      return {
+        success: false,
+        error: 'Dados incompletos: projectId e userId são obrigatórios'
+      };
+    }
+
+    // ✅ VALIDAÇÃO: Nome do cliente
+    if (!data.nome_cliente_final || data.nome_cliente_final.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Nome do cliente é obrigatório'
+      };
+    }
+
+    // ✅ VALIDAÇÃO: CPF/CNPJ
+    if (!data.cpf_cnpj_cliente_final || data.cpf_cnpj_cliente_final.trim().length === 0) {
+      return {
+        success: false,
+        error: 'CPF/CNPJ é obrigatório'
+      };
+    }
+
+    if (!validarCPForCNPJ(data.cpf_cnpj_cliente_final)) {
+      return {
+        success: false,
+        error: 'CPF/CNPJ inválido. Verifique os dígitos.'
+      };
+    }
+
+    // ✅ VALIDAÇÃO: Cidade
+    if (!data.client_city || data.client_city.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Cidade é obrigatória'
+      };
+    }
+
+    // ✅ VALIDAÇÃO: Estado
+    if (!data.client_state || data.client_state.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Estado é obrigatório'
+      };
+    }
+
+    const estadoNormalizado = normalizarEstado(data.client_state);
+    if (!validarEstado(estadoNormalizado)) {
+      return {
+        success: false,
+        error: 'Estado inválido. Use a sigla (ex: SP, RJ, MG)'
+      };
+    }
+
+    // ✅ VALIDAÇÃO: Distribuidora
+    if (!data.distribuidora || data.distribuidora.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Distribuidora é obrigatória'
+      };
+    }
+
+    // ✅ AUTENTICAÇÃO: Buscar dados do usuário
+    const userData = await getUserDataAdminSupabase(userId);
+    if (!userData || !userData.tenantId) {
+      devLog.error('[SERVER] updateProjectClientData - Usuário não encontrado ou sem tenant');
+      return {
+        success: false,
+        error: 'Usuário não autenticado ou tenant não identificado'
+      };
+    }
+
+    const tenantId = userData.tenantId;
+    devLog.log('[SERVER] updateProjectClientData - Tenant identificado:', tenantId);
+    devLog.log('[SERVER] updateProjectClientData - ProjectId recebido:', projectId);
+    devLog.log('[SERVER] updateProjectClientData - UserId recebido:', userId);
+
+    // ✅ Criar cliente Supabase Service Role
+    const supabase = createSupabaseServiceRoleClient();
+
+    // ✅ SEGURANÇA: Buscar projeto e verificar permissões
+    devLog.log('[SERVER] updateProjectClientData - Buscando projeto no banco...');
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, owner_id, tenant_id')
+      .eq('id', projectId)
+      .maybeSingle();
+
+    devLog.log('[SERVER] updateProjectClientData - Resultado da busca:', {
+      found: !!project,
+      error: projectError,
+      projectData: project
+    });
+
+    if (projectError) {
+      devLog.error('[SERVER] updateProjectClientData - Erro ao buscar projeto:', projectError);
+      return {
+        success: false,
+        error: 'Erro ao buscar projeto',
+        details: projectError.message
+      };
+    }
+
+    if (!project) {
+      devLog.error('[SERVER] updateProjectClientData - Projeto não encontrado:', projectId);
+      return {
+        success: false,
+        error: 'Projeto não encontrado'
+      };
+    }
+
+    // ✅ SEGURANÇA: Verificar tenant_id do projeto
+    if (project.tenant_id !== tenantId) {
+      devLog.error('[SERVER] updateProjectClientData - Tenant ID não corresponde:', {
+        projectTenantId: project.tenant_id,
+        userTenantId: tenantId
+      });
+      return {
+        success: false,
+        error: 'Acesso negado: projeto pertence a outro tenant'
+      };
+    }
+
+    // ✅ PERMISSÕES: Verificar se usuário pode editar
+    const isAdmin = userData.role === 'admin' || userData.role === 'superadmin';
+    const isOwner = project.owner_id === userId;
+
+    if (!isAdmin && !isOwner) {
+      devLog.warn('[SERVER] updateProjectClientData - Sem permissão');
+      return {
+        success: false,
+        error: 'Sem permissão para editar este projeto'
+      };
+    }
+
+    devLog.log('[SERVER] updateProjectClientData - Permissões OK. isAdmin:', isAdmin, 'isOwner:', isOwner);
+
+    // ✅ PREPARAR DADOS: Sanitizar e formatar
+    const updateData = {
+      nome_cliente_final: sanitizeNome(data.nome_cliente_final),
+      cpf_cnpj_cliente_final: removerFormatacao(data.cpf_cnpj_cliente_final),
+      client_city: sanitizeNome(data.client_city),
+      client_state: estadoNormalizado,
+      distribuidora: data.distribuidora.trim(),
+      updated_at: new Date().toISOString()
+    };
+
+    devLog.log('[SERVER] updateProjectClientData - Dados sanitizados:', updateData);
+
+    // ✅ ATUALIZAR: Salvar no banco
+    const { data: updatedProject, error: updateError } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', projectId)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+
+    if (updateError) {
+      devLog.error('[SERVER] updateProjectClientData - Erro ao atualizar:', updateError);
+      return {
+        success: false,
+        error: 'Erro ao atualizar dados do cliente',
+        details: updateError.message
+      };
+    }
+
+    devLog.log('[SERVER] updateProjectClientData - Sucesso!');
+
+    // ✅ REVALIDAR: Forçar atualização das páginas
+    revalidatePath('/projetos');
+    revalidatePath(`/projetos/${projectId}`);
+    revalidatePath('/admin/projetos');
+    revalidatePath(`/admin/projetos/${projectId}`);
+
+    return {
+      success: true,
+      message: 'Dados do cliente atualizados com sucesso',
+      data: {
+        nome_cliente_final: updatedProject.nome_cliente_final,
+        cpf_cnpj_cliente_final: updatedProject.cpf_cnpj_cliente_final,
+        client_city: updatedProject.client_city,
+        client_state: updatedProject.client_state,
+        distribuidora: updatedProject.distribuidora
+      }
+    };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    devLog.error('[SERVER] updateProjectClientData - Exceção:', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
+    return {
+      success: false,
+      error: 'Erro interno do servidor',
+      details: errorMessage
     };
   }
 } 

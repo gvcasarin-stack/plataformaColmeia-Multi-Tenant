@@ -7,6 +7,7 @@ import { Project, CreateProjectClientData } from '@/types/project'
 import { User } from '@/types/user'
 import { notifyNewProject } from '@/lib/services/notificationService'
 import { getAllAdminUsersByTenant } from '@/lib/services/userService/core'
+import { sendBillingNotifications } from '@/lib/services/billingNotificationService'
 
 /**
  * Server Action para criar projeto com isolamento multi-tenant
@@ -81,48 +82,214 @@ export async function createProjectMultiTenant(
       }
     }
 
-    // 2. Verificar se pode criar projetos (limites + trial)
-    const { data: canCreate, error: limitError } = await supabase
-      .rpc('can_create_resource', { 
-        org_id: tenantId, 
-        resource_type: 'projects' 
-      })
+    // 2. ✅ NOVO SISTEMA: Verificar modalidade de faturamento e quota disponível
+    let billingMode: 'avulso' | 'pacote' | 'assinatura' = 'avulso'
+    let billingSnapshot: any = null
+    const billingWarnings: Array<{ type: string; severity?: 'low' | 'medium' | 'high'; message: string }> = []
 
-    if (limitError) {
-      devLog.error('[createProjectMultiTenant] Erro ao verificar limite:', limitError)
-      return { error: 'Erro ao verificar limites da organização' }
+    let pacoteAtivo: any = null
+    let assinaturaAtiva: any = null
+
+    devLog.log('[createProjectMultiTenant] Verificando modalidade de faturamento do usuário')
+
+    // 2.1. Buscar pacote ativo do usuário
+    const { data: pacotesData, error: pacotesError } = await supabase
+      .from('cliente_pacotes')
+      .select(`
+        id,
+        pacote_id,
+        projetos_inclusos,
+        projetos_usados,
+        data_expiracao,
+        status,
+        pacotes_definicoes:pacote_id (
+          nome,
+          quantidade_projetos,
+          valor,
+          validade_dias
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'ativo')
+      .gte('data_expiracao', new Date().toISOString())
+      .order('data_expiracao', { ascending: false })
+      .limit(1)
+
+    if (pacotesData && pacotesData.length > 0) {
+      pacoteAtivo = pacotesData[0]
+      devLog.log('[createProjectMultiTenant] Pacote ativo encontrado:', {
+        pacoteId: pacoteAtivo.id,
+        projetosInclusos: pacoteAtivo.projetos_inclusos,
+        projetosUsados: pacoteAtivo.projetos_usados,
+        projetosDisponiveis: pacoteAtivo.projetos_inclusos - pacoteAtivo.projetos_usados
+      })
     }
 
-    if (!canCreate) {
-      // Obter detalhes do limite para mensagem mais específica
-      const { data: limitInfo } = await supabase
-        .rpc('check_limit', { 
-          org_id: tenantId, 
-          limit_type: 'projects' 
+    // 2.2. Buscar assinatura ativa do usuário
+    const { data: assinaturasData, error: assinaturasError } = await supabase
+      .from('cliente_assinaturas')
+      .select(`
+        id,
+        plano_id,
+        projetos_mensais,
+        projetos_usados_mes_atual,
+        dia_renovacao,
+        proximo_reset,
+        status,
+        planos_assinatura:plano_id (
+          nome,
+          quantidade_mensal,
+          valor_mensal,
+          dia_renovacao
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'ativa')
+      .order('data_inicio', { ascending: false })
+      .limit(1)
+
+    if (assinaturasData && assinaturasData.length > 0) {
+      assinaturaAtiva = assinaturasData[0]
+      devLog.log('[createProjectMultiTenant] Assinatura ativa encontrada:', {
+        assinaturaId: assinaturaAtiva.id,
+        projetosMensais: assinaturaAtiva.projetos_mensais,
+        projetosUsados: assinaturaAtiva.projetos_usados_mes_atual,
+        projetosDisponiveis: assinaturaAtiva.projetos_mensais - assinaturaAtiva.projetos_usados_mes_atual
+      })
+    }
+
+    // 2.3. Determinar modalidade de faturamento e validar quota
+    if (pacoteAtivo) {
+      const projetosDisponiveis = pacoteAtivo.projetos_inclusos - pacoteAtivo.projetos_usados
+
+      // Verificar se pacote ainda tem quota
+      if (projetosDisponiveis > 0) {
+        billingMode = 'pacote'
+        billingSnapshot = {
+          mode: 'pacote',
+          pacote_id: pacoteAtivo.id,
+          pacote_nome: pacoteAtivo.pacotes_definicoes?.nome || 'Pacote',
+          projetos_inclusos: pacoteAtivo.projetos_inclusos,
+          projetos_usados_antes: pacoteAtivo.projetos_usados,
+          projetos_usados_depois: pacoteAtivo.projetos_usados + 1,
+          data_expiracao: pacoteAtivo.data_expiracao,
+          timestamp: new Date().toISOString()
+        }
+        devLog.log('[createProjectMultiTenant] Projeto será criado com PACOTE (quota disponível)')
+      } else {
+        // Pacote esgotado - projeto será avulso
+        billingMode = 'avulso'
+        billingWarnings.push({
+          type: 'package_exhausted',
+          severity: 'high',
+          message: 'Pacote esgotado - projeto será cobrado como avulso'
+        })
+        devLog.warn('[createProjectMultiTenant] Pacote esgotado - projeto será avulso')
+      }
+
+      // Verificar se pacote está próximo de expirar
+      const diasParaExpirar = Math.ceil(
+        (new Date(pacoteAtivo.data_expiracao).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+      )
+      if (diasParaExpirar <= 7 && diasParaExpirar > 0) {
+        billingWarnings.push({
+          type: 'package_expiring_soon',
+          severity: 'medium',
+          message: `Pacote expira em ${diasParaExpirar} dias`
+        })
+      }
+    } else if (assinaturaAtiva) {
+      const projetosDisponiveis = assinaturaAtiva.projetos_mensais - assinaturaAtiva.projetos_usados_mes_atual
+
+      // Verificar se assinatura ainda tem quota mensal
+      if (projetosDisponiveis > 0) {
+        billingMode = 'assinatura'
+        billingSnapshot = {
+          mode: 'assinatura',
+          assinatura_id: assinaturaAtiva.id,
+          plano_nome: assinaturaAtiva.planos_assinatura?.nome || 'Assinatura',
+          projetos_mensais: assinaturaAtiva.projetos_mensais,
+          projetos_usados_antes: assinaturaAtiva.projetos_usados_mes_atual,
+          projetos_usados_depois: assinaturaAtiva.projetos_usados_mes_atual + 1,
+          dia_renovacao: assinaturaAtiva.dia_renovacao,
+          proximo_reset: assinaturaAtiva.proximo_reset,
+          timestamp: new Date().toISOString()
+        }
+        devLog.log('[createProjectMultiTenant] Projeto será criado com ASSINATURA (quota disponível)')
+      } else {
+        // Assinatura esgotada - projeto será avulso
+        billingMode = 'avulso'
+        billingWarnings.push({
+          type: 'subscription_exhausted',
+          severity: 'high',
+          message: 'Cota mensal esgotada - projeto será cobrado como avulso'
+        })
+        devLog.warn('[createProjectMultiTenant] Assinatura esgotada - projeto será avulso')
+      }
+    } else {
+      // Nenhum pacote ou assinatura - projeto avulso
+      billingMode = 'avulso'
+      billingSnapshot = {
+        mode: 'avulso',
+        potencia: projectData.potencia || 0,
+        valor_projeto: valorCalculado,
+        timestamp: new Date().toISOString()
+      }
+      devLog.log('[createProjectMultiTenant] Projeto será criado como AVULSO (sem pacote/assinatura)')
+    }
+
+    // 3. Verificar se pode criar projetos (limites organizacionais + trial)
+    // ✅ CORREÇÃO: Pular verificação de limites se usuário tem pacote/assinatura ativo
+    // Usuários com pacote/assinatura podem criar projetos como avulso mesmo com quota esgotada
+    const hasPacoteOuAssinatura = pacoteAtivo || assinaturaAtiva
+
+    if (!hasPacoteOuAssinatura) {
+      devLog.log('[createProjectMultiTenant] Verificando limites organizacionais (sem pacote/assinatura)')
+
+      const { data: canCreate, error: limitError } = await supabase
+        .rpc('can_create_resource', {
+          org_id: tenantId,
+          resource_type: 'projects'
         })
 
-      const details = Array.isArray(limitInfo) ? limitInfo[0] : limitInfo
-      const message = details?.message || 'Limite de projetos atingido'
-      
-      return { 
-        error: 'Limite excedido', 
-        message: `${message}. Faça upgrade do seu plano para criar mais projetos.` 
+      if (limitError) {
+        devLog.error('[createProjectMultiTenant] Erro ao verificar limite:', limitError)
+        // ✅ CORREÇÃO: Não bloquear se RPC falhar - permitir criação
+        devLog.warn('[createProjectMultiTenant] Erro ao verificar limites, mas permitindo criação')
+      } else if (!canCreate) {
+        // Obter detalhes do limite para mensagem mais específica
+        const { data: limitInfo } = await supabase
+          .rpc('check_limit', {
+            org_id: tenantId,
+            limit_type: 'projects'
+          })
+
+        const details = Array.isArray(limitInfo) ? limitInfo[0] : limitInfo
+        const message = details?.message || 'Limite de projetos atingido'
+
+        return {
+          error: 'Limite excedido',
+          message: `${message}. Faça upgrade do seu plano para criar mais projetos.`
+        }
       }
+    } else {
+      devLog.log('[createProjectMultiTenant] Pulando verificação de limites - usuário tem pacote/assinatura ativo')
     }
 
-    // 3. Preparar dados do projeto
+    // 4. Preparar dados do projeto
     const projectToCreate = {
       // Campos obrigatórios multi-tenant
       tenant_id: tenantId,
       created_by: user.id,
-      
+      owner_id: projectData.owner_id || user.id, // ✅ CORRIGIDO: Adicionar owner_id (admin pode passar owner_id diferente)
+
       // Dados básicos
-      nome_cliente_final: projectData.nome_cliente_final || 'Projeto sem nome',
+      name: projectData.nomeClienteFinal || projectData.nome_cliente_final || 'Projeto sem nome',
       description: projectData.description || '',
-      
+
       // Dados específicos de energia solar
       empresa_integradora: projectData.empresaIntegradora || '',
-      nome_cliente_final: projectData.nomeClienteFinal || '',
+      nome_cliente_final: projectData.nomeClienteFinal || projectData.nome_cliente_final || '',
       distribuidora: projectData.distribuidora || '',
       potencia: projectData.potencia || 0,
       data_entrega: projectData.dataEntrega || null,
@@ -130,14 +297,23 @@ export async function createProjectMultiTenant(
       // ✅ NOVOS CAMPOS: CPF/CNPJ e Endereço (opcionais)
       cpf_cnpj_cliente_final: projectData.cpf_cnpj_cliente_final || null,
       endereco_local: projectData.endereco_local || null,
+      havera_beneficiarias: projectData.havera_beneficiarias || false, // ✅ CORRIGIDO: Adicionar campo faltante
 
       // Status e prioridade
       status: 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: projectData.prioridade || 'Baixa',
-      
+
       // Campos financeiros
       valor_projeto: valorCalculado, // ✅ USAR VALOR CALCULADO AUTOMATICAMENTE
-      pagamento: projectData.pagamento || null,
+      pagamento: projectData.pagamento || 'pendente', // ✅ CORRIGIDO: Default 'pendente' como no OLD
+
+      // ✅ NOVO SISTEMA: Modalidade de faturamento
+      billing_mode: billingMode,
+      billing_snapshot: billingSnapshot,
+
+      // ✅ CORRIGIDO: FKs para vincular projeto ao pacote/assinatura específico
+      cliente_pacote_id: billingMode === 'pacote' && pacoteAtivo ? pacoteAtivo.id : null,
+      cliente_assinatura_id: billingMode === 'assinatura' && assinaturaAtiva ? assinaturaAtiva.id : null,
       
       // Dados técnicos específicos
       lista_materiais: projectData.listaMateriais || [],
@@ -159,6 +335,15 @@ export async function createProjectMultiTenant(
         notifications_enabled: true,
         auto_timeline: true,
         require_approval: false
+      },
+
+      // ✅ CORRIGIDO: Metadados de última atualização
+      last_update_by: {
+        uid: user.id,
+        email: user.email || null,
+        name: user.name || user.email || 'Usuário',
+        role: userData.role || 'cliente',
+        timestamp: new Date().toISOString()
       }
 
       // ✅ ISOLAMENTO MULTI-TENANT IMPLEMENTADO (2025-01-11)
@@ -170,35 +355,80 @@ export async function createProjectMultiTenant(
       // - Script: scripts/fix-project-number-by-tenant.sql
     }
 
+    // Log detalhado do objeto antes do insert
+    devLog.log('[createProjectMultiTenant] Dados que serão inseridos:', {
+      tenant_id: projectToCreate.tenant_id,
+      created_by: projectToCreate.created_by,
+      name: projectToCreate.name,
+      status: projectToCreate.status,
+      billing_mode: projectToCreate.billing_mode,
+      billing_snapshot: projectToCreate.billing_snapshot
+    })
+
     // 4. Criar projeto no banco
     const { data: newProject, error: createError } = await supabase
       .from('projects')
       .insert(projectToCreate)
-      .select(`
-        id,
-        name,
-        number,
-        tenant_id,
-        created_by,
-        empresa_integradora,
-        nome_cliente_final,
-        distribuidora,
-        potencia,
-        data_entrega,
-        status,
-        prioridade,
-        valor_projeto,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .single()
 
     if (createError || !newProject) {
-      devLog.error('[createProjectMultiTenant] Erro ao criar projeto:', createError)
-      return { error: 'Erro ao criar projeto no banco de dados' }
+      devLog.error('[createProjectMultiTenant] Erro ao criar projeto:', {
+        error: createError,
+        message: createError?.message,
+        details: createError?.details,
+        hint: createError?.hint,
+        code: createError?.code
+      })
+      return {
+        error: 'Erro ao criar projeto no banco de dados',
+        message: createError?.message || 'Erro desconhecido ao inserir projeto'
+      }
     }
 
-    // 5. Adicionar evento inicial na timeline
+    // 5. ✅ NOVO SISTEMA: Decrementar quota de pacote/assinatura
+    try {
+      if (billingMode === 'pacote' && pacoteAtivo) {
+        devLog.log('[createProjectMultiTenant] Decrementando quota do pacote:', pacoteAtivo.id)
+
+        const { error: updatePacoteError } = await supabase
+          .from('cliente_pacotes')
+          .update({
+            projetos_usados: pacoteAtivo.projetos_usados + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', pacoteAtivo.id)
+
+        if (updatePacoteError) {
+          devLog.error('[createProjectMultiTenant] Erro ao decrementar quota do pacote:', updatePacoteError)
+          // Não falhar a criação por causa da quota
+        } else {
+          devLog.log('[createProjectMultiTenant] Quota do pacote decrementada com sucesso')
+        }
+      } else if (billingMode === 'assinatura' && assinaturaAtiva) {
+        devLog.log('[createProjectMultiTenant] Decrementando quota da assinatura:', assinaturaAtiva.id)
+
+        const { error: updateAssinaturaError } = await supabase
+          .from('cliente_assinaturas')
+          .update({
+            projetos_usados_mes_atual: assinaturaAtiva.projetos_usados_mes_atual + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', assinaturaAtiva.id)
+
+        if (updateAssinaturaError) {
+          devLog.error('[createProjectMultiTenant] Erro ao decrementar quota da assinatura:', updateAssinaturaError)
+          // Não falhar a criação por causa da quota
+        } else {
+          devLog.log('[createProjectMultiTenant] Quota da assinatura decrementada com sucesso')
+        }
+      }
+    } catch (quotaError) {
+      devLog.error('[createProjectMultiTenant] Erro ao decrementar quota:', quotaError)
+      // Não falhar a criação por causa da quota
+    }
+
+    // 6. Adicionar evento inicial na timeline
     try {
       await supabase.rpc('add_timeline_event', {
         project_id: newProject.id,
@@ -211,7 +441,7 @@ export async function createProjectMultiTenant(
       // Não falhar a criação por causa da timeline
     }
 
-    // 6. ✅ NOVO SISTEMA: Criar notificação e enviar email para admins da organização
+    // 7. ✅ NOVO SISTEMA: Criar notificação e enviar email para admins da organização
     try {
       devLog.log('[createProjectMultiTenant] ✅ NOVO SISTEMA: Chamando notifyNewProject');
 
@@ -243,14 +473,46 @@ export async function createProjectMultiTenant(
       // Não falhar a criação por causa da notificação
     }
 
+    // 8. ✅ NOVO SISTEMA: Enviar notificações de billing (pacote/assinatura esgotado)
+    try {
+      if (billingWarnings.length > 0) {
+        devLog.log('[createProjectMultiTenant] ✅ NOVO SISTEMA: Enviando notificações de billing:', {
+          warningsCount: billingWarnings.length,
+          billingMode
+        });
+
+        await sendBillingNotifications({
+          projectId: newProject.id,
+          projectNumber: newProject.number,
+          userId: user.id,
+          userName: user.name || 'Cliente',
+          userEmail: user.email || 'cliente@exemplo.com',
+          billingMode,
+          warnings: billingWarnings,
+          potencia: projectToCreate.potencia,
+          pacoteNome: pacoteAtivo?.pacotes_definicoes?.nome,
+          assinaturaNome: assinaturaAtiva?.planos_assinatura?.nome
+        });
+
+        devLog.log('[createProjectMultiTenant] ✅ NOVO SISTEMA: Notificações de billing enviadas com sucesso');
+      } else {
+        devLog.log('[createProjectMultiTenant] Nenhum warning de billing - notificações não necessárias');
+      }
+    } catch (billingNotificationError) {
+      devLog.error('[createProjectMultiTenant] ❌ ERRO ao enviar notificações de billing:', billingNotificationError);
+      // Não falhar a criação por causa das notificações
+    }
+
     devLog.log('[createProjectMultiTenant] Projeto criado com sucesso:', {
       projectId: newProject.id,
       projectNumber: newProject.number,
       tenantId,
-      userId: user.id
+      userId: user.id,
+      billingMode,
+      billingSnapshot
     })
 
-    // 7. Revalidar cache das páginas relevantes
+    // 9. Revalidar cache das páginas relevantes
     revalidatePath('/admin/projetos')
     revalidatePath('/admin/painel')
     revalidatePath('/cliente/projetos')

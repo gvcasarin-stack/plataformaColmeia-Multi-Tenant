@@ -8,21 +8,30 @@ import { createProjectClientAction } from "@/lib/actions/project-actions";
 import { LazyClientCreateProjectModal } from "@/lib/utils/lazy-components";
 import { calculateProjectCost } from "@/lib/utils/projectUtils";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
 import { toast } from "@/components/ui/use-toast";
 import * as Icons from "lucide-react";
 import { useProjects } from "@/lib/hooks/useProjects";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { devLog } from "@/lib/utils/productionLogger";
 import React from "react";
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService';
+import { format } from 'date-fns/format';
+import { subMonths } from 'date-fns/subMonths';
+import { eachMonthOfInterval } from 'date-fns/eachMonthOfInterval';
+import { ptBR } from 'date-fns/locale/pt-BR';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
 
 // Adicionar tipo à interface Window
 declare global {
@@ -44,55 +53,6 @@ type DisplayUserData = {
   uid?: string;
 };
 
-// ✅ Mapa de slugs para nomes legíveis
-const statusSlugToName: Record<string, string> = {
-  'nao-iniciado': 'Não Iniciado',
-  'em-desenvolvimento': 'Em Desenvolvimento',
-  'aguardando-assinaturas': 'Aguardando Assinaturas',
-  'em-homologacao': 'Em Homologação',
-  'projeto-aprovado': 'Projeto Aprovado',
-  'aguardando-solicitar-vistoria': 'Aguardando Solicitar Vistoria',
-  'projeto-pausado': 'Projeto Pausado',
-  'em-vistoria': 'Em Vistoria',
-  'finalizado': 'Finalizado',
-  'cancelado': 'Cancelado',
-};
-
-// ✅ Função para converter slug em nome legível
-const getStatusDisplayName = (slug: string): string => {
-  return statusSlugToName[slug] || slug;
-};
-
-// Function to get status configuration for styling (agora aceita slugs)
-const getStatusConfig = (statusSlug: string) => {
-  const displayName = getStatusDisplayName(statusSlug);
-
-  switch (statusSlug) {
-    case 'nao-iniciado':
-      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
-    case 'em-desenvolvimento':
-      return { icon: Icons.Activity, color: 'text-blue-600 bg-blue-50 border-blue-200', name: displayName };
-    case 'aguardando-assinaturas':
-      return { icon: Icons.Clock, color: 'text-orange-600 bg-orange-50 border-orange-200', name: displayName };
-    case 'em-homologacao':
-      return { icon: Icons.AlertTriangle, color: 'text-purple-600 bg-purple-50 border-purple-200', name: displayName };
-    case 'projeto-aprovado':
-      return { icon: Icons.CheckCheck, color: 'text-green-600 bg-green-50 border-green-200', name: displayName };
-    case 'aguardando-solicitar-vistoria':
-      return { icon: Icons.Clock, color: 'text-amber-600 bg-amber-50 border-amber-200', name: displayName };
-    case 'projeto-pausado':
-      return { icon: Icons.PauseCircle, color: 'text-yellow-600 bg-yellow-50 border-yellow-200', name: displayName };
-    case 'em-vistoria':
-      return { icon: Icons.Activity, color: 'text-cyan-600 bg-cyan-50 border-cyan-200', name: displayName };
-    case 'finalizado':
-      return { icon: Icons.CheckCheck, color: 'text-emerald-600 bg-emerald-50 border-emerald-200', name: displayName };
-    case 'cancelado':
-      return { icon: Icons.XCircle, color: 'text-red-600 bg-red-50 border-red-200', name: displayName };
-    default:
-      return { icon: Icons.Clock, color: 'text-gray-500 bg-gray-50 border-gray-200', name: displayName };
-  }
-};
-
 export default function ClientDashboard() {
   const { user } = useAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -101,9 +61,15 @@ export default function ClientDashboard() {
   const [showApprovalAlert, setShowApprovalAlert] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
-  const { projects, loading: projectsLoading, addProject } = useProjects();
+  const { projects, addProject } = useProjects();
   // Adicionando um ref para controlar duplicação de submissão
   const isSubmitting = React.useRef(false);
+
+  // Estados para os gráficos
+  const [monthlyProjectsData, setMonthlyProjectsData] = useState<any[]>([]);
+  const [projectsByStatusData, setProjectsByStatusData] = useState<any[]>([]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#AF19FF', '#FF5733'];
 
   useEffect(() => {
     async function fetchUserData() {
@@ -163,6 +129,55 @@ export default function ClientDashboard() {
 
     loadStatuses();
   }, []);
+
+  // Processar dados para os gráficos
+  useEffect(() => {
+    if (projects && projects.length > 0 && availableStatuses.length > 0) {
+      // Helper para filtrar projetos por mês
+      const filterProjectsByMonth = (projects: Project[], month: Date) => {
+        return projects.filter(p => {
+          if (!p.createdAt) return false;
+          const projectDate = typeof p.createdAt === 'string' ? new Date(p.createdAt) : p.createdAt;
+          return projectDate.getMonth() === month.getMonth() && 
+                 projectDate.getFullYear() === month.getFullYear();
+        });
+      };
+
+      // Dados para gráfico de barras (Projetos por Mês)
+      const endDate = new Date();
+      const startDate = subMonths(endDate, 5);
+      const monthsInterval = eachMonthOfInterval({ start: startDate, end: endDate });
+
+      const monthlyProjectsChartData = monthsInterval.map(month => ({
+        name: format(month, 'MMM', { locale: ptBR }),
+        projetos: filterProjectsByMonth(projects, month).length,
+      }));
+      setMonthlyProjectsData(monthlyProjectsChartData);
+
+      // Dados para gráfico de pizza (Distribuição por Status)
+      const statusCounts: { [key: string]: number } = {};
+      projects.forEach(p => {
+        const statusSlug = p.status || 'indefinido';
+        statusCounts[statusSlug] = (statusCounts[statusSlug] || 0) + 1;
+      });
+
+      const projectsByStatusChartData = Object.entries(statusCounts)
+        .map(([statusSlug, value]) => {
+          // Encontrar o status correspondente para obter o nome correto
+          const statusInfo = availableStatuses.find(s => s.slug === statusSlug);
+          return {
+            name: statusInfo?.name || statusSlug,
+            value,
+            color: statusInfo?.color || '#8884d8'
+          };
+        })
+        .sort((a, b) => b.value - a.value);
+      setProjectsByStatusData(projectsByStatusChartData);
+    } else {
+      setMonthlyProjectsData([]);
+      setProjectsByStatusData([]);
+    }
+  }, [projects, availableStatuses]);
 
   const handleCreateProject = async (data: any) => {
     const submitId = data._submitId || `painel-${Date.now()}-${Math.random()}`;
@@ -267,7 +282,7 @@ export default function ClientDashboard() {
       };
 
       devLog.log(`[${submitId}] Chamando createProjectClientAction com:`, { projectDataForAction, clientUserInfo });
-      
+
       const result = await createProjectClientAction(projectDataForAction, clientUserInfo);
 
       if (result.error) {
@@ -319,11 +334,6 @@ export default function ClientDashboard() {
     }
   };
 
-  // Function to navigate to project details
-  const handleViewProject = (project: Project) => {
-    window.location.href = `/cliente/projetos/${project.id}`;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -337,9 +347,9 @@ export default function ClientDashboard() {
   const isPendingApproval = user?.profile?.status === 'pending' || userData?.status === 'pending';
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="space-y-6 p-4">
       {/* Welcome Header with Gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 p-8 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white shadow-lg">
         <div className="relative z-10">
           <h1 className="text-3xl font-bold">
             Bem-vindo, {displayData?.name || 'Cliente'}
@@ -351,7 +361,7 @@ export default function ClientDashboard() {
         
         {/* Decorative elements */}
         <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-orange-400/30"></div>
-        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-amber-400/30"></div>
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-orange-500/30"></div>
       </div>
 
       {/* Status Alerts */}
@@ -410,243 +420,247 @@ export default function ClientDashboard() {
       {/* Stats Overview - Enhanced Design */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Projetos Ativos Card */}
-        <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative bg-white dark:bg-gray-800">
-          <CardContent className="p-0">
-            <div className="flex items-stretch h-full">
-              {/* Left side icon area */}
-              <div className="w-20 bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
-                <Icons.BarChart3 className="h-8 w-8 text-white" />
+        <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-200 bg-white dark:bg-gray-800">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              {/* Icon in circle */}
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30">
+                <Icons.Layers className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
               
-              {/* Right side content */}
-              <div className="flex-1 p-5">
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Projetos Ativos</p>
-                <div className="flex items-end justify-between">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {projects.filter(p => p.status !== 'Finalizado' && p.status !== 'Cancelado').length}
-                  </p>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-                    Em andamento
-                  </span>
-                </div>
+              {/* Content */}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Projetos Ativos</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                  {projects.filter(p => p.status !== 'Finalizado' && p.status !== 'Cancelado').length}
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
+                  Em andamento
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Total de Cobrança Card */}
-        <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative bg-white dark:bg-gray-800">
-          <CardContent className="p-0">
-            <div className="flex items-stretch h-full">
-              {/* Left side icon area */}
-              <div className="w-20 bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-                <Icons.DollarSign className="h-8 w-8 text-white" />
+        <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-200 bg-white dark:bg-gray-800">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              {/* Icon in circle */}
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                <Icons.DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               
-              {/* Right side content */}
-              <div className="flex-1 p-5">
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Total de Cobrança</p>
-                <div className="flex items-end justify-between">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white truncate max-w-[200px]">
-                    {`R$ ${(() => {
-                      // Processar projetos para obter preços
-                      const projectsWithPrices = projects
-                        // Filtrar apenas projetos que têm pagamentos pendentes ou parciais
-                        .filter(p => {
-                          // Se o campo pagamento existir
-                          if ((p as any).pagamento) {
-                            return (p as any).pagamento === 'pendente' || (p as any).pagamento === 'parcela1';
-                          }
-                          // Se não tiver o campo pagamento, considerar como pendente
-                          return true;
-                        })
-                        .map(project => {
-                          // Determine the price: prioritize valorProjeto if available
-                          let price;
-                          if (project.valorProjeto !== undefined && project.valorProjeto !== null) {
-                            // Use the stored value from database
-                            price = Number(project.valorProjeto);
-                          } else {
-                            // Default fallback only if no price is available
-                            price = 4000; // Using 4000 as the default
-                          }
-                          
-                          // NÃO ajustar o preço aqui para pagamentos parciais
-                          // Vamos considerar o valor total do projeto e ajustar apenas no cálculo final
-                          
-                          return {
-                            ...project,
-                            price
-                          };
-                        });
-                      
-                      // Calcular valor total e valor pendente em uma única operação
-                      const pendingValue = projectsWithPrices.reduce((sum, project) => {
-                        const price = project.valorProjeto || 4000;
-                        // Se for parcela1, apenas metade do valor está pendente
-                        if ((project as any).pagamento === 'parcela1') {
-                          return sum + (price / 2);
+              {/* Content */}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total de Cobrança</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                  {`R$ ${(() => {
+                    // Processar projetos para obter preços
+                    const projectsWithPrices = projects
+                      // Filtrar apenas projetos que têm pagamentos pendentes ou parciais
+                      .filter(p => {
+                        // Se o campo pagamento existir
+                        if ((p as any).pagamento) {
+                          return (p as any).pagamento === 'pendente' || (p as any).pagamento === 'parcela1';
                         }
-                        // Se for pendente ou não tiver pagamento definido, todo o valor está pendente
-                        return sum + price;
-                      }, 0);
-                      
-                      return pendingValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    })()}`}
-                  </p>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                    Pendente
-                  </span>
-                </div>
+                        // Se não tiver o campo pagamento, considerar como pendente
+                        return true;
+                      })
+                      .map(project => {
+                        // Determine the price: prioritize valorProjeto if available
+                        let price;
+                        if (project.valorProjeto !== undefined && project.valorProjeto !== null) {
+                          // Use the stored value from database
+                          price = Number(project.valorProjeto);
+                        } else {
+                          // Default fallback only if no price is available
+                          price = 4000; // Using 4000 as the default
+                        }
+                        
+                        // NÃO ajustar o preço aqui para pagamentos parciais
+                        // Vamos considerar o valor total do projeto e ajustar apenas no cálculo final
+                        
+                        return {
+                          ...project,
+                          price
+                        };
+                      });
+                    
+                    // Calcular valor total e valor pendente em uma única operação
+                    const pendingValue = projectsWithPrices.reduce((sum, project) => {
+                      const price = project.valorProjeto ?? 0;
+                      // Se for parcela1, apenas metade do valor está pendente
+                      if ((project as any).pagamento === 'parcela1') {
+                        return sum + (price / 2);
+                      }
+                      // Se for pendente ou não tiver pagamento definido, todo o valor está pendente
+                      return sum + price;
+                    }, 0);
+                    
+                    return pendingValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  })()}`}
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">
+                  Pendente
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Projetos Concluídos Card */}
-        <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative bg-white dark:bg-gray-800">
-          <CardContent className="p-0">
-            <div className="flex items-stretch h-full">
-              {/* Left side icon area */}
-              <div className="w-20 bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                <Icons.TrendingUp className="h-8 w-8 text-white" />
+        <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-200 bg-white dark:bg-gray-800">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              {/* Icon in circle */}
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30">
+                <Icons.CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               
-              {/* Right side content */}
-              <div className="flex-1 p-5">
-                <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-1">Projetos Concluídos</p>
-                <div className="flex items-end justify-between">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {projects.filter(p => p.status === 'Finalizado').length}
-                  </p>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                    Finalizados
-                  </span>
-                </div>
+              {/* Content */}
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Projetos Concluídos</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
+                  {projects.filter(p => p.status === 'Finalizado').length}
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
+                  Finalizados
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Projects Table Section */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Meus Projetos</h2>
-          {!isPendingApproval && (
-            <Button 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium transition-all duration-200"
-            >
-              <Icons.PlusCircle className="h-4 w-4 mr-2" />
-              Novo Projeto
-            </Button>
-          )}
-        </div>
+      {/* Barra de Ações Rápidas */}
+      <div className="flex items-center justify-end gap-4">
+        <Button 
+          onClick={() => setIsCreateModalOpen(true)}
+          disabled={isPendingApproval}
+          className="bg-orange-600 text-white hover:bg-orange-700 shadow-md font-medium transition-all duration-200 px-6 py-2.5"
+        >
+          <Icons.PlusCircle className="h-5 w-5 mr-2" />
+          Novo Projeto
+        </Button>
+        <Button 
+          onClick={() => window.location.href = '/cliente/projetos'}
+          variant="outline"
+          className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 shadow-sm font-medium transition-all duration-200 px-6 py-2.5"
+        >
+          <Icons.FolderOpen className="h-5 w-5 mr-2" />
+          Ver Todos os Projetos
+        </Button>
+      </div>
 
-        {isPendingApproval ? (
-          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-6 text-amber-600 dark:text-amber-400 text-sm">
-            <p className="font-medium">Conta pendente de aprovação</p>
-            <p className="mt-1">Você poderá criar projetos após a aprovação da sua conta.</p>
-          </div>
-        ) : projectsLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
-            <p className="text-gray-500 dark:text-gray-400 mb-4">Você ainda não possui projetos.</p>
-            {!isPendingApproval && (
-              <Button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-blue-600 text-white hover:bg-blue-700 shadow-md font-medium"
-              >
-                <Icons.PlusCircle className="h-4 w-4 mr-2" />
-                Criar Novo Projeto
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-gray-200/60 shadow-sm overflow-hidden bg-white dark:bg-gray-800 dark:border-gray-700">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 dark:bg-gray-700/50 dark:hover:bg-gray-700/50">
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Número</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Empresa Integradora</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Cliente Final</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Distribuidora</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Potência</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Status</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300 pr-6">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {projects.map((project, index) => {
-                  // Buscar o status real do tenant ao invés de usar o mapa estático
-                  const projectStatus = availableStatuses.find(s => s.slug === project.status);
-                  const statusName = projectStatus?.name || getStatusDisplayName(project.status);
-                  const statusColor = projectStatus?.color || '#6b7280';
+      {/* Gráficos de Análise */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico de Barras - Projetos por Mês */}
+        <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+          <CardHeader>
+            <CardTitle>Projetos por Mês</CardTitle>
+            <CardDescription>Evolução dos últimos 6 meses</CardDescription>
+          </CardHeader>
+          <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={monthlyProjectsData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
+                <YAxis fontSize={12} tickLine={false} axisLine={true} allowDecimals={false} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(200, 200, 200, 0.2)'}}
+                  contentStyle={{
+                    backgroundColor: 'var(--background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0.5rem',
+                    padding: '8px',
+                    fontSize: '12px',
+                    color: 'var(--foreground)'
+                  }}
+                />
+                <Bar dataKey="projetos" fill="#8884d8" radius={[4, 4, 0, 0]} barSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-                  const statusConfig = getStatusConfig(project.status);
-                  const StatusIcon = statusConfig.icon;
+        {/* Gráfico de Pizza - Distribuição por Status */}
+        <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+          <CardHeader>
+            <CardTitle>Distribuição por Status</CardTitle>
+            <CardDescription>Projetos por estágio</CardDescription>
+          </CardHeader>
+          <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 20 }}>
+                <Pie
+                  data={projectsByStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={false}
+                >
+                  {projectsByStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0];
+                      return (
+                        <div className="bg-background border border-border p-2 rounded shadow-lg">
+                          <p className="font-semibold">{data.payload.name}</p>
+                          <p style={{ color: data.color }}>
+                            Projetos: {data.value}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  content={({ payload }) => (
+                    <div className="flex flex-wrap gap-3 justify-center mt-4">
+                      {payload?.map((entry, index) => {
+                        const words = entry.value.split(' ');
+                        const shouldBreak = words.length > 3;
 
-                  return (
-                    <TableRow
-                      key={`${project.id}-${index}`}
-                      className="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 cursor-pointer group"
-                    >
-                      <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                        {project.number}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center flex-shrink-0">
-                            <Icons.Building2 className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                        // Calcular percentual baseado nos dados do gráfico
+                        const totalValue = projectsByStatusData.reduce((sum, item) => sum + item.value, 0);
+                        const currentData = projectsByStatusData.find(item => item.name === entry.value);
+                        const percentage = currentData ? Math.round((currentData.value / totalValue) * 100) : 0;
+
+                        return (
+                          <div key={`legend-${index}`} className="flex items-center gap-1 text-xs">
+                            <div
+                              className="w-3 h-3 rounded-sm"
+                              style={{ backgroundColor: projectsByStatusData.find(item => item.name === entry.value)?.color || entry.color }}
+                            ></div>
+                            <span className={shouldBreak ? "text-center leading-tight" : ""}>
+                              {shouldBreak ? (
+                                <span>
+                                  {words.slice(0, Math.ceil(words.length / 2)).join(' ')}<br/>
+                                  {words.slice(Math.ceil(words.length / 2)).join(' ')} ({percentage}%)
+                                </span>
+                              ) : `${entry.value} (${percentage}%)`}
+                            </span>
                           </div>
-                          <span className="text-gray-700 dark:text-gray-300">{project.empresaIntegradora || 'N/A'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 flex items-center justify-center flex-shrink-0">
-                            <Icons.Users className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />
-                          </div>
-                          <span className="text-gray-700 dark:text-gray-300">{project.nomeClienteFinal || 'N/A'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-700 dark:text-gray-300">{project.distribuidora || 'N/A'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 flex items-center justify-center flex-shrink-0">
-                            <Icons.Zap className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
-                          </div>
-                          <span className="text-gray-700 dark:text-gray-300">{project.potencia} kWp</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${statusConfig.color} dark:bg-opacity-20`}>
-                          <StatusIcon className="w-3.5 h-3.5" />
-                          <span className="text-sm font-medium">{statusName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-3 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border-gray-200 dark:border-gray-600 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleViewProject(project)}
-                        >
-                          <Icons.Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                        );
+                      })}
+                    </div>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Project Creation Modal */}

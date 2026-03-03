@@ -1,6 +1,21 @@
-import { createNotificationDirectly, notifyAllAdmins } from './notificationService/core';
+/**
+ * ✅ SERVIÇO DE NOTIFICAÇÕES DE QUOTA
+ * 
+ * Este serviço é responsável por notificar clientes e administradores quando:
+ * - Pacote de projetos esgota ou expira
+ * - Assinatura mensal atinge o limite de quota
+ * - Assinatura está suspensa ou pendente
+ * 
+ * Notificações são enviadas tanto para o cliente quanto para os administradores
+ * para garantir transparência e acompanhamento adequado.
+ */
+
+import { createNotificationDirectly, createNotificationForAllAdmins } from './notificationService/core';
 import { devLog } from '@/lib/utils/productionLogger';
 
+/**
+ * Parâmetros para envio de notificações de quota
+ */
 interface BillingNotificationParams {
   projectId: string;
   projectNumber: string;
@@ -20,9 +35,20 @@ interface BillingNotificationParams {
 }
 
 /**
- * Envia notificações de billing após criação de projeto
- * - Para o cliente: informando sobre situação do pacote/assinatura
- * - Para os admins: alertando sobre projetos fora dos limites
+ * Envia notificações de esgotamento de quota após criação de projeto
+ * 
+ * @param params - Parâmetros do projeto e warnings de quota
+ * 
+ * Comportamento:
+ * - Para o CLIENTE: Informa sobre situação do pacote/assinatura (quota esgotada, expiração, etc)
+ * - Para os ADMINS: Alerta sobre projetos criados fora dos limites de quota
+ * 
+ * Tipos de warnings suportados:
+ * - package_exhausted: Pacote esgotou todos os projetos disponíveis
+ * - package_expired: Pacote expirou (data de validade passou)
+ * - subscription_exhausted: Cota mensal da assinatura esgotada
+ * - subscription_suspended: Assinatura suspensa ou cancelada
+ * - subscription_pending_renewal: Assinatura pendente de renovação
  */
 export async function sendBillingNotifications(params: BillingNotificationParams): Promise<void> {
   const {
@@ -39,7 +65,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
     assinaturaNome
   } = params;
 
-  devLog.log('[BillingNotifications] Processando notificações:', {
+  devLog.log('[QuotaNotifications] Processando notificações de quota:', {
     projectId,
     projectNumber,
     billingMode,
@@ -48,7 +74,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
 
   // Se não há warnings, não precisa notificar
   if (warnings.length === 0) {
-    devLog.log('[BillingNotifications] Nenhum warning, pulando notificações');
+    devLog.log('[QuotaNotifications] Nenhum warning de quota, pulando notificações');
     return;
   }
 
@@ -63,8 +89,8 @@ export async function sendBillingNotifications(params: BillingNotificationParams
   if (warnings.some(w => w.type === 'package_exhausted')) {
     await createNotificationDirectly({
       type: 'warning',
-      title: 'Projeto criado fora do pacote',
-      message: `Você criou o projeto #${projectNumber}, mas seu pacote está esgotado. Este projeto será cobrado como avulso.`,
+      title: 'Pacote de projetos esgotado',
+      message: `Você criou o projeto #${projectNumber}, mas seu pacote de projetos está com a cota esgotada. Portanto, esse novo projeto foi criado como avulso. Para incluir projetos no pacote, entre em contato com a equipe administrativa.`,
       userId,
       senderId: 'system',
       senderName: 'Sistema',
@@ -84,8 +110,8 @@ export async function sendBillingNotifications(params: BillingNotificationParams
   if (warnings.some(w => w.type === 'package_expired')) {
     await createNotificationDirectly({
       type: 'warning',
-      title: 'Projeto criado com pacote expirado',
-      message: `Você criou o projeto #${projectNumber}, mas seu pacote expirou. Este projeto será cobrado como avulso.`,
+      title: 'Pacote de projetos expirado',
+      message: `Você criou o projeto #${projectNumber}, mas seu pacote de projetos expirou. Portanto, esse novo projeto foi criado como avulso. Para renovar seu pacote, entre em contato com a equipe administrativa.`,
       userId,
       senderId: 'system',
       senderName: 'Sistema',
@@ -106,7 +132,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
     await createNotificationDirectly({
       type: 'warning',
       title: 'Cota mensal esgotada',
-      message: `Você criou o projeto #${projectNumber}, mas sua cota mensal está esgotada. Aguarde a renovação ou entre em contato.`,
+      message: `Você criou o projeto #${projectNumber}, mas sua assinatura mensal está com a cota esgotada. Portanto, esse novo projeto foi criado como avulso. Para incluir projetos na assinatura, aguarde a renovação ou entre em contato com a equipe administrativa.`,
       userId,
       senderId: 'system',
       senderName: 'Sistema',
@@ -127,7 +153,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
     await createNotificationDirectly({
       type: 'warning',
       title: 'Assinatura pendente de renovação',
-      message: `Você criou o projeto #${projectNumber}, mas sua assinatura está pendente de renovação. Efetue o pagamento para continuar criando projetos.`,
+      message: `Você criou o projeto #${projectNumber}, mas sua assinatura está pendente de renovação. Portanto, esse novo projeto foi criado como avulso. Para continuar incluindo projetos na assinatura, efetue o pagamento ou entre em contato com a equipe administrativa.`,
       userId,
       senderId: 'system',
       senderName: 'Sistema',
@@ -146,9 +172,9 @@ export async function sendBillingNotifications(params: BillingNotificationParams
   // 5. Assinatura suspensa
   if (warnings.some(w => w.type === 'subscription_suspended')) {
     await createNotificationDirectly({
-      type: 'error',
+      type: 'warning',
       title: 'Assinatura suspensa',
-      message: `Você criou o projeto #${projectNumber}, mas sua assinatura está suspensa. Entre em contato com o administrador.`,
+      message: `Você criou o projeto #${projectNumber}, mas sua assinatura está suspensa. Portanto, esse novo projeto foi criado como avulso. Para reativar sua assinatura, entre em contato com a equipe administrativa.`,
       userId,
       senderId: 'system',
       senderName: 'Sistema',
@@ -167,9 +193,9 @@ export async function sendBillingNotifications(params: BillingNotificationParams
   // 6. Potência excedida (validar se potência foi informada)
   if (potencia && potenciaMaxima && potencia > potenciaMaxima) {
     await createNotificationDirectly({
-      type: 'info',
+      type: 'warning',
       title: 'Potência excede limite do plano',
-      message: `O projeto #${projectNumber} tem potência de ${potencia} kWp, mas seu ${billingMode === 'pacote' ? 'pacote' : 'plano'} permite até ${potenciaMaxima} kWp. A diferença será cobrada como avulso.`,
+      message: `Você criou o projeto #${projectNumber} com potência de ${potencia} kWp, mas seu ${billingMode === 'pacote' ? 'pacote' : 'plano'} permite até ${potenciaMaxima} kWp. Portanto, a diferença de potência será cobrada como avulso. Para ajustar seu plano, entre em contato com a equipe administrativa.`,
       userId,
       senderId: 'system',
       senderName: 'Sistema',
@@ -194,7 +220,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
 
   // 1. Cliente criou projeto com pacote esgotado
   if (warnings.some(w => w.type === 'package_exhausted')) {
-    await notifyAllAdmins({
+    await createNotificationForAllAdmins({
       type: 'info',
       title: 'Cliente criou projeto fora do pacote',
       message: `Cliente ${userName} (${userEmail}) criou projeto #${projectNumber} mas o pacote está esgotado. Projeto será cobrado como avulso.`,
@@ -217,7 +243,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
 
   // 2. Cliente criou projeto com pacote expirado
   if (warnings.some(w => w.type === 'package_expired')) {
-    await notifyAllAdmins({
+    await createNotificationForAllAdmins({
       type: 'warning',
       title: 'Cliente criou projeto com pacote expirado',
       message: `Cliente ${userName} (${userEmail}) criou projeto #${projectNumber} mas o pacote expirou. Projeto será cobrado como avulso.`,
@@ -240,7 +266,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
 
   // 3. Cliente criou projeto com assinatura suspensa/pendente
   if (warnings.some(w => w.type === 'subscription_suspended' || w.type === 'subscription_pending_renewal')) {
-    await notifyAllAdmins({
+    await createNotificationForAllAdmins({
       type: 'error',
       title: 'Cliente criou projeto com assinatura suspensa',
       message: `Cliente ${userName} (${userEmail}) criou projeto #${projectNumber} mas a assinatura está suspensa/pendente de renovação.`,
@@ -263,7 +289,7 @@ export async function sendBillingNotifications(params: BillingNotificationParams
 
   // 4. Cliente excedeu limite de potência
   if (potencia && potenciaMaxima && potencia > potenciaMaxima) {
-    await notifyAllAdmins({
+    await createNotificationForAllAdmins({
       type: 'info',
       title: 'Cliente excedeu limite de potência',
       message: `Cliente ${userName} criou projeto #${projectNumber} com ${potencia} kWp, mas o limite do ${billingMode === 'pacote' ? 'pacote' : 'plano'} é ${potenciaMaxima} kWp.`,
@@ -287,5 +313,5 @@ export async function sendBillingNotifications(params: BillingNotificationParams
     });
   }
 
-  devLog.log('[BillingNotifications] Notificações enviadas com sucesso');
+  devLog.log('[QuotaNotifications] Notificações de esgotamento de quota enviadas com sucesso');
 }

@@ -100,13 +100,13 @@ export function Sidebar({ collapsed: collapsedProp, onToggle: onToggleProp }: Si
     {
       href: "/cliente/painel",
       label: "Painel",
-      icon: LucideIcons.BarChart3,
+      icon: LucideIcons.LayoutDashboard,
       color: "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50"
     },
     {
       href: "/cliente/projetos",
       label: "Projetos",
-      icon: LucideIcons.Lightbulb,
+      icon: LucideIcons.Zap,
       color: "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50"
     },
     {

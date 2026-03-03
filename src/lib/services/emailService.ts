@@ -404,24 +404,61 @@ export const emailTemplates = {
   `
 };
 
-// Verificar as preferências de notificação do usuário
-async function shouldSendEmailNotification(userId: string, notificationType: 'status' | 'document' | 'comment'): Promise<boolean> {
+// Verificar as preferências de notificação do usuário a partir da tabela user_preferences
+async function shouldSendEmailNotification(userId: string, notificationType: 'status' | 'document' | 'comment' | 'project_created'): Promise<boolean> {
   try {
+    // Buscar dados do usuário para obter o tenant_id
     const userData = await getUserDataAdminSupabase(userId);
-    
+
+    // ⚠️ FAIL OPEN: Se não encontrar userData, enviar email por padrão (comportamento seguro)
+    if (!userData) {
+      devLog.error('[shouldSendEmailNotification] getUserDataAdminSupabase retornou NULL para userId:', userId);
+      return true; // ← MUDANÇA: Enviar e-mail por padrão ao invés de bloquear
+    }
+
+    // ⚠️ FAIL OPEN: Se não tiver tenantId, enviar email por padrão (comportamento seguro)
+    if (!userData.tenantId) {
+      devLog.warn('[shouldSendEmailNotification] userData.tenantId está NULL/undefined para userId:', userId);
+      return true; // ← MUDANÇA: Enviar e-mail por padrão ao invés de bloquear
+    }
+
+    // Buscar preferências da tabela user_preferences
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .select('notify_project_created, notify_status_change, notify_document_added, notify_comment_added')
+      .eq('user_id', userId)
+      .eq('tenant_id', userData.tenantId)
+      .maybeSingle();
+
+    if (error) {
+      devLog.error('[shouldSendEmailNotification] Erro ao buscar preferências:', error);
+      // Em caso de erro, retornar true (padrão) para não bloquear notificações
+      return true;
+    }
+
+    // Se não existe registro de preferências, assumir true (padrão)
+    if (!data) {
+      devLog.log('[shouldSendEmailNotification] Nenhuma preferência encontrada, usando padrão (true)');
+      return true;
+    }
+
+    // Verificar preferência específica
     switch(notificationType) {
+      case 'project_created':
+        return data.notify_project_created !== false; // true por padrão
       case 'status':
-        return userData.emailNotificacaoStatus !== false; // true por padrão
+        return data.notify_status_change !== false; // true por padrão
       case 'document':
-        return userData.emailNotificacaoDocumentos !== false; // true por padrão
+        return data.notify_document_added !== false; // true por padrão
       case 'comment':
-        return userData.emailNotificacaoComentarios !== false; // true por padrão
+        return data.notify_comment_added !== false; // true por padrão
       default:
         return false;
     }
   } catch (error) {
-    devLog.error('Erro ao verificar preferências de notificação:', error);
-    return false;
+    devLog.error('[shouldSendEmailNotification] Erro ao verificar preferências de notificação:', error);
+    // Em caso de erro, retornar true (padrão) para não bloquear notificações
+    return true;
   }
 }
 
@@ -661,11 +698,23 @@ export async function sendEmailNotificationForComment(
           // Cliente comentou -> enviar para admins
           for (const admin of validAdmins) {
             if (admin.email) {
+              // ✅ VERIFICAR PREFERÊNCIAS: Respeitar configuração de notificação do admin
+              const shouldNotify = await shouldSendEmailNotification(admin.uid, 'comment');
+              if (!shouldNotify) {
+                logger.info(`[EmailService/Comment] Admin ${admin.email} optou por não receber notificações de comentários`);
+                continue;
+              }
               await sendEmailWithCooldown(admin.uid, projectId, admin.email, subject, htmlBody);
             }
           }
         } else if (projectOwnerUserId) {
           // Admin comentou -> enviar para cliente
+          // ✅ VERIFICAR PREFERÊNCIAS: Respeitar configuração de notificação do cliente
+          const shouldNotify = await shouldSendEmailNotification(projectOwnerUserId, 'comment');
+          if (!shouldNotify) {
+            logger.info(`[EmailService/Comment] Cliente ${validRecipients[0]} optou por não receber notificações de comentários`);
+            return;
+          }
           await sendEmailWithCooldown(projectOwnerUserId, projectId, validRecipients[0], subject, htmlBody);
         }
       }
@@ -903,6 +952,7 @@ export async function notifyUserOfNewComment(
 // REGRAS:
 // - Cliente comenta SEM responsável: notifica TODOS (admins + colaboradores + superadmin)
 // - Cliente comenta COM responsável: notifica APENAS o responsável
+// ✅ VERIFICA PREFERÊNCIAS: Respeita as preferências de notificação de cada admin
 export async function notifyAdminAboutComment(
   commentText: string,
   clientName: string,
@@ -975,6 +1025,13 @@ export async function notifyAdminAboutComment(
     for (const admin of adminsToEmail) {
       if (!admin.email) continue;
 
+      // ✅ VERIFICAR PREFERÊNCIAS: Respeitar configuração de notificação do admin
+      const shouldNotify = await shouldSendEmailNotification(admin.uid, 'comment');
+      if (!shouldNotify) {
+        devLog.log(`[EmailService] Admin ${admin.email} optou por não receber notificações de comentários`);
+        continue; // Pular este admin
+      }
+
       const emailHtml = emailTemplates.commentAdded(
         projectName,
         projectNumber,
@@ -1010,6 +1067,7 @@ export async function notifyAdminAboutComment(
 // ✅ NOVO SISTEMA DE NOTIFICAÇÕES
 // Função para notificar administradores sobre um novo projeto criado por um cliente
 // REGRA: Notifica APENAS admins + superadmin (NÃO colaboradores)
+// ✅ VERIFICA PREFERÊNCIAS: Respeita as preferências de notificação de cada admin
 export async function notifyAdminAboutNewProject(
   clientName: string,
   projectName: string,
@@ -1048,6 +1106,13 @@ export async function notifyAdminAboutNewProject(
 
     for (const admin of adminUsers) {
       if (!admin.email) continue;
+
+      // ✅ VERIFICAR PREFERÊNCIAS: Respeitar configuração de notificação do admin
+      const shouldNotify = await shouldSendEmailNotification(admin.uid, 'project_created');
+      if (!shouldNotify) {
+        devLog.log(`[EmailService] Admin ${admin.email} optou por não receber notificações de novos projetos`);
+        continue; // Pular este admin
+      }
 
       const emailHtml = emailTemplates.newProject(
         projectName,
@@ -1135,6 +1200,7 @@ export async function notifyUserOfNewDocument(
 // REGRAS:
 // - Cliente envia SEM responsável: notifica TODOS (admins + colaboradores + superadmin)
 // - Cliente envia COM responsável: notifica APENAS o responsável
+// ✅ VERIFICA PREFERÊNCIAS: Respeita as preferências de notificação de cada admin
 export async function notifyAdminAboutDocument(
   documentName: string,
   clientName: string,
@@ -1201,6 +1267,13 @@ export async function notifyAdminAboutDocument(
 
     for (const admin of adminsToEmail) {
       if (!admin.email) continue;
+
+      // ✅ VERIFICAR PREFERÊNCIAS: Respeitar configuração de notificação do admin
+      const shouldNotify = await shouldSendEmailNotification(admin.uid, 'document');
+      if (!shouldNotify) {
+        devLog.log(`[EmailService] Admin ${admin.email} optou por não receber notificações de documentos`);
+        continue; // Pular este admin
+      }
 
       const emailHtml = emailTemplates.documentAdded(
         projectName,

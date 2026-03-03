@@ -29,7 +29,9 @@ import {
   Camera,        // 🎨 Para upload de imagens em comentários
   Archive,       // ✅ Para arquivar projeto
   Package,       // 📦 Para pacotes
-  CalendarCheck  // 📅 Para assinaturas
+  CalendarCheck, // 📅 Para assinaturas
+  Info,          // ℹ️ Para mensagens informativas
+  FileText       // 📄 Para gerar procuração
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -56,6 +58,7 @@ import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanServ
 import { deleteCommentAction, deleteFileAction } from '@/lib/actions/project-actions'
 import { ProjectResponsibleAdmin } from './project-view/project-responsible-admin'
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
+import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
 
 // Import custom icon components
 import ClockIcon from '@/components/icons/clock';
@@ -303,8 +306,33 @@ export const ExpandedProjectView = ({
     disjuntorPadraoEntrada: project.disjuntorPadraoEntrada,
     cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final,
     endereco_local: project.endereco_local,
-    havera_beneficiarias: project.havera_beneficiarias || false
+    havera_beneficiarias: project.havera_beneficiarias || false,
+
+    // ✅ PROCURAÇÃO: Campos de cidade e estado do cliente
+    client_city: project.client_city,
+    client_state: project.client_state
   })
+
+  // ✅ PROCURAÇÃO: Sincronizar editedProject com project quando campos específicos mudarem
+  useEffect(() => {
+    setEditedProject(prev => ({
+      ...prev,
+      client_city: project.client_city,
+      client_state: project.client_state,
+      cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final,
+      endereco_local: project.endereco_local,
+      distribuidora: project.distribuidora,
+      nome_cliente_final: project.nome_cliente_final
+    }));
+  }, [
+    project.client_city,
+    project.client_state,
+    project.cpf_cnpj_cliente_final,
+    project.endereco_local,
+    project.distribuidora,
+    project.nome_cliente_final
+  ]);
+
   const [newComment, setNewComment] = useState('')
   const [commentVisibility, setCommentVisibility] = useState<'all' | 'internal'>('all')
   const [commentImages, setCommentImages] = useState<File[]>([])
@@ -416,6 +444,7 @@ export const ExpandedProjectView = ({
   const [showAddDocumentSection, setShowAddDocumentSection] = useState(false);
   const [showAddCommentSection, setShowAddCommentSection] = useState(false);
   const [showBeneficiariasUploadSection, setShowBeneficiariasUploadSection] = useState(false);
+  const [showProcuracaoModal, setShowProcuracaoModal] = useState(false);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
   const [selectedBeneficiariaFiles, setSelectedBeneficiariaFiles] = useState<{[key: string]: File | null}>({});
   const [uploadingBeneficiaria, setUploadingBeneficiaria] = useState<string | null>(null);
@@ -1544,8 +1573,6 @@ export const ExpandedProjectView = ({
                             <SelectItem value="pendente">Pendente</SelectItem>
                             <SelectItem value="parcela1">1ª Parcela Paga</SelectItem>
                             <SelectItem value="pago">Totalmente Pago</SelectItem>
-                            <SelectItem value="atrasado">Atrasado</SelectItem>
-                            <SelectItem value="renegociado">Renegociado</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1598,19 +1625,35 @@ export const ExpandedProjectView = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-2">
-                        <Label htmlFor="listaMateriais" className="text-sm font-medium text-gray-700">Lista de Material</Label>
-                        <Textarea 
-                          id="listaMateriais" 
-                          value={editedProject.listaMateriais || ''} 
-                          onChange={(e) => handleChange('listaMateriais', e.target.value)} 
-                          className="mt-1 min-h-[120px] md:min-h-[160px] whitespace-pre-wrap" 
-                          placeholder="Informe a lista de materiais..." 
-                        />
+            {/* 🆕 CAMPO: Compensação de Créditos */}
+            <div>
+              <Label htmlFor="compensacao" className="text-sm font-medium text-gray-700">Compensação de Créditos</Label>
+              <Select
+                value={editedProject.havera_beneficiarias ? 'sim' : 'nao'}
+                onValueChange={(value) => handleChange('havera_beneficiarias', value === 'sim')}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione se haverá compensação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sim">Sim</SelectItem>
+                  <SelectItem value="nao">Não</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
                         <Label htmlFor="disjuntorPadraoEntrada" className="text-sm font-medium text-gray-700">Disjuntor do Padrão de Entrada</Label>
                         <Input id="disjuntorPadraoEntrada" value={editedProject.disjuntorPadraoEntrada || ''} onChange={(e) => handleChange('disjuntorPadraoEntrada', e.target.value)} className="mt-1" placeholder="Informe o disjuntor..." />
+            </div>
+            <div className="md:col-span-2 lg:col-span-3">
+                        <Label htmlFor="listaMateriais" className="text-sm font-medium text-gray-700">Lista de Material</Label>
+                        <Textarea
+                          id="listaMateriais"
+                          value={editedProject.listaMateriais || ''}
+                          onChange={(e) => handleChange('listaMateriais', e.target.value)}
+                          className="mt-1 min-h-[120px] md:min-h-[160px] whitespace-pre-wrap"
+                          placeholder="Informe a lista de materiais..."
+                        />
             </div>
           </div>
                   ) : (
@@ -1732,8 +1775,38 @@ export const ExpandedProjectView = ({
                             </h4>
                           </div>
                           <div className="p-4">
-                            {/* 🆕 Renderizar informações baseadas no billing_mode */}
-                            {editedProject.billing_mode === 'pacote' && editedProject.billing_snapshot ? (
+                            {/* 🔒 Verificar se usuário é colaborador para restringir acesso */}
+                            {(() => {
+                              const actualRole = user?.profile?.role || user?.role;
+                              const isColaborador = actualRole === 'colaborador';
+                              
+                              // Se for colaborador, mostrar mensagem de restrição
+                              if (isColaborador) {
+                                return (
+                                  <div className="bg-gray-50 dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                                    <div className="flex items-center gap-3">
+                                      <Info className="h-6 w-6 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                          Informações financeiras disponíveis apenas para administradores
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              
+                              // Para outros roles (admin, superadmin, client), mostrar informações normalmente
+                              return null;
+                            })()}
+                            
+                            {/* 🆕 Renderizar informações baseadas no billing_mode - Apenas se não for colaborador */}
+                            {(() => {
+                              const actualRole = user?.profile?.role || user?.role;
+                              const isColaborador = actualRole === 'colaborador';
+                              if (isColaborador) return null;
+                              
+                              return editedProject.billing_mode === 'pacote' && editedProject.billing_snapshot ? (
                               <div className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-lg shadow-lg border-2 border-purple-200 dark:border-purple-700">
                                 <div className="flex items-center gap-2 mb-3">
                                   <Package className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
@@ -1791,7 +1864,8 @@ export const ExpandedProjectView = ({
                                   </p>
                                 )}
                               </div>
-                            )}
+                            );
+                            })()}
                           </div>
                         </div>
 
@@ -2353,6 +2427,15 @@ export const ExpandedProjectView = ({
                             >
                                 Adicionar Comentário
                             </Button>
+                            {isFullAdmin && (
+                                <Button
+                                    variant="default"
+                                    onClick={() => setShowProcuracaoModal(true)}
+                                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md shadow-sm"
+                                >
+                                    Gerar Procuração
+                                </Button>
+                            )}
                             {editedProject.havera_beneficiarias && (
                                 <Button
                                     variant="default"
@@ -2804,6 +2887,23 @@ export const ExpandedProjectView = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de Gerar Procuração */}
+      <GenerateProcuracaoModal
+        open={showProcuracaoModal}
+        onOpenChange={setShowProcuracaoModal}
+        project={project}
+        userId={user?.id || ''}
+        onSuccess={() => {
+          // Atualizar projeto após salvar dados
+          toast({
+            title: 'Dados salvos!',
+            description: 'Os dados do cliente foram atualizados com sucesso.',
+          });
+          // Recarregar a página ou atualizar o estado conforme necessário
+          window.location.reload();
+        }}
+      />
     </div>
   )
 } 

@@ -9,6 +9,7 @@ export interface UserData {
   name: string;
   role: 'superadmin' | 'admin' | 'user' | 'cliente';
   userType?: 'superadmin' | 'admin' | 'user' | 'cliente';
+  tenantId?: string;
   createdAt: string;
   updatedAt: string;
   phone?: string;
@@ -39,9 +40,9 @@ export interface UserData {
 export async function getUserDataSupabase(userId: string): Promise<UserData | null> {
   try {
     devLog.log(`[getUserDataSupabase] Buscando dados do usuário: ${userId}`);
-    
+
     const supabase = createSupabaseBrowserClient();
-    
+
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -77,6 +78,7 @@ export async function getUserDataSupabase(userId: string): Promise<UserData | nu
       name: data.name || data.full_name || data.email || '',
       role: data.role || 'cliente',
       userType: data.role || 'cliente',
+      tenantId: data.tenant_id,
       createdAt: sanitizeDate(data.created_at),
       updatedAt: sanitizeDate(data.updated_at),
       phone: data.phone,
@@ -120,9 +122,9 @@ export async function getUserDataSupabase(userId: string): Promise<UserData | nu
 export async function getUserDataAdminSupabase(userId: string): Promise<UserData | null> {
   try {
     devLog.log(`[getUserDataAdminSupabase] Buscando dados do usuário (admin): ${userId}`);
-    
+
     const supabase = createSupabaseServiceRoleClient();
-    
+
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -158,6 +160,7 @@ export async function getUserDataAdminSupabase(userId: string): Promise<UserData
       name: data.name || data.full_name || data.email || '',
       role: data.role || 'cliente',
       userType: data.role || 'cliente',
+      tenantId: data.tenant_id,
       createdAt: sanitizeDate(data.created_at),
       updatedAt: sanitizeDate(data.updated_at),
       phone: data.phone,
