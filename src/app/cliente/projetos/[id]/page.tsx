@@ -60,6 +60,14 @@ export default function ClientProjectDetail() {
       return;
     }
 
+    // Guard: user existe mas id ainda não está disponível (transição de estado do auth)
+    // Retorna silenciosamente — o useEffect vai re-executar quando user.id estiver pronto
+    if (!user.id) {
+      devLog.log('[ClientProjectDetail] fetchProject: user.id ainda não disponível, aguardando...');
+      setLoading(false);
+      return;
+    }
+
     if (!id) {
       devLog.error('[ClientProjectDetail] fetchProject: ProjectID não encontrado. Abortando.');
       setError('ID do projeto não fornecido.');
@@ -79,9 +87,23 @@ export default function ClientProjectDetail() {
         setError(result.error);
         setProject(null);
       } else if (result.data) {
-        // Verificar se projeto pertence ao usuário
-        if (result.data.userId !== user.id) {
-          devLog.error("[ClientProjectDetail] Project does not belong to current user");
+        // Guard pós-async: re-verificar que user.id ainda está disponível após a operação assíncrona.
+        // O estado de auth pode ter transitado enquanto getProjectAction estava em andamento.
+        if (!user.id) {
+          devLog.log('[ClientProjectDetail] fetchProject: user.id não disponível após operação async, abortando verificação.');
+          setLoading(false);
+          return;
+        }
+
+        // Verificar se projeto pertence ao usuário usando owner_id primeiro
+        const projectOwnerId = result.data.owner_id || result.data.userId;
+        if (projectOwnerId !== user.id) {
+          devLog.error("[ClientProjectDetail] Project does not belong to current user", {
+            projectOwnerId,
+            userId: user.id,
+            owner_id: result.data.owner_id,
+            created_by: result.data.userId
+          });
           setError("Você não tem permissão para acessar este projeto.");
           setProject(null);
           return;
@@ -89,27 +111,6 @@ export default function ClientProjectDetail() {
         
         devLog.log('[ClientProjectDetail] fetchProject: Projeto carregado com sucesso:', result.data);
         setProject(result.data);
-        
-        // ✅ CORREÇÃO: Substituir chamada direta ao Supabase por API segura
-        if (!userData) {
-          try {
-            const response = await fetch(`/api/user/profile?userId=${user.id}`, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
-
-            if (!response.ok) {
-              throw new Error(`Erro na API: ${response.status}`);
-            }
-
-            const userDataResult = await response.json();
-            setUserData(userDataResult);
-          } catch (error) {
-            devLog.error("[ClientProjectDetail] Error fetching user data:", error);
-          }
-        }
       } else {
         devLog.error('[ClientProjectDetail] fetchProject: Nenhum dado e nenhum erro de getProjectAction.');
         setError('Projeto não encontrado.');
@@ -130,13 +131,29 @@ export default function ClientProjectDetail() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, user, userData]);
+  }, [id, user]);
 
   useEffect(() => {
     if (user && id) {
       fetchProject();
     }
   }, [id, user, fetchProject]);
+
+  // Busca de userData isolada — independente do fetchProject para evitar loop de re-execução
+  useEffect(() => {
+    if (!user?.id || userData) return;
+
+    fetch(`/api/user/profile?userId=${user.id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Erro na API: ${res.status}`);
+        return res.json();
+      })
+      .then(data => setUserData(data))
+      .catch(err => devLog.error('[ClientProjectDetail] Error fetching user data:', err));
+  }, [user?.id]);
 
   useEffect(() => {
     if (!id || !user) return;
