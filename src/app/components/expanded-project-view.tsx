@@ -31,7 +31,8 @@ import {
   Package,       // 📦 Para pacotes
   CalendarCheck, // 📅 Para assinaturas
   Info,          // ℹ️ Para mensagens informativas
-  FileText       // 📄 Para gerar procuração
+  FileText,      // 📄 Para gerar procuração
+  FileOutput     // 📄 Para aba Gerar Projeto
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -241,6 +242,8 @@ export const ExpandedProjectView = ({
                       user?.role === 'superadmin' ||
                       user?.profile?.role === 'admin' ||
                       user?.profile?.role === 'superadmin';
+
+  const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
 
   const isColaboradorWithEditPermission = (
     user?.role === 'colaborador' ||
@@ -1405,6 +1408,19 @@ export const ExpandedProjectView = ({
             >
               Linha do Tempo
             </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => setActiveTab('gerar-projeto')}
+                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 ${
+                  activeTab === 'gerar-projeto'
+                    ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                <FileOutput className="h-4 w-4" />
+                Gerar Projeto
+              </button>
+            )}
           </div>
 
           <TabsContent value="visao-geral" className="mt-6">
@@ -2657,6 +2673,168 @@ export const ExpandedProjectView = ({
                 </CardContent>
             </Card>
           </TabsContent>
+
+          {isSuperAdmin && (
+            <TabsContent value="gerar-projeto" className="mt-6">
+              <div className="space-y-6">
+                <Card className="shadow-lg rounded-lg">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-semibold flex items-center gap-2">
+                      <FileOutput className="h-6 w-6 text-blue-600" />
+                      Gerar Documentos do Projeto
+                    </CardTitle>
+                    <CardDescription>
+                      Selecione o template desejado para gerar a documentação do projeto.
+                      {project.distribuidora && (
+                        <span className="ml-1">
+                          Distribuidora: <Badge variant="outline" className="ml-1">{project.distribuidora}</Badge>
+                        </span>
+                      )}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {!project.distribuidora ? (
+                      <div className="text-center py-8">
+                        <Factory className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-500 text-lg font-medium">Distribuidora não definida</p>
+                        <p className="text-gray-400 text-sm mt-1">
+                          Defina a distribuidora na aba &quot;Visão Geral&quot; para visualizar os templates disponíveis.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {DISTRIBUIDORAS
+                          .filter(d => d === project.distribuidora || d === 'Outro')
+                          .filter(d => d !== 'Outro')
+                          .map((distribuidora) => (
+                            <div key={distribuidora}>
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <Factory className="h-5 w-5 text-blue-500" />
+                                {distribuidora}
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <Card className="border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+                                        <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Memorial Descritivo</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Documento técnico com descrição detalhada do sistema fotovoltaico.
+                                        </p>
+                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+
+                                <Card className="border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg group-hover:bg-green-100 dark:group-hover:bg-green-900/50 transition-colors">
+                                        <FileOutput className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Formulário de Solicitação de Acesso</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Formulário para solicitação de acesso junto à distribuidora {distribuidora}.
+                                        </p>
+                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+
+                                <Card className="border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50 transition-colors">
+                                        <FileText className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Procuração</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Procuração para representação junto à distribuidora {distribuidora}.
+                                        </p>
+                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            </div>
+                          ))}
+
+                        {project.distribuidora && !DISTRIBUIDORAS.includes(project.distribuidora) && (
+                          <div key={project.distribuidora}>
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                              <Factory className="h-5 w-5 text-blue-500" />
+                              {project.distribuidora}
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <Card className="border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                                <CardContent className="p-5">
+                                  <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+                                      <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Memorial Descritivo</h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Documento técnico com descrição detalhada do sistema fotovoltaico.
+                                      </p>
+                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
+                              <Card className="border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                                <CardContent className="p-5">
+                                  <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg group-hover:bg-green-100 dark:group-hover:bg-green-900/50 transition-colors">
+                                      <FileOutput className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Formulário de Solicitação de Acesso</h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Formulário para solicitação de acesso junto à distribuidora {project.distribuidora}.
+                                      </p>
+                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
+                              <Card className="border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
+                                <CardContent className="p-5">
+                                  <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50 transition-colors">
+                                      <FileText className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Procuração</h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Procuração para representação junto à distribuidora {project.distribuidora}.
+                                      </p>
+                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
+
         </Tabs>
       </div>
 
