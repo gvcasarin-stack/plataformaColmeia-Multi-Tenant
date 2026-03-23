@@ -448,6 +448,7 @@ export const ExpandedProjectView = ({
   const [showAddCommentSection, setShowAddCommentSection] = useState(false);
   const [showBeneficiariasUploadSection, setShowBeneficiariasUploadSection] = useState(false);
   const [showProcuracaoModal, setShowProcuracaoModal] = useState(false);
+  const [selectedDistribuidoraGerarProjeto, setSelectedDistribuidoraGerarProjeto] = useState(project.distribuidora || '');
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
   const [selectedBeneficiariaFiles, setSelectedBeneficiariaFiles] = useState<{[key: string]: File | null}>({});
   const [uploadingBeneficiaria, setUploadingBeneficiaria] = useState<string | null>(null);
@@ -2684,94 +2685,33 @@ export const ExpandedProjectView = ({
                       Gerar Documentos do Projeto
                     </CardTitle>
                     <CardDescription>
-                      Selecione o template desejado para gerar a documentação do projeto.
-                      {project.distribuidora && (
-                        <span className="ml-1">
-                          Distribuidora: <Badge variant="outline" className="ml-1">{project.distribuidora}</Badge>
-                        </span>
-                      )}
+                      Selecione a distribuidora e o template desejado para gerar a documentação.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {!project.distribuidora ? (
-                      <div className="text-center py-8">
-                        <Factory className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-500 text-lg font-medium">Distribuidora não definida</p>
-                        <p className="text-gray-400 text-sm mt-1">
-                          Defina a distribuidora na aba &quot;Visão Geral&quot; para visualizar os templates disponíveis.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {DISTRIBUIDORAS
-                          .filter(d => d === project.distribuidora || d === 'Outro')
-                          .filter(d => d !== 'Outro')
-                          .map((distribuidora) => (
-                            <div key={distribuidora}>
-                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                                <Factory className="h-5 w-5 text-blue-500" />
+                    <div className="space-y-6">
+                      <div className="max-w-sm">
+                        <Label htmlFor="distribuidora-gerar" className="text-sm font-medium text-gray-700 dark:text-gray-300">Distribuidora</Label>
+                        <Select value={selectedDistribuidoraGerarProjeto} onValueChange={setSelectedDistribuidoraGerarProjeto}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Selecione a distribuidora" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DISTRIBUIDORAS.map((distribuidora) => (
+                              <SelectItem key={distribuidora} value={distribuidora}>
                                 {distribuidora}
-                              </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <Card className="border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
-                                  <CardContent className="p-5">
-                                    <div className="flex items-start gap-3">
-                                      <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
-                                        <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Memorial Descritivo</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Documento técnico com descrição detalhada do sistema fotovoltaico.
-                                        </p>
-                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                                <Card className="border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
-                                  <CardContent className="p-5">
-                                    <div className="flex items-start gap-3">
-                                      <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg group-hover:bg-green-100 dark:group-hover:bg-green-900/50 transition-colors">
-                                        <FileOutput className="h-6 w-6 text-green-600 dark:text-green-400" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Formulário de Solicitação de Acesso</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Formulário para solicitação de acesso junto à distribuidora {distribuidora}.
-                                        </p>
-                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                <Card className="border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
-                                  <CardContent className="p-5">
-                                    <div className="flex items-start gap-3">
-                                      <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50 transition-colors">
-                                        <FileText className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Procuração</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Procuração para representação junto à distribuidora {distribuidora}.
-                                        </p>
-                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-                            </div>
-                          ))}
-
-                        {project.distribuidora && !DISTRIBUIDORAS.includes(project.distribuidora) && (
-                          <div key={project.distribuidora}>
+                      {selectedDistribuidoraGerarProjeto ? (
+                        <>
+                          <div>
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                               <Factory className="h-5 w-5 text-blue-500" />
-                              {project.distribuidora}
+                              Templates — {selectedDistribuidoraGerarProjeto}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               <Card className="border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200 cursor-pointer group">
@@ -2800,7 +2740,7 @@ export const ExpandedProjectView = ({
                                     <div className="flex-1">
                                       <h4 className="font-medium text-gray-800 dark:text-gray-200">Formulário de Solicitação de Acesso</h4>
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Formulário para solicitação de acesso junto à distribuidora {project.distribuidora}.
+                                        Formulário para solicitação de acesso junto à distribuidora {selectedDistribuidoraGerarProjeto}.
                                       </p>
                                       <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
                                     </div>
@@ -2817,7 +2757,7 @@ export const ExpandedProjectView = ({
                                     <div className="flex-1">
                                       <h4 className="font-medium text-gray-800 dark:text-gray-200">Procuração</h4>
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Procuração para representação junto à distribuidora {project.distribuidora}.
+                                        Procuração para representação junto à distribuidora {selectedDistribuidoraGerarProjeto}.
                                       </p>
                                       <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
                                     </div>
@@ -2826,9 +2766,68 @@ export const ExpandedProjectView = ({
                               </Card>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+
+                          <div className="mt-6">
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-amber-500" />
+                              Pré-visualização — Procuração
+                            </h3>
+                            <div className="rounded-md border border-gray-200 dark:border-gray-700 p-4">
+                              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                                <div className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm" style={{ textAlign: 'justify', lineHeight: '1.8' }}>
+                                  <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                                    <h2 className="font-bold text-xl tracking-widest">PROCURAÇÃO</h2>
+                                  </div>
+
+                                  <p style={{ marginBottom: '15px' }}>
+                                    <strong>OUTORGANTE:</strong> Por este instrumento de procuração, <Badge variant="outline" className="text-xs">{`{{cliente_nome}}`}</Badge>, inscrito no CPF sob o nº <Badge variant="outline" className="text-xs">{`{{cliente_cpf}}`}</Badge>.
+                                  </p>
+
+                                  <p style={{ marginBottom: '15px' }}>
+                                    <strong>OUTORGADO:</strong> Nomeia e constitui o seu bastante procurador <Badge variant="outline" className="text-xs">{`{{responsavel_nome}}`}</Badge>, portador do RG nº <Badge variant="outline" className="text-xs">{`{{responsavel_rg}}`}</Badge> <Badge variant="outline" className="text-xs">{`{{responsavel_orgao_expeditor}}`}</Badge> e inscrito no CPF sob o nº <Badge variant="outline" className="text-xs">{`{{responsavel_cpf}}`}</Badge>, <Badge variant="outline" className="text-xs">{`{{responsavel_profissao}}`}</Badge> inscrito no <Badge variant="outline" className="text-xs">{`{{responsavel_instituicao}}`}</Badge> <Badge variant="outline" className="text-xs">{`{{responsavel_estado}}`}</Badge> sob o nº <Badge variant="outline" className="text-xs">{`{{responsavel_registro}}`}</Badge>.
+                                  </p>
+
+                                  <p style={{ marginBottom: '15px' }}>
+                                    <strong>PODERES:</strong> Para o fim especial de representar o OUTORGANTE perante à <Badge variant="outline" className="text-xs">{`{{distribuidora}}`}</Badge> no tocante as solicitações de parecer de acesso para micro geração ou mini geração, pedidos de vistoria de micro geração ou mini geração, pedidos de alteração de carga alteração de demanda, assim tendo ainda o OUTORGADO, na qualidade de procurador do OUTORGANTE, os poderes suficientes e necessários de representação para dar entrada em processos administrativos, protocolar requerimentos, apresentar documentação em cumprimento às exigências técnicas e administrativas e, ainda, assinatura dos seguintes documentos: formulário de solicitação de acesso, formulário de registro, formulário de compensação, ART/TRT, identificação do consumidor, termo de responsabilidade, cadastro de geração distribuída, solicitação de vistoria, formulário de troca do padrão/aumento de carga e formulário de ligação nova.
+                                  </p>
+
+                                  <p style={{ marginBottom: '30px' }}>
+                                    <Badge variant="outline" className="text-xs">{`{{cidade}}`}</Badge>-<Badge variant="outline" className="text-xs">{`{{estado}}`}</Badge>, <Badge variant="outline" className="text-xs">{`{{data}}`}</Badge>.
+                                  </p>
+
+                                  <div style={{ textAlign: 'center', marginTop: '50px' }}>
+                                    <div style={{ display: 'inline-block', borderTop: '2px solid currentColor', width: '300px', paddingTop: '8px' }}>
+                                      <p><strong>Assinatura</strong></p>
+                                      <p>Nome completo: <Badge variant="outline" className="text-xs">{`{{cliente_nome}}`}</Badge></p>
+                                      <p>CPF: <Badge variant="outline" className="text-xs">{`{{cliente_cpf}}`}</Badge></p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                                Variáveis Disponíveis
+                              </h4>
+                              <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                                <p><strong>Do Cliente:</strong> {`{{cliente_nome}}, {{cliente_cpf}}`}</p>
+                                <p><strong>Do Responsável Técnico:</strong> {`{{responsavel_nome}}, {{responsavel_cpf}}, {{responsavel_rg}}, {{responsavel_orgao_expeditor}}, {{responsavel_profissao}}, {{responsavel_registro}}, {{responsavel_instituicao}}, {{responsavel_estado}}`}</p>
+                                <p><strong>Do Projeto:</strong> {`{{distribuidora}}, {{cidade}}, {{estado}}, {{data}}`}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Factory className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                          <p className="text-gray-500 text-lg font-medium">Selecione uma distribuidora</p>
+                          <p className="text-gray-400 text-sm mt-1">
+                            Escolha a distribuidora acima para visualizar os templates disponíveis.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
