@@ -61,6 +61,7 @@ import { deleteCommentAction, deleteFileAction } from '@/lib/actions/project-act
 import { ProjectResponsibleAdmin } from './project-view/project-responsible-admin'
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
+import { MemorialDescritivoPreview } from '@/components/templates/MemorialDescritivoPreview'
 
 // Import custom icon components
 import ClockIcon from '@/components/icons/clock';
@@ -479,6 +480,18 @@ export const ExpandedProjectView = ({
     inversores_modelo: (project as any).inversores_modelo || '',
     inversores_potencia: (project as any).inversores_potencia || '',
     inversores_tensao: (project as any).inversores_tensao || '',
+    modulos_potencia_wp: (project as any).modulos_potencia_wp || '',
+    conta_contrato: (project as any).conta_contrato || '',
+    classe_uc: (project as any).classe_uc || '',
+    numero_poste_transformador: (project as any).numero_poste_transformador || '',
+    numero_condutores_fase: (project as any).numero_condutores_fase || 0,
+    secao_fase_mm2: (project as any).secao_fase_mm2 || '',
+    secao_neutro_mm2: (project as any).secao_neutro_mm2 || '',
+    disjuntor_polos: (project as any).disjuntor_polos || 0,
+    disjuntor_corrente_a: (project as any).disjuntor_corrente_a || '',
+    disjuntor_tensao_v: (project as any).disjuntor_tensao_v || '',
+    tipo_fornecimento: (project as any).tipo_fornecimento || '',
+    modalidade_compensacao: (project as any).modalidade_compensacao || '',
   });
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
   const [selectedBeneficiariaFiles, setSelectedBeneficiariaFiles] = useState<{[key: string]: File | null}>({});
@@ -1289,6 +1302,18 @@ export const ExpandedProjectView = ({
         inversores_modelo: gerarProjetoFields.inversores_modelo,
         inversores_potencia: gerarProjetoFields.inversores_potencia,
         inversores_tensao: gerarProjetoFields.inversores_tensao,
+        modulos_potencia_wp: gerarProjetoFields.modulos_potencia_wp,
+        conta_contrato: gerarProjetoFields.conta_contrato,
+        classe_uc: gerarProjetoFields.classe_uc,
+        numero_poste_transformador: gerarProjetoFields.numero_poste_transformador,
+        numero_condutores_fase: gerarProjetoFields.numero_condutores_fase,
+        secao_fase_mm2: gerarProjetoFields.secao_fase_mm2,
+        secao_neutro_mm2: gerarProjetoFields.secao_neutro_mm2,
+        disjuntor_polos: gerarProjetoFields.disjuntor_polos,
+        disjuntor_corrente_a: gerarProjetoFields.disjuntor_corrente_a,
+        disjuntor_tensao_v: gerarProjetoFields.disjuntor_tensao_v,
+        tipo_fornecimento: gerarProjetoFields.tipo_fornecimento,
+        modalidade_compensacao: gerarProjetoFields.modalidade_compensacao,
         timelineEvents: timelineEvents,
       };
 
@@ -2855,6 +2880,18 @@ export const ExpandedProjectView = ({
                                             inversores_modelo: (project as any).inversores_modelo || '',
                                             inversores_potencia: (project as any).inversores_potencia || '',
                                             inversores_tensao: (project as any).inversores_tensao || '',
+                                            modulos_potencia_wp: (project as any).modulos_potencia_wp || '',
+                                            conta_contrato: (project as any).conta_contrato || '',
+                                            classe_uc: (project as any).classe_uc || '',
+                                            numero_poste_transformador: (project as any).numero_poste_transformador || '',
+                                            numero_condutores_fase: (project as any).numero_condutores_fase || 0,
+                                            secao_fase_mm2: (project as any).secao_fase_mm2 || '',
+                                            secao_neutro_mm2: (project as any).secao_neutro_mm2 || '',
+                                            disjuntor_polos: (project as any).disjuntor_polos || 0,
+                                            disjuntor_corrente_a: (project as any).disjuntor_corrente_a || '',
+                                            disjuntor_tensao_v: (project as any).disjuntor_tensao_v || '',
+                                            tipo_fornecimento: (project as any).tipo_fornecimento || '',
+                                            modalidade_compensacao: (project as any).modalidade_compensacao || '',
                                           });
                                           setIsEditingGerarProjeto(false);
                                         }}
@@ -3054,7 +3091,7 @@ export const ExpandedProjectView = ({
                                   <Package className="h-4 w-4" />
                                   Módulos Fotovoltaicos
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                   <div>
                                     <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Quantidade</Label>
                                     {isEditingGerarProjeto ? (
@@ -3095,6 +3132,20 @@ export const ExpandedProjectView = ({
                                     ) : (
                                       <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                                         {gerarProjetoFields.modulos_modelo || <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Potência (Wp)</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Input
+                                        value={gerarProjetoFields.modulos_potencia_wp}
+                                        onChange={(e) => setGerarProjetoFields(prev => ({ ...prev, modulos_potencia_wp: e.target.value }))}
+                                        className="mt-1 h-8 text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.modulos_potencia_wp ? `${gerarProjetoFields.modulos_potencia_wp} Wp` : <span className="text-red-500 italic">Não preenchido</span>}
                                       </p>
                                     )}
                                   </div>
@@ -3313,6 +3364,197 @@ export const ExpandedProjectView = ({
                                   </div>
                                 </div>
                               </div>
+
+                              <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+                                <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-3">
+                                  <Building className="h-3 w-3" /> Dados da Unidade Consumidora
+                                </Label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Nº Conta Contrato</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Input
+                                        value={gerarProjetoFields.conta_contrato}
+                                        onChange={(e) => setGerarProjetoFields(prev => ({ ...prev, conta_contrato: e.target.value }))}
+                                        className="mt-1 h-8 text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.conta_contrato || <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Classe</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Select
+                                        value={gerarProjetoFields.classe_uc}
+                                        onValueChange={(val) => setGerarProjetoFields(prev => ({ ...prev, classe_uc: val }))}
+                                      >
+                                        <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Residencial">Residencial</SelectItem>
+                                          <SelectItem value="Comercial">Comercial</SelectItem>
+                                          <SelectItem value="Industrial">Industrial</SelectItem>
+                                          <SelectItem value="Rural">Rural</SelectItem>
+                                          <SelectItem value="Poder Público">Poder Público</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.classe_uc || <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Nº Poste / Transformador</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Input
+                                        value={gerarProjetoFields.numero_poste_transformador}
+                                        onChange={(e) => setGerarProjetoFields(prev => ({ ...prev, numero_poste_transformador: e.target.value }))}
+                                        className="mt-1 h-8 text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.numero_poste_transformador || <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+                                <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-3">
+                                  <Plug className="h-3 w-3" /> Padrão de Entrada
+                                </Label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Disjuntor — Nº de Polos</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Select
+                                        value={gerarProjetoFields.disjuntor_polos ? String(gerarProjetoFields.disjuntor_polos) : ''}
+                                        onValueChange={(val) => setGerarProjetoFields(prev => ({ ...prev, disjuntor_polos: Number(val) }))}
+                                      >
+                                        <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="1">1</SelectItem>
+                                          <SelectItem value="2">2</SelectItem>
+                                          <SelectItem value="3">3</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.disjuntor_polos || <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Disjuntor — Corrente (A)</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Input
+                                        value={gerarProjetoFields.disjuntor_corrente_a}
+                                        onChange={(e) => setGerarProjetoFields(prev => ({ ...prev, disjuntor_corrente_a: e.target.value }))}
+                                        className="mt-1 h-8 text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.disjuntor_corrente_a ? `${gerarProjetoFields.disjuntor_corrente_a} A` : <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Disjuntor — Tensão (V)</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Input
+                                        value={gerarProjetoFields.disjuntor_tensao_v}
+                                        onChange={(e) => setGerarProjetoFields(prev => ({ ...prev, disjuntor_tensao_v: e.target.value }))}
+                                        className="mt-1 h-8 text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.disjuntor_tensao_v ? `${gerarProjetoFields.disjuntor_tensao_v} V` : <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Seção dos Condutores Fase (mm²)</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Input
+                                        value={gerarProjetoFields.secao_fase_mm2}
+                                        onChange={(e) => setGerarProjetoFields(prev => ({ ...prev, secao_fase_mm2: e.target.value }))}
+                                        className="mt-1 h-8 text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.secao_fase_mm2 ? `${gerarProjetoFields.secao_fase_mm2} mm²` : <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Seção do Condutor Neutro (mm²)</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Input
+                                        value={gerarProjetoFields.secao_neutro_mm2}
+                                        onChange={(e) => setGerarProjetoFields(prev => ({ ...prev, secao_neutro_mm2: e.target.value }))}
+                                        className="mt-1 h-8 text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.secao_neutro_mm2 ? `${gerarProjetoFields.secao_neutro_mm2} mm²` : <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+                                <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 mb-3">
+                                  <Settings className="h-3 w-3" /> Classificação do Sistema
+                                </Label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Tipo de Fornecimento</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Select
+                                        value={gerarProjetoFields.tipo_fornecimento}
+                                        onValueChange={(val) => setGerarProjetoFields(prev => ({ ...prev, tipo_fornecimento: val }))}
+                                      >
+                                        <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Microgeração Distribuída">Microgeração Distribuída</SelectItem>
+                                          <SelectItem value="Minigeração Distribuída">Minigeração Distribuída</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.tipo_fornecimento || <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium text-gray-500 dark:text-gray-400">Modalidade de Compensação</Label>
+                                    {isEditingGerarProjeto ? (
+                                      <Select
+                                        value={gerarProjetoFields.modalidade_compensacao}
+                                        onValueChange={(val) => setGerarProjetoFields(prev => ({ ...prev, modalidade_compensacao: val }))}
+                                      >
+                                        <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Autoconsumo Local">Autoconsumo Local</SelectItem>
+                                          <SelectItem value="Autoconsumo Remoto">Autoconsumo Remoto</SelectItem>
+                                          <SelectItem value="Geração Compartilhada">Geração Compartilhada</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                                        {gerarProjetoFields.modalidade_compensacao || <span className="text-red-500 italic">Não preenchido</span>}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             </CardContent>
                           </Card>
                         </>
@@ -3418,11 +3660,9 @@ export const ExpandedProjectView = ({
                                 <FileText className="h-5 w-5 text-blue-500" />
                                 Pré-visualização — Memorial Descritivo
                               </h3>
-                              <div className="rounded-md border border-blue-200 dark:border-blue-700 p-4">
+                              <div className="rounded-md border border-blue-200 dark:border-blue-700 p-4 max-h-[600px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-                                  <p className="text-gray-500 dark:text-gray-400 text-sm italic text-center py-8">
-                                    Template do Memorial Descritivo ainda não configurado. Em breve.
-                                  </p>
+                                  <MemorialDescritivoPreview distribuidora={selectedDistribuidoraGerarProjeto} />
                                 </div>
                               </div>
                             </div>

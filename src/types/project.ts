@@ -133,11 +133,25 @@ export interface Project {
   modulos_quantidade?: number;
   modulos_fabricante?: string;
   modulos_modelo?: string;
+  modulos_potencia_wp?: string;
   inversores_quantidade?: number;
   inversores_fabricante?: string;
   inversores_modelo?: string;
   inversores_potencia?: string;
   inversores_tensao?: string;
+
+  // ✅ Campos do Memorial Descritivo
+  conta_contrato?: string;
+  classe_uc?: string;
+  numero_poste_transformador?: string;
+  numero_condutores_fase?: number;
+  secao_fase_mm2?: string;
+  secao_neutro_mm2?: string;
+  disjuntor_polos?: number;
+  disjuntor_corrente_a?: string;
+  disjuntor_tensao_v?: string;
+  tipo_fornecimento?: string;
+  modalidade_compensacao?: string;
 
   // 🆕 NOVO CAMPO: Proprietário do projeto (quem "possui" o projeto)
   owner_id?: string;
