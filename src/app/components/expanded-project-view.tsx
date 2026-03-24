@@ -32,7 +32,8 @@ import {
   CalendarCheck, // 📅 Para assinaturas
   Info,          // ℹ️ Para mensagens informativas
   FileText,      // 📄 Para gerar procuração
-  FileOutput     // 📄 Para aba Gerar Projeto
+  FileOutput,    // 📄 Para aba Gerar Projeto
+  ClipboardCheck // ✅ Para conferir informações do projeto
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -449,6 +450,7 @@ export const ExpandedProjectView = ({
   const [showBeneficiariasUploadSection, setShowBeneficiariasUploadSection] = useState(false);
   const [showProcuracaoModal, setShowProcuracaoModal] = useState(false);
   const [selectedDistribuidoraGerarProjeto, setSelectedDistribuidoraGerarProjeto] = useState(project.distribuidora || '');
+  const [showInfoGerarProjeto, setShowInfoGerarProjeto] = useState(false);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
   const [selectedBeneficiariaFiles, setSelectedBeneficiariaFiles] = useState<{[key: string]: File | null}>({});
   const [uploadingBeneficiaria, setUploadingBeneficiaria] = useState<string | null>(null);
@@ -2705,6 +2707,127 @@ export const ExpandedProjectView = ({
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div>
+                        <Button
+                          onClick={() => setShowInfoGerarProjeto(!showInfoGerarProjeto)}
+                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                        >
+                          <ClipboardCheck className="h-4 w-4" />
+                          {showInfoGerarProjeto ? 'Ocultar Informações' : 'Conferir Informações do Projeto'}
+                        </Button>
+                      </div>
+
+                      {showInfoGerarProjeto && (
+                        <Card className="border-2 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-green-800 dark:text-green-300">
+                              <ClipboardCheck className="h-5 w-5" />
+                              Informações do Projeto
+                            </CardTitle>
+                            <CardDescription>Dados que serão utilizados na geração dos documentos.</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                <div className="flex items-start gap-2">
+                                  <User className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Nome do Cliente Final</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.nomeClienteFinal || project.nome_cliente_final || <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                  <CreditCard className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">CPF/CNPJ</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.cpf_cnpj_cliente_final || <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Endereço</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.endereco_local || <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Cidade / Estado</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.client_city && project.client_state
+                                        ? `${project.client_city} - ${project.client_state}`
+                                        : <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                <div className="flex items-start gap-2">
+                                  <Factory className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Distribuidora</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.distribuidora || <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                  <Zap className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Potência (kWp)</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.potencia ? `${project.potencia} kWp` : <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                  <Plug className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Disjuntor Padrão de Entrada</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.disjuntorPadraoEntrada || <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                  <Package className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Lista de Materiais</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                                      {project.listaMateriais || <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                  <Info className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Compensação de Créditos (Beneficiárias)</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                                      {project.havera_beneficiarias === true ? 'Sim' : project.havera_beneficiarias === false ? 'Não' : <span className="text-red-500 italic">Não preenchido</span>}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
 
                       {selectedDistribuidoraGerarProjeto ? (
                         <>
