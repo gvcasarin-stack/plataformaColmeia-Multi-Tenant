@@ -125,6 +125,19 @@ export interface Project {
   tipo_conexao?: string;
   tipo_ramal?: string;
   tensao_atendimento?: string;
+  coord_utm_fuso?: string;
+  coord_utm_x?: string;
+  coord_utm_y?: string;
+
+  // ✅ Campos estruturados de equipamentos
+  modulos_quantidade?: number;
+  modulos_fabricante?: string;
+  modulos_modelo?: string;
+  inversores_quantidade?: number;
+  inversores_fabricante?: string;
+  inversores_modelo?: string;
+  inversores_potencia?: string;
+  inversores_tensao?: string;
 
   // 🆕 NOVO CAMPO: Proprietário do projeto (quem "possui" o projeto)
   owner_id?: string;
