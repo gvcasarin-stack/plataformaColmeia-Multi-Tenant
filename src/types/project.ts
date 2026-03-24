@@ -121,6 +121,11 @@ export interface Project {
   // ✅ NOVO CAMPO: Compensação de Créditos (opcional)
   havera_beneficiarias?: boolean;
 
+  // ✅ Campos técnicos para geração de documentos
+  tipo_conexao?: string;
+  tipo_ramal?: string;
+  tensao_atendimento?: string;
+
   // 🆕 NOVO CAMPO: Proprietário do projeto (quem "possui" o projeto)
   owner_id?: string;
 
