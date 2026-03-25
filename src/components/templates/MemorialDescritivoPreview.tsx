@@ -207,6 +207,10 @@ export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoP
             <tr><td className={tdLabelClass}>Coordenadas georreferenciadas</td><td className={tdClass}>X: <V>{`{{coord_utm_x}}`}</V>, Y: <V>{`{{coord_utm_y}}`}</V>, Fuso UTM: <V>{`{{coord_utm_fuso}}`}</V></td></tr>
           </tbody>
         </table>
+        <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
+          <V>{`{{planta_situacao_imagem}}`}</V>
+          <p className="text-xs text-gray-400 mt-2">Imagem da planta de situação (se disponível)</p>
+        </div>
         <p className="text-xs italic text-center mb-4">Figura 1: Localização da unidade consumidora.</p>
       </div>
 

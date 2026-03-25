@@ -152,6 +152,7 @@ export interface Project {
   disjuntor_tensao_v?: string;
   tipo_fornecimento?: string;
   modalidade_compensacao?: string;
+  planta_situacao_url?: string;
 
   // 🆕 NOVO CAMPO: Proprietário do projeto (quem "possui" o projeto)
   owner_id?: string;

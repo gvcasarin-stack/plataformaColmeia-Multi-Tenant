@@ -29,3 +29,4 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS disjuntor_corrente_a TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS disjuntor_tensao_v TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS tipo_fornecimento TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS modalidade_compensacao TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS planta_situacao_url TEXT;
