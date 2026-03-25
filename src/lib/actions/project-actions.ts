@@ -315,7 +315,42 @@ export async function updateProjectAction(
         comments: updateData.comments,
         history: updateData.history,
         last_update_by: updateData.lastUpdateBy,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+
+        // Campos do Conferir Informações / Gerar Projeto
+        cpf_cnpj_cliente_final: updateData.cpf_cnpj_cliente_final,
+        endereco_local: updateData.endereco_local,
+        client_city: updateData.client_city,
+        client_state: updateData.client_state,
+        lista_materiais: updateData.listaMateriais || updateData.lista_materiais,
+        havera_beneficiarias: updateData.havera_beneficiarias,
+        tipo_conexao: updateData.tipo_conexao,
+        tipo_ramal: updateData.tipo_ramal,
+        tensao_atendimento: updateData.tensao_atendimento,
+        coord_utm_fuso: updateData.coord_utm_fuso,
+        coord_utm_x: updateData.coord_utm_x,
+        coord_utm_y: updateData.coord_utm_y,
+        modulos_quantidade: updateData.modulos_quantidade,
+        modulos_fabricante: updateData.modulos_fabricante,
+        modulos_modelo: updateData.modulos_modelo,
+        modulos_potencia_wp: updateData.modulos_potencia_wp,
+        inversores_quantidade: updateData.inversores_quantidade,
+        inversores_fabricante: updateData.inversores_fabricante,
+        inversores_modelo: updateData.inversores_modelo,
+        inversores_potencia: updateData.inversores_potencia,
+        inversores_tensao: updateData.inversores_tensao,
+        conta_contrato: updateData.conta_contrato,
+        classe_uc: updateData.classe_uc,
+        numero_poste_transformador: updateData.numero_poste_transformador,
+        numero_condutores_fase: updateData.numero_condutores_fase,
+        secao_fase_mm2: updateData.secao_fase_mm2,
+        secao_neutro_mm2: updateData.secao_neutro_mm2,
+        disjuntor_polos: updateData.disjuntor_polos,
+        disjuntor_corrente_a: updateData.disjuntor_corrente_a,
+        disjuntor_tensao_v: updateData.disjuntor_tensao_v,
+        tipo_fornecimento: updateData.tipo_fornecimento,
+        modalidade_compensacao: updateData.modalidade_compensacao,
+        planta_situacao_url: updateData.planta_situacao_url,
       };
 
       // Remover campos undefined/null
@@ -2997,6 +3032,52 @@ export async function editProjectAction(
     if (updatedProject.status_changed_at !== undefined) updateData.status_changed_at = updatedProject.status_changed_at;
     if (updatedProject.sla_expires_at !== undefined) updateData.sla_expires_at = updatedProject.sla_expires_at;
     if (updatedProject.sla_expired !== undefined) updateData.sla_expired = updatedProject.sla_expired;
+
+    // Campos do cliente e projeto (aba Gerar Projeto / Conferir Informações)
+    if ((updatedProject as any).cpf_cnpj_cliente_final !== undefined) updateData.cpf_cnpj_cliente_final = (updatedProject as any).cpf_cnpj_cliente_final;
+    if ((updatedProject as any).endereco_local !== undefined) updateData.endereco_local = (updatedProject as any).endereco_local;
+    if ((updatedProject as any).client_city !== undefined) updateData.client_city = (updatedProject as any).client_city;
+    if ((updatedProject as any).client_state !== undefined) updateData.client_state = (updatedProject as any).client_state;
+    if ((updatedProject as any).disjuntorPadraoEntrada !== undefined) updateData.disjuntor_padrao_entrada = (updatedProject as any).disjuntorPadraoEntrada;
+    if ((updatedProject as any).listaMateriais !== undefined) updateData.lista_materiais = (updatedProject as any).listaMateriais;
+    if ((updatedProject as any).havera_beneficiarias !== undefined) updateData.havera_beneficiarias = (updatedProject as any).havera_beneficiarias;
+
+    // Campos técnicos (Gerar Projeto)
+    if ((updatedProject as any).tipo_conexao !== undefined) updateData.tipo_conexao = (updatedProject as any).tipo_conexao;
+    if ((updatedProject as any).tipo_ramal !== undefined) updateData.tipo_ramal = (updatedProject as any).tipo_ramal;
+    if ((updatedProject as any).tensao_atendimento !== undefined) updateData.tensao_atendimento = (updatedProject as any).tensao_atendimento;
+    if ((updatedProject as any).coord_utm_fuso !== undefined) updateData.coord_utm_fuso = (updatedProject as any).coord_utm_fuso;
+    if ((updatedProject as any).coord_utm_x !== undefined) updateData.coord_utm_x = (updatedProject as any).coord_utm_x;
+    if ((updatedProject as any).coord_utm_y !== undefined) updateData.coord_utm_y = (updatedProject as any).coord_utm_y;
+
+    // Módulos fotovoltaicos
+    if ((updatedProject as any).modulos_quantidade !== undefined) updateData.modulos_quantidade = (updatedProject as any).modulos_quantidade;
+    if ((updatedProject as any).modulos_fabricante !== undefined) updateData.modulos_fabricante = (updatedProject as any).modulos_fabricante;
+    if ((updatedProject as any).modulos_modelo !== undefined) updateData.modulos_modelo = (updatedProject as any).modulos_modelo;
+    if ((updatedProject as any).modulos_potencia_wp !== undefined) updateData.modulos_potencia_wp = (updatedProject as any).modulos_potencia_wp;
+
+    // Inversores fotovoltaicos
+    if ((updatedProject as any).inversores_quantidade !== undefined) updateData.inversores_quantidade = (updatedProject as any).inversores_quantidade;
+    if ((updatedProject as any).inversores_fabricante !== undefined) updateData.inversores_fabricante = (updatedProject as any).inversores_fabricante;
+    if ((updatedProject as any).inversores_modelo !== undefined) updateData.inversores_modelo = (updatedProject as any).inversores_modelo;
+    if ((updatedProject as any).inversores_potencia !== undefined) updateData.inversores_potencia = (updatedProject as any).inversores_potencia;
+    if ((updatedProject as any).inversores_tensao !== undefined) updateData.inversores_tensao = (updatedProject as any).inversores_tensao;
+
+    // Dados da unidade consumidora e padrão de entrada
+    if ((updatedProject as any).conta_contrato !== undefined) updateData.conta_contrato = (updatedProject as any).conta_contrato;
+    if ((updatedProject as any).classe_uc !== undefined) updateData.classe_uc = (updatedProject as any).classe_uc;
+    if ((updatedProject as any).numero_poste_transformador !== undefined) updateData.numero_poste_transformador = (updatedProject as any).numero_poste_transformador;
+    if ((updatedProject as any).numero_condutores_fase !== undefined) updateData.numero_condutores_fase = (updatedProject as any).numero_condutores_fase;
+    if ((updatedProject as any).secao_fase_mm2 !== undefined) updateData.secao_fase_mm2 = (updatedProject as any).secao_fase_mm2;
+    if ((updatedProject as any).secao_neutro_mm2 !== undefined) updateData.secao_neutro_mm2 = (updatedProject as any).secao_neutro_mm2;
+    if ((updatedProject as any).disjuntor_polos !== undefined) updateData.disjuntor_polos = (updatedProject as any).disjuntor_polos;
+    if ((updatedProject as any).disjuntor_corrente_a !== undefined) updateData.disjuntor_corrente_a = (updatedProject as any).disjuntor_corrente_a;
+    if ((updatedProject as any).disjuntor_tensao_v !== undefined) updateData.disjuntor_tensao_v = (updatedProject as any).disjuntor_tensao_v;
+
+    // Classificação do sistema
+    if ((updatedProject as any).tipo_fornecimento !== undefined) updateData.tipo_fornecimento = (updatedProject as any).tipo_fornecimento;
+    if ((updatedProject as any).modalidade_compensacao !== undefined) updateData.modalidade_compensacao = (updatedProject as any).modalidade_compensacao;
+    if ((updatedProject as any).planta_situacao_url !== undefined) updateData.planta_situacao_url = (updatedProject as any).planta_situacao_url;
 
     // Campos adicionais
     updateData.updated_at = new Date().toISOString();
