@@ -16,6 +16,93 @@ const CONFERIR_FIELDS = [
   'tipo_fornecimento', 'modalidade_compensacao', 'planta_situacao_url',
 ];
 
+// GET: Diagnóstico — colar no navegador para ver o estado do projeto
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const projectId = params.id;
+    const supabase = createSupabaseServiceRoleClient();
+
+    // 1. Buscar o projeto completo
+    const { data: project, error: fetchError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (fetchError || !project) {
+      return NextResponse.json({
+        diagnostico: 'ERRO',
+        erro: fetchError?.message || 'Projeto não encontrado',
+        projectId,
+      }, { status: 404 });
+    }
+
+    const allColumns = Object.keys(project);
+
+    // 2. Verificar quais campos do Conferir Informações existem e quais faltam
+    const camposExistentes: Record<string, any> = {};
+    const camposFaltantes: string[] = [];
+    const camposPreenchidos: Record<string, any> = {};
+    const camposVazios: string[] = [];
+
+    for (const field of CONFERIR_FIELDS) {
+      if (allColumns.includes(field)) {
+        camposExistentes[field] = true;
+        const val = project[field];
+        if (val !== null && val !== undefined && val !== '' && val !== 0) {
+          camposPreenchidos[field] = val;
+        } else {
+          camposVazios.push(field);
+        }
+      } else {
+        camposFaltantes.push(field);
+      }
+    }
+
+    // 3. Teste rápido de escrita (grava e reverte updated_at)
+    let testeEscrita = 'NÃO TESTADO';
+    const testField = camposFaltantes.length === 0 ? CONFERIR_FIELDS[0] : null;
+    if (testField) {
+      const { error: writeErr } = await supabase
+        .from('projects')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', projectId);
+      testeEscrita = writeErr ? `FALHOU: ${writeErr.message}` : 'OK';
+    }
+
+    return NextResponse.json({
+      diagnostico: 'OK',
+      projectId,
+      projectName: project.nome_cliente_final,
+      totalColunasTabela: allColumns.length,
+
+      conferirInfo: {
+        camposNecessarios: CONFERIR_FIELDS.length,
+        colunasExistentes: Object.keys(camposExistentes).length,
+        colunasFaltantes: camposFaltantes,
+        camposPreenchidos: Object.keys(camposPreenchidos).length,
+        camposVazios: camposVazios,
+        valoresAtuais: camposPreenchidos,
+      },
+
+      testeEscritaBanco: testeEscrita,
+
+      instrucao: camposFaltantes.length > 0
+        ? `EXECUTE O SQL ABAIXO NO SUPABASE PARA CRIAR AS COLUNAS FALTANTES:\n\n${camposFaltantes.map(c => `ALTER TABLE projects ADD COLUMN IF NOT EXISTS ${c} TEXT;`).join('\n')}`
+        : 'Todas as colunas existem no banco. O salvamento deve funcionar.',
+    });
+
+  } catch (err: any) {
+    return NextResponse.json({
+      diagnostico: 'ERRO',
+      erro: err.message,
+    }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
