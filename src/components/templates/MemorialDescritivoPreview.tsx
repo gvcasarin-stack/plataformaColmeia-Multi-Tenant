@@ -99,7 +99,6 @@ export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoP
           <p><strong>4.</strong> DADOS DA UNIDADE CONSUMIDORA</p>
           <p><strong>5.</strong> LEVANTAMENTO DE CARGA E CONSUMO</p>
           <p className="pl-6"><strong>5.1.</strong> Levantamento de Carga</p>
-          <p className="pl-6"><strong>5.2.</strong> Consumo Mensal</p>
           <p><strong>6.</strong> PADRÃO DE ENTRADA</p>
           <p className="pl-6"><strong>6.1.</strong> Tipo de Ligação e Tensão de Atendimento</p>
           <p className="pl-6"><strong>6.2.</strong> Disjuntor de Entrada</p>
@@ -241,23 +240,6 @@ export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoP
           </tbody>
         </table>
 
-        <h3 className={h3Class}>5.2. Consumo Mensal</h3>
-        <p className="mb-3 italic">Tabela 3 – Consumo mensal dos últimos 12 meses</p>
-        <table className={tableClass}>
-          <thead>
-            <tr>
-              <th className={thClass}>Mês</th>
-              <th className={thClass}>Consumo (kWh)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="text-center">
-              <td className={tdClass} colSpan={2}>
-                <span className="text-gray-400 italic">Dados de consumo mensal a serem preenchidos</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       {/* ==================== 6. PADRÃO DE ENTRADA ==================== */}
