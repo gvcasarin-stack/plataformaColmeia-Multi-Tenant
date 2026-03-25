@@ -57,7 +57,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge'
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 // ❌ FIREBASE - REMOVIDO: import { Timestamp } from 'firebase/firestore'
-import { deleteCommentAction, deleteFileAction } from '@/lib/actions/project-actions'
+import { deleteCommentAction, deleteFileAction, editProjectAction } from '@/lib/actions/project-actions'
 import { ProjectResponsibleAdmin } from './project-view/project-responsible-admin'
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
@@ -1274,94 +1274,103 @@ export const ExpandedProjectView = ({
   };
 
   const handleSaveConferirModal = async (updatedFields: Record<string, any>) => {
-    try {
-      const { _plantaFile, ...fieldsToSave } = updatedFields;
+    const { _plantaFile, ...fieldsToSave } = updatedFields;
 
-      if (_plantaFile && _plantaFile instanceof File) {
-        try {
-          const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
-          const headers = await createTenantHeaders(user!.id);
-          const formData = new FormData();
-          formData.append('file', _plantaFile);
-          formData.append('projectId', project.id);
-          formData.append('type', 'planta_situacao');
+    if (_plantaFile && _plantaFile instanceof File) {
+      try {
+        const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+        const headers = await createTenantHeaders(user!.id);
+        const formData = new FormData();
+        formData.append('file', _plantaFile);
+        formData.append('projectId', project.id);
+        formData.append('type', 'planta_situacao');
 
-          const resp = await fetch('/api/upload-project-image', {
-            method: 'POST',
-            headers: { 'x-tenant-id': headers['x-tenant-id'] || '' },
-            body: formData,
-          });
-          if (resp.ok) {
-            const data = await resp.json();
-            fieldsToSave.planta_situacao_url = data.url;
-          }
-        } catch (err) {
-          devLog.error("Erro ao fazer upload da planta de situação:", err);
+        const resp = await fetch('/api/upload-project-image', {
+          method: 'POST',
+          headers: { 'x-tenant-id': headers['x-tenant-id'] || '' },
+          body: formData,
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          fieldsToSave.planta_situacao_url = data.url;
         }
+      } catch (err) {
+        devLog.error("Erro ao fazer upload da planta de situação:", err);
       }
+    }
 
-      setGerarProjetoFields(prev => ({ ...prev, ...fieldsToSave }));
+    const updateData: any = {
+      id: project.id,
+      nomeClienteFinal: fieldsToSave.nomeClienteFinal,
+      nome_cliente_final: fieldsToSave.nomeClienteFinal,
+      cpf_cnpj_cliente_final: fieldsToSave.cpf_cnpj_cliente_final,
+      endereco_local: fieldsToSave.endereco_local,
+      client_city: fieldsToSave.client_city,
+      client_state: fieldsToSave.client_state,
+      distribuidora: fieldsToSave.distribuidora,
+      potencia: fieldsToSave.potencia,
+      disjuntorPadraoEntrada: fieldsToSave.disjuntorPadraoEntrada,
+      listaMateriais: fieldsToSave.listaMateriais,
+      havera_beneficiarias: fieldsToSave.havera_beneficiarias,
+      tipo_conexao: fieldsToSave.tipo_conexao,
+      tipo_ramal: fieldsToSave.tipo_ramal,
+      tensao_atendimento: fieldsToSave.tensao_atendimento,
+      coord_utm_fuso: fieldsToSave.coord_utm_fuso,
+      coord_utm_x: fieldsToSave.coord_utm_x,
+      coord_utm_y: fieldsToSave.coord_utm_y,
+      modulos_quantidade: fieldsToSave.modulos_quantidade,
+      modulos_fabricante: fieldsToSave.modulos_fabricante,
+      modulos_modelo: fieldsToSave.modulos_modelo,
+      inversores_quantidade: fieldsToSave.inversores_quantidade,
+      inversores_fabricante: fieldsToSave.inversores_fabricante,
+      inversores_modelo: fieldsToSave.inversores_modelo,
+      inversores_potencia: fieldsToSave.inversores_potencia,
+      inversores_tensao: fieldsToSave.inversores_tensao,
+      modulos_potencia_wp: fieldsToSave.modulos_potencia_wp,
+      conta_contrato: fieldsToSave.conta_contrato,
+      classe_uc: fieldsToSave.classe_uc,
+      numero_poste_transformador: fieldsToSave.numero_poste_transformador,
+      numero_condutores_fase: fieldsToSave.numero_condutores_fase,
+      secao_fase_mm2: fieldsToSave.secao_fase_mm2,
+      secao_neutro_mm2: fieldsToSave.secao_neutro_mm2,
+      disjuntor_polos: fieldsToSave.disjuntor_polos,
+      disjuntor_corrente_a: fieldsToSave.disjuntor_corrente_a,
+      disjuntor_tensao_v: fieldsToSave.disjuntor_tensao_v,
+      tipo_fornecimento: fieldsToSave.tipo_fornecimento,
+      modalidade_compensacao: fieldsToSave.modalidade_compensacao,
+      planta_situacao_url: fieldsToSave.planta_situacao_url,
+      timelineEvents: timelineEvents,
+    };
 
-      const updateData: any = {
-        id: project.id,
-        nomeClienteFinal: fieldsToSave.nomeClienteFinal,
-        nome_cliente_final: fieldsToSave.nomeClienteFinal,
-        cpf_cnpj_cliente_final: fieldsToSave.cpf_cnpj_cliente_final,
-        endereco_local: fieldsToSave.endereco_local,
-        client_city: fieldsToSave.client_city,
-        client_state: fieldsToSave.client_state,
-        distribuidora: fieldsToSave.distribuidora,
-        potencia: fieldsToSave.potencia,
-        disjuntorPadraoEntrada: fieldsToSave.disjuntorPadraoEntrada,
-        listaMateriais: fieldsToSave.listaMateriais,
-        havera_beneficiarias: fieldsToSave.havera_beneficiarias,
-        tipo_conexao: fieldsToSave.tipo_conexao,
-        tipo_ramal: fieldsToSave.tipo_ramal,
-        tensao_atendimento: fieldsToSave.tensao_atendimento,
-        coord_utm_fuso: fieldsToSave.coord_utm_fuso,
-        coord_utm_x: fieldsToSave.coord_utm_x,
-        coord_utm_y: fieldsToSave.coord_utm_y,
-        modulos_quantidade: fieldsToSave.modulos_quantidade,
-        modulos_fabricante: fieldsToSave.modulos_fabricante,
-        modulos_modelo: fieldsToSave.modulos_modelo,
-        inversores_quantidade: fieldsToSave.inversores_quantidade,
-        inversores_fabricante: fieldsToSave.inversores_fabricante,
-        inversores_modelo: fieldsToSave.inversores_modelo,
-        inversores_potencia: fieldsToSave.inversores_potencia,
-        inversores_tensao: fieldsToSave.inversores_tensao,
-        modulos_potencia_wp: fieldsToSave.modulos_potencia_wp,
-        conta_contrato: fieldsToSave.conta_contrato,
-        classe_uc: fieldsToSave.classe_uc,
-        numero_poste_transformador: fieldsToSave.numero_poste_transformador,
-        numero_condutores_fase: fieldsToSave.numero_condutores_fase,
-        secao_fase_mm2: fieldsToSave.secao_fase_mm2,
-        secao_neutro_mm2: fieldsToSave.secao_neutro_mm2,
-        disjuntor_polos: fieldsToSave.disjuntor_polos,
-        disjuntor_corrente_a: fieldsToSave.disjuntor_corrente_a,
-        disjuntor_tensao_v: fieldsToSave.disjuntor_tensao_v,
-        tipo_fornecimento: fieldsToSave.tipo_fornecimento,
-        modalidade_compensacao: fieldsToSave.modalidade_compensacao,
-        planta_situacao_url: fieldsToSave.planta_situacao_url,
-        timelineEvents: timelineEvents,
-      };
+    devLog.log('[ConferirModal] Salvando diretamente via editProjectAction:', Object.keys(updateData));
 
-      setEditedProject(prev => ({ ...prev, ...updateData }));
-      setSelectedDistribuidoraGerarProjeto(fieldsToSave.distribuidora || selectedDistribuidoraGerarProjeto);
-      await onUpdate(updateData);
+    const result = await editProjectAction(
+      updateData,
+      {
+        id: user!.id,
+        email: user!.email || '',
+        role: user!.role || 'admin'
+      }
+    );
 
+    if (result.error) {
+      devLog.error('[ConferirModal] Erro ao salvar:', result.error);
       toast({
-        title: "Progresso salvo",
-        description: "As informações do projeto foram atualizadas com sucesso.",
-      });
-    } catch (error) {
-      devLog.error("Erro ao salvar informações do projeto:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar as informações.",
+        title: "Erro ao salvar",
+        description: result.error,
         variant: "destructive"
       });
-      throw error;
+      throw new Error(result.error);
     }
+
+    setGerarProjetoFields(prev => ({ ...prev, ...fieldsToSave }));
+    setEditedProject(prev => ({ ...prev, ...updateData }));
+    setSelectedDistribuidoraGerarProjeto(fieldsToSave.distribuidora || selectedDistribuidoraGerarProjeto);
+
+    toast({
+      title: "Progresso salvo",
+      description: "As informações do projeto foram salvas no banco de dados.",
+    });
   };
 
   // 🗑️ Função para arquivar projeto
