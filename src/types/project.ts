@@ -140,6 +140,11 @@ export interface Project {
   inversores_potencia?: string;
   inversores_tensao?: string;
 
+  // ✅ Campos de referência ao acervo técnico
+  caixa_medicao_id?: string;
+  caixa_medicao_imagem_url?: string;
+  caixa_medicao_nome?: string;
+
   // ✅ Campos do Memorial Descritivo
   conta_contrato?: string;
   classe_uc?: string;

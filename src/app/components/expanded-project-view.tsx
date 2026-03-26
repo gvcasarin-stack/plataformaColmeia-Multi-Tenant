@@ -492,6 +492,9 @@ export const ExpandedProjectView = ({
     tipo_fornecimento: (project as any).tipo_fornecimento || '',
     modalidade_compensacao: (project as any).modalidade_compensacao || '',
     planta_situacao_url: (project as any).planta_situacao_url || '',
+    caixa_medicao_id: (project as any).caixa_medicao_id || '',
+    caixa_medicao_imagem_url: (project as any).caixa_medicao_imagem_url || '',
+    caixa_medicao_nome: (project as any).caixa_medicao_nome || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);

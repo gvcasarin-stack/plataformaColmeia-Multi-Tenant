@@ -109,6 +109,9 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       tipo_fornecimento: data.tipo_fornecimento || undefined,
       modalidade_compensacao: data.modalidade_compensacao || undefined,
       planta_situacao_url: data.planta_situacao_url || undefined,
+      caixa_medicao_id: data.caixa_medicao_id || undefined,
+      caixa_medicao_imagem_url: data.caixa_medicao_imagem_url || undefined,
+      caixa_medicao_nome: data.caixa_medicao_nome || undefined,
 
       // 💳 BILLING: Adicionar campos de faturamento
       billing_mode: data.billing_mode || 'avulso',
@@ -421,6 +424,9 @@ export const getProjectsWithFilters = async (filters: {
         tipo_fornecimento: item.tipo_fornecimento || undefined,
         modalidade_compensacao: item.modalidade_compensacao || undefined,
         planta_situacao_url: item.planta_situacao_url || undefined,
+        caixa_medicao_id: item.caixa_medicao_id || undefined,
+        caixa_medicao_imagem_url: item.caixa_medicao_imagem_url || undefined,
+        caixa_medicao_nome: item.caixa_medicao_nome || undefined,
 
         // 💳 BILLING: Adicionar campos de faturamento
         billing_mode: item.billing_mode || 'avulso',
@@ -542,6 +548,9 @@ export const getProject = async (projectId: string): Promise<Project | null> => 
       tipo_fornecimento: data.tipo_fornecimento || undefined,
       modalidade_compensacao: data.modalidade_compensacao || undefined,
       planta_situacao_url: data.planta_situacao_url || undefined,
+      caixa_medicao_id: data.caixa_medicao_id || undefined,
+      caixa_medicao_imagem_url: data.caixa_medicao_imagem_url || undefined,
+      caixa_medicao_nome: data.caixa_medicao_nome || undefined,
 
       createdAt: sanitizeDate(data.created_at),
       updatedAt: sanitizeDate(data.updated_at),

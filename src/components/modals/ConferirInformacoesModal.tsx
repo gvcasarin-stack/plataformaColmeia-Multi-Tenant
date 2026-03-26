@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   CheckCircle2, AlertCircle, MinusCircle, Save, X,
   User, CreditCard, MapPin, Factory, Zap, Plug, Info,
-  Package, Settings, Building, Upload, ImageIcon
+  Package, Settings, Building, Upload, ImageIcon, FolderArchive
 } from 'lucide-react';
 
 const DISTRIBUIDORAS = [
@@ -20,7 +20,7 @@ const DISTRIBUIDORAS = [
   "RGE", "Amazonas Energia", "Outro"
 ];
 
-type FieldType = 'text' | 'number' | 'select' | 'image';
+type FieldType = 'text' | 'number' | 'select' | 'image' | 'acervo_select';
 
 interface FieldDef {
   key: string;
@@ -32,6 +32,7 @@ interface FieldDef {
   placeholder?: string;
   suffix?: string;
   group: string;
+  acervoCategoria?: string;
 }
 
 const FIELD_DEFINITIONS: FieldDef[] = [
@@ -73,6 +74,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'numero_poste_transformador', label: 'Nº Poste / Transformador', type: 'text', required: true, group: 'Dados da Unidade Consumidora' },
 
   // Padrão de Entrada
+  { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada' },
   { key: 'disjuntor_polos', label: 'Disjuntor — Nº de Polos', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }], group: 'Padrão de Entrada' },
   { key: 'disjuntor_corrente_a', label: 'Disjuntor — Corrente (A)', type: 'text', required: true, suffix: 'A', group: 'Padrão de Entrada' },
   { key: 'disjuntor_tensao_v', label: 'Disjuntor — Tensão (V)', type: 'text', required: true, suffix: 'V', group: 'Padrão de Entrada' },
@@ -95,6 +97,13 @@ interface ConferirInformacoesModalProps {
   onSave: (updatedFields: Record<string, any>) => Promise<void>;
 }
 
+interface AcervoItem {
+  id: string;
+  nome: string;
+  imagem_url: string | null;
+  descricao: string | null;
+}
+
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
   const [localFields, setLocalFields] = useState<Record<string, any>>({ ...fields });
   const [skippedFields, setSkippedFields] = useState<Set<string>>(new Set());
@@ -102,6 +111,35 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   const [plantaPreview, setPlantaPreview] = useState<string | null>(fields.planta_situacao_url || null);
   const [plantaFile, setPlantaFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [acervoItems, setAcervoItems] = useState<Record<string, AcervoItem[]>>({});
+  const [acervoLoading, setAcervoLoading] = useState<Record<string, boolean>>({});
+
+  const fetchAcervoItems = useCallback(async (categoria: string) => {
+    const distribuidora = localFields.distribuidora;
+    if (!distribuidora) return;
+    const cacheKey = `${distribuidora}_${categoria}`;
+    if (acervoItems[cacheKey]) return;
+
+    setAcervoLoading(prev => ({ ...prev, [cacheKey]: true }));
+    try {
+      const params = new URLSearchParams({ distribuidora, categoria });
+      const resp = await fetch(`/api/acervo-tecnico?${params.toString()}`);
+      const result = await resp.json();
+      setAcervoItems(prev => ({ ...prev, [cacheKey]: result.data || [] }));
+    } catch {
+      setAcervoItems(prev => ({ ...prev, [cacheKey]: [] }));
+    } finally {
+      setAcervoLoading(prev => ({ ...prev, [cacheKey]: false }));
+    }
+  }, [localFields.distribuidora, acervoItems]);
+
+  useEffect(() => {
+    if (!open || !localFields.distribuidora) return;
+    const acervoFields = FIELD_DEFINITIONS.filter(f => f.type === 'acervo_select');
+    for (const field of acervoFields) {
+      if (field.acervoCategoria) fetchAcervoItems(field.acervoCategoria);
+    }
+  }, [open, localFields.distribuidora, fetchAcervoItems]);
 
   const handleFieldChange = (key: string, value: any) => {
     setLocalFields(prev => ({ ...prev, [key]: value }));
@@ -228,6 +266,67 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             >
               <Upload className="h-3 w-3 mr-1" /> Selecionar imagem
             </Button>
+          )}
+        </div>
+      );
+    }
+
+    if (field.type === 'acervo_select' && field.acervoCategoria) {
+      const cacheKey = `${localFields.distribuidora}_${field.acervoCategoria}`;
+      const items = acervoItems[cacheKey] || [];
+      const isLoading = acervoLoading[cacheKey];
+      const selectedItem = items.find(i => i.id === value);
+
+      if (!localFields.distribuidora) {
+        return <p className="text-xs text-amber-600 italic">Selecione a distribuidora primeiro.</p>;
+      }
+
+      if (isLoading) {
+        return <p className="text-xs text-gray-400 italic">Carregando acervo...</p>;
+      }
+
+      if (items.length === 0) {
+        return (
+          <div className="rounded-md border border-dashed border-amber-300 dark:border-amber-700 p-3 bg-amber-50 dark:bg-amber-900/20">
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Nenhum item cadastrado no acervo para <strong>{localFields.distribuidora}</strong>.
+            </p>
+            <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+              Cadastre modelos em <strong>Acervo Técnico</strong> na sidebar.
+            </p>
+          </div>
+        );
+      }
+
+      return (
+        <div className={isSkipped ? 'opacity-40 pointer-events-none' : 'space-y-2'}>
+          <Select
+            value={value}
+            onValueChange={(val) => {
+              handleFieldChange(field.key, val);
+              const item = items.find(i => i.id === val);
+              if (item) {
+                handleFieldChange('caixa_medicao_imagem_url', item.imagem_url || '');
+                handleFieldChange('caixa_medicao_nome', item.nome || '');
+              }
+            }}
+            disabled={isSkipped}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Selecione o modelo" />
+            </SelectTrigger>
+            <SelectContent>
+              {items.map(item => (
+                <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedItem?.imagem_url && (
+            <img
+              src={selectedItem.imagem_url}
+              alt={selectedItem.nome}
+              className="max-h-24 rounded-md border border-gray-200 dark:border-gray-700 object-contain"
+            />
           )}
         </div>
       );

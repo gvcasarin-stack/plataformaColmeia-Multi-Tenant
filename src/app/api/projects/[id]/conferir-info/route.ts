@@ -14,6 +14,7 @@ const CONFERIR_FIELDS = [
   'numero_condutores_fase', 'secao_fase_mm2', 'secao_neutro_mm2',
   'disjuntor_polos', 'disjuntor_corrente_a', 'disjuntor_tensao_v',
   'tipo_fornecimento', 'modalidade_compensacao', 'planta_situacao_url',
+  'caixa_medicao_id', 'caixa_medicao_imagem_url', 'caixa_medicao_nome',
 ];
 
 // GET: Diagnóstico — colar no navegador para ver o estado do projeto

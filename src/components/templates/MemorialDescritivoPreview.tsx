@@ -365,6 +365,25 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           16 mm (5/8&quot;), condutor de 10 mm² com conector tipo cunha para haste de material protegido contra
           corrosão, sob pressão de parafusos, sem o emprego de solda e acessível à inspeção.
         </p>
+        <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
+          {projectData?.caixa_medicao_imagem_url ? (
+            <>
+              <img
+                src={projectData.caixa_medicao_imagem_url}
+                alt={projectData.caixa_medicao_nome || 'Caixa de Medição'}
+                className="max-h-72 mx-auto rounded-md border border-gray-200 dark:border-gray-700 object-contain"
+              />
+              <p className="text-xs italic text-center mt-3">
+                Figura 2: Desenho dimensional da caixa de medição — {projectData.caixa_medicao_nome || 'Modelo selecionado'}.
+              </p>
+            </>
+          ) : (
+            <>
+              <Badge variant="outline" className="text-xs">{`{{caixa_medicao_imagem}}`}</Badge>
+              <p className="text-xs text-gray-400 mt-2">Desenho dimensional da caixa de medição (selecione no &quot;Conferir Informações&quot;)</p>
+            </>
+          )}
+        </div>
 
         <h3 className={h3Class}>6.5. Ramal de Entrada</h3>
         <p className={pClass}>
