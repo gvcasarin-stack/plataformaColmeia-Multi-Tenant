@@ -102,6 +102,9 @@ interface AcervoItem {
   nome: string;
   imagem_url: string | null;
   descricao: string | null;
+  comprimento_mm: number | null;
+  altura_mm: number | null;
+  largura_mm: number | null;
 }
 
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
