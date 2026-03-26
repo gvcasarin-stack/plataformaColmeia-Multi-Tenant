@@ -173,8 +173,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     setResponsavelLoading(true);
     fetch('/api/admin/config')
       .then(res => res.json())
-      .then(data => {
-        const rt = data?.responsavelTecnico;
+      .then(json => {
+        const rt = json?.data?.responsavel_tecnico;
         if (rt && rt.nomeCompleto) {
           const mapped: Record<string, string> = {
             responsavel_nome: rt.nomeCompleto || '',
