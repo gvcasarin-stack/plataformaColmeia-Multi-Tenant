@@ -33,7 +33,7 @@ import {
   Upload,
   Image as ImageIcon,
   Loader2,
-  Pencil,
+  Edit,
   Save,
   X,
 } from 'lucide-react';
@@ -268,7 +268,7 @@ export default function AcervoTecnicoPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-3 mb-2">
         <FolderArchive className="h-7 w-7 text-blue-600" />
         <div>
@@ -443,7 +443,7 @@ export default function AcervoTecnicoPage() {
                           </Badge>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button variant="ghost" size="sm" onClick={() => startEdit(item)} className="h-7 w-7 p-0">
-                              <Pencil className="h-3.5 w-3.5 text-blue-500" />
+                              <Edit className="h-3.5 w-3.5 text-blue-500" />
                             </Button>
                             <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(item)} className="h-7 w-7 p-0">
                               <Trash2 className="h-3.5 w-3.5 text-red-500" />
