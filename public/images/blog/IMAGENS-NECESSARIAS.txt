@@ -1,0 +1,42 @@
+IMAGENS NECESSÁRIAS PARA O BLOG
+================================
+
+Para que os posts de exemplo funcionem corretamente, adicione as seguintes imagens nesta pasta:
+
+1. homologacao-projetos.jpg
+   - Dimensões: 1200x675px (16:9)
+   - Para o post: "Guia Completo: Como Acelerar a Homologação de Projetos Fotovoltaicos"
+   - Sugestão: Painéis solares, engenheiro com projeto, ou instalação solar
+
+2. vendas-solar.jpg
+   - Dimensões: 1200x675px (16:9)
+   - Para o post: "5 Estratégias Comprovadas para Aumentar suas Vendas de Energia Solar"
+   - Sugestão: Aperto de mãos, reunião de negócios, ou gráfico de vendas
+
+3. mercado-solar.jpg
+   - Dimensões: 1200x675px (16:9)
+   - Para o post: "Mercado Solar 2025: Tendências e Oportunidades"
+   - Sugestão: Usina solar, gráficos de crescimento, ou vista panorâmica de instalação
+
+4. software-gestao.jpg
+   - Dimensões: 1200x675px (16:9)
+   - Para o post: "Como Escolher o Software de Gestão Ideal"
+   - Sugestão: Dashboard de software, computador com dados, ou pessoa usando tecnologia
+
+DIRETRIZES:
+- Formato: JPG ou PNG
+- Tamanho máximo: 500KB por imagem (otimize para web)
+- Qualidade: Alta resolução
+- Cores: Preferencialmente com tons de azul, branco, cinza (identidade visual SGF)
+- Estilo: Profissional e moderno
+
+ONDE ENCONTRAR IMAGENS:
+- Unsplash (https://unsplash.com)
+- Pexels (https://pexels.com)
+- Freepik (https://freepik.com)
+- Banco de imagens próprio
+
+APÓS ADICIONAR AS IMAGENS:
+- Delete este arquivo (IMAGENS-NECESSARIAS.txt)
+- Reinicie o servidor de desenvolvimento se necessário
+- Acesse http://localhost:3000/blog para visualizar

@@ -147,6 +147,9 @@ export interface Project {
   caixa_medicao_comprimento_mm?: string;
   caixa_medicao_altura_mm?: string;
   caixa_medicao_largura_mm?: string;
+  responsavel_nome?: string;
+  responsavel_profissao?: string;
+  responsavel_registro?: string;
 
   // ✅ Campos do Memorial Descritivo
   conta_contrato?: string;

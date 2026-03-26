@@ -80,6 +80,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
   { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
 
+  // Responsável Técnico
+  { key: 'responsavel_nome', label: 'Nome Completo', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Técnico' },
+  { key: 'responsavel_profissao', label: 'Profissão', type: 'text', required: true, group: 'Responsável Técnico' },
+  { key: 'responsavel_registro', label: 'Nº de Registro Profissional', type: 'text', required: true, group: 'Responsável Técnico' },
+
   // Módulos Fotovoltaicos
   { key: 'modulos_quantidade', label: 'Quantidade de Módulos', icon: <Package className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_fabricante', label: 'Fabricante dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
@@ -146,6 +151,37 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [acervoItems, setAcervoItems] = useState<Record<string, AcervoItem[]>>({});
   const [acervoLoading, setAcervoLoading] = useState<Record<string, boolean>>({});
+  const [useOutroResponsavel, setUseOutroResponsavel] = useState(false);
+  const [responsavelPrefs, setResponsavelPrefs] = useState<Record<string, string> | null>(null);
+  const [responsavelLoading, setResponsavelLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (localFields.responsavel_nome) return;
+    setResponsavelLoading(true);
+    fetch('/api/admin/config')
+      .then(res => res.json())
+      .then(data => {
+        const rt = data?.responsavelTecnico;
+        if (rt && rt.nomeCompleto) {
+          const mapped: Record<string, string> = {
+            responsavel_nome: rt.nomeCompleto || '',
+            responsavel_profissao: rt.profissao || '',
+            responsavel_registro: rt.numeroRegistro || '',
+          };
+          setResponsavelPrefs(mapped);
+          if (!useOutroResponsavel) {
+            setLocalFields(prev => ({
+              ...prev,
+              ...Object.fromEntries(Object.entries(mapped).filter(([k]) => !prev[k])),
+            }));
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setResponsavelLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const fetchAcervoItems = useCallback(async (categoria: string) => {
     const distribuidora = localFields.distribuidora;
@@ -472,6 +508,44 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                   {groupFields.filter(f => isFieldFilled(f.key)).length}/{groupFields.length}
                 </span>
               </h3>
+              {groupName === 'Responsável Técnico' && (
+                <div className="mb-3 space-y-2">
+                  {responsavelLoading ? (
+                    <p className="text-xs text-gray-400 italic">Carregando dados das preferências...</p>
+                  ) : !responsavelPrefs ? (
+                    <div className="rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
+                        Nenhum responsável técnico cadastrado nas <strong>Preferências &gt; Documentos</strong>. Preencha os campos abaixo manualmente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="use-outro-responsavel"
+                        checked={useOutroResponsavel}
+                        onCheckedChange={(checked) => {
+                          const isChecked = !!checked;
+                          setUseOutroResponsavel(isChecked);
+                          if (isChecked) {
+                            setLocalFields(prev => ({
+                              ...prev,
+                              responsavel_nome: '',
+                              responsavel_profissao: '',
+                              responsavel_registro: '',
+                            }));
+                          } else if (responsavelPrefs) {
+                            setLocalFields(prev => ({ ...prev, ...responsavelPrefs }));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="use-outro-responsavel" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                        Utilizar dados de outro responsável técnico
+                      </Label>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="space-y-3">
                 {groupFields.map(field => (
                   <div key={field.key} className="flex items-start gap-3 group">

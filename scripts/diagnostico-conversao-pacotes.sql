@@ -32,7 +32,7 @@ SELECT
   u.billing_mode,
   u.tenant_id
 FROM users u
-WHERE u.id = 'COLE-O-OWNER-ID-AQUI';  -- 🔧 SUBSTITUIR
+WHERE u.id = 'b772107b-bfa8-48e7-81ac-995331e66623';  -- 🔧 SUBSTITUIR
 
 -- 🔍 PASSO 3: Buscar pacotes ativos da Catarina Solar
 -- ========================================

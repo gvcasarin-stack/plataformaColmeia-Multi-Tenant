@@ -498,6 +498,9 @@ export const ExpandedProjectView = ({
     caixa_medicao_comprimento_mm: (project as any).caixa_medicao_comprimento_mm || '',
     caixa_medicao_altura_mm: (project as any).caixa_medicao_altura_mm || '',
     caixa_medicao_largura_mm: (project as any).caixa_medicao_largura_mm || '',
+    responsavel_nome: (project as any).responsavel_nome || '',
+    responsavel_profissao: (project as any).responsavel_profissao || '',
+    responsavel_registro: (project as any).responsavel_registro || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);

@@ -42,6 +42,9 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{inversores_tensao}}': 'inversores_tensao',
   '{{numero_condutores_fase}}': 'numero_condutores_fase',
   '{{disjuntor_padrao_entrada}}': 'disjuntorPadraoEntrada',
+  '{{responsavel_nome}}': 'responsavel_nome',
+  '{{responsavel_profissao}}': 'responsavel_profissao',
+  '{{responsavel_registro}}': 'responsavel_registro',
 };
 
 export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {

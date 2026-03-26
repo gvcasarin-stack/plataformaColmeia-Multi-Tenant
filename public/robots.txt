@@ -1,0 +1,37 @@
+# robots.txt para SGF - Sistema de Gerenciamento Fotovoltaico
+# Otimizado para SEO e proteção de rotas privadas
+
+# Permitir todos os crawlers nas páginas públicas
+User-agent: *
+Allow: /
+Allow: /*.css
+Allow: /*.js
+Allow: /images/
+Allow: /lightning-icon.svg
+Allow: /logo.svg
+
+# Bloquear acesso a rotas administrativas e privadas
+Disallow: /admin/
+Disallow: /cliente/
+Disallow: /api/
+Disallow: /registro/
+Disallow: /recuperar-senha/
+Disallow: /confirmar-email/
+Disallow: /cadastro/
+Disallow: /nova-senha/
+Disallow: /account-suspended/
+Disallow: /account-canceled/
+Disallow: /wrong-domain/
+Disallow: /tenant-not-found/
+
+# Bloquear arquivos e diretórios técnicos
+Disallow: /_next/
+Disallow: /static/
+Disallow: /*.json$
+
+# Crawl delay para evitar sobrecarga (opcional)
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://www.gerenciamentofotovoltaico.com.br/sitemap.xml
+
