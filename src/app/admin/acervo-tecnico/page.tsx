@@ -60,6 +60,9 @@ interface AcervoItem {
   descricao: string | null;
   imagem_url: string | null;
   condicoes: Record<string, any>;
+  comprimento_mm: number | null;
+  altura_mm: number | null;
+  largura_mm: number | null;
   created_at: string;
 }
 
@@ -77,6 +80,9 @@ export default function AcervoTecnicoPage() {
   const [newDescricao, setNewDescricao] = useState('');
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newPreview, setNewPreview] = useState<string | null>(null);
+  const [newComprimento, setNewComprimento] = useState('');
+  const [newAltura, setNewAltura] = useState('');
+  const [newLargura, setNewLargura] = useState('');
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +90,9 @@ export default function AcervoTecnicoPage() {
   const [editDescricao, setEditDescricao] = useState('');
   const [editFile, setEditFile] = useState<File | null>(null);
   const [editPreview, setEditPreview] = useState<string | null>(null);
+  const [editComprimento, setEditComprimento] = useState('');
+  const [editAltura, setEditAltura] = useState('');
+  const [editLargura, setEditLargura] = useState('');
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
@@ -167,6 +176,9 @@ export default function AcervoTecnicoPage() {
           nome: newNome.trim(),
           descricao: newDescricao.trim() || null,
           imagem_url: imageUrl,
+          comprimento_mm: newComprimento ? parseFloat(newComprimento) : null,
+          altura_mm: newAltura ? parseFloat(newAltura) : null,
+          largura_mm: newLargura ? parseFloat(newLargura) : null,
         }),
       });
       const result = await resp.json();
@@ -195,7 +207,14 @@ export default function AcervoTecnicoPage() {
         if (url) imageUrl = url;
       }
 
-      const body: Record<string, any> = { id, nome: editNome.trim(), descricao: editDescricao.trim() || null };
+      const body: Record<string, any> = {
+        id,
+        nome: editNome.trim(),
+        descricao: editDescricao.trim() || null,
+        comprimento_mm: editComprimento ? parseFloat(editComprimento) : null,
+        altura_mm: editAltura ? parseFloat(editAltura) : null,
+        largura_mm: editLargura ? parseFloat(editLargura) : null,
+      };
       if (imageUrl) body.imagem_url = imageUrl;
 
       const resp = await fetch('/api/acervo-tecnico', {
@@ -243,6 +262,9 @@ export default function AcervoTecnicoPage() {
     setEditDescricao(item.descricao || '');
     setEditPreview(item.imagem_url);
     setEditFile(null);
+    setEditComprimento(item.comprimento_mm?.toString() || '');
+    setEditAltura(item.altura_mm?.toString() || '');
+    setEditLargura(item.largura_mm?.toString() || '');
   };
 
   const resetNewForm = () => {
@@ -251,6 +273,9 @@ export default function AcervoTecnicoPage() {
     setNewDescricao('');
     setNewFile(null);
     setNewPreview(null);
+    setNewComprimento('');
+    setNewAltura('');
+    setNewLargura('');
   };
 
   const categoriaLabel = (cat: string) => CATEGORIAS.find(c => c.value === cat)?.label || cat;
@@ -352,6 +377,43 @@ export default function AcervoTecnicoPage() {
                     className="mt-1 min-h-[60px]"
                   />
                 </div>
+                {selectedCategoria === 'caixa_medicao' && (
+                  <div>
+                    <Label className="text-sm">Dimensões (mm)</Label>
+                    <div className="mt-1 grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs text-gray-500">Comprimento</Label>
+                        <Input
+                          type="number"
+                          value={newComprimento}
+                          onChange={e => setNewComprimento(e.target.value)}
+                          placeholder="260"
+                          className="mt-0.5 h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Altura</Label>
+                        <Input
+                          type="number"
+                          value={newAltura}
+                          onChange={e => setNewAltura(e.target.value)}
+                          placeholder="423"
+                          className="mt-0.5 h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Largura</Label>
+                        <Input
+                          type="number"
+                          value={newLargura}
+                          onChange={e => setNewLargura(e.target.value)}
+                          placeholder="130"
+                          className="mt-0.5 h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <Label className="text-sm">Imagem</Label>
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileSelect(e, 'new')} />
@@ -405,6 +467,25 @@ export default function AcervoTecnicoPage() {
                         <Label className="text-xs">Descrição</Label>
                         <Textarea value={editDescricao} onChange={e => setEditDescricao(e.target.value)} className="mt-1 min-h-[50px] text-sm" />
                       </div>
+                      {item.categoria === 'caixa_medicao' && (
+                        <div>
+                          <Label className="text-xs">Dimensões (mm)</Label>
+                          <div className="mt-1 grid grid-cols-3 gap-1.5">
+                            <div>
+                              <Label className="text-[10px] text-gray-500">Comp.</Label>
+                              <Input type="number" value={editComprimento} onChange={e => setEditComprimento(e.target.value)} placeholder="260" className="mt-0.5 h-7 text-xs" />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-gray-500">Altura</Label>
+                              <Input type="number" value={editAltura} onChange={e => setEditAltura(e.target.value)} placeholder="423" className="mt-0.5 h-7 text-xs" />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-gray-500">Largura</Label>
+                              <Input type="number" value={editLargura} onChange={e => setEditLargura(e.target.value)} placeholder="130" className="mt-0.5 h-7 text-xs" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <input ref={editFileInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileSelect(e, 'edit')} />
                         <Button variant="outline" size="sm" onClick={() => editFileInputRef.current?.click()} className="text-xs">
@@ -436,6 +517,11 @@ export default function AcervoTecnicoPage() {
                         <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200">{item.nome}</h3>
                         {item.descricao && (
                           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.descricao}</p>
+                        )}
+                        {(item.comprimento_mm || item.altura_mm || item.largura_mm) && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Dimensões: {item.comprimento_mm || '—'} × {item.altura_mm || '—'} × {item.largura_mm || '—'} mm
+                          </p>
                         )}
                         <div className="flex items-center justify-between mt-3">
                           <Badge variant="outline" className="text-xs">

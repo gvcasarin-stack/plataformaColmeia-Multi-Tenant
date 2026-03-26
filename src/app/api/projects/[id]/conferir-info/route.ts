@@ -15,6 +15,7 @@ const CONFERIR_FIELDS = [
   'disjuntor_polos', 'disjuntor_corrente_a', 'disjuntor_tensao_v',
   'tipo_fornecimento', 'modalidade_compensacao', 'planta_situacao_url',
   'caixa_medicao_id', 'caixa_medicao_imagem_url', 'caixa_medicao_nome',
+  'caixa_medicao_comprimento_mm', 'caixa_medicao_altura_mm', 'caixa_medicao_largura_mm',
 ];
 
 // GET: Diagnóstico — colar no navegador para ver o estado do projeto

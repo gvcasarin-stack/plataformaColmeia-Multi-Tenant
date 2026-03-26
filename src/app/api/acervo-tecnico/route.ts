@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { distribuidora, categoria, nome, descricao, imagem_url, condicoes } = body;
+    const { distribuidora, categoria, nome, descricao, imagem_url, condicoes,
+            comprimento_mm, altura_mm, largura_mm } = body;
 
     if (!distribuidora || !categoria || !nome) {
       return NextResponse.json(
@@ -49,6 +50,9 @@ export async function POST(request: NextRequest) {
         descricao: descricao || null,
         imagem_url: imagem_url || null,
         condicoes: condicoes || {},
+        comprimento_mm: comprimento_mm || null,
+        altura_mm: altura_mm || null,
+        largura_mm: largura_mm || null,
       })
       .select()
       .single();
@@ -79,6 +83,9 @@ export async function PUT(request: NextRequest) {
     if (fields.descricao !== undefined) updateData.descricao = fields.descricao;
     if (fields.imagem_url !== undefined) updateData.imagem_url = fields.imagem_url;
     if (fields.condicoes !== undefined) updateData.condicoes = fields.condicoes;
+    if (fields.comprimento_mm !== undefined) updateData.comprimento_mm = fields.comprimento_mm;
+    if (fields.altura_mm !== undefined) updateData.altura_mm = fields.altura_mm;
+    if (fields.largura_mm !== undefined) updateData.largura_mm = fields.largura_mm;
 
     const { data, error } = await supabase
       .from('acervo_tecnico')

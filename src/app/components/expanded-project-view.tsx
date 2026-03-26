@@ -495,6 +495,9 @@ export const ExpandedProjectView = ({
     caixa_medicao_id: (project as any).caixa_medicao_id || '',
     caixa_medicao_imagem_url: (project as any).caixa_medicao_imagem_url || '',
     caixa_medicao_nome: (project as any).caixa_medicao_nome || '',
+    caixa_medicao_comprimento_mm: (project as any).caixa_medicao_comprimento_mm || '',
+    caixa_medicao_altura_mm: (project as any).caixa_medicao_altura_mm || '',
+    caixa_medicao_largura_mm: (project as any).caixa_medicao_largura_mm || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
@@ -2849,33 +2852,35 @@ export const ExpandedProjectView = ({
                               Templates — {selectedDistribuidoraGerarProjeto}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              <Card
-                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'memorial' ? null : 'memorial')}
-                                className={`border cursor-pointer group transition-all duration-200 ${
-                                  activeTemplatePreview === 'memorial'
-                                    ? 'border-blue-500 dark:border-blue-400 shadow-md ring-2 ring-blue-200 dark:ring-blue-800'
-                                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md'
-                                }`}
-                              >
-                                <CardContent className="p-5">
-                                  <div className="flex items-start gap-3">
-                                    <div className={`p-2 rounded-lg transition-colors ${
-                                      activeTemplatePreview === 'memorial'
-                                        ? 'bg-blue-100 dark:bg-blue-900/50'
-                                        : 'bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50'
-                                    }`}>
-                                      <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && (
+                                <Card
+                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'memorial' ? null : 'memorial')}
+                                  className={`border cursor-pointer group transition-all duration-200 ${
+                                    activeTemplatePreview === 'memorial'
+                                      ? 'border-blue-500 dark:border-blue-400 shadow-md ring-2 ring-blue-200 dark:ring-blue-800'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`p-2 rounded-lg transition-colors ${
+                                        activeTemplatePreview === 'memorial'
+                                          ? 'bg-blue-100 dark:bg-blue-900/50'
+                                          : 'bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50'
+                                      }`}>
+                                        <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Memorial Descritivo</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Documento técnico com descrição detalhada do sistema fotovoltaico.
+                                        </p>
+                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                      </div>
                                     </div>
-                                    <div className="flex-1">
-                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Memorial Descritivo</h4>
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Documento técnico com descrição detalhada do sistema fotovoltaico.
-                                      </p>
-                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
+                                  </CardContent>
+                                </Card>
+                              )}
 
                               <Card
                                 onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'formulario' ? null : 'formulario')}
@@ -2935,7 +2940,7 @@ export const ExpandedProjectView = ({
                             </div>
                           </div>
 
-                          {activeTemplatePreview === 'memorial' && (
+                          {activeTemplatePreview === 'memorial' && selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && (
                             <div className="mt-6">
                               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                 <FileText className="h-5 w-5 text-blue-500" />

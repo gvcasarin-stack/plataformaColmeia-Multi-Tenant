@@ -144,6 +144,9 @@ export interface Project {
   caixa_medicao_id?: string;
   caixa_medicao_imagem_url?: string;
   caixa_medicao_nome?: string;
+  caixa_medicao_comprimento_mm?: string;
+  caixa_medicao_altura_mm?: string;
+  caixa_medicao_largura_mm?: string;
 
   // ✅ Campos do Memorial Descritivo
   conta_contrato?: string;

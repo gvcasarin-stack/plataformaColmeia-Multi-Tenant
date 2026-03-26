@@ -112,6 +112,9 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       caixa_medicao_id: data.caixa_medicao_id || undefined,
       caixa_medicao_imagem_url: data.caixa_medicao_imagem_url || undefined,
       caixa_medicao_nome: data.caixa_medicao_nome || undefined,
+      caixa_medicao_comprimento_mm: data.caixa_medicao_comprimento_mm || undefined,
+      caixa_medicao_altura_mm: data.caixa_medicao_altura_mm || undefined,
+      caixa_medicao_largura_mm: data.caixa_medicao_largura_mm || undefined,
 
       // 💳 BILLING: Adicionar campos de faturamento
       billing_mode: data.billing_mode || 'avulso',
@@ -427,6 +430,9 @@ export const getProjectsWithFilters = async (filters: {
         caixa_medicao_id: item.caixa_medicao_id || undefined,
         caixa_medicao_imagem_url: item.caixa_medicao_imagem_url || undefined,
         caixa_medicao_nome: item.caixa_medicao_nome || undefined,
+        caixa_medicao_comprimento_mm: item.caixa_medicao_comprimento_mm || undefined,
+        caixa_medicao_altura_mm: item.caixa_medicao_altura_mm || undefined,
+        caixa_medicao_largura_mm: item.caixa_medicao_largura_mm || undefined,
 
         // 💳 BILLING: Adicionar campos de faturamento
         billing_mode: item.billing_mode || 'avulso',
@@ -551,6 +557,9 @@ export const getProject = async (projectId: string): Promise<Project | null> => 
       caixa_medicao_id: data.caixa_medicao_id || undefined,
       caixa_medicao_imagem_url: data.caixa_medicao_imagem_url || undefined,
       caixa_medicao_nome: data.caixa_medicao_nome || undefined,
+      caixa_medicao_comprimento_mm: data.caixa_medicao_comprimento_mm || undefined,
+      caixa_medicao_altura_mm: data.caixa_medicao_altura_mm || undefined,
+      caixa_medicao_largura_mm: data.caixa_medicao_largura_mm || undefined,
 
       createdAt: sanitizeDate(data.created_at),
       updatedAt: sanitizeDate(data.updated_at),

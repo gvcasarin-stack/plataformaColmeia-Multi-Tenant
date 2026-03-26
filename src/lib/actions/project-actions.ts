@@ -2504,6 +2504,9 @@ export async function getProjectAction(projectId: string): Promise<{
       caixa_medicao_id: data.caixa_medicao_id || undefined,
       caixa_medicao_imagem_url: data.caixa_medicao_imagem_url || undefined,
       caixa_medicao_nome: data.caixa_medicao_nome || undefined,
+      caixa_medicao_comprimento_mm: data.caixa_medicao_comprimento_mm || undefined,
+      caixa_medicao_altura_mm: data.caixa_medicao_altura_mm || undefined,
+      caixa_medicao_largura_mm: data.caixa_medicao_largura_mm || undefined,
 
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',

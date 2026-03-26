@@ -356,9 +356,15 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
 
         <h3 className={h3Class}>6.4. Caixa de Medição</h3>
         <p className={pClass}>
-          A caixa de medição é polifásica em material polimérico, está instalada em fachada, no ponto de entrega
+          A caixa de medição é polifásica em material polimérico
+          {projectData?.caixa_medicao_comprimento_mm && projectData?.caixa_medicao_altura_mm && projectData?.caixa_medicao_largura_mm ? (
+            <> tem as dimensões de {projectData.caixa_medicao_comprimento_mm} mm x {projectData.caixa_medicao_altura_mm} mm x {projectData.caixa_medicao_largura_mm} mm (comprimento, altura e largura),</>
+          ) : (
+            <>, com dimensões de <V>{`{{dimensoes_caixa_medicao}}`}</V>,</>
+          )}
+          {' '}está instalada em fachada, no ponto de entrega
           caracterizado como o limite da via pública com a propriedade, atendendo aos requisitos de localização,
-          facilidade de acesso e layout, em conformidade com as normas da concessionária.
+          facilidade de acesso e layout, em conformidade com as normas da concessionária NT.001.EQTL e NT.030.EQTL.
         </p>
         <p className={pClass}>
           O aterramento da caixa de medição é com haste(s) de aço cobreado de comprimento 1500 mm e diâmetro

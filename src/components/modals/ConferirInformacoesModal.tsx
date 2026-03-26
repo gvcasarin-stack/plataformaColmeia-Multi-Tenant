@@ -308,6 +308,9 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
               if (item) {
                 handleFieldChange('caixa_medicao_imagem_url', item.imagem_url || '');
                 handleFieldChange('caixa_medicao_nome', item.nome || '');
+                handleFieldChange('caixa_medicao_comprimento_mm', item.comprimento_mm?.toString() || '');
+                handleFieldChange('caixa_medicao_altura_mm', item.altura_mm?.toString() || '');
+                handleFieldChange('caixa_medicao_largura_mm', item.largura_mm?.toString() || '');
               }
             }}
             disabled={isSkipped}
