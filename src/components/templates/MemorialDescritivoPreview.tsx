@@ -45,6 +45,8 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 };
 
 export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {
+  const DECIMAL_FIELDS = ['potencia'];
+
   const V = ({ children }: { children: string }) => {
     const placeholder = children;
     const fieldKey = PLACEHOLDER_MAP[placeholder];
@@ -52,9 +54,14 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
     const hasValue = value !== undefined && value !== null && value !== '' && value !== 0;
 
     if (hasValue) {
+      let displayValue = String(value);
+      if (fieldKey && DECIMAL_FIELDS.includes(fieldKey)) {
+        const num = parseFloat(String(value));
+        if (!isNaN(num)) displayValue = num.toFixed(2).replace('.', ',');
+      }
       return (
         <Badge className="text-xs mx-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700">
-          {String(value)}
+          {displayValue}
         </Badge>
       );
     }

@@ -398,6 +398,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     return (
       <Input
         type={field.type === 'number' ? 'number' : 'text'}
+        step={field.type === 'number' ? '0.01' : undefined}
         value={value}
         onChange={(e) => {
           const v = field.type === 'number' ? (e.target.value ? Number(e.target.value) : 0) : e.target.value;
