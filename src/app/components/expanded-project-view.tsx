@@ -2940,7 +2940,7 @@ export const ExpandedProjectView = ({
                               </h3>
                               <div className="rounded-md border border-blue-200 dark:border-blue-700 p-4 max-h-[600px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-                                  <MemorialDescritivoPreview distribuidora={selectedDistribuidoraGerarProjeto} />
+                                  <MemorialDescritivoPreview distribuidora={selectedDistribuidoraGerarProjeto} projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>

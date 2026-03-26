@@ -4,12 +4,64 @@ import { Badge } from '@/components/ui/badge';
 
 interface MemorialDescritivoPreviewProps {
   distribuidora: string;
+  projectData?: Record<string, any>;
 }
 
-export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoPreviewProps) {
-  const V = ({ children }: { children: string }) => (
-    <Badge variant="outline" className="text-xs mx-0.5">{children}</Badge>
-  );
+const PLACEHOLDER_MAP: Record<string, string> = {
+  '{{classificacao_da_usina}}': 'tipo_fornecimento',
+  '{{potencia}}': 'potencia',
+  '{{tensao_atendimento}}': 'tensao_atendimento',
+  '{{modalidade_compensacao}}': 'modalidade_compensacao',
+  '{{cliente_nome}}': 'nomeClienteFinal',
+  '{{cliente_cpf}}': 'cpf_cnpj_cliente_final',
+  '{{distribuidora}}': 'distribuidora',
+  '{{estado}}': 'client_state',
+  '{{cidade}}': 'client_city',
+  '{{conta_contrato}}': 'conta_contrato',
+  '{{classe_uc}}': 'classe_uc',
+  '{{endereco}}': 'endereco_local',
+  '{{numero_poste_transformador}}': 'numero_poste_transformador',
+  '{{coord_utm_x}}': 'coord_utm_x',
+  '{{coord_utm_y}}': 'coord_utm_y',
+  '{{coord_utm_fuso}}': 'coord_utm_fuso',
+  '{{tipo_conexao}}': 'tipo_conexao',
+  '{{tipo_ramal}}': 'tipo_ramal',
+  '{{disjuntor_polos}}': 'disjuntor_polos',
+  '{{disjuntor_tensao_v}}': 'disjuntor_tensao_v',
+  '{{disjuntor_corrente_a}}': 'disjuntor_corrente_a',
+  '{{secao_fase_mm2}}': 'secao_fase_mm2',
+  '{{secao_neutro_mm2}}': 'secao_neutro_mm2',
+  '{{modulos_fabricante}}': 'modulos_fabricante',
+  '{{modulos_modelo}}': 'modulos_modelo',
+  '{{modulos_potencia_wp}}': 'modulos_potencia_wp',
+  '{{modulos_quantidade}}': 'modulos_quantidade',
+  '{{inversores_fabricante}}': 'inversores_fabricante',
+  '{{inversores_modelo}}': 'inversores_modelo',
+  '{{inversores_quantidade}}': 'inversores_quantidade',
+  '{{inversores_potencia}}': 'inversores_potencia',
+  '{{inversores_tensao}}': 'inversores_tensao',
+  '{{numero_condutores_fase}}': 'numero_condutores_fase',
+  '{{disjuntor_padrao_entrada}}': 'disjuntorPadraoEntrada',
+};
+
+export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {
+  const V = ({ children }: { children: string }) => {
+    const placeholder = children;
+    const fieldKey = PLACEHOLDER_MAP[placeholder];
+    const value = fieldKey && projectData ? projectData[fieldKey] : undefined;
+    const hasValue = value !== undefined && value !== null && value !== '' && value !== 0;
+
+    if (hasValue) {
+      return (
+        <Badge className="text-xs mx-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700">
+          {String(value)}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-xs mx-0.5">{placeholder}</Badge>
+    );
+  };
 
   const tableClass = "w-full border-collapse border border-gray-400 dark:border-gray-500 text-sm mb-6";
   const thClass = "border border-gray-400 dark:border-gray-500 p-2 bg-gray-100 dark:bg-gray-800 font-bold text-left";
@@ -27,7 +79,7 @@ export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoP
       <div className="text-center mb-16 py-8">
         <h1 className="font-bold text-2xl tracking-widest mb-8">MEMORIAL TÉCNICO DESCRITIVO</h1>
         <p className="text-base mb-8 px-4 leading-relaxed">
-          <V>{`{{tipo_fornecimento}}`}</V> UTILIZANDO UM SISTEMA FOTOVOLTAICO DE <V>{`{{potencia}}`}</V> kWp
+          <V>{`{{classificacao_da_usina}}`}</V> UTILIZANDO UM SISTEMA FOTOVOLTAICO DE <V>{`{{potencia}}`}</V> kWp
           CONECTADO À REDE DE ENERGIA ELÉTRICA DE BAIXA TENSÃO EM <V>{`{{tensao_atendimento}}`}</V> V
           CARACTERIZADO COMO <V>{`{{modalidade_compensacao}}`}</V>
         </p>
@@ -128,7 +180,7 @@ export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoP
           elaboração e apresentação à <V>{`{{distribuidora}}`}</V> - <V>{`{{estado}}`}</V>, dos documentos mínimos
           necessários, em conformidade com a REN 482, com o PRODIST Módulo 3 secção 3.7, e com as normas
           técnicas nacionais (ABNT) ou internacionais (europeia e americana), para <strong>SOLICITAÇÃO DO PARECER DE ACESSO</strong> de
-          uma <V>{`{{tipo_fornecimento}}`}</V> conectada à rede de distribuição de energia elétrica através
+          uma <V>{`{{classificacao_da_usina}}`}</V> conectada à rede de distribuição de energia elétrica através
           sistema fotovoltaico de <strong><V>{`{{potencia}}`}</V></strong> kWp, composto
           por <V>{`{{modulos_quantidade}}`}</V> módulos de <V>{`{{modulos_potencia_wp}}`}</V> Wp
           e <V>{`{{inversores_quantidade}}`}</V> inversor(es) de <V>{`{{inversores_potencia}}`}</V> kW,
@@ -208,8 +260,18 @@ export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoP
           </tbody>
         </table>
         <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
-          <V>{`{{planta_situacao_imagem}}`}</V>
-          <p className="text-xs text-gray-400 mt-2">Imagem da planta de situação (se disponível)</p>
+          {projectData?.planta_situacao_url && projectData.planta_situacao_url !== 'pending_upload' ? (
+            <img
+              src={projectData.planta_situacao_url}
+              alt="Planta de Situação"
+              className="max-h-64 mx-auto rounded-md border border-gray-200 dark:border-gray-700 object-contain"
+            />
+          ) : (
+            <>
+              <Badge variant="outline" className="text-xs">{`{{planta_situacao_imagem}}`}</Badge>
+              <p className="text-xs text-gray-400 mt-2">Imagem da planta de situação (se disponível)</p>
+            </>
+          )}
         </div>
         <p className="text-xs italic text-center mb-4">Figura 1: Localização da unidade consumidora.</p>
       </div>
@@ -280,7 +342,7 @@ export function MemorialDescritivoPreview({ distribuidora }: MemorialDescritivoP
         <h3 className={h3Class}>6.3. Potência Disponibilizada</h3>
         <p className={pClass}>
           A potência disponibilizada para a unidade consumidora onde será instalada
-          a <V>{`{{tipo_fornecimento}}`}</V> é igual à:
+          a <V>{`{{classificacao_da_usina}}`}</V> é igual à:
         </p>
         <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 font-mono text-xs space-y-1">
           <p>PD [kVA] = (VN [V] × IDG [A] × NF) / 1000</p>
