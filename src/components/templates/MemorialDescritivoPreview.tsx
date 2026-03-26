@@ -359,15 +359,39 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           A potência disponibilizada para a unidade consumidora onde será instalada
           a <V>{`{{classificacao_da_usina}}`}</V> é igual à:
         </p>
-        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 font-mono text-xs space-y-1">
-          <p>PD [kVA] = (VN [V] × IDG [A] × NF) / 1000</p>
-          <p>PD [kW] = PD [kVA] × FP</p>
-          <p className="mt-2">VN = <V>{`{{tensao_atendimento}}`}</V> V</p>
-          <p>IDG = <V>{`{{disjuntor_corrente_a}}`}</V> A</p>
-          <p>NF = (conforme tipo de ligação)</p>
-          <p>FP = 0,92</p>
-        </div>
-        <p className="text-xs italic mb-4">NOTA 2: A potência de geração deve ser menor ou igual à potência disponibilizada PD em kW.</p>
+        {(() => {
+          const tensaoStr = projectData?.tensao_atendimento;
+          const corrente = parseFloat(String(projectData?.disjuntor_corrente_a || 0));
+          const tipoConexao = projectData?.tipo_conexao;
+
+          const vn = tensaoStr === '127/220' ? 220 : tensaoStr === '220/380' ? 380 : 0;
+          const nf = tipoConexao === 'Trifásico' ? Math.sqrt(3) : 1;
+          const nfLabel = tipoConexao === 'Trifásico' ? '√3' : '1';
+          const canCalc = vn > 0 && corrente > 0;
+          const pdKva = canCalc ? (vn * corrente * nf) / 1000 : 0;
+          const pdKw = pdKva * 0.92;
+
+          return (
+            <>
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 font-mono text-xs space-y-1">
+                <p>PD [kVA] = (VN [V] × IDG [A] × NF) / 1000</p>
+                <p>PD [kW] = PD [kVA] × FP</p>
+                <p className="mt-2">VN = {vn > 0 ? <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{vn} V</Badge> : <V>{`{{tensao_atendimento}}`}</V>} (tensão de linha)</p>
+                <p>IDG = <V>{`{{disjuntor_corrente_a}}`}</V> A</p>
+                <p>NF = {tipoConexao ? <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{nfLabel}</Badge> : <Badge variant="outline" className="text-xs">conforme tipo de ligação</Badge>} {tipoConexao ? `(${tipoConexao})` : ''}</p>
+                <p>FP = 0,92</p>
+                {canCalc && (
+                  <>
+                    <hr className="my-2 border-gray-300 dark:border-gray-600" />
+                    <p className="font-bold">PD [kVA] = ({vn} × {corrente} × {nfLabel}) / 1000 = <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{pdKva.toFixed(2).replace('.', ',')} kVA</Badge></p>
+                    <p className="font-bold">PD [kW] = {pdKva.toFixed(2).replace('.', ',')} × 0,92 = <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{pdKw.toFixed(3).replace('.', ',')} kW</Badge></p>
+                  </>
+                )}
+              </div>
+              <p className="text-xs italic mb-4">NOTA 2: A potência de geração deve ser menor ou igual à potência disponibilizada PD em kW.</p>
+            </>
+          );
+        })()}
 
         <h3 className={h3Class}>6.4. Caixa de Medição</h3>
         <p className={pClass}>
