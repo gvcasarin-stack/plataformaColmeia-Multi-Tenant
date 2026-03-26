@@ -29,11 +29,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { distribuidora, categoria, nome, descricao, imagem_url, condicoes, tenant_id } = body;
+    const { distribuidora, categoria, nome, descricao, imagem_url, condicoes } = body;
 
-    if (!distribuidora || !categoria || !nome || !tenant_id) {
+    if (!distribuidora || !categoria || !nome) {
       return NextResponse.json(
-        { error: 'Campos obrigatórios: distribuidora, categoria, nome, tenant_id' },
+        { error: 'Campos obrigatórios: distribuidora, categoria, nome' },
         { status: 400 }
       );
     }
@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('acervo_tecnico')
       .insert({
-        tenant_id,
         distribuidora,
         categoria,
         nome,

@@ -167,7 +167,6 @@ export default function AcervoTecnicoPage() {
           nome: newNome.trim(),
           descricao: newDescricao.trim() || null,
           imagem_url: imageUrl,
-          tenant_id: user?.tenantId || (user?.profile as any)?.tenant_id,
         }),
       });
       const result = await resp.json();
