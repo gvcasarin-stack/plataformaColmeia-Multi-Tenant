@@ -228,6 +228,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
 
   const SKIP_DEFAULT_VALUES: Record<string, string> = {
     numero_poste_transformador: 'Não Identificado',
+    planta_situacao_url: 'nao_incluir',
   };
 
   const toggleSkip = (key: string) => {
@@ -236,9 +237,17 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       if (next.has(key)) {
         next.delete(key);
         if (SKIP_DEFAULT_VALUES[key]) handleFieldChange(key, '');
+        if (key === 'planta_situacao_url') {
+          setPlantaPreview(null);
+          setPlantaFile(null);
+        }
       } else {
         next.add(key);
         if (SKIP_DEFAULT_VALUES[key]) handleFieldChange(key, SKIP_DEFAULT_VALUES[key]);
+        if (key === 'planta_situacao_url') {
+          setPlantaPreview(null);
+          setPlantaFile(null);
+        }
       }
       return next;
     });

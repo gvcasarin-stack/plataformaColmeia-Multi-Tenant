@@ -270,21 +270,25 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
             <tr><td className={tdLabelClass}>Coordenadas georreferenciadas</td><td className={tdClass}>X: <V>{`{{coord_utm_x}}`}</V>, Y: <V>{`{{coord_utm_y}}`}</V>, Fuso UTM: <V>{`{{coord_utm_fuso}}`}</V></td></tr>
           </tbody>
         </table>
-        <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
-          {projectData?.planta_situacao_url && projectData.planta_situacao_url !== 'pending_upload' ? (
-            <img
-              src={projectData.planta_situacao_url}
-              alt="Planta de Situação"
-              className="max-h-64 mx-auto rounded-md border border-gray-200 dark:border-gray-700 object-contain"
-            />
-          ) : (
-            <>
-              <Badge variant="outline" className="text-xs">{`{{planta_situacao_imagem}}`}</Badge>
-              <p className="text-xs text-gray-400 mt-2">Imagem da planta de situação (se disponível)</p>
-            </>
-          )}
-        </div>
-        <p className="text-xs italic text-center mb-4">Figura 1: Localização da unidade consumidora.</p>
+        {projectData?.planta_situacao_url !== 'nao_incluir' && (
+          <>
+            <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
+              {projectData?.planta_situacao_url && projectData.planta_situacao_url !== 'pending_upload' ? (
+                <img
+                  src={projectData.planta_situacao_url}
+                  alt="Planta de Situação"
+                  className="max-h-64 mx-auto rounded-md border border-gray-200 dark:border-gray-700 object-contain"
+                />
+              ) : (
+                <>
+                  <Badge variant="outline" className="text-xs">{`{{planta_situacao_imagem}}`}</Badge>
+                  <p className="text-xs text-gray-400 mt-2">Imagem da planta de situação (se disponível)</p>
+                </>
+              )}
+            </div>
+            <p className="text-xs italic text-center mb-4">Figura 1: Localização da unidade consumidora.</p>
+          </>
+        )}
       </div>
 
       {/* ==================== 5. LEVANTAMENTO DE CARGA ==================== */}
