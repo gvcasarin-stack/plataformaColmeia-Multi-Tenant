@@ -351,7 +351,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             <SelectTrigger className="h-8 text-sm">
               <SelectValue placeholder="Selecione o modelo" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" side="bottom" className="max-h-60">
               {items.map(item => (
                 <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>
               ))}
@@ -386,7 +386,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           <SelectTrigger className="h-8 text-sm">
             <SelectValue placeholder="Selecione" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" side="bottom" className="max-h-60">
             {field.options?.map(opt => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
