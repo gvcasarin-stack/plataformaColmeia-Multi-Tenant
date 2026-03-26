@@ -20,6 +20,36 @@ const DISTRIBUIDORAS = [
   "RGE", "Amazonas Energia", "Outro"
 ];
 
+const ESTADOS_BR = [
+  { value: 'AC', label: 'Acre (AC)' },
+  { value: 'AL', label: 'Alagoas (AL)' },
+  { value: 'AP', label: 'Amapá (AP)' },
+  { value: 'AM', label: 'Amazonas (AM)' },
+  { value: 'BA', label: 'Bahia (BA)' },
+  { value: 'CE', label: 'Ceará (CE)' },
+  { value: 'DF', label: 'Distrito Federal (DF)' },
+  { value: 'ES', label: 'Espírito Santo (ES)' },
+  { value: 'GO', label: 'Goiás (GO)' },
+  { value: 'MA', label: 'Maranhão (MA)' },
+  { value: 'MT', label: 'Mato Grosso (MT)' },
+  { value: 'MS', label: 'Mato Grosso do Sul (MS)' },
+  { value: 'MG', label: 'Minas Gerais (MG)' },
+  { value: 'PA', label: 'Pará (PA)' },
+  { value: 'PB', label: 'Paraíba (PB)' },
+  { value: 'PR', label: 'Paraná (PR)' },
+  { value: 'PE', label: 'Pernambuco (PE)' },
+  { value: 'PI', label: 'Piauí (PI)' },
+  { value: 'RJ', label: 'Rio de Janeiro (RJ)' },
+  { value: 'RN', label: 'Rio Grande do Norte (RN)' },
+  { value: 'RS', label: 'Rio Grande do Sul (RS)' },
+  { value: 'RO', label: 'Rondônia (RO)' },
+  { value: 'RR', label: 'Roraima (RR)' },
+  { value: 'SC', label: 'Santa Catarina (SC)' },
+  { value: 'SP', label: 'São Paulo (SP)' },
+  { value: 'SE', label: 'Sergipe (SE)' },
+  { value: 'TO', label: 'Tocantins (TO)' },
+];
+
 type FieldType = 'text' | 'number' | 'select' | 'image' | 'acervo_select';
 
 interface FieldDef {
@@ -41,7 +71,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'cpf_cnpj_cliente_final', label: 'CPF/CNPJ', icon: <CreditCard className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
   { key: 'endereco_local', label: 'Endereço', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
   { key: 'client_city', label: 'Cidade', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
-  { key: 'client_state', label: 'Estado', type: 'text', required: true, group: 'Dados do Cliente' },
+  { key: 'client_state', label: 'Estado', icon: <MapPin className="h-3.5 w-3.5" />, type: 'select', required: true, options: ESTADOS_BR, group: 'Dados do Cliente' },
 
   // Dados do Projeto
   { key: 'distribuidora', label: 'Distribuidora', icon: <Factory className="h-3.5 w-3.5" />, type: 'select', required: true, options: DISTRIBUIDORAS.map(d => ({ value: d, label: d })), group: 'Dados do Projeto' },
