@@ -502,6 +502,7 @@ export const ExpandedProjectView = ({
     responsavel_profissao: (project as any).responsavel_profissao || '',
     responsavel_registro: (project as any).responsavel_registro || '',
     data_documento: (project as any).data_documento || '',
+    secao_aterramento_mm2: (project as any).secao_aterramento_mm2 || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);

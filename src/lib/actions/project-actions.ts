@@ -2511,6 +2511,7 @@ export async function getProjectAction(projectId: string): Promise<{
       responsavel_profissao: data.responsavel_profissao || undefined,
       responsavel_registro: data.responsavel_registro || undefined,
       data_documento: data.data_documento || undefined,
+      secao_aterramento_mm2: data.secao_aterramento_mm2 || undefined,
 
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',

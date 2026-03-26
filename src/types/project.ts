@@ -151,6 +151,7 @@ export interface Project {
   responsavel_profissao?: string;
   responsavel_registro?: string;
   data_documento?: string;
+  secao_aterramento_mm2?: string;
 
   // ✅ Campos do Memorial Descritivo
   conta_contrato?: string;

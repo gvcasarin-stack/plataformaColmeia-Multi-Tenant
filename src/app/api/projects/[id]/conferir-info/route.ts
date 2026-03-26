@@ -18,6 +18,7 @@ const CONFERIR_FIELDS = [
   'caixa_medicao_comprimento_mm', 'caixa_medicao_altura_mm', 'caixa_medicao_largura_mm',
   'responsavel_nome', 'responsavel_profissao', 'responsavel_registro',
   'data_documento',
+  'secao_aterramento_mm2',
 ];
 
 // GET: Diagnóstico — colar no navegador para ver o estado do projeto

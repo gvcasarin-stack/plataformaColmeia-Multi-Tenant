@@ -46,6 +46,7 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{responsavel_profissao}}': 'responsavel_profissao',
   '{{responsavel_registro}}': 'responsavel_registro',
   '{{data}}': 'data_documento',
+  '{{secao_aterramento_mm2}}': 'secao_aterramento_mm2',
 };
 
 export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {
@@ -532,9 +533,18 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
 
         <h3 className={h3Class}>9.3. Aterramento</h3>
         <p className={pClass}>
-          O aterramento do sistema fotovoltaico será realizado conforme ABNT NBR 5410, utilizando
-          haste(s) de aterramento de aço cobreado, condutor de proteção (PE) e conexões adequadas.
+          A geração distribuída deve possuir uma malha de terra, esta malha de terra deve ser conectada ao
+          sistema de aterramento existente da unidade consumidora, tornando os sistemas de aterramento equipotencializados.
         </p>
+        <ul className="list-disc list-inside mb-4 space-y-1">
+          <li>Geometria da malha e distância entre hastes: TN-S;</li>
+          <li>Hastes de aterramento: haste cobreada com diâmetro de 3/4&quot; e comprimento de 2400 mm;</li>
+          <li>Quantidade de hastes: 1;</li>
+          <li>Cabos do aterramento da malha, da interligação com a geração e da equipotencialização: malha de aterramento de cobre com isolação em PVC seção transversal de <V>{`{{secao_aterramento_mm2}}`}</V> mm²;</li>
+          <li>Conector tipo cunha para haste;</li>
+          <li>Valor da resistência de aterramento: 15 ohms;</li>
+          <li>Barramento de equipotencialização: Barramento de cobre de medidas 1/2&quot; x 1/16&quot;.</li>
+        </ul>
 
         <h3 className={h3Class}>9.4. Requisitos de Proteção</h3>
         <p className={pClass}>
