@@ -2510,6 +2510,7 @@ export async function getProjectAction(projectId: string): Promise<{
       responsavel_nome: data.responsavel_nome || undefined,
       responsavel_profissao: data.responsavel_profissao || undefined,
       responsavel_registro: data.responsavel_registro || undefined,
+      data_documento: data.data_documento || undefined,
 
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',

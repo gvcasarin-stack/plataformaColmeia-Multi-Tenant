@@ -118,6 +118,7 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       responsavel_nome: data.responsavel_nome || undefined,
       responsavel_profissao: data.responsavel_profissao || undefined,
       responsavel_registro: data.responsavel_registro || undefined,
+      data_documento: data.data_documento || undefined,
 
       // 💳 BILLING: Adicionar campos de faturamento
       billing_mode: data.billing_mode || 'avulso',
@@ -439,6 +440,7 @@ export const getProjectsWithFilters = async (filters: {
         responsavel_nome: item.responsavel_nome || undefined,
         responsavel_profissao: item.responsavel_profissao || undefined,
         responsavel_registro: item.responsavel_registro || undefined,
+        data_documento: item.data_documento || undefined,
 
         // 💳 BILLING: Adicionar campos de faturamento
         billing_mode: item.billing_mode || 'avulso',
@@ -569,6 +571,7 @@ export const getProject = async (projectId: string): Promise<Project | null> => 
       responsavel_nome: data.responsavel_nome || undefined,
       responsavel_profissao: data.responsavel_profissao || undefined,
       responsavel_registro: data.responsavel_registro || undefined,
+      data_documento: data.data_documento || undefined,
 
       createdAt: sanitizeDate(data.created_at),
       updatedAt: sanitizeDate(data.updated_at),

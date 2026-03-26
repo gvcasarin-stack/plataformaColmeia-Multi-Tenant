@@ -45,6 +45,7 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{responsavel_nome}}': 'responsavel_nome',
   '{{responsavel_profissao}}': 'responsavel_profissao',
   '{{responsavel_registro}}': 'responsavel_registro',
+  '{{data}}': 'data_documento',
 };
 
 export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {

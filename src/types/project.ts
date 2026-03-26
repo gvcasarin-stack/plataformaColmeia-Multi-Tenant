@@ -150,6 +150,7 @@ export interface Project {
   responsavel_nome?: string;
   responsavel_profissao?: string;
   responsavel_registro?: string;
+  data_documento?: string;
 
   // ✅ Campos do Memorial Descritivo
   conta_contrato?: string;

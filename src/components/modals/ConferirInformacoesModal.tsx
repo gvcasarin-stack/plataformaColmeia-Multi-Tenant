@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   CheckCircle2, AlertCircle, MinusCircle, Save, X,
   User, CreditCard, MapPin, Factory, Zap, Plug, Info,
-  Package, Settings, Building, Upload, ImageIcon, FolderArchive
+  Package, Settings, Building, Upload, ImageIcon, FolderArchive, Calendar
 } from 'lucide-react';
 
 const DISTRIBUIDORAS = [
@@ -79,6 +79,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'tipo_fornecimento', label: 'Classificação da Usina', icon: <Settings className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Microgeração Distribuída', label: 'Microgeração Distribuída' }, { value: 'Minigeração Distribuída', label: 'Minigeração Distribuída' }], group: 'Dados do Projeto' },
   { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
   { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
+  { key: 'data_documento', label: 'Data do Documento', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
 
   // Responsável Técnico
   { key: 'responsavel_nome', label: 'Nome Completo', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Técnico' },
@@ -154,6 +155,17 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   const [useOutroResponsavel, setUseOutroResponsavel] = useState(false);
   const [responsavelPrefs, setResponsavelPrefs] = useState<Record<string, string> | null>(null);
   const [responsavelLoading, setResponsavelLoading] = useState(false);
+  const [useCustomDate, setUseCustomDate] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!localFields.data_documento) {
+      const hoje = new Date();
+      const formatted = hoje.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+      setLocalFields(prev => ({ ...prev, data_documento: formatted }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -434,6 +446,41 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             ))}
           </SelectContent>
         </Select>
+      );
+    }
+
+    if (field.type === 'date') {
+      return (
+        <div className="space-y-2">
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => handleFieldChange(field.key, e.target.value)}
+            placeholder="Ex: 23 de março de 2026"
+            className="h-8 text-sm"
+            disabled={isSkipped || (field.key === 'data_documento' && !useCustomDate)}
+          />
+          {field.key === 'data_documento' && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="use-custom-date"
+                checked={useCustomDate}
+                onCheckedChange={(checked) => {
+                  const isChecked = !!checked;
+                  setUseCustomDate(isChecked);
+                  if (!isChecked) {
+                    const hoje = new Date();
+                    const formatted = hoje.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+                    handleFieldChange('data_documento', formatted);
+                  }
+                }}
+              />
+              <Label htmlFor="use-custom-date" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                Utilizar uma data diferente
+              </Label>
+            </div>
+          )}
+        </div>
       );
     }
 
