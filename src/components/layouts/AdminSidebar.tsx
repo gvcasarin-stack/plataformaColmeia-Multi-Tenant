@@ -89,6 +89,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
   const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
   const isFullAdmin = user?.role === 'admin' || user?.role === 'superadmin' ||
                       user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+  const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
 
   // ✅ DEBUG: Log para verificar permissions
   useEffect(() => {
@@ -212,11 +213,18 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         color: "bg-gray-50 text-gray-700 border-gray-200/50 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/50",
         visible: isFullAdmin // ✅ Apenas admin e superadmin
       },
+      {
+        href: "/admin/acervo-tecnico",
+        label: "Acervo Técnico",
+        icon: LucideIcons.FolderArchive,
+        color: "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50",
+        visible: isSuperAdmin
+      },
     ];
 
     // ✅ Filtrar apenas links visíveis
     return allLinks.filter(link => link.visible);
-  }, [totalUnreadNotifications, pendingRequests, pathname, userPermissions, isFullAdmin])
+  }, [totalUnreadNotifications, pendingRequests, pathname, userPermissions, isFullAdmin, isSuperAdmin])
 
   return (
     <>
