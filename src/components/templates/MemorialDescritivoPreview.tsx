@@ -356,13 +356,15 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
 
         <h3 className={h3Class}>6.4. Caixa de Medição</h3>
         <p className={pClass}>
-          A caixa de medição é polifásica em material polimérico
+          A caixa de medição é polifásica em material polimérico, com dimensões de{' '}
           {projectData?.caixa_medicao_comprimento_mm && projectData?.caixa_medicao_altura_mm && projectData?.caixa_medicao_largura_mm ? (
-            <> tem as dimensões de {projectData.caixa_medicao_comprimento_mm} mm x {projectData.caixa_medicao_altura_mm} mm x {projectData.caixa_medicao_largura_mm} mm (comprimento, altura e largura),</>
+            <Badge className="text-xs mx-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700">
+              {projectData.caixa_medicao_comprimento_mm} mm x {projectData.caixa_medicao_altura_mm} mm x {projectData.caixa_medicao_largura_mm} mm
+            </Badge>
           ) : (
-            <>, com dimensões de <V>{`{{dimensoes_caixa_medicao}}`}</V>,</>
+            <Badge variant="outline" className="text-xs mx-0.5">{`{{dimensoes_caixa_medicao}}`}</Badge>
           )}
-          {' '}está instalada em fachada, no ponto de entrega
+          {' '}(comprimento, altura e largura), está instalada em fachada, no ponto de entrega
           caracterizado como o limite da via pública com a propriedade, atendendo aos requisitos de localização,
           facilidade de acesso e layout, em conformidade com as normas da concessionária NT.001.EQTL e NT.030.EQTL.
         </p>
