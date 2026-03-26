@@ -101,7 +101,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   // Dados da Unidade Consumidora
   { key: 'conta_contrato', label: 'Nº Conta Contrato', icon: <Building className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados da Unidade Consumidora' },
   { key: 'classe_uc', label: 'Classe da UC', type: 'select', required: true, options: [{ value: 'Residencial', label: 'Residencial' }, { value: 'Comercial', label: 'Comercial' }, { value: 'Industrial', label: 'Industrial' }, { value: 'Rural', label: 'Rural' }, { value: 'Poder Público', label: 'Poder Público' }], group: 'Dados da Unidade Consumidora' },
-  { key: 'numero_poste_transformador', label: 'Nº Poste / Transformador', type: 'text', required: true, group: 'Dados da Unidade Consumidora' },
+  { key: 'numero_poste_transformador', label: 'Nº Poste / Transformador', type: 'text', required: false, group: 'Dados da Unidade Consumidora' },
 
   // Padrão de Entrada
   { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada' },
@@ -178,13 +178,19 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     setLocalFields(prev => ({ ...prev, [key]: value }));
   };
 
+  const SKIP_DEFAULT_VALUES: Record<string, string> = {
+    numero_poste_transformador: 'Não Identificado',
+  };
+
   const toggleSkip = (key: string) => {
     setSkippedFields(prev => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
+        if (SKIP_DEFAULT_VALUES[key]) handleFieldChange(key, '');
       } else {
         next.add(key);
+        if (SKIP_DEFAULT_VALUES[key]) handleFieldChange(key, SKIP_DEFAULT_VALUES[key]);
       }
       return next;
     });
