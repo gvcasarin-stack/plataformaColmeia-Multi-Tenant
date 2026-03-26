@@ -50,7 +50,7 @@ const ESTADOS_BR = [
   { value: 'TO', label: 'Tocantins (TO)' },
 ];
 
-type FieldType = 'text' | 'number' | 'select' | 'image' | 'acervo_select';
+type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select';
 
 interface FieldDef {
   key: string;
@@ -97,7 +97,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_fabricante', label: 'Fabricante dos Inversores', type: 'text', required: true, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_modelo', label: 'Modelo dos Inversores', type: 'text', required: true, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_potencia', label: 'Potência dos Inversores (kW)', type: 'text', required: true, suffix: 'kW', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_tensao', label: 'Tensão Nominal dos Inversores', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_tensao', label: 'Tensão Nominal dos Inversores', type: 'select', required: true, suffix: 'V', options: [{ value: '127', label: '127 V' }, { value: '220', label: '220 V' }, { value: '380', label: '380 V' }, { value: '800', label: '800 V' }], group: 'Inversores Fotovoltaicos' },
 
   // Informações Técnicas
   { key: 'tipo_conexao', label: 'Tipo de Conexão', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Bifásico', label: 'Bifásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Informações Técnicas' },
@@ -113,9 +113,9 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada' },
   { key: 'disjuntor_polos', label: 'Disjuntor — Nº de Polos', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }], group: 'Padrão de Entrada' },
   { key: 'disjuntor_corrente_a', label: 'Disjuntor — Corrente (A)', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '20', label: '20 A' }, { value: '25', label: '25 A' }, { value: '30', label: '30 A' }, { value: '32', label: '32 A' }, { value: '40', label: '40 A' }, { value: '50', label: '50 A' }, { value: '60', label: '60 A' }, { value: '63', label: '63 A' }, { value: '70', label: '70 A' }, { value: '80', label: '80 A' }, { value: '100', label: '100 A' }, { value: '125', label: '125 A' }, { value: '150', label: '150 A' }, { value: '175', label: '175 A' }, { value: '200', label: '200 A' }, { value: '250', label: '250 A' }], group: 'Padrão de Entrada' },
-  { key: 'disjuntor_tensao_v', label: 'Disjuntor — Tensão (V)', type: 'text', required: true, suffix: 'V', group: 'Padrão de Entrada' },
-  { key: 'secao_fase_mm2', label: 'Seção Condutores Fase (mm²)', type: 'text', required: true, suffix: 'mm²', group: 'Padrão de Entrada' },
-  { key: 'secao_neutro_mm2', label: 'Seção Condutor Neutro (mm²)', type: 'text', required: true, suffix: 'mm²', group: 'Padrão de Entrada' },
+  { key: 'disjuntor_tensao_v', label: 'Disjuntor — Tensão (V)', type: 'select_or_custom', required: true, suffix: 'V', options: [{ value: '415', label: '415 V' }, { value: 'outro', label: 'Outro' }], group: 'Padrão de Entrada' },
+  { key: 'secao_fase_mm2', label: 'Seção Condutores Fase (mm²)', type: 'select', required: true, suffix: 'mm²', options: [{ value: '1,5', label: '1,5 mm²' }, { value: '2,5', label: '2,5 mm²' }, { value: '4', label: '4 mm²' }, { value: '6', label: '6 mm²' }, { value: '10', label: '10 mm²' }, { value: '16', label: '16 mm²' }, { value: '25', label: '25 mm²' }, { value: '35', label: '35 mm²' }, { value: '50', label: '50 mm²' }, { value: '70', label: '70 mm²' }, { value: '95', label: '95 mm²' }, { value: '120', label: '120 mm²' }, { value: '150', label: '150 mm²' }, { value: '185', label: '185 mm²' }, { value: '240', label: '240 mm²' }, { value: '300', label: '300 mm²' }, { value: '400', label: '400 mm²' }, { value: '500', label: '500 mm²' }], group: 'Padrão de Entrada' },
+  { key: 'secao_neutro_mm2', label: 'Seção Condutor Neutro (mm²)', type: 'select', required: true, suffix: 'mm²', options: [{ value: '1,5', label: '1,5 mm²' }, { value: '2,5', label: '2,5 mm²' }, { value: '4', label: '4 mm²' }, { value: '6', label: '6 mm²' }, { value: '10', label: '10 mm²' }, { value: '16', label: '16 mm²' }, { value: '25', label: '25 mm²' }, { value: '35', label: '35 mm²' }, { value: '50', label: '50 mm²' }, { value: '70', label: '70 mm²' }, { value: '95', label: '95 mm²' }, { value: '120', label: '120 mm²' }, { value: '150', label: '150 mm²' }, { value: '185', label: '185 mm²' }, { value: '240', label: '240 mm²' }, { value: '300', label: '300 mm²' }, { value: '400', label: '400 mm²' }, { value: '500', label: '500 mm²' }], group: 'Padrão de Entrada' },
 
   // Coordenadas UTM
   { key: 'coord_utm_fuso', label: 'Fuso UTM', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 23K', group: 'Coordenadas UTM (Padrão de Entrada)' },
@@ -474,6 +474,46 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             ))}
           </SelectContent>
         </Select>
+      );
+    }
+
+    if (field.type === 'select_or_custom') {
+      const predefinedValues = (field.options || []).filter(o => o.value !== 'outro').map(o => o.value);
+      const isCustom = value !== undefined && value !== null && !predefinedValues.includes(String(value));
+      const selectVal = isCustom ? 'outro' : (value || '');
+      return (
+        <div className="space-y-2">
+          <Select
+            value={selectVal}
+            onValueChange={(val) => {
+              if (val === 'outro') {
+                handleFieldChange(field.key, ' ');
+              } else {
+                handleFieldChange(field.key, val);
+              }
+            }}
+            disabled={isSkipped}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent position="popper" side="bottom" className="max-h-60">
+              {field.options?.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {isCustom && (
+            <Input
+              type="text"
+              value={String(value).trim()}
+              onChange={(e) => handleFieldChange(field.key, e.target.value || ' ')}
+              placeholder="Digite o valor em Volts"
+              className="h-8 text-sm"
+              autoFocus
+            />
+          )}
+        </div>
       );
     }
 
