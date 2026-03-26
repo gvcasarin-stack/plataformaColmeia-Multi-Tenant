@@ -143,9 +143,24 @@ interface AcervoItem {
   largura_mm: number | null;
 }
 
+const SKIP_DEFAULT_VALUES: Record<string, string> = {
+  numero_poste_transformador: 'Não Identificado',
+  planta_situacao_url: 'nao_incluir',
+};
+
+function initSkippedFields(fields: Record<string, any>): Set<string> {
+  const skipped = new Set<string>();
+  for (const [key, defaultVal] of Object.entries(SKIP_DEFAULT_VALUES)) {
+    if (fields[key] === defaultVal) {
+      skipped.add(key);
+    }
+  }
+  return skipped;
+}
+
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
   const [localFields, setLocalFields] = useState<Record<string, any>>({ ...fields });
-  const [skippedFields, setSkippedFields] = useState<Set<string>>(new Set());
+  const [skippedFields, setSkippedFields] = useState<Set<string>>(() => initSkippedFields(fields));
   const [isSaving, setIsSaving] = useState(false);
   const [plantaPreview, setPlantaPreview] = useState<string | null>(fields.planta_situacao_url || null);
   const [plantaFile, setPlantaFile] = useState<File | null>(null);
@@ -156,6 +171,15 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   const [responsavelPrefs, setResponsavelPrefs] = useState<Record<string, string> | null>(null);
   const [responsavelLoading, setResponsavelLoading] = useState(false);
   const [useCustomDate, setUseCustomDate] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLocalFields({ ...fields });
+    setSkippedFields(initSkippedFields(fields));
+    setPlantaPreview(fields.planta_situacao_url && fields.planta_situacao_url !== 'nao_incluir' ? fields.planta_situacao_url : null);
+    setPlantaFile(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -224,11 +248,6 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
 
   const handleFieldChange = (key: string, value: any) => {
     setLocalFields(prev => ({ ...prev, [key]: value }));
-  };
-
-  const SKIP_DEFAULT_VALUES: Record<string, string> = {
-    numero_poste_transformador: 'Não Identificado',
-    planta_situacao_url: 'nao_incluir',
   };
 
   const toggleSkip = (key: string) => {
