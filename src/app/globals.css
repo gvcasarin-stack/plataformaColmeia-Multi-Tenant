@@ -274,3 +274,7 @@ html, body {
   background: transparent !important;
   padding: 8px 0 !important;
 }
+
+.pdf-printing .page-break-indicator {
+  display: none !important;
+}

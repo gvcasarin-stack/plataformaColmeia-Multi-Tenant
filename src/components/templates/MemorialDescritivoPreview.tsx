@@ -54,6 +54,18 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 
 const PAGE_BREAK = 'break-before-page';
 
+function PageBreakIndicator() {
+  return (
+    <div className="page-break-indicator relative my-4 flex items-center select-none" aria-hidden="true">
+      <div className="flex-1 border-t-2 border-dashed border-blue-300 dark:border-blue-600" />
+      <span className="mx-3 text-[10px] font-medium uppercase tracking-wider text-blue-400 dark:text-blue-500 whitespace-nowrap">
+        quebra de página
+      </span>
+      <div className="flex-1 border-t-2 border-dashed border-blue-300 dark:border-blue-600" />
+    </div>
+  );
+}
+
 export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
@@ -156,6 +168,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p><V>{`{{data}}`}</V></p>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== LISTA DE SIGLAS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>LISTA DE SIGLAS E ABREVIATURAS</h2>
@@ -201,6 +214,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </div>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== SUMÁRIO ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>SUMÁRIO</h2>
@@ -230,6 +244,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </div>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 1. OBJETIVO ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>1. OBJETIVO</h2>
@@ -271,6 +286,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </ol>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 3. DOCUMENTOS OBRIGATÓRIOS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>3. DOCUMENTOS OBRIGATÓRIOS</h2>
@@ -304,6 +320,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p className="text-xs italic">NOTA 1: Para inversores até 10 kW é obrigatório o registro de concessão do INMETRO.</p>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 4. DADOS DA UC ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>4. DADOS DA UNIDADE CONSUMIDORA</h2>
@@ -440,6 +457,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           );
         })()}
 
+        <PageBreakIndicator />
         <h3 className={`${h3Class} ${PAGE_BREAK} pt-2`}>6.4. Caixa de Medição</h3>
         <p className={pClass}>
           A caixa de medição é polifásica em material polimérico, com dimensões de{' '}
@@ -489,6 +507,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </p>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 7. DIMENSIONAMENTO DO GERADOR ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>7. DIMENSIONAMENTO DO GERADOR</h2>
@@ -544,6 +563,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </table>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 9. DIMENSIONAMENTO DA PROTEÇÃO ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>9. DIMENSIONAMENTO DA PROTEÇÃO</h2>
@@ -577,6 +597,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           <li>Corrente máxima [kA]: 40</li>
         </ul>
 
+        <PageBreakIndicator />
         <h3 className={`${h3Class} ${PAGE_BREAK} pt-2`}>9.3. Aterramento</h3>
         <p className={pClass}>
           A geração distribuída deve possuir uma malha de terra, esta malha de terra deve ser conectada ao
@@ -600,6 +621,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </p>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 10. DIMENSIONAMENTO DOS CABOS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>10. DIMENSIONAMENTO DOS CABOS</h2>
@@ -621,6 +643,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </ul>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 11. PLACA DE ADVERTÊNCIA ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>11. PLACA DE ADVERTÊNCIA</h2>
@@ -650,6 +673,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p className="text-xs italic text-center">Figura 4: Placa de advertência.</p>
       </div>
 
+      <PageBreakIndicator />
       {/* ==================== 12. ANEXOS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>12. ANEXOS</h2>
