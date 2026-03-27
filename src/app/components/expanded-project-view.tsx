@@ -62,6 +62,7 @@ import { ProjectResponsibleAdmin } from './project-view/project-responsible-admi
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
 import { MemorialDescritivoPreview } from '@/components/templates/MemorialDescritivoPreview'
+import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
 
 // Import custom icon components
@@ -503,6 +504,28 @@ export const ExpandedProjectView = ({
     responsavel_registro: (project as any).responsavel_registro || '',
     data_documento: (project as any).data_documento || '',
     secao_aterramento_mm2: (project as any).secao_aterramento_mm2 || '',
+    // Formulário de Solicitação de Acesso
+    cliente_cep: (project as any).cliente_cep || '',
+    cliente_email: (project as any).cliente_email || '',
+    cliente_celular: (project as any).cliente_celular || '',
+    cliente_telefone_fixo: (project as any).cliente_telefone_fixo || '',
+    responsavel_legal_nome: (project as any).responsavel_legal_nome || '',
+    responsavel_legal_telefone: (project as any).responsavel_legal_telefone || '',
+    responsavel_legal_email: (project as any).responsavel_legal_email || '',
+    tipo_solicitacao: (project as any).tipo_solicitacao || '',
+    tarifa_branca: (project as any).tarifa_branca || 'NÃO',
+    possui_cargas_especiais: (project as any).possui_cargas_especiais || 'NÃO',
+    carga_declarada_kw: (project as any).carga_declarada_kw || '',
+    potencia_disponibilizada_kw: (project as any).potencia_disponibilizada_kw || '',
+    data_inicio_operacao: (project as any).data_inicio_operacao || '',
+    modulos_area_m2: (project as any).modulos_area_m2 || '',
+    inversores_faixa_tensao: (project as any).inversores_faixa_tensao || '',
+    inversores_corrente_nominal: (project as any).inversores_corrente_nominal || '',
+    inversores_fator_potencia: (project as any).inversores_fator_potencia || '',
+    inversores_rendimento: (project as any).inversores_rendimento || '',
+    inversores_dht_corrente: (project as any).inversores_dht_corrente || '',
+    responsavel_email: (project as any).responsavel_email || '',
+    responsavel_uf: (project as any).responsavel_uf || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
@@ -2965,11 +2988,9 @@ export const ExpandedProjectView = ({
                                 <FileOutput className="h-5 w-5 text-green-500" />
                                 Pré-visualização — Formulário de Solicitação de Acesso
                               </h3>
-                              <div className="rounded-md border border-green-200 dark:border-green-700 p-4">
+                              <div className="rounded-md border border-green-200 dark:border-green-700 p-4 max-h-[600px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-                                  <p className="text-gray-500 dark:text-gray-400 text-sm italic text-center py-8">
-                                    Template do Formulário de Solicitação de Acesso ainda não configurado. Em breve.
-                                  </p>
+                                  <FormularioSolicitacaoPreview distribuidora={selectedDistribuidoraGerarProjeto} projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>

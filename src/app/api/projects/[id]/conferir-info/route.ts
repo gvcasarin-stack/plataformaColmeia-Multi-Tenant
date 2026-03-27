@@ -19,6 +19,15 @@ const CONFERIR_FIELDS = [
   'responsavel_nome', 'responsavel_profissao', 'responsavel_registro',
   'data_documento',
   'secao_aterramento_mm2',
+  // Formulário de Solicitação de Acesso
+  'cliente_cep', 'cliente_email', 'cliente_celular', 'cliente_telefone_fixo',
+  'responsavel_legal_nome', 'responsavel_legal_telefone', 'responsavel_legal_email',
+  'tipo_solicitacao', 'tarifa_branca', 'possui_cargas_especiais',
+  'carga_declarada_kw', 'potencia_disponibilizada_kw', 'data_inicio_operacao',
+  'modulos_area_m2',
+  'inversores_faixa_tensao', 'inversores_corrente_nominal', 'inversores_fator_potencia',
+  'inversores_rendimento', 'inversores_dht_corrente',
+  'responsavel_email', 'responsavel_uf',
 ];
 
 // GET: Diagnóstico — colar no navegador para ver o estado do projeto

@@ -72,6 +72,15 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'endereco_local', label: 'Endereço', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
   { key: 'client_city', label: 'Cidade', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
   { key: 'client_state', label: 'Estado', icon: <MapPin className="h-3.5 w-3.5" />, type: 'select', required: true, options: ESTADOS_BR, group: 'Dados do Cliente' },
+  { key: 'cliente_cep', label: 'CEP', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 65580-000', group: 'Dados do Cliente' },
+  { key: 'cliente_email', label: 'E-mail do Cliente', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
+  { key: 'cliente_celular', label: 'Celular do Cliente', type: 'text', required: true, placeholder: 'Ex: (48) 9 9900-0387', group: 'Dados do Cliente' },
+  { key: 'cliente_telefone_fixo', label: 'Telefone Fixo do Cliente', type: 'text', required: false, group: 'Dados do Cliente' },
+
+  // Responsável Legal
+  { key: 'responsavel_legal_nome', label: 'Nome do Responsável Legal', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Legal' },
+  { key: 'responsavel_legal_telefone', label: 'Telefone do Responsável Legal', type: 'text', required: true, placeholder: 'Ex: (48) 9 9900-0387', group: 'Responsável Legal' },
+  { key: 'responsavel_legal_email', label: 'E-mail do Responsável Legal', type: 'text', required: false, group: 'Responsável Legal' },
 
   // Dados do Projeto
   { key: 'distribuidora', label: 'Distribuidora', icon: <Factory className="h-3.5 w-3.5" />, type: 'select', required: true, options: DISTRIBUIDORAS.map(d => ({ value: d, label: d })), group: 'Dados do Projeto' },
@@ -80,17 +89,26 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
   { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
   { key: 'data_documento', label: 'Data do Documento', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
+  { key: 'tipo_solicitacao', label: 'Tipo de Solicitação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão em UC existente sem aumento de PD' }, { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão em UC existente com aumento de PD' }, { value: 'LIGAÇÃO NOVA DE UC COM MICROGERAÇÃO', label: 'Ligação nova com microgeração' }], group: 'Dados do Projeto' },
+  { key: 'tarifa_branca', label: 'Tarifa Branca?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
+  { key: 'possui_cargas_especiais', label: 'Possui Cargas Especiais?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
+  { key: 'carga_declarada_kw', label: 'Carga Declarada da UC (kW)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'kW', group: 'Dados do Projeto' },
+  { key: 'potencia_disponibilizada_kw', label: 'Potência Disponibilizada — PD (kW)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'kW', group: 'Dados do Projeto' },
+  { key: 'data_inicio_operacao', label: 'Data Início de Operação', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
 
   // Responsável Técnico
   { key: 'responsavel_nome', label: 'Nome Completo', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Técnico' },
   { key: 'responsavel_profissao', label: 'Profissão', type: 'text', required: true, group: 'Responsável Técnico' },
   { key: 'responsavel_registro', label: 'Nº de Registro Profissional', type: 'text', required: true, group: 'Responsável Técnico' },
+  { key: 'responsavel_email', label: 'E-mail do Responsável Técnico', type: 'text', required: true, group: 'Responsável Técnico' },
+  { key: 'responsavel_uf', label: 'UF do Responsável Técnico', type: 'select', required: true, options: ESTADOS_BR, group: 'Responsável Técnico' },
 
   // Módulos Fotovoltaicos
   { key: 'modulos_quantidade', label: 'Quantidade de Módulos', icon: <Package className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_fabricante', label: 'Fabricante dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_modelo', label: 'Modelo dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_potencia_wp', label: 'Potência dos Módulos (Wp)', type: 'text', required: true, suffix: 'Wp', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'number', required: true, suffix: 'm²', group: 'Módulos Fotovoltaicos' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
@@ -98,6 +116,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_modelo', label: 'Modelo dos Inversores', type: 'text', required: true, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_potencia', label: 'Potência dos Inversores (kW)', type: 'text', required: true, suffix: 'kW', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_tensao', label: 'Tensão Nominal dos Inversores', type: 'select', required: true, suffix: 'V', options: [{ value: '127', label: '127 V' }, { value: '220', label: '220 V' }, { value: '380', label: '380 V' }, { value: '800', label: '800 V' }], group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_faixa_tensao', label: 'Faixa de Tensão de Operação (V)', type: 'text', required: true, placeholder: 'Ex: 176 - 242', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_corrente_nominal', label: 'Corrente Nominal (A)', type: 'number', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_fator_potencia', label: 'Fator de Potência', type: 'text', required: true, placeholder: 'Ex: 1 (Ajustável)', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_rendimento', label: 'Rendimento (%)', type: 'number', required: true, suffix: '%', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_dht_corrente', label: 'DHT de Corrente (%)', type: 'text', required: true, placeholder: 'Ex: < 3', group: 'Inversores Fotovoltaicos' },
 
   // Informações Técnicas
   { key: 'tipo_conexao', label: 'Tipo de Conexão', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Bifásico', label: 'Bifásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Informações Técnicas' },
