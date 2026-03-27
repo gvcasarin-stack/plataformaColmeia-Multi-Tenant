@@ -1,6 +1,9 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { FileDown, Loader2 } from 'lucide-react';
 
 interface MemorialDescritivoPreviewProps {
   distribuidora: string;
@@ -49,8 +52,37 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{secao_aterramento_mm2}}': 'secao_aterramento_mm2',
 };
 
+const PAGE_BREAK = 'break-before-page';
+
 export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [generating, setGenerating] = useState(false);
   const DECIMAL_FIELDS = ['potencia'];
+
+  const handleGeneratePdf = async () => {
+    if (!contentRef.current) return;
+    setGenerating(true);
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      const clientName = projectData?.nomeClienteFinal || 'projeto';
+      const filename = `Memorial Descritivo - ${clientName}.pdf`;
+
+      const opt = {
+        margin: [15, 15, 15, 15],
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'li'] },
+      };
+
+      await html2pdf().set(opt).from(contentRef.current).save();
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const V = ({ children }: { children: string }) => {
     const placeholder = children;
@@ -85,7 +117,8 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
   const pClass = "mb-4 text-justify leading-relaxed";
 
   return (
-    <div className="text-gray-700 dark:text-gray-300 text-sm" style={{ lineHeight: '1.9' }}>
+    <>
+    <div ref={contentRef} className="text-gray-700 dark:text-gray-300 text-sm memorial-pdf-content" style={{ lineHeight: '1.9' }}>
 
       {/* ==================== CAPA ==================== */}
       <div className="text-center mb-16 py-8">
@@ -104,10 +137,8 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p><V>{`{{data}}`}</V></p>
       </div>
 
-      <hr className="my-8 border-gray-300 dark:border-gray-600" />
-
       {/* ==================== LISTA DE SIGLAS ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>LISTA DE SIGLAS E ABREVIATURAS</h2>
         <div className="space-y-1">
           <p>ABNT: Associação Brasileira de Normas Técnicas</p>
@@ -151,10 +182,8 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </div>
       </div>
 
-      <hr className="my-8 border-gray-300 dark:border-gray-600" />
-
       {/* ==================== SUMÁRIO ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>SUMÁRIO</h2>
         <div className="space-y-1">
           <p><strong>1.</strong> OBJETIVO</p>
@@ -182,10 +211,8 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </div>
       </div>
 
-      <hr className="my-8 border-gray-300 dark:border-gray-600" />
-
       {/* ==================== 1. OBJETIVO ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>1. OBJETIVO</h2>
         <p className={pClass}>
           O presente memorial técnico descritivo tem como objetivo apresentar a metodologia utilizada para
@@ -226,7 +253,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
       {/* ==================== 3. DOCUMENTOS OBRIGATÓRIOS ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>3. DOCUMENTOS OBRIGATÓRIOS</h2>
         <p className="mb-3 italic">Tabela 1 – Documentos obrigatórios para a solicitação de acesso de microgeração distribuída</p>
         <table className={tableClass}>
@@ -259,7 +286,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
       {/* ==================== 4. DADOS DA UC ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>4. DADOS DA UNIDADE CONSUMIDORA</h2>
         <table className={tableClass}>
           <tbody>
@@ -394,7 +421,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           );
         })()}
 
-        <h3 className={h3Class}>6.4. Caixa de Medição</h3>
+        <h3 className={`${h3Class} ${PAGE_BREAK} pt-2`}>6.4. Caixa de Medição</h3>
         <p className={pClass}>
           A caixa de medição é polifásica em material polimérico, com dimensões de{' '}
           {projectData?.caixa_medicao_comprimento_mm && projectData?.caixa_medicao_altura_mm && projectData?.caixa_medicao_largura_mm ? (
@@ -444,7 +471,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
       {/* ==================== 7. DIMENSIONAMENTO DO GERADOR ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>7. DIMENSIONAMENTO DO GERADOR</h2>
         <p className="mb-3">Características técnicas dos módulos fotovoltaicos:</p>
         <p className="mb-3 italic">Tabela 4 – Características técnicas dos módulos fotovoltaicos</p>
@@ -499,7 +526,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
       {/* ==================== 9. DIMENSIONAMENTO DA PROTEÇÃO ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>9. DIMENSIONAMENTO DA PROTEÇÃO</h2>
 
         <h3 className={h3Class}>9.1. Chaves Seccionadoras e Disjuntores</h3>
@@ -531,7 +558,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           <li>Corrente máxima [kA]: 40</li>
         </ul>
 
-        <h3 className={h3Class}>9.3. Aterramento</h3>
+        <h3 className={`${h3Class} ${PAGE_BREAK} pt-2`}>9.3. Aterramento</h3>
         <p className={pClass}>
           A geração distribuída deve possuir uma malha de terra, esta malha de terra deve ser conectada ao
           sistema de aterramento existente da unidade consumidora, tornando os sistemas de aterramento equipotencializados.
@@ -555,7 +582,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
       {/* ==================== 10. DIMENSIONAMENTO DOS CABOS ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>10. DIMENSIONAMENTO DOS CABOS</h2>
 
         <p className="mb-2"><strong>Cabos CC:</strong></p>
@@ -576,7 +603,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
       {/* ==================== 11. PLACA DE ADVERTÊNCIA ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>11. PLACA DE ADVERTÊNCIA</h2>
         <p className="mb-2">Características da Placa:</p>
         <ul className="list-disc list-inside mb-4">
@@ -589,7 +616,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
       {/* ==================== 12. ANEXOS ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>12. ANEXOS</h2>
         <ul className="list-disc list-inside space-y-1">
           <li>Anexo I - Solicitação de Acesso</li>
@@ -607,5 +634,27 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       </div>
 
     </div>
+
+    <div className="mt-6 flex justify-center">
+      <Button
+        onClick={handleGeneratePdf}
+        disabled={generating}
+        size="lg"
+        className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+      >
+        {generating ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Gerando PDF...
+          </>
+        ) : (
+          <>
+            <FileDown className="mr-2 h-5 w-5" />
+            Gerar PDF do Memorial
+          </>
+        )}
+      </Button>
+    </div>
+    </>
   );
 }
