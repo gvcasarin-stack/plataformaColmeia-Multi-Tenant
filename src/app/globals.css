@@ -278,3 +278,7 @@ html, body {
 .pdf-printing .page-break-indicator {
   display: none !important;
 }
+
+.pdf-printing .memorial-spacer {
+  display: block !important;
+}

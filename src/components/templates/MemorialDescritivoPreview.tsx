@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { FileDown, Loader2 } from 'lucide-react';
+import { FileDown, Loader2, Plus, Minus, RotateCcw } from 'lucide-react';
 
 interface MemorialDescritivoPreviewProps {
   distribuidora: string;
@@ -54,15 +54,64 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 
 const PAGE_BREAK = 'break-before-page';
 
-function PageBreakIndicator() {
+const SPACING_STEP = 20;
+const MAX_SPACING = 300;
+
+function PageBreakIndicator({ id, spacing, onSpacingChange }: {
+  id: string;
+  spacing: number;
+  onSpacingChange: (id: string, delta: number) => void;
+}) {
   return (
-    <div className="page-break-indicator relative my-4 flex items-center select-none" aria-hidden="true">
-      <div className="flex-1 border-t-2 border-dashed border-blue-300 dark:border-blue-600" />
-      <span className="mx-3 text-[10px] font-medium uppercase tracking-wider text-blue-400 dark:text-blue-500 whitespace-nowrap">
-        quebra de página
-      </span>
-      <div className="flex-1 border-t-2 border-dashed border-blue-300 dark:border-blue-600" />
-    </div>
+    <>
+      {spacing > 0 && (
+        <div className="memorial-spacer" style={{ height: `${spacing}px` }} />
+      )}
+      <div className="page-break-indicator relative my-4 flex items-center select-none" aria-hidden="true">
+        <div className="flex-1 border-t-2 border-dashed border-blue-300 dark:border-blue-600" />
+        <div className="mx-2 flex items-center gap-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400 dark:text-blue-500 whitespace-nowrap">
+            quebra de página
+          </span>
+          <div className="page-break-controls flex items-center gap-0.5 ml-1">
+            <button
+              type="button"
+              onClick={() => onSpacingChange(id, -SPACING_STEP)}
+              disabled={spacing <= 0}
+              className="w-5 h-5 flex items-center justify-center rounded border border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-800 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Reduzir espaçamento"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onSpacingChange(id, SPACING_STEP)}
+              disabled={spacing >= MAX_SPACING}
+              className="w-5 h-5 flex items-center justify-center rounded border border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-800 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Aumentar espaçamento"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+            {spacing > 0 && (
+              <button
+                type="button"
+                onClick={() => onSpacingChange(id, -spacing)}
+                className="w-5 h-5 flex items-center justify-center rounded border border-orange-300 dark:border-orange-600 bg-white dark:bg-gray-800 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors ml-0.5"
+                title="Resetar espaçamento"
+              >
+                <RotateCcw className="w-3 h-3" />
+              </button>
+            )}
+            {spacing > 0 && (
+              <span className="text-[9px] text-blue-400 dark:text-blue-500 ml-1 tabular-nums">
+                +{spacing}px
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex-1 border-t-2 border-dashed border-blue-300 dark:border-blue-600" />
+      </div>
+    </>
   );
 }
 
@@ -70,7 +119,16 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
   const contentRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [placaAdvertencia, setPlacaAdvertencia] = useState<{ nome: string; imagem_url: string } | null>(null);
+  const [spacings, setSpacings] = useState<Record<string, number>>({});
   const DECIMAL_FIELDS = ['potencia'];
+
+  const handleSpacingChange = useCallback((id: string, delta: number) => {
+    setSpacings(prev => {
+      const current = prev[id] || 0;
+      const next = Math.max(0, Math.min(MAX_SPACING, current + delta));
+      return { ...prev, [id]: next };
+    });
+  }, []);
 
   useEffect(() => {
     if (!distribuidora) return;
@@ -168,7 +226,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p><V>{`{{data}}`}</V></p>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="siglas" spacing={spacings['siglas'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== LISTA DE SIGLAS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>LISTA DE SIGLAS E ABREVIATURAS</h2>
@@ -214,7 +272,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </div>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="sumario" spacing={spacings['sumario'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== SUMÁRIO ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>SUMÁRIO</h2>
@@ -244,7 +302,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </div>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="objetivo" spacing={spacings['objetivo'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 1. OBJETIVO ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>1. OBJETIVO</h2>
@@ -286,7 +344,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </ol>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="documentos" spacing={spacings['documentos'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 3. DOCUMENTOS OBRIGATÓRIOS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>3. DOCUMENTOS OBRIGATÓRIOS</h2>
@@ -320,7 +378,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p className="text-xs italic">NOTA 1: Para inversores até 10 kW é obrigatório o registro de concessão do INMETRO.</p>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="dados-uc" spacing={spacings['dados-uc'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 4. DADOS DA UC ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>4. DADOS DA UNIDADE CONSUMIDORA</h2>
@@ -457,7 +515,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           );
         })()}
 
-        <PageBreakIndicator />
+        <PageBreakIndicator id="caixa-medicao" spacing={spacings['caixa-medicao'] || 0} onSpacingChange={handleSpacingChange} />
         <h3 className={`${h3Class} ${PAGE_BREAK} pt-2`}>6.4. Caixa de Medição</h3>
         <p className={pClass}>
           A caixa de medição é polifásica em material polimérico, com dimensões de{' '}
@@ -507,7 +565,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </p>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="dim-gerador" spacing={spacings['dim-gerador'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 7. DIMENSIONAMENTO DO GERADOR ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>7. DIMENSIONAMENTO DO GERADOR</h2>
@@ -563,7 +621,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </table>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="dim-protecao" spacing={spacings['dim-protecao'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 9. DIMENSIONAMENTO DA PROTEÇÃO ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>9. DIMENSIONAMENTO DA PROTEÇÃO</h2>
@@ -597,7 +655,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           <li>Corrente máxima [kA]: 40</li>
         </ul>
 
-        <PageBreakIndicator />
+        <PageBreakIndicator id="aterramento" spacing={spacings['aterramento'] || 0} onSpacingChange={handleSpacingChange} />
         <h3 className={`${h3Class} ${PAGE_BREAK} pt-2`}>9.3. Aterramento</h3>
         <p className={pClass}>
           A geração distribuída deve possuir uma malha de terra, esta malha de terra deve ser conectada ao
@@ -621,7 +679,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </p>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="dim-cabos" spacing={spacings['dim-cabos'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 10. DIMENSIONAMENTO DOS CABOS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>10. DIMENSIONAMENTO DOS CABOS</h2>
@@ -643,7 +701,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </ul>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="placa-advertencia" spacing={spacings['placa-advertencia'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 11. PLACA DE ADVERTÊNCIA ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>11. PLACA DE ADVERTÊNCIA</h2>
@@ -673,7 +731,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p className="text-xs italic text-center">Figura 4: Placa de advertência.</p>
       </div>
 
-      <PageBreakIndicator />
+      <PageBreakIndicator id="anexos" spacing={spacings['anexos'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 12. ANEXOS ==================== */}
       <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>12. ANEXOS</h2>
