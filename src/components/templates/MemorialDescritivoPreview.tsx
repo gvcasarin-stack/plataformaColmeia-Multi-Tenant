@@ -158,9 +158,9 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         margin: [15, 15, 15, 15],
         filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: { scale: 2, useCORS: true, logging: false, width: 794, windowWidth: 794 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'li'] },
+        pagebreak: { mode: ['css'], before: '.break-before-page', avoid: ['tr', 'li', 'p'] },
       };
 
       await html2pdf().set(opt).from(contentRef.current).save();
@@ -207,7 +207,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
 
   return (
     <>
-    <div ref={contentRef} className="text-gray-700 dark:text-gray-300 text-sm memorial-pdf-content" style={{ lineHeight: '1.9' }}>
+    <div ref={contentRef} className="text-gray-700 dark:text-gray-300 text-sm memorial-pdf-content mx-auto bg-white dark:bg-gray-900 shadow-md" style={{ lineHeight: '1.9', width: '794px', padding: '56px', boxSizing: 'border-box' }}>
 
       {/* ==================== CAPA ==================== */}
       <div className="text-center mb-16 py-8">
@@ -672,11 +672,73 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </ul>
 
         <h3 className={h3Class}>9.4. Requisitos de Proteção</h3>
-        <p className={pClass}>
-          O sistema de proteção atende aos requisitos estabelecidos pela ABNT NBR 16149 e pelas normas
-          da <V>{`{{distribuidora}}`}</V>, incluindo proteção anti-ilhamento, proteção contra
-          sobretensão/subtensão e proteção contra sobrefrequência/subfrequência.
-        </p>
+        <p className="font-bold text-center mb-2">Tabela 7 – Características técnicas do gerador</p>
+        <table className={tableClass}>
+          <thead>
+            <tr>
+              <th className={thClass}>Requisito de Proteção</th>
+              <th className={`${thClass} text-center`}>Obrigatório</th>
+              <th className={`${thClass} text-center`}>Ajuste</th>
+              <th className={`${thClass} text-center`}>Tempo máximo de atuação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className={tdClass}>Elemento de interrupção (52)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>Não aplicável</td>
+              <td className={`${tdClass} text-center`}>Não aplicável</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Proteção de subtensão (27)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>0,8 p. u.</td>
+              <td className={`${tdClass} text-center`}>0,4 seg</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Proteção de sobretensão (59)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>1,1 p. u.</td>
+              <td className={`${tdClass} text-center`}>0,2 seg</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Proteção de subfrequência (81U)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>59,5 Hz</td>
+              <td className={`${tdClass} text-center`}>0,2 seg</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Proteção de sobrefrequência (81O)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>60,5 Hz</td>
+              <td className={`${tdClass} text-center`}>0,2 seg</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Relé de sincronismo (25)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>10º/10% tensão/0,3 Hz</td>
+              <td className={`${tdClass} text-center`}>Não aplicável</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Anti-ilhamento (78 e 81 df/dt – ROCOF)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>-</td>
+              <td className={`${tdClass} text-center`}>0,2 seg</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Proteção de injeção de componente C.C (I<sub>C.C</sub>) na rede elétrica (sistemas com inversor sem transformador para separação galvânica)</td>
+              <td className={`${tdClass} text-center`}>Sim</td>
+              <td className={`${tdClass} text-center`}>I<sub>c.c</sub> {'>'} 0,5 · I<sub>N</sub></td>
+              <td className={`${tdClass} text-center`}>1 seg</td>
+            </tr>
+            <tr>
+              <td className={tdClass}>Tempo de Reconexão (temporizador) (62)</td>
+              <td className={`${tdClass} text-center`}>Opcional, quando não usar inversor</td>
+              <td className={`${tdClass} text-center`}>Não aplicável</td>
+              <td className={`${tdClass} text-center`}>Não aplicável</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <PageBreakIndicator id="dim-cabos" spacing={spacings['dim-cabos'] || 0} onSpacingChange={handleSpacingChange} />
