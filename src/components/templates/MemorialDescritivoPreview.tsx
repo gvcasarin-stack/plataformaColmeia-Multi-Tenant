@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
@@ -57,7 +57,22 @@ const PAGE_BREAK = 'break-before-page';
 export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
+  const [placaAdvertencia, setPlacaAdvertencia] = useState<{ nome: string; imagem_url: string } | null>(null);
   const DECIMAL_FIELDS = ['potencia'];
+
+  useEffect(() => {
+    if (!distribuidora) return;
+    const params = new URLSearchParams({ distribuidora, categoria: 'placa_advertencia' });
+    fetch(`/api/acervo-tecnico?${params.toString()}`)
+      .then(res => res.json())
+      .then(result => {
+        const items = result.data || [];
+        if (items.length > 0 && items[0].imagem_url) {
+          setPlacaAdvertencia({ nome: items[0].nome, imagem_url: items[0].imagem_url });
+        }
+      })
+      .catch(() => {});
+  }, [distribuidora]);
 
   const handleGeneratePdf = async () => {
     if (!contentRef.current) return;
@@ -612,6 +627,22 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           <li>Gravação: As letras devem ser em Arial Black</li>
           <li>Acabamento: Deve possuir cor amarela, obtida por processo de masterização com 2%, assegurando opacidade que permita adequada visualização das marcações pintadas na superfície da placa</li>
         </ul>
+        <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
+          {placaAdvertencia?.imagem_url ? (
+            <>
+              <img
+                src={placaAdvertencia.imagem_url}
+                alt={placaAdvertencia.nome || 'Placa de Advertência'}
+                className="max-h-64 mx-auto rounded-md border border-gray-200 dark:border-gray-700 object-contain"
+              />
+            </>
+          ) : (
+            <>
+              <Badge variant="outline" className="text-xs">{`{{placa_advertencia_imagem}}`}</Badge>
+              <p className="text-xs text-gray-400 mt-2">Cadastre a placa de advertência no Acervo Técnico da distribuidora</p>
+            </>
+          )}
+        </div>
         <p className="text-xs italic text-center">Figura 4: Placa de advertência.</p>
       </div>
 
