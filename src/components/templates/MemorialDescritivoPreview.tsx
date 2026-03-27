@@ -586,12 +586,9 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
             <tr><td className={tdLabelClass}>Área [m²]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
             <tr><td className={tdLabelClass}>Peso [kg]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
             <tr><td className={tdLabelClass}>Quantidade</td><td className={tdClass}><V>{`{{modulos_quantidade}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}><strong>Potência total instalada</strong></td><td className={tdClass}><V>{`{{modulos_quantidade}}`}</V> × <V>{`{{modulos_potencia_wp}}`}</V> Wp = <strong><V>{`{{potencia}}`}</V> kWp</strong></td></tr>
           </tbody>
         </table>
-        <p className={pClass}>
-          Potência total instalada: <V>{`{{modulos_quantidade}}`}</V> × <V>{`{{modulos_potencia_wp}}`}</V> Wp
-          = <strong><V>{`{{potencia}}`}</V> kWp</strong>.
-        </p>
       </div>
 
       {/* ==================== 8. DIMENSIONAMENTO DO INVERSOR ==================== */}
