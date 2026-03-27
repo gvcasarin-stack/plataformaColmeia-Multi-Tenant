@@ -253,4 +253,24 @@ html, body {
 
 .animation-delay-4000 {
   animation-delay: 4s;
-} 
+}
+
+/* PDF Printing Mode — badges become plain bold text, image containers lose borders */
+.pdf-printing .memorial-val {
+  all: unset !important;
+  font-weight: bold !important;
+  display: inline !important;
+}
+
+.pdf-printing .memorial-placeholder {
+  all: unset !important;
+  font-weight: bold !important;
+  display: inline !important;
+}
+
+.pdf-printing .memorial-img-container {
+  border: none !important;
+  border-style: none !important;
+  background: transparent !important;
+  padding: 8px 0 !important;
+}

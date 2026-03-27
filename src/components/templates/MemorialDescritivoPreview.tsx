@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
+
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 
@@ -82,6 +82,8 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       const clientName = projectData?.nomeClienteFinal || 'projeto';
       const filename = `Memorial Descritivo - ${clientName}.pdf`;
 
+      contentRef.current.classList.add('pdf-printing');
+
       const opt = {
         margin: [15, 15, 15, 15],
         filename,
@@ -92,8 +94,10 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       };
 
       await html2pdf().set(opt).from(contentRef.current).save();
+      contentRef.current.classList.remove('pdf-printing');
     } catch (err) {
       console.error('Erro ao gerar PDF:', err);
+      contentRef.current?.classList.remove('pdf-printing');
     } finally {
       setGenerating(false);
     }
@@ -112,13 +116,13 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         if (!isNaN(num)) displayValue = num.toFixed(2).replace('.', ',');
       }
       return (
-        <Badge className="text-xs mx-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700">
+        <span className="memorial-val inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold mx-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700">
           {displayValue}
-        </Badge>
+        </span>
       );
     }
     return (
-      <Badge variant="outline" className="text-xs mx-0.5">{placeholder}</Badge>
+      <span className="memorial-placeholder inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold mx-0.5">{placeholder}</span>
     );
   };
 
@@ -315,7 +319,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         </table>
         {projectData?.planta_situacao_url !== 'nao_incluir' && (
           <>
-            <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
+            <div className="memorial-img-container my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
               {projectData?.planta_situacao_url && projectData.planta_situacao_url !== 'pending_upload' ? (
                 <img
                   src={projectData.planta_situacao_url}
@@ -324,7 +328,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
                 />
               ) : (
                 <>
-                  <Badge variant="outline" className="text-xs">{`{{planta_situacao_imagem}}`}</Badge>
+                  <span className="memorial-placeholder inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">{`{{planta_situacao_imagem}}`}</span>
                   <p className="text-xs text-gray-400 mt-2">Imagem da planta de situação (se disponível)</p>
                 </>
               )}
@@ -419,15 +423,15 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4 font-mono text-xs space-y-1">
                 <p>PD [kVA] = (VN [V] × IDG [A] × NF) / 1000</p>
                 <p>PD [kW] = PD [kVA] × FP</p>
-                <p className="mt-2">VN = {vn > 0 ? <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{vn} V</Badge> : <V>{`{{tensao_atendimento}}`}</V>} (tensão de linha)</p>
+                <p className="mt-2">VN = {vn > 0 ? <span className="memorial-val inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700">{vn} V</span> : <V>{`{{tensao_atendimento}}`}</V>} (tensão de linha)</p>
                 <p>IDG = <V>{`{{disjuntor_corrente_a}}`}</V> A</p>
-                <p>NF = {tipoConexao ? <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{nfLabel}</Badge> : <Badge variant="outline" className="text-xs">conforme tipo de ligação</Badge>} {tipoConexao ? `(${tipoConexao})` : ''}</p>
+                <p>NF = {tipoConexao ? <span className="memorial-val inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700">{nfLabel}</span> : <span className="memorial-placeholder inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">conforme tipo de ligação</span>} {tipoConexao ? `(${tipoConexao})` : ''}</p>
                 <p>FP = 0,92</p>
                 {canCalc && (
                   <>
                     <hr className="my-2 border-gray-300 dark:border-gray-600" />
-                    <p className="font-bold">PD [kVA] = ({vn} × {corrente} × {nfLabel}) / 1000 = <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{pdKva.toFixed(2).replace('.', ',')} kVA</Badge></p>
-                    <p className="font-bold">PD [kW] = {pdKva.toFixed(2).replace('.', ',')} × 0,92 = <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700 text-xs">{pdKw.toFixed(3).replace('.', ',')} kW</Badge></p>
+                    <p className="font-bold">PD [kVA] = ({vn} × {corrente} × {nfLabel}) / 1000 = <span className="memorial-val inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700">{pdKva.toFixed(2).replace('.', ',')} kVA</span></p>
+                    <p className="font-bold">PD [kW] = {pdKva.toFixed(2).replace('.', ',')} × 0,92 = <span className="memorial-val inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-200 dark:border-green-700">{pdKw.toFixed(3).replace('.', ',')} kW</span></p>
                   </>
                 )}
               </div>
@@ -440,11 +444,11 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <p className={pClass}>
           A caixa de medição é polifásica em material polimérico, com dimensões de{' '}
           {projectData?.caixa_medicao_comprimento_mm && projectData?.caixa_medicao_altura_mm && projectData?.caixa_medicao_largura_mm ? (
-            <Badge className="text-xs mx-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700">
+            <span className="memorial-val inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold mx-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700">
               {projectData.caixa_medicao_comprimento_mm} mm x {projectData.caixa_medicao_altura_mm} mm x {projectData.caixa_medicao_largura_mm} mm
-            </Badge>
+            </span>
           ) : (
-            <Badge variant="outline" className="text-xs mx-0.5">{`{{dimensoes_caixa_medicao}}`}</Badge>
+            <span className="memorial-placeholder inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold mx-0.5">{`{{dimensoes_caixa_medicao}}`}</span>
           )}
           {' '}(comprimento, altura e largura), está instalada em fachada, no ponto de entrega
           caracterizado como o limite da via pública com a propriedade, atendendo aos requisitos de localização,
@@ -455,7 +459,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           16 mm (5/8&quot;), condutor de 10 mm² com conector tipo cunha para haste de material protegido contra
           corrosão, sob pressão de parafusos, sem o emprego de solda e acessível à inspeção.
         </p>
-        <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="memorial-img-container my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
           {projectData?.caixa_medicao_imagem_url ? (
             <>
               <img
@@ -469,7 +473,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
             </>
           ) : (
             <>
-              <Badge variant="outline" className="text-xs">{`{{caixa_medicao_imagem}}`}</Badge>
+              <span className="memorial-placeholder inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">{`{{caixa_medicao_imagem}}`}</span>
               <p className="text-xs text-gray-400 mt-2">Desenho dimensional da caixa de medição (selecione no &quot;Conferir Informações&quot;)</p>
             </>
           )}
@@ -627,7 +631,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
           <li>Gravação: As letras devem ser em Arial Black</li>
           <li>Acabamento: Deve possuir cor amarela, obtida por processo de masterização com 2%, assegurando opacidade que permita adequada visualização das marcações pintadas na superfície da placa</li>
         </ul>
-        <div className="my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="memorial-img-container my-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center bg-gray-50 dark:bg-gray-800/50">
           {placaAdvertencia?.imagem_url ? (
             <>
               <img
@@ -638,7 +642,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
             </>
           ) : (
             <>
-              <Badge variant="outline" className="text-xs">{`{{placa_advertencia_imagem}}`}</Badge>
+              <span className="memorial-placeholder inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">{`{{placa_advertencia_imagem}}`}</span>
               <p className="text-xs text-gray-400 mt-2">Cadastre a placa de advertência no Acervo Técnico da distribuidora</p>
             </>
           )}
