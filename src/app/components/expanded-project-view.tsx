@@ -2988,8 +2988,8 @@ export const ExpandedProjectView = ({
                                 <FileOutput className="h-5 w-5 text-green-500" />
                                 Pré-visualização — Formulário de Solicitação de Acesso
                               </h3>
-                              <div className="rounded-md border border-green-200 dark:border-green-700 p-4 max-h-[600px] overflow-y-auto">
-                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                              <div className="rounded-md border border-green-200 dark:border-green-700 p-4 max-h-[600px] overflow-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-2">
                                   <FormularioSolicitacaoPreview distribuidora={selectedDistribuidoraGerarProjeto} projectData={gerarProjetoFields} />
                                 </div>
                               </div>

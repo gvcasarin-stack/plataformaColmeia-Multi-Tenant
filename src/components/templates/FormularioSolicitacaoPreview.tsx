@@ -70,9 +70,9 @@ const SH: React.CSSProperties = { backgroundColor: '#404040', color: '#FFFFFF', 
 // Sub-header — cinza claro
 const SSH: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
 // Label obrigatório — fundo cinza claro, texto VERMELHO
-const LR: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#FF0000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap' };
+const LR: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#FF0000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' };
 // Label normal — fundo cinza claro, texto preto
-const L: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#000000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap' };
+const L: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#000000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' };
 // Célula de dado — fundo branco
 const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '2px 3px', border: B, verticalAlign: 'top' };
 // OK verde
@@ -154,14 +154,6 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
 
   return (
     <>
-      <div className="mb-3 flex gap-2 items-center print:hidden">
-        <Button onClick={handleGeneratePdf} disabled={generating} className="bg-green-600 hover:bg-green-700 text-white" size="sm">
-          {generating
-            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Gerando PDF...</>
-            : <><FileDown className="mr-2 h-4 w-4" />Baixar PDF</>}
-        </Button>
-      </div>
-
       <div
         ref={contentRef}
         style={{ width: '794px', padding: '18px', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', fontSize: '8px', backgroundColor: '#FFFFFF', lineHeight: '1.25', color: '#000000' }}
@@ -846,6 +838,21 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           </div>
         </div>
 
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={generating}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {generating ? (
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
+          ) : (
+            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Formulário</>
+          )}
+        </Button>
       </div>
     </>
   );
