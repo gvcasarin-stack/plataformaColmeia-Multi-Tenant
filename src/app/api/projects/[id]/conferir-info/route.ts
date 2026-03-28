@@ -28,6 +28,9 @@ const CONFERIR_FIELDS = [
   'inversores_faixa_tensao', 'inversores_corrente_nominal', 'inversores_fator_potencia',
   'inversores_rendimento', 'inversores_dht_corrente',
   'responsavel_email', 'responsavel_uf',
+  // Dimensionamento dos Cabos
+  'cabo_cc_secao_mm2', 'cabo_cc_capacidade_corrente_a', 'cabo_cc_fator_temperatura', 'cabo_cc_fator_agrupamento',
+  'cabo_ca_secao_mm2', 'cabo_ca_capacidade_corrente_a', 'cabo_ca_fator_temperatura', 'cabo_ca_fator_agrupamento',
 ];
 
 // GET: Diagnóstico — colar no navegador para ver o estado do projeto

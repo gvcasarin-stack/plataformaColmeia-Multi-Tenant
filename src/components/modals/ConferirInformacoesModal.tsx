@@ -148,6 +148,16 @@ const FIELD_DEFINITIONS: FieldDef[] = [
 
   // Planta de Situação (Imagem)
   { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação' },
+
+  // Dimensionamento dos Cabos
+  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: false, suffix: 'mm²', placeholder: 'Ex: 4', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'number', required: false, suffix: 'A', placeholder: 'Ex: 35', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'number', required: false, placeholder: 'Ex: 1,00 (sem correção)', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'number', required: false, placeholder: 'Ex: 0,7 (três circuitos)', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_secao_mm2', label: 'CA — Seção Transversal (mm²)', type: 'number', required: false, suffix: 'mm²', placeholder: 'Ex: 10', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_capacidade_corrente_a', label: 'CA — Capacidade de Corrente Básica (A)', type: 'number', required: false, suffix: 'A', placeholder: 'Ex: 57', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_fator_temperatura', label: 'CA — Fator de Correção por Temperatura', type: 'number', required: false, placeholder: 'Ex: 0,94 (35°C)', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_fator_agrupamento', label: 'CA — Fator de Agrupamento', type: 'number', required: false, placeholder: 'Ex: 1,00 (sem agrupamento)', group: 'Dimensionamento dos Cabos' },
 ];
 
 interface ConferirInformacoesModalProps {

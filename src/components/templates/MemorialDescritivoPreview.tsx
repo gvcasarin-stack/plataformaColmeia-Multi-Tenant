@@ -50,6 +50,15 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{responsavel_registro}}': 'responsavel_registro',
   '{{data}}': 'data_documento',
   '{{secao_aterramento_mm2}}': 'secao_aterramento_mm2',
+  // Dimensionamento dos Cabos
+  '{{cabo_cc_secao_mm2}}': 'cabo_cc_secao_mm2',
+  '{{cabo_cc_capacidade_corrente_a}}': 'cabo_cc_capacidade_corrente_a',
+  '{{cabo_cc_fator_temperatura}}': 'cabo_cc_fator_temperatura',
+  '{{cabo_cc_fator_agrupamento}}': 'cabo_cc_fator_agrupamento',
+  '{{cabo_ca_secao_mm2}}': 'cabo_ca_secao_mm2',
+  '{{cabo_ca_capacidade_corrente_a}}': 'cabo_ca_capacidade_corrente_a',
+  '{{cabo_ca_fator_temperatura}}': 'cabo_ca_fator_temperatura',
+  '{{cabo_ca_fator_agrupamento}}': 'cabo_ca_fator_agrupamento',
 };
 
 const PAGE_BREAK = 'break-before-page';
@@ -195,6 +204,17 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
       <span className="memorial-placeholder inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold mx-0.5">{placeholder}</span>
     );
   };
+
+  // Dimensionamento dos Cabos — Capacidade Final
+  const caboCCCapacidade = parseFloat(String(projectData?.cabo_cc_capacidade_corrente_a || '0')) || 0;
+  const caboCCFatorTemp = parseFloat(String(projectData?.cabo_cc_fator_temperatura || '1')) || 1;
+  const caboCCFatorAgrup = parseFloat(String(projectData?.cabo_cc_fator_agrupamento || '1')) || 1;
+  const caboCCFinal = caboCCCapacidade > 0 ? (caboCCCapacidade * caboCCFatorTemp * caboCCFatorAgrup).toFixed(2).replace('.', ',') : null;
+
+  const caboCACapacidade = parseFloat(String(projectData?.cabo_ca_capacidade_corrente_a || '0')) || 0;
+  const caboCAFatorTemp = parseFloat(String(projectData?.cabo_ca_fator_temperatura || '1')) || 1;
+  const caboCAFatorAgrup = parseFloat(String(projectData?.cabo_ca_fator_agrupamento || '1')) || 1;
+  const caboCAFinal = caboCACapacidade > 0 ? (caboCACapacidade * caboCAFatorTemp * caboCAFatorAgrup).toFixed(2).replace('.', ',') : null;
 
   const tableClass = "w-full border-collapse border border-gray-400 dark:border-gray-500 text-sm mb-6";
   const thClass = "border border-gray-400 dark:border-gray-500 p-2 bg-gray-100 dark:bg-gray-800 font-bold text-left";
@@ -747,16 +767,36 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
         <ul className="list-disc list-inside mb-4">
           <li>Isolação: XLPE/XLPO</li>
           <li>Isolamento: 1,8 kV</li>
-          <li>Seção Transversal [mm²]: <span className="text-gray-400 italic">A preencher</span></li>
-          <li>Método de Instalação: B1 (Cabos instalados ao ar livre), em temperatura ambiente de 40º C</li>
+          <li>Seção Transversal [mm²]: <V>{`{{cabo_cc_secao_mm2}}`}</V></li>
+          <li>Método de Instalação: B1 (Cabos instalados ao ar livre), em temperatura ambiente de 40º C, instalação ao ar livre exposta ao sol, modo de instalação 1.</li>
+          <li>Capacidade de corrente básica do cabo: <V>{`{{cabo_cc_capacidade_corrente_a}}`}</V> A</li>
+          <li>Fator de correção por temperatura: <V>{`{{cabo_cc_fator_temperatura}}`}</V></li>
+          <li>Fator de Agrupamento: <V>{`{{cabo_cc_fator_agrupamento}}`}</V></li>
+          {caboCCFinal ? (
+            <li>
+              Capacidade final do cabo (A) = {caboCCCapacidade} × {caboCCFatorTemp.toFixed(2).replace('.', ',')} × {caboCCFatorAgrup.toFixed(2).replace('.', ',')} = <strong>{caboCCFinal} A</strong>
+            </li>
+          ) : (
+            <li className="text-gray-400 italic">Capacidade final do cabo (A) = aguardando preenchimento dos dados</li>
+          )}
         </ul>
 
         <p className="mb-2"><strong>Cabos CA:</strong></p>
         <ul className="list-disc list-inside mb-4">
           <li>Isolação: PVC</li>
           <li>Isolamento: 1,0 kV</li>
-          <li>Seção Transversal [mm²]: <span className="text-gray-400 italic">A preencher</span></li>
-          <li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes)</li>
+          <li>Seção Transversal [mm²]: <V>{`{{cabo_ca_secao_mm2}}`}</V></li>
+          <li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</li>
+          <li>Capacidade de corrente básica do cabo: <V>{`{{cabo_ca_capacidade_corrente_a}}`}</V> A</li>
+          <li>Fator de correção por temperatura: <V>{`{{cabo_ca_fator_temperatura}}`}</V></li>
+          <li>Fator de Agrupamento: <V>{`{{cabo_ca_fator_agrupamento}}`}</V></li>
+          {caboCAFinal ? (
+            <li>
+              Capacidade final do cabo (A) = {caboCACapacidade} × {caboCAFatorTemp.toFixed(2).replace('.', ',')} × {caboCAFatorAgrup.toFixed(2).replace('.', ',')} = <strong>{caboCAFinal} A</strong>
+            </li>
+          ) : (
+            <li className="text-gray-400 italic">Capacidade final do cabo (A) = aguardando preenchimento dos dados</li>
+          )}
         </ul>
       </div>
 

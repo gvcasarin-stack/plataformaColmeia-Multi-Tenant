@@ -526,6 +526,15 @@ export const ExpandedProjectView = ({
     inversores_dht_corrente: (project as any).inversores_dht_corrente || '',
     responsavel_email: (project as any).responsavel_email || '',
     responsavel_uf: (project as any).responsavel_uf || '',
+    // Dimensionamento dos Cabos
+    cabo_cc_secao_mm2: (project as any).cabo_cc_secao_mm2 || '',
+    cabo_cc_capacidade_corrente_a: (project as any).cabo_cc_capacidade_corrente_a || '',
+    cabo_cc_fator_temperatura: (project as any).cabo_cc_fator_temperatura || '',
+    cabo_cc_fator_agrupamento: (project as any).cabo_cc_fator_agrupamento || '',
+    cabo_ca_secao_mm2: (project as any).cabo_ca_secao_mm2 || '',
+    cabo_ca_capacidade_corrente_a: (project as any).cabo_ca_capacidade_corrente_a || '',
+    cabo_ca_fator_temperatura: (project as any).cabo_ca_fator_temperatura || '',
+    cabo_ca_fator_agrupamento: (project as any).cabo_ca_fator_agrupamento || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
