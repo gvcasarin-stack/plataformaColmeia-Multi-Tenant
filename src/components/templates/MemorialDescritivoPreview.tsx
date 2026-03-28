@@ -157,26 +157,24 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
     if (!contentRef.current) return;
     setGenerating(true);
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
+      const { pdf } = await import('@react-pdf/renderer');
+      const { MemorialDescritivoPDF } = await import('./MemorialDescritivoPDF');
+      const React = await import('react');
       const clientName = projectData?.nomeClienteFinal || 'projeto';
       const filename = `Memorial Descritivo - ${clientName}.pdf`;
-
-      contentRef.current.classList.add('pdf-printing');
-
-      const opt = {
-        margin: [15, 15, 15, 15],
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, width: 794, windowWidth: 794 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-        pagebreak: { mode: ['css'], before: '.break-before-page', avoid: ['tr', 'li', 'p'] },
-      };
-
-      await html2pdf().set(opt).from(contentRef.current).save();
-      contentRef.current.classList.remove('pdf-printing');
+      const blob = await pdf(
+        React.createElement(MemorialDescritivoPDF, { projectData, placaAdvertencia })
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Erro ao gerar PDF:', err);
-      contentRef.current?.classList.remove('pdf-printing');
     } finally {
       setGenerating(false);
     }
