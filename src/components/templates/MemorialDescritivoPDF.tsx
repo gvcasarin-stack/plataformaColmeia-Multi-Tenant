@@ -320,24 +320,35 @@ export function MemorialDescritivoPDF({
     <Document>
       <Page size="A4" style={styles.page} wrap>
         {/* ==================== CAPA ==================== */}
-        <View style={{ flex: 1, justifyContent: 'space-between', minHeight: 700 }}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={styles.h1}>MEMORIAL TÉCNICO DESCRITIVO</Text>
-            <Text style={[styles.coverDesc, { fontSize: 11 }]}>
-              {classificacao} UTILIZANDO UM SISTEMA FOTOVOLTAICO DE {potencia} kWp
-              CONECTADO À REDE DE ENERGIA ELÉTRICA DE BAIXA TENSÃO EM {tensao} V
+        <View style={{ minHeight: 750, flexDirection: 'column' }}>
+
+          {/* Título no topo */}
+          <Text style={styles.h1}>MEMORIAL TÉCNICO DESCRITIVO</Text>
+
+          {/* Descrição do projeto — centralizada verticalmente no espaço do meio */}
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+            <Text style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.7 }}>
+              {classificacao} UTILIZANDO UM SISTEMA FOTOVOLTAICO DE {potencia} kWp{'\n'}
+              CONECTADO À REDE DE ENERGIA ELÉTRICA DE BAIXA TENSÃO EM {tensao} V{'\n'}
               CARACTERIZADO COMO {modalidade}
             </Text>
-            <Text style={styles.bold}>{clienteNome}</Text>
-            <Text>CPF: {clienteCpf}</Text>
-            <Text style={[styles.bold, { marginTop: 20 }]}>{responsavelNome}</Text>
-            <Text>{responsavelProfissao}</Text>
+          </View>
+
+          {/* Dados do cliente e responsável — próximo ao rodapé inferior */}
+          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+            <Text style={[styles.bold, { fontSize: 11, marginBottom: 3 }]}>{clienteNome}</Text>
+            <Text style={{ marginBottom: 16 }}>CPF: {clienteCpf}</Text>
+            <Text style={[styles.bold, { fontSize: 11, marginBottom: 3 }]}>{responsavelNome}</Text>
+            <Text style={{ marginBottom: 3 }}>{responsavelProfissao}</Text>
             <Text>REGISTRO: {responsavelRegistro}</Text>
           </View>
-          <View style={styles.coverFooter}>
-            <Text style={styles.bold}>{cidade} – {estado}</Text>
+
+          {/* Local e data — rodapé inferior */}
+          <View style={{ alignItems: 'center' }}>
+            <Text style={[styles.bold, { marginBottom: 3 }]}>{cidade} – {estado}</Text>
             <Text>{data}</Text>
           </View>
+
         </View>
 
         {/* ==================== LISTA DE SIGLAS ==================== */}
