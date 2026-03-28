@@ -70,11 +70,11 @@ const SH: React.CSSProperties = { backgroundColor: '#404040', color: '#FFFFFF', 
 // Sub-header — cinza claro
 const SSH: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
 // Label obrigatório — fundo cinza claro, texto VERMELHO
-const LR: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#FF0000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' };
+const LR: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#FF0000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Label normal — fundo cinza claro, texto preto
-const L: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#000000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' };
+const L: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#000000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Célula de dado — fundo branco
-const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '2px 3px', border: B, verticalAlign: 'top' };
+const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '2px 3px', border: B, verticalAlign: 'top', overflow: 'hidden', wordBreak: 'break-word' };
 // OK verde
 const OK: React.CSSProperties = { backgroundColor: '#E2EFDA', color: '#375623', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Cabeçalho de coluna nas tabelas de geradores
