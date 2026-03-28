@@ -335,7 +335,7 @@ export function MemorialDescritivoPDF({
           </View>
 
           {/* Dados do cliente e responsável — próximo ao rodapé inferior */}
-          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+          <View style={{ alignItems: 'center', marginBottom: 55 }}>
             <Text style={[styles.bold, { fontSize: 11, marginBottom: 3 }]}>{clienteNome}</Text>
             <Text style={{ marginBottom: 16 }}>CPF: {clienteCpf}</Text>
             <Text style={[styles.bold, { fontSize: 11, marginBottom: 3 }]}>{responsavelNome}</Text>
