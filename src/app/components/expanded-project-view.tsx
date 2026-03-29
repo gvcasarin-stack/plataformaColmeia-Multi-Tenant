@@ -527,6 +527,7 @@ export const ExpandedProjectView = ({
     responsavel_email: (project as any).responsavel_email || '',
     responsavel_uf: (project as any).responsavel_uf || '',
     // Dimensionamento dos Cabos
+    cabo_isolacao_material: (project as any).cabo_isolacao_material || '',
     cabo_cc_secao_mm2: (project as any).cabo_cc_secao_mm2 || '',
     cabo_cc_capacidade_corrente_a: (project as any).cabo_cc_capacidade_corrente_a || '',
     cabo_cc_fator_temperatura: (project as any).cabo_cc_fator_temperatura || '',

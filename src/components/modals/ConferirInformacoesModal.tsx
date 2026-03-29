@@ -166,6 +166,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação' },
 
   // Dimensionamento dos Cabos
+  { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'PVC - 70ºC', label: 'PVC - 70ºC' }, { value: 'EPR/XLPE - 70ºC', label: 'EPR/XLPE - 70ºC' }], group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'number', required: true, suffix: 'A', group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'number', required: true, group: 'Dimensionamento dos Cabos' },
