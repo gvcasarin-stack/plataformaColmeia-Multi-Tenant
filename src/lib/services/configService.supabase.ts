@@ -36,6 +36,9 @@ export interface ResponsavelTecnico {
   numeroRegistro: string;
   instituicao: string;
   estadoRegistro: string;
+  email?: string;
+  uf?: string;
+  telefone?: string;
 }
 
 // Interface para configuração completa

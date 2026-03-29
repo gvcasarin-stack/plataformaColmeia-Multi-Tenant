@@ -206,7 +206,10 @@ export default function PreferenciasPage() {
     profissao: '',
     numeroRegistro: '',
     instituicao: 'CREA',
-    estadoRegistro: ''
+    estadoRegistro: '',
+    email: '',
+    uf: '',
+    telefone: '',
   });
   const [editandoResponsavel, setEditandoResponsavel] = useState(false);
   const [responsavelOriginal, setResponsavelOriginal] = useState<ResponsavelTecnico>({
@@ -217,7 +220,10 @@ export default function PreferenciasPage() {
     profissao: '',
     numeroRegistro: '',
     instituicao: 'CREA',
-    estadoRegistro: ''
+    estadoRegistro: '',
+    email: '',
+    uf: '',
+    telefone: '',
   });
 
   // Estados para Texto da Procuração
@@ -1763,6 +1769,67 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
                         </select>
                       </div>
                     )}
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">UF do Responsável Técnico</label>
+                      <select
+                        value={responsavelTecnico.uf || ''}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, uf: e.target.value }))}
+                        disabled={!editandoResponsavel}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">Selecione o estado</option>
+                        <option value="AC">Acre (AC)</option>
+                        <option value="AL">Alagoas (AL)</option>
+                        <option value="AP">Amapá (AP)</option>
+                        <option value="AM">Amazonas (AM)</option>
+                        <option value="BA">Bahia (BA)</option>
+                        <option value="CE">Ceará (CE)</option>
+                        <option value="DF">Distrito Federal (DF)</option>
+                        <option value="ES">Espírito Santo (ES)</option>
+                        <option value="GO">Goiás (GO)</option>
+                        <option value="MA">Maranhão (MA)</option>
+                        <option value="MT">Mato Grosso (MT)</option>
+                        <option value="MS">Mato Grosso do Sul (MS)</option>
+                        <option value="MG">Minas Gerais (MG)</option>
+                        <option value="PA">Pará (PA)</option>
+                        <option value="PB">Paraíba (PB)</option>
+                        <option value="PR">Paraná (PR)</option>
+                        <option value="PE">Pernambuco (PE)</option>
+                        <option value="PI">Piauí (PI)</option>
+                        <option value="RJ">Rio de Janeiro (RJ)</option>
+                        <option value="RN">Rio Grande do Norte (RN)</option>
+                        <option value="RS">Rio Grande do Sul (RS)</option>
+                        <option value="RO">Rondônia (RO)</option>
+                        <option value="RR">Roraima (RR)</option>
+                        <option value="SC">Santa Catarina (SC)</option>
+                        <option value="SP">São Paulo (SP)</option>
+                        <option value="SE">Sergipe (SE)</option>
+                        <option value="TO">Tocantins (TO)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">E-mail do Responsável Técnico</label>
+                      <Input
+                        type="email"
+                        value={responsavelTecnico.email || ''}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="Ex: gabriel@empresa.com"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Telefone do Responsável Técnico</label>
+                      <Input
+                        type="text"
+                        value={responsavelTecnico.telefone || ''}
+                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, telefone: e.target.value }))}
+                        placeholder="Ex: (48) 9 9900-0387"
+                        disabled={!editandoResponsavel}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4 border-t">

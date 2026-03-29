@@ -326,6 +326,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             responsavel_nome: rt.nomeCompleto || '',
             responsavel_profissao: rt.profissao || '',
             responsavel_registro: rt.numeroRegistro || '',
+            ...(rt.email ? { responsavel_email: rt.email } : {}),
+            ...(rt.uf ? { responsavel_uf: rt.uf } : {}),
           };
           setResponsavelPrefs(mapped);
           if (!useOutroResponsavel) {
@@ -334,7 +336,11 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
               ...Object.fromEntries(Object.entries(mapped).filter(([k]) => !prev[k])),
               // Também preenche Responsável Legal se ainda não foi preenchido
               ...(!prev.responsavel_legal_nome && !useOutroResponsavelLegal
-                ? { responsavel_legal_nome: rt.nomeCompleto }
+                ? {
+                    responsavel_legal_nome: rt.nomeCompleto,
+                    ...(!prev.responsavel_legal_email && rt.email ? { responsavel_legal_email: rt.email } : {}),
+                    ...(!prev.responsavel_legal_telefone && rt.telefone ? { responsavel_legal_telefone: rt.telefone } : {}),
+                  }
                 : {}),
             }));
           }
