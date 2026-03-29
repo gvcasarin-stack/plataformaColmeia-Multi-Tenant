@@ -207,6 +207,12 @@ const styles = StyleSheet.create({
   figureImage: {
     maxWidth: '100%',
     maxHeight: 180,
+    objectFit: 'contain',
+  },
+  placaImage: {
+    width: 260,
+    height: 185,
+    objectFit: 'contain',
   },
   figureCaption: {
     fontSize: 8,
@@ -923,7 +929,7 @@ export function MemorialDescritivoPDF({
             <View style={styles.imageContainer}>
               <Image
                 src={placaAdvertencia.imagem_url}
-                style={styles.figureImage}
+                style={styles.placaImage}
                 cache={false}
               />
               <Text style={styles.figureCaption}>Figura 4: Placa de advertência.</Text>
