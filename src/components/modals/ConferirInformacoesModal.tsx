@@ -230,6 +230,24 @@ function initSkippedFields(fields: Record<string, any>): Set<string> {
   return skipped;
 }
 
+// Detecta quais campos default_with_custom têm valor salvo diferente do seu default padrão,
+// para manter o checkbox "Usar outro valor" marcado ao reabrir o modal.
+function initCustomOverrides(fields: Record<string, any>): Set<string> {
+  const overrides = new Set<string>();
+  for (const field of FIELD_DEFINITIONS) {
+    if (field.type !== 'default_with_custom') continue;
+    const savedVal = fields[field.key];
+    if (savedVal === undefined || savedVal === null || savedVal === '') continue;
+    const defaultVal = typeof field.defaultValue === 'function'
+      ? field.defaultValue(fields)
+      : field.defaultValue;
+    if (String(savedVal) !== String(defaultVal)) {
+      overrides.add(field.key);
+    }
+  }
+  return overrides;
+}
+
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
   const [localFields, setLocalFields] = useState<Record<string, any>>({ ...fields });
   const [skippedFields, setSkippedFields] = useState<Set<string>>(() => initSkippedFields(fields));
@@ -249,7 +267,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     if (!open) return;
     setLocalFields({ ...fields });
     setSkippedFields(initSkippedFields(fields));
-    setCustomOverrides(new Set());
+    setCustomOverrides(initCustomOverrides(fields));
     setPlantaPreview(fields.planta_situacao_url && fields.planta_situacao_url !== 'nao_incluir' ? fields.planta_situacao_url : null);
     setPlantaFile(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,7 +283,10 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Auto-fill default_with_custom fields when modal opens or modulos_quantidade changes
+  // Auto-fill default_with_custom fields when modal opens or modulos_quantidade changes.
+  // Regra:
+  //   - Campo com defaultValue fixo (string): só preenche se estiver vazio
+  //   - Campo com defaultValue computado (função): recomputa sempre que não estiver em customOverrides
   useEffect(() => {
     if (!open) return;
     setLocalFields(prev => {
@@ -273,9 +294,14 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       for (const field of FIELD_DEFINITIONS) {
         if (field.type !== 'default_with_custom') continue;
         if (customOverrides.has(field.key)) continue;
-        const defaultVal = typeof field.defaultValue === 'function'
-          ? field.defaultValue(prev)
-          : field.defaultValue;
+        const isComputed = typeof field.defaultValue === 'function';
+        const currentVal = prev[field.key];
+        const isEmpty = currentVal === undefined || currentVal === null || currentVal === '';
+        // Para defaults estáticos, só aplica se o campo estiver vazio
+        if (!isComputed && !isEmpty) continue;
+        const defaultVal = isComputed
+          ? (field.defaultValue as (f: Record<string, any>) => string)(prev)
+          : field.defaultValue as string;
         if (defaultVal !== undefined && defaultVal !== '') {
           updates[field.key] = defaultVal;
         }
