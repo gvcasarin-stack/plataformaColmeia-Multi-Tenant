@@ -131,28 +131,18 @@ export async function PUT(
     const body = await request.json();
     const supabase = createSupabaseServiceRoleClient();
 
-    // 1. Verificar quais colunas existem na tabela
-    const { data: columns, error: colError } = await supabase
-      .rpc('get_table_columns', { table_name: 'projects' })
-      .select('*');
-
+    // 1. Detectar colunas existentes via select('*') — sempre reflete o schema atual do banco
     let existingColumns: string[] = [];
-    let columnCheckMethod = 'rpc';
+    const columnCheckMethod = 'select_star';
 
-    if (colError) {
-      // Fallback: tentar buscar o projeto e ver quais campos retornam
-      columnCheckMethod = 'fallback_select';
-      const { data: proj } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single();
+    const { data: proj } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
 
-      if (proj) {
-        existingColumns = Object.keys(proj);
-      }
-    } else {
-      existingColumns = (columns || []).map((c: any) => c.column_name || c);
+    if (proj) {
+      existingColumns = Object.keys(proj);
     }
 
     // 2. Construir updateData apenas com colunas que existem
