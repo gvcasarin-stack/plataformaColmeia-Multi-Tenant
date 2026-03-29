@@ -261,6 +261,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   const [useOutroResponsavel, setUseOutroResponsavel] = useState(false);
   const [responsavelPrefs, setResponsavelPrefs] = useState<Record<string, string> | null>(null);
   const [responsavelLoading, setResponsavelLoading] = useState(false);
+  const [useOutroResponsavelLegal, setUseOutroResponsavelLegal] = useState(false);
   const [useCustomDate, setUseCustomDate] = useState(false);
 
   useEffect(() => {
@@ -268,6 +269,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     setLocalFields({ ...fields });
     setSkippedFields(initSkippedFields(fields));
     setCustomOverrides(initCustomOverrides(fields));
+    setUseOutroResponsavelLegal(false);
     setPlantaPreview(fields.planta_situacao_url && fields.planta_situacao_url !== 'nao_incluir' ? fields.planta_situacao_url : null);
     setPlantaFile(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,12 +332,34 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             setLocalFields(prev => ({
               ...prev,
               ...Object.fromEntries(Object.entries(mapped).filter(([k]) => !prev[k])),
+              // Também preenche Responsável Legal se ainda não foi preenchido
+              ...(!prev.responsavel_legal_nome && !useOutroResponsavelLegal
+                ? { responsavel_legal_nome: rt.nomeCompleto }
+                : {}),
             }));
           }
         }
       })
       .catch(() => {})
       .finally(() => setResponsavelLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Quando o RT já está preenchido (dados salvos), copia para o Responsável Legal se este estiver vazio
+  useEffect(() => {
+    if (!open) return;
+    if (useOutroResponsavelLegal) return;
+    setLocalFields(prev => {
+      if (prev.responsavel_legal_nome) return prev;
+      if (!prev.responsavel_nome) return prev;
+      return {
+        ...prev,
+        responsavel_legal_nome: prev.responsavel_nome,
+        ...(!prev.responsavel_legal_email && prev.responsavel_email
+          ? { responsavel_legal_email: prev.responsavel_email }
+          : {}),
+      };
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -812,6 +836,44 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                   {groupFields.filter(f => isFieldFilled(f.key)).length}/{groupFields.length}
                 </span>
               </h3>
+              {groupName === 'Responsável Legal' && (
+                <div className="mb-3 space-y-2">
+                  <div className="rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <Info className="h-3.5 w-3.5 inline mr-1" />
+                      O nome do responsável legal é preenchido automaticamente com os dados do Responsável Técnico.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="use-outro-responsavel-legal"
+                      checked={useOutroResponsavelLegal}
+                      onCheckedChange={(checked) => {
+                        const isChecked = !!checked;
+                        setUseOutroResponsavelLegal(isChecked);
+                        if (!isChecked) {
+                          setLocalFields(prev => ({
+                            ...prev,
+                            responsavel_legal_nome: prev.responsavel_nome || '',
+                            ...(!prev.responsavel_legal_email && prev.responsavel_email
+                              ? { responsavel_legal_email: prev.responsavel_email }
+                              : {}),
+                          }));
+                        } else {
+                          setLocalFields(prev => ({
+                            ...prev,
+                            responsavel_legal_nome: '',
+                            responsavel_legal_email: '',
+                          }));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="use-outro-responsavel-legal" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                      Utilizar outro responsável legal (diferente do técnico)
+                    </Label>
+                  </div>
+                </div>
+              )}
               {groupName === 'Responsável Técnico' && (
                 <div className="mb-3 space-y-2">
                   {responsavelLoading ? (
