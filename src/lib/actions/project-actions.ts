@@ -2510,8 +2510,51 @@ export async function getProjectAction(projectId: string): Promise<{
       responsavel_nome: data.responsavel_nome || undefined,
       responsavel_profissao: data.responsavel_profissao || undefined,
       responsavel_registro: data.responsavel_registro || undefined,
+      responsavel_email: data.responsavel_email || undefined,
+      responsavel_uf: data.responsavel_uf || undefined,
       data_documento: data.data_documento || undefined,
       secao_aterramento_mm2: data.secao_aterramento_mm2 || undefined,
+
+      // Formulário de Solicitação de Acesso
+      cliente_cep: data.cliente_cep || undefined,
+      cliente_email: data.cliente_email || undefined,
+      cliente_celular: data.cliente_celular || undefined,
+      cliente_telefone_fixo: data.cliente_telefone_fixo || undefined,
+      responsavel_legal_nome: data.responsavel_legal_nome || undefined,
+      responsavel_legal_telefone: data.responsavel_legal_telefone || undefined,
+      responsavel_legal_email: data.responsavel_legal_email || undefined,
+      tipo_solicitacao: data.tipo_solicitacao || undefined,
+      tarifa_branca: data.tarifa_branca || undefined,
+      possui_cargas_especiais: data.possui_cargas_especiais || undefined,
+      carga_declarada_kw: data.carga_declarada_kw || undefined,
+      potencia_disponibilizada_kw: data.potencia_disponibilizada_kw || undefined,
+      data_inicio_operacao: data.data_inicio_operacao || undefined,
+      modulos_area_m2: data.modulos_area_m2 || undefined,
+
+      // Inversores - campos extras
+      inversores_faixa_tensao: data.inversores_faixa_tensao || undefined,
+      inversores_corrente_nominal: data.inversores_corrente_nominal || undefined,
+      inversores_fator_potencia: data.inversores_fator_potencia || undefined,
+      inversores_rendimento: data.inversores_rendimento || undefined,
+      inversores_dht_corrente: data.inversores_dht_corrente || undefined,
+
+      // Características físicas dos módulos (Tabela 4)
+      modulos_eficiencia: data.modulos_eficiencia || undefined,
+      modulos_comprimento_m: data.modulos_comprimento_m || undefined,
+      modulos_largura_m: data.modulos_largura_m || undefined,
+      modulos_area_unitaria_m2: data.modulos_area_unitaria_m2 || undefined,
+      modulos_peso_kg: data.modulos_peso_kg || undefined,
+
+      // Dimensionamento dos Cabos
+      cabo_isolacao_material: data.cabo_isolacao_material || undefined,
+      cabo_cc_secao_mm2: data.cabo_cc_secao_mm2 || undefined,
+      cabo_cc_capacidade_corrente_a: data.cabo_cc_capacidade_corrente_a || undefined,
+      cabo_cc_fator_temperatura: data.cabo_cc_fator_temperatura || undefined,
+      cabo_cc_fator_agrupamento: data.cabo_cc_fator_agrupamento || undefined,
+      cabo_ca_secao_mm2: data.cabo_ca_secao_mm2 || undefined,
+      cabo_ca_capacidade_corrente_a: data.cabo_ca_capacidade_corrente_a || undefined,
+      cabo_ca_fator_temperatura: data.cabo_ca_fator_temperatura || undefined,
+      cabo_ca_fator_agrupamento: data.cabo_ca_fator_agrupamento || undefined,
 
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',
