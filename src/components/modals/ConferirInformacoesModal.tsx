@@ -50,7 +50,7 @@ const ESTADOS_BR = [
   { value: 'TO', label: 'Tocantins (TO)' },
 ];
 
-type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select';
+type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom';
 
 interface FieldDef {
   key: string;
@@ -63,7 +63,23 @@ interface FieldDef {
   suffix?: string;
   group: string;
   acervoCategoria?: string;
+  defaultValue?: string | ((fields: Record<string, any>) => string);
 }
+
+const AGRUPAMENTO_OPTIONS = [
+  { value: '1', label: '1 (sem agrupamento)' },
+  { value: '0,8', label: '0,8 (2 circuitos agrupados)' },
+  { value: '0,7', label: '0,7 (3 circuitos)' },
+  { value: '0,65', label: '0,65 (4 circuitos)' },
+  { value: '0,6', label: '0,6 (5 circuitos)' },
+  { value: '0,57', label: '0,57 (6 circuitos)' },
+  { value: '0,54', label: '0,54 (7 circuitos)' },
+  { value: '0,52', label: '0,52 (8 circuitos)' },
+  { value: '0,5', label: '0,5 (de 9 a 11 circuitos)' },
+  { value: '0,45', label: '0,45 (de 12 a 15 circuitos)' },
+  { value: '0,41', label: '0,41 (de 16 a 19 circuitos)' },
+  { value: '0,38', label: '0,38 (>= 20 circuitos)' },
+];
 
 const FIELD_DEFINITIONS: FieldDef[] = [
   // Dados do Cliente
@@ -108,7 +124,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_fabricante', label: 'Fabricante dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_modelo', label: 'Modelo dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_potencia_wp', label: 'Potência dos Módulos (Wp)', type: 'text', required: true, suffix: 'Wp', group: 'Módulos Fotovoltaicos' },
-  { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'number', required: true, suffix: 'm²', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: (fields) => { const qty = parseFloat(String(fields.modulos_quantidade || '0')); return qty > 0 ? (qty * 2.5).toFixed(2).replace('.', ',') : ''; }, group: 'Módulos Fotovoltaicos' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
@@ -116,11 +132,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_modelo', label: 'Modelo dos Inversores', type: 'text', required: true, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_potencia', label: 'Potência dos Inversores (kW)', type: 'text', required: true, suffix: 'kW', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_tensao', label: 'Tensão Nominal dos Inversores', type: 'select', required: true, suffix: 'V', options: [{ value: '127', label: '127 V' }, { value: '220', label: '220 V' }, { value: '380', label: '380 V' }, { value: '800', label: '800 V' }], group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_faixa_tensao', label: 'Faixa de Tensão de Operação (V)', type: 'text', required: true, placeholder: 'Ex: 176 - 242', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_faixa_tensao', label: 'Faixa de Tensão de Operação (V)', type: 'default_with_custom', required: true, defaultValue: '176 - 242', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_corrente_nominal', label: 'Corrente Nominal (A)', type: 'number', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_fator_potencia', label: 'Fator de Potência', type: 'text', required: true, placeholder: 'Ex: 1 (Ajustável)', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_rendimento', label: 'Rendimento (%)', type: 'number', required: true, suffix: '%', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_dht_corrente', label: 'DHT de Corrente (%)', type: 'text', required: true, placeholder: 'Ex: < 3', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_fator_potencia', label: 'Fator de Potência', type: 'default_with_custom', required: true, defaultValue: '1 (Ajustável)', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_rendimento', label: 'Rendimento (%)', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '97,60', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_dht_corrente', label: 'DHT de Corrente (%)', type: 'default_with_custom', required: true, defaultValue: '< 3', group: 'Inversores Fotovoltaicos' },
 
   // Informações Técnicas
   { key: 'tipo_conexao', label: 'Tipo de Conexão', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Bifásico', label: 'Bifásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Informações Técnicas' },
@@ -150,14 +166,14 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação' },
 
   // Dimensionamento dos Cabos
-  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: false, suffix: 'mm²', placeholder: 'Ex: 4', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'number', required: false, suffix: 'A', placeholder: 'Ex: 35', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'number', required: false, placeholder: 'Ex: 1,00 (sem correção)', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'number', required: false, placeholder: 'Ex: 0,7 (três circuitos)', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_secao_mm2', label: 'CA — Seção Transversal (mm²)', type: 'number', required: false, suffix: 'mm²', placeholder: 'Ex: 10', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_capacidade_corrente_a', label: 'CA — Capacidade de Corrente Básica (A)', type: 'number', required: false, suffix: 'A', placeholder: 'Ex: 57', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_fator_temperatura', label: 'CA — Fator de Correção por Temperatura', type: 'number', required: false, placeholder: 'Ex: 0,94 (35°C)', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_fator_agrupamento', label: 'CA — Fator de Agrupamento', type: 'number', required: false, placeholder: 'Ex: 1,00 (sem agrupamento)', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'number', required: true, suffix: 'A', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'number', required: true, group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_secao_mm2', label: 'CA — Seção Transversal (mm²)', type: 'number', required: true, suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_capacidade_corrente_a', label: 'CA — Capacidade de Corrente Básica (A)', type: 'number', required: true, suffix: 'A', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_fator_temperatura', label: 'CA — Fator de Correção por Temperatura', type: 'number', required: true, group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_fator_agrupamento', label: 'CA — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
 ];
 
 interface ConferirInformacoesModalProps {
@@ -195,6 +211,7 @@ function initSkippedFields(fields: Record<string, any>): Set<string> {
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
   const [localFields, setLocalFields] = useState<Record<string, any>>({ ...fields });
   const [skippedFields, setSkippedFields] = useState<Set<string>>(() => initSkippedFields(fields));
+  const [customOverrides, setCustomOverrides] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [plantaPreview, setPlantaPreview] = useState<string | null>(fields.planta_situacao_url || null);
   const [plantaFile, setPlantaFile] = useState<File | null>(null);
@@ -210,6 +227,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     if (!open) return;
     setLocalFields({ ...fields });
     setSkippedFields(initSkippedFields(fields));
+    setCustomOverrides(new Set());
     setPlantaPreview(fields.planta_situacao_url && fields.planta_situacao_url !== 'nao_incluir' ? fields.planta_situacao_url : null);
     setPlantaFile(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,6 +242,26 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Auto-fill default_with_custom fields when modal opens or modulos_quantidade changes
+  useEffect(() => {
+    if (!open) return;
+    setLocalFields(prev => {
+      const updates: Record<string, any> = {};
+      for (const field of FIELD_DEFINITIONS) {
+        if (field.type !== 'default_with_custom') continue;
+        if (customOverrides.has(field.key)) continue;
+        const defaultVal = typeof field.defaultValue === 'function'
+          ? field.defaultValue(prev)
+          : field.defaultValue;
+        if (defaultVal !== undefined && defaultVal !== '') {
+          updates[field.key] = defaultVal;
+        }
+      }
+      return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, localFields.modulos_quantidade]);
 
   useEffect(() => {
     if (!open) return;
@@ -547,6 +585,47 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
               autoFocus
             />
           )}
+        </div>
+      );
+    }
+
+    if (field.type === 'default_with_custom') {
+      const isOverriding = customOverrides.has(field.key);
+      return (
+        <div className="space-y-2">
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => handleFieldChange(field.key, e.target.value)}
+            className="h-8 text-sm"
+            disabled={!isOverriding || isSkipped}
+          />
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={`override-${field.key}`}
+              checked={isOverriding}
+              onCheckedChange={(checked) => {
+                const nowOverriding = !!checked;
+                setCustomOverrides(prev => {
+                  const next = new Set(prev);
+                  if (nowOverriding) {
+                    next.add(field.key);
+                  } else {
+                    next.delete(field.key);
+                    // restore default
+                    const defaultVal = typeof field.defaultValue === 'function'
+                      ? field.defaultValue(localFields)
+                      : field.defaultValue;
+                    if (defaultVal !== undefined) handleFieldChange(field.key, defaultVal);
+                  }
+                  return next;
+                });
+              }}
+            />
+            <Label htmlFor={`override-${field.key}`} className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+              Usar outro valor
+            </Label>
+          </div>
         </div>
       );
     }
