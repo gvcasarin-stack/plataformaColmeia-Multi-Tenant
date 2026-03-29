@@ -50,6 +50,13 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{responsavel_registro}}': 'responsavel_registro',
   '{{data}}': 'data_documento',
   '{{secao_aterramento_mm2}}': 'secao_aterramento_mm2',
+  // Módulos — características físicas
+  '{{modulos_eficiencia}}': 'modulos_eficiencia',
+  '{{modulos_comprimento_m}}': 'modulos_comprimento_m',
+  '{{modulos_largura_m}}': 'modulos_largura_m',
+  '{{modulos_area_unitaria_m2}}': 'modulos_area_unitaria_m2',
+  '{{modulos_peso_kg}}': 'modulos_peso_kg',
+  '{{cabo_isolacao_material}}': 'cabo_isolacao_material',
   // Dimensionamento dos Cabos
   '{{cabo_cc_secao_mm2}}': 'cabo_cc_secao_mm2',
   '{{cabo_cc_capacidade_corrente_a}}': 'cabo_cc_capacidade_corrente_a',
@@ -598,11 +605,11 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
             <tr><td className={tdLabelClass}>Corrente de curto-circuito – Isc [A]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
             <tr><td className={tdLabelClass}>Tensão de máxima potência – Vpmp [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
             <tr><td className={tdLabelClass}>Corrente de máxima potência – Ipmp [A]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Eficiência [%]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Comprimento [m]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Largura [m]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Área [m²]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Peso [kg]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
+            <tr><td className={tdLabelClass}>Eficiência [%]</td><td className={tdClass}><V>{`{{modulos_eficiencia}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Comprimento [m]</td><td className={tdClass}><V>{`{{modulos_comprimento_m}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Largura [m]</td><td className={tdClass}><V>{`{{modulos_largura_m}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Área [m²]</td><td className={tdClass}><V>{`{{modulos_area_unitaria_m2}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Peso [kg]</td><td className={tdClass}><V>{`{{modulos_peso_kg}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Quantidade</td><td className={tdClass}><V>{`{{modulos_quantidade}}`}</V></td></tr>
             <tr><td className={tdLabelClass}><strong>Potência total instalada</strong></td><td className={tdClass}><V>{`{{modulos_quantidade}}`}</V> × <V>{`{{modulos_potencia_wp}}`}</V> Wp = <strong><V>{`{{potencia}}`}</V> kWp</strong></td></tr>
           </tbody>

@@ -52,6 +52,12 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{responsavel_registro}}': 'responsavel_registro',
   '{{data}}': 'data_documento',
   '{{secao_aterramento_mm2}}': 'secao_aterramento_mm2',
+  '{{modulos_eficiencia}}': 'modulos_eficiencia',
+  '{{modulos_comprimento_m}}': 'modulos_comprimento_m',
+  '{{modulos_largura_m}}': 'modulos_largura_m',
+  '{{modulos_area_unitaria_m2}}': 'modulos_area_unitaria_m2',
+  '{{modulos_peso_kg}}': 'modulos_peso_kg',
+  '{{cabo_isolacao_material}}': 'cabo_isolacao_material',
   '{{cabo_cc_secao_mm2}}': 'cabo_cc_secao_mm2',
   '{{cabo_cc_capacidade_corrente_a}}': 'cabo_cc_capacidade_corrente_a',
   '{{cabo_cc_fator_temperatura}}': 'cabo_cc_fator_temperatura',
@@ -739,11 +745,11 @@ export function MemorialDescritivoPDF({
             <InfoRow label="Corrente de curto-circuito – Isc [A]" value="A preencher" />
             <InfoRow label="Tensão de máxima potência – Vpmp [V]" value="A preencher" />
             <InfoRow label="Corrente de máxima potência – Ipmp [A]" value="A preencher" />
-            <InfoRow label="Eficiência [%]" value="A preencher" />
-            <InfoRow label="Comprimento [m]" value="A preencher" />
-            <InfoRow label="Largura [m]" value="A preencher" />
-            <InfoRow label="Área [m²]" value="A preencher" />
-            <InfoRow label="Peso [kg]" value="A preencher" />
+            <InfoRow label="Eficiência [%]" value={v('modulos_eficiencia', projectData)} />
+            <InfoRow label="Comprimento [m]" value={v('modulos_comprimento_m', projectData)} />
+            <InfoRow label="Largura [m]" value={v('modulos_largura_m', projectData)} />
+            <InfoRow label="Área [m²]" value={v('modulos_area_unitaria_m2', projectData)} />
+            <InfoRow label="Peso [kg]" value={v('modulos_peso_kg', projectData)} />
             <InfoRow label="Quantidade" value={v('modulos_quantidade', projectData)} />
             <InfoRow
               label="Potência total instalada"

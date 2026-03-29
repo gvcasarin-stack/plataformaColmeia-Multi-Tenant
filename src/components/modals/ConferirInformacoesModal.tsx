@@ -50,7 +50,7 @@ const ESTADOS_BR = [
   { value: 'TO', label: 'Tocantins (TO)' },
 ];
 
-type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom';
+type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom' | 'temp_fator_select';
 
 interface FieldDef {
   key: string;
@@ -65,6 +65,22 @@ interface FieldDef {
   acervoCategoria?: string;
   defaultValue?: string | ((fields: Record<string, any>) => string);
 }
+
+const PVC_TEMP_OPTIONS = [
+  { value: '1,06', label: '1,06 (25ºC)' },
+  { value: '0,94', label: '0,94 (35ºC)' },
+  { value: '0,87', label: '0,87 (40ºC)' },
+  { value: '0,79', label: '0,79 (45ºC)' },
+  { value: '0,71', label: '0,71 (50ºC)' },
+];
+
+const EPR_TEMP_OPTIONS = [
+  { value: '1,04', label: '1,04 (25ºC)' },
+  { value: '0,96', label: '0,96 (35ºC)' },
+  { value: '0,91', label: '0,91 (40ºC)' },
+  { value: '0,87', label: '0,87 (45ºC)' },
+  { value: '0,82', label: '0,82 (50ºC)' },
+];
 
 const AGRUPAMENTO_OPTIONS = [
   { value: '1', label: '1 (sem agrupamento)' },
@@ -124,6 +140,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_fabricante', label: 'Fabricante dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_modelo', label: 'Modelo dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_potencia_wp', label: 'Potência dos Módulos (Wp)', type: 'text', required: true, suffix: 'Wp', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_eficiencia', label: 'Eficiência [%]', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '22,07', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_comprimento_m', label: 'Comprimento [m]', type: 'default_with_custom', required: true, suffix: 'm', defaultValue: '2,0', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_largura_m', label: 'Largura [m]', type: 'default_with_custom', required: true, suffix: 'm', defaultValue: '0,992', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_area_unitaria_m2', label: 'Área unitária do módulo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: '2,50', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_peso_kg', label: 'Peso [kg]', type: 'default_with_custom', required: true, suffix: 'kg', defaultValue: '22,2', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: (fields) => { const qty = parseFloat(String(fields.modulos_quantidade || '0')); return qty > 0 ? (qty * 2.5).toFixed(2).replace('.', ',') : ''; }, group: 'Módulos Fotovoltaicos' },
 
   // Inversores Fotovoltaicos
@@ -169,11 +190,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'PVC - 70ºC', label: 'PVC - 70ºC' }, { value: 'EPR/XLPE - 70ºC', label: 'EPR/XLPE - 70ºC' }], group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'number', required: true, suffix: 'A', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'number', required: true, group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_ca_secao_mm2', label: 'CA — Seção Transversal (mm²)', type: 'number', required: true, suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_ca_capacidade_corrente_a', label: 'CA — Capacidade de Corrente Básica (A)', type: 'number', required: true, suffix: 'A', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_fator_temperatura', label: 'CA — Fator de Correção por Temperatura', type: 'number', required: true, group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_fator_temperatura', label: 'CA — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_ca_fator_agrupamento', label: 'CA — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
 ];
 
@@ -587,6 +608,34 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             />
           )}
         </div>
+      );
+    }
+
+    if (field.type === 'temp_fator_select') {
+      const material = localFields.cabo_isolacao_material;
+      const isPVC = material === 'PVC - 70ºC';
+      const isEPR = typeof material === 'string' && material.startsWith('EPR');
+      const opts = isPVC ? PVC_TEMP_OPTIONS : isEPR ? EPR_TEMP_OPTIONS : null;
+
+      if (!material) {
+        return <p className="text-xs text-amber-600 italic">Selecione o Material de Isolação primeiro.</p>;
+      }
+
+      return (
+        <Select
+          value={value}
+          onValueChange={(val) => handleFieldChange(field.key, val)}
+          disabled={isSkipped}
+        >
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue placeholder="Selecione a temperatura" />
+          </SelectTrigger>
+          <SelectContent position="popper" side="bottom" className="max-h-60">
+            {(opts || []).map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       );
     }
 

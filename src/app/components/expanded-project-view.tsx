@@ -526,6 +526,12 @@ export const ExpandedProjectView = ({
     inversores_dht_corrente: (project as any).inversores_dht_corrente || '',
     responsavel_email: (project as any).responsavel_email || '',
     responsavel_uf: (project as any).responsavel_uf || '',
+    // Características físicas dos módulos (Tabela 4)
+    modulos_eficiencia: (project as any).modulos_eficiencia || '',
+    modulos_comprimento_m: (project as any).modulos_comprimento_m || '',
+    modulos_largura_m: (project as any).modulos_largura_m || '',
+    modulos_area_unitaria_m2: (project as any).modulos_area_unitaria_m2 || '',
+    modulos_peso_kg: (project as any).modulos_peso_kg || '',
     // Dimensionamento dos Cabos
     cabo_isolacao_material: (project as any).cabo_isolacao_material || '',
     cabo_cc_secao_mm2: (project as any).cabo_cc_secao_mm2 || '',

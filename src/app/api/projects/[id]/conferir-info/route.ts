@@ -25,6 +25,7 @@ const CONFERIR_FIELDS = [
   'tipo_solicitacao', 'tarifa_branca', 'possui_cargas_especiais',
   'carga_declarada_kw', 'potencia_disponibilizada_kw', 'data_inicio_operacao',
   'modulos_area_m2',
+  'modulos_eficiencia', 'modulos_comprimento_m', 'modulos_largura_m', 'modulos_area_unitaria_m2', 'modulos_peso_kg',
   'inversores_faixa_tensao', 'inversores_corrente_nominal', 'inversores_fator_potencia',
   'inversores_rendimento', 'inversores_dht_corrente',
   'responsavel_email', 'responsavel_uf',
