@@ -150,8 +150,51 @@ export interface Project {
   responsavel_nome?: string;
   responsavel_profissao?: string;
   responsavel_registro?: string;
+  responsavel_email?: string;
+  responsavel_uf?: string;
   data_documento?: string;
   secao_aterramento_mm2?: string;
+
+  // Formulário de Solicitação de Acesso
+  cliente_cep?: string;
+  cliente_email?: string;
+  cliente_celular?: string;
+  cliente_telefone_fixo?: string;
+  responsavel_legal_nome?: string;
+  responsavel_legal_telefone?: string;
+  responsavel_legal_email?: string;
+  tipo_solicitacao?: string;
+  tarifa_branca?: string;
+  possui_cargas_especiais?: string;
+  carga_declarada_kw?: string;
+  potencia_disponibilizada_kw?: string;
+  data_inicio_operacao?: string;
+  modulos_area_m2?: string;
+
+  // Inversores - campos extras
+  inversores_faixa_tensao?: string;
+  inversores_corrente_nominal?: string;
+  inversores_fator_potencia?: string;
+  inversores_rendimento?: string;
+  inversores_dht_corrente?: string;
+
+  // Características físicas dos módulos (Tabela 4)
+  modulos_eficiencia?: string;
+  modulos_comprimento_m?: string;
+  modulos_largura_m?: string;
+  modulos_area_unitaria_m2?: string;
+  modulos_peso_kg?: string;
+
+  // Dimensionamento dos Cabos
+  cabo_isolacao_material?: string;
+  cabo_cc_secao_mm2?: string;
+  cabo_cc_capacidade_corrente_a?: string;
+  cabo_cc_fator_temperatura?: string;
+  cabo_cc_fator_agrupamento?: string;
+  cabo_ca_secao_mm2?: string;
+  cabo_ca_capacidade_corrente_a?: string;
+  cabo_ca_fator_temperatura?: string;
+  cabo_ca_fator_agrupamento?: string;
 
   // ✅ Campos do Memorial Descritivo
   conta_contrato?: string;
