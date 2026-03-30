@@ -188,12 +188,12 @@ const FIELD_DEFINITIONS: FieldDef[] = [
 
   // Dimensionamento dos Cabos
   { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'PVC - 70ºC', label: 'PVC - 70ºC' }, { value: 'EPR/XLPE - 70ºC', label: 'EPR/XLPE - 70ºC' }], group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'number', required: true, suffix: 'A', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 4', suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_secao_mm2', label: 'CA — Seção Transversal (mm²)', type: 'number', required: true, suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_capacidade_corrente_a', label: 'CA — Capacidade de Corrente Básica (A)', type: 'number', required: true, suffix: 'A', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_secao_mm2', label: 'CA — Seção Transversal (mm²)', type: 'text', required: true, placeholder: 'Ex: 6', suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
+  { key: 'cabo_ca_capacidade_corrente_a', label: 'CA — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 41', suffix: 'A', group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_ca_fator_temperatura', label: 'CA — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_ca_fator_agrupamento', label: 'CA — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
 ];
