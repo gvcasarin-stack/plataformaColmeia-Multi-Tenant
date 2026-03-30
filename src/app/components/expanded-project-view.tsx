@@ -1387,13 +1387,9 @@ export const ExpandedProjectView = ({
     setEditedProject(prev => ({ ...prev, ...fieldsToSave }));
     setSelectedDistribuidoraGerarProjeto(fieldsToSave.distribuidora || selectedDistribuidoraGerarProjeto);
 
-    const caboDebug = ['cabo_isolacao_material','cabo_cc_secao_mm2','cabo_cc_capacidade_corrente_a','cabo_ca_secao_mm2','cabo_ca_capacidade_corrente_a']
-      .map(k => `${k}=${JSON.stringify(fieldsToSave[k] ?? '(vazio)')}`)
-      .join(' | ');
     toast({
       title: "Progresso salvo",
-      description: `${result.debug?.savedFields?.length || 0} campos salvos. DEBUG CABOS: ${caboDebug}`,
-      duration: 30000,
+      description: `${result.debug?.savedFields?.length || 0} campos salvos no banco de dados.`,
     });
   };
 

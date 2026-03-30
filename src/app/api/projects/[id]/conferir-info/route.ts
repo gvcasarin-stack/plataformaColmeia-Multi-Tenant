@@ -36,6 +36,7 @@ const CONFERIR_FIELDS = [
 ];
 
 // GET: Diagnóstico — colar no navegador para ver o estado do projeto
+// ?write_test=1  → testa gravar valores dummy nos 4 campos vazios de cabo e relata o resultado
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -43,6 +44,33 @@ export async function GET(
   try {
     const projectId = params.id;
     const supabase = createSupabaseServiceRoleClient();
+    const url = new URL(request.url);
+    const writeTest = url.searchParams.get('write_test') === '1';
+
+    // MODO WRITE TEST: grava valores de teste nos campos cabo vazios e relata
+    if (writeTest) {
+      const testValues = {
+        cabo_cc_secao_mm2: 'TESTE_4',
+        cabo_cc_capacidade_corrente_a: 'TESTE_36',
+        cabo_ca_secao_mm2: 'TESTE_6',
+        cabo_ca_capacidade_corrente_a: 'TESTE_41',
+        updated_at: new Date().toISOString(),
+      };
+      const { error: writeErr } = await supabase
+        .from('projects')
+        .update(testValues)
+        .eq('id', projectId);
+      if (writeErr) {
+        return NextResponse.json({ write_test: 'FALHOU', erro: writeErr.message, testValues });
+      }
+      // Ler de volta para confirmar
+      const { data: afterWrite } = await supabase
+        .from('projects')
+        .select('cabo_cc_secao_mm2, cabo_cc_capacidade_corrente_a, cabo_ca_secao_mm2, cabo_ca_capacidade_corrente_a')
+        .eq('id', projectId)
+        .single();
+      return NextResponse.json({ write_test: 'OK', gravado: testValues, lido_de_volta: afterWrite });
+    }
 
     // 1. Buscar o projeto completo
     const { data: project, error: fetchError } = await supabase
