@@ -835,6 +835,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       );
     }
 
+    const isUppercaseField = field.type === 'text' && !field.key.includes('email') && !PHONE_FIELDS.has(field.key) && !CEP_FIELDS.has(field.key);
     return (
       <Input
         type={field.type === 'number' ? 'number' : 'text'}
@@ -852,7 +853,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           handleFieldChange(field.key, v);
         }}
         placeholder={field.placeholder || ''}
-        className="h-8 text-sm"
+        className={`h-8 text-sm${isUppercaseField ? ' uppercase' : ''}`}
         disabled={isSkipped}
       />
     );

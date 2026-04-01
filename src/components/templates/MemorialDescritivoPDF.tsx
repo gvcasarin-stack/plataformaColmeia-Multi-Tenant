@@ -79,6 +79,17 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{cabo_ca_fator_agrupamento}}': 'cabo_ca_fator_agrupamento',
 };
 
+const STATE_NAMES: Record<string, string> = {
+  AC: 'ACRE', AL: 'ALAGOAS', AP: 'AMAPÁ', AM: 'AMAZONAS', BA: 'BAHIA',
+  CE: 'CEARÁ', DF: 'DISTRITO FEDERAL', ES: 'ESPÍRITO SANTO', GO: 'GOIÁS',
+  MA: 'MARANHÃO', MT: 'MATO GROSSO', MS: 'MATO GROSSO DO SUL',
+  MG: 'MINAS GERAIS', PA: 'PARÁ', PB: 'PARAÍBA', PR: 'PARANÁ',
+  PE: 'PERNAMBUCO', PI: 'PIAUÍ', RJ: 'RIO DE JANEIRO',
+  RN: 'RIO GRANDE DO NORTE', RS: 'RIO GRANDE DO SUL', RO: 'RONDÔNIA',
+  RR: 'RORAIMA', SC: 'SANTA CATARINA', SP: 'SÃO PAULO', SE: 'SERGIPE',
+  TO: 'TOCANTINS',
+};
+
 function v(placeholder: string, projectData?: Record<string, any>): string {
   const fieldKey = PLACEHOLDER_MAP[`{{${placeholder}}}`];
   const raw = fieldKey && projectData ? projectData[fieldKey] : undefined;
@@ -87,7 +98,11 @@ function v(placeholder: string, projectData?: Record<string, any>): string {
     if (!isNaN(num) && ['potencia'].includes(fieldKey)) {
       return num.toFixed(2).replace('.', ',');
     }
-    return String(raw);
+    if (fieldKey === 'client_state') {
+      const abbr = String(raw).toUpperCase();
+      return STATE_NAMES[abbr] || abbr;
+    }
+    return String(raw).toUpperCase();
   }
   return '___';
 }
@@ -467,20 +482,20 @@ export function MemorialDescritivoPDF({
             Para elaboração deste memorial técnico descritivo, no âmbito da área de concessão do estado
             do {estado} foram utilizadas as normas e resoluções, nas respectivas revisões vigentes, conforme descritas abaixo:
           </Text>
-          <Li>1. ABNT NBR 5410: Instalações Elétricas de Baixa Tensão.</Li>
-          <Li>2. ABNT NBR 10899: Energia Solar Fotovoltaica – Terminologia.</Li>
-          <Li>3. ABNT NBR 11704: Sistemas Fotovoltaicos – Classificação.</Li>
-          <Li>4. ABNT NBR 16149: Sistemas fotovoltaicos (FV) – Características da interface de conexão com a rede elétrica de distribuição.</Li>
-          <Li>5. ABNT NBR 16150: Sistemas fotovoltaicos (FV) – Características da interface de conexão com a rede elétrica de distribuição – Procedimentos de ensaio de conformidade.</Li>
-          <Li>6. ABNT NBR IEC 62116: Procedimento de Ensaio de Anti-ilhamento para Inversores de Sistemas Fotovoltaicos Conectados à Rede Elétrica.</Li>
-          <Li>{`7. ${distribuidora} – Normas e Padrões – Conexão de Microgeração Distribuída ao Sistema de Baixa Tensão.`}</Li>
-          <Li>{`8. ${distribuidora} – Normas e Padrões – Fornecimento de Energia Elétrica em Baixa Tensão.`}</Li>
-          <Li>{`9. ${distribuidora} – Normas e Padrões – Padrões Construtivos de Caixas de Medição e Proteção.`}</Li>
-          <Li>10. ANEEL Procedimentos de Distribuição de Energia Elétrica no Sistema Elétrico Nacional – PRODIST: Módulo 3 – Acesso ao Sistema de Distribuição. Revisão 6. 2016, Seção 3.7.</Li>
-          <Li>11. ANEEL Resolução Normativa nº 1000, de 07 de dezembro de 2021, que estabelece as condições gerais de fornecimento de energia elétrica.</Li>
-          <Li>12. ANEEL Resolução Normativa ANEEL nº 482, de 17 de abril de 2012, que estabelece as condições gerais para o acesso de micro geração e mini geração distribuída aos sistemas de distribuição de energia elétrica e o sistema de compensação de energia elétrica.</Li>
-          <Li>13. IEC 61727 Photovoltaic (PV) Systems - Characteristics of the Utility Interface.</Li>
-          <Li>14. IEC 62116:2014 Utility-interconnected photovoltaic inverters - Test procedure of islanding prevention measures.</Li>
+          <Li>a)  ABNT NBR 5410: Instalações Elétricas de Baixa Tensão.</Li>
+          <Li>b)  ABNT NBR 10899: Energia Solar Fotovoltaica – Terminologia.</Li>
+          <Li>c)  ABNT NBR 11704: Sistemas Fotovoltaicos – Classificação.</Li>
+          <Li>d)  ABNT NBR 16149: Sistemas fotovoltaicos (FV) – Características da interface de conexão com a rede elétrica de distribuição.</Li>
+          <Li>e)  ABNT NBR 16150: Sistemas fotovoltaicos (FV) – Características da interface de conexão com a rede elétrica de distribuição – Procedimentos de ensaio de conformidade.</Li>
+          <Li>f)  ABNT NBR IEC 62116: Procedimento de Ensaio de Anti-ilhamento para Inversores de Sistemas Fotovoltaicos Conectados à Rede Elétrica.</Li>
+          <Li>g)  EQUATORIAL ENERGIA NT.020.EQTL.Normas e Padrões – Conexão de Microgeração Distribuída ao Sistema de Baixa Tensão.</Li>
+          <Li>h)  EQUATORIAL ENERGIA NT.001.EQTL.Normas e Padrões – Fornecimento de Energia Elétrica em Baixa Tensão.</Li>
+          <Li>i)  EQUATORIAL ENERGIA NT.030.EQTL.Normas e Padrões - Padrões Construtivos de Caixas de Medição e Proteção.</Li>
+          <Li>j)  ANEEL Procedimentos de Distribuição de Energia Elétrica no Sistema Elétrico Nacional – PRODIST: Módulo 3 – Acesso ao Sistema de Distribuição. Revisão 6. 2016, Seção 3.7.</Li>
+          <Li>k)  ANEEL Resolução Normativa nº 1000, de 07 de dezembro de 2021, que estabelece as condições gerais de fornecimento de energia elétrica.</Li>
+          <Li>l)  ANEEL Resolução Normativa ANEEL nº 482, de 17 de abril de 2012, que estabelece as condições gerais para o acesso de micro geração e mini geração distribuída aos sistemas de distribuição de energia elétrica e o sistema de compensação de energia elétrica.</Li>
+          <Li>m)  IEC 61727 Photovoltaic (PV) Systems - Characteristics of the Utility Interface.</Li>
+          <Li>n)  IEC 62116:2014 Utility-interconnected photovoltaic inverters - Test procedure of islanding prevention measures.</Li>
         </View>
 
         {/* ==================== 3. DOCUMENTOS OBRIGATÓRIOS ==================== */}
