@@ -333,7 +333,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           if (!useOutroResponsavel) {
             setLocalFields(prev => ({
               ...prev,
-              ...Object.fromEntries(Object.entries(mapped).filter(([k]) => !prev[k])),
+              ...Object.fromEntries(Object.entries(mapped).filter(([k]) => !k.startsWith('_') && !prev[k])),
               // Preenche Responsável Legal com dados do técnico (nome só se vazio, email/telefone sempre se vazios)
               ...(!useOutroResponsavelLegal
                 ? {

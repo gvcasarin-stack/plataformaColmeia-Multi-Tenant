@@ -188,7 +188,7 @@ export async function PUT(
     for (const [key, value] of Object.entries(body.fields || {})) {
       const dbColumn = fieldMapping[key] || key;
 
-      if (dbColumn === 'id' || dbColumn === '_plantaFile') continue;
+      if (dbColumn === 'id' || dbColumn.startsWith('_')) continue;
 
       if (existingColumns.length === 0 || existingColumns.includes(dbColumn)) {
         if (value !== undefined && value !== null && value !== '') {
