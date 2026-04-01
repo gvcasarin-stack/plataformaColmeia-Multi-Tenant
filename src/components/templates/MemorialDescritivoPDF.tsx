@@ -90,13 +90,22 @@ const STATE_NAMES: Record<string, string> = {
   TO: 'TOCANTINS',
 };
 
+const DECIMAL_FIELDS = new Set([
+  'potencia',
+  'inversores_potencia',
+  'inversores_potencia_max_saida',
+  'secao_aterramento_mm2',
+  'cabo_cc_secao_mm2',
+  'cabo_ca_secao_mm2',
+]);
+
 function v(placeholder: string, projectData?: Record<string, any>): string {
   const fieldKey = PLACEHOLDER_MAP[`{{${placeholder}}}`];
   const raw = fieldKey && projectData ? projectData[fieldKey] : undefined;
   if (raw !== undefined && raw !== null && raw !== '' && raw !== 0) {
-    const num = parseFloat(String(raw));
-    if (!isNaN(num) && ['potencia'].includes(fieldKey)) {
-      return num.toFixed(2).replace('.', ',');
+    if (fieldKey && DECIMAL_FIELDS.has(fieldKey)) {
+      const num = parseFloat(String(raw));
+      if (!isNaN(num)) return num.toFixed(2).replace('.', ',');
     }
     if (fieldKey === 'client_state') {
       const abbr = String(raw).toUpperCase();

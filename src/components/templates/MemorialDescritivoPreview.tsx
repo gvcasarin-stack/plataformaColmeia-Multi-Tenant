@@ -243,7 +243,14 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
     },
     { C: 0, E: 0, G: 0, H: 0 }
   );
-  const DECIMAL_FIELDS = ['potencia'];
+  const DECIMAL_FIELDS = [
+    'potencia',
+    'inversores_potencia',
+    'inversores_potencia_max_saida',
+    'secao_aterramento_mm2',
+    'cabo_cc_secao_mm2',
+    'cabo_ca_secao_mm2',
+  ];
 
   const handleSpacingChange = useCallback((id: string, delta: number) => {
     setSpacings(prev => {
