@@ -122,11 +122,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
   { key: 'data_documento', label: 'Data do Documento', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
   { key: 'tipo_solicitacao', label: 'Tipo de Solicitação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [
-    { value: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA', label: 'Ligação nova com GD' },
-    { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão GD em UC existente sem aumento de PD' },
-    { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão GD em UC existente com aumento de PD' },
-    { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Aumento potência GD existente sem aumento de PD' },
-    { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Aumento potência GD existente com aumento de PD' },
+    { value: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA', label: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA' },
+    { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
+    { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
+    { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
+    { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
   ], group: 'Dados do Projeto' },
   { key: 'tarifa_branca', label: 'Tarifa Branca?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
   { key: 'possui_cargas_especiais', label: 'Possui Cargas Especiais?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
@@ -304,8 +304,16 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
 
   useEffect(() => {
     if (!open) return;
-    setLocalFields({ ...fields });
-    setSkippedFields(initSkippedFields(fields));
+    // Aplica formatação nos campos de telefone e CEP ao carregar valores salvos
+    const formatted = { ...fields };
+    for (const key of PHONE_FIELDS) {
+      if (formatted[key]) formatted[key] = formatPhone(String(formatted[key]));
+    }
+    for (const key of CEP_FIELDS) {
+      if (formatted[key]) formatted[key] = formatCEP(String(formatted[key]));
+    }
+    setLocalFields(formatted);
+    setSkippedFields(initSkippedFields(formatted));
     setCustomOverrides(initCustomOverrides(fields));
     setUseOutroResponsavelLegal(false);
     setPlantaPreview(fields.planta_situacao_url && fields.planta_situacao_url !== 'nao_incluir' ? fields.planta_situacao_url : null);
@@ -377,7 +385,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                 ? {
                     ...(!prev.responsavel_legal_nome ? { responsavel_legal_nome: rt.nomeCompleto } : {}),
                     ...(!prev.responsavel_legal_email && rt.email ? { responsavel_legal_email: rt.email } : {}),
-                    ...(!prev.responsavel_legal_telefone && rt.telefone ? { responsavel_legal_telefone: rt.telefone } : {}),
+                    ...(!prev.responsavel_legal_telefone && rt.telefone ? { responsavel_legal_telefone: formatPhone(rt.telefone) } : {}),
                   }
                 : {}),
             }));
@@ -925,7 +933,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                             ...prev,
                             responsavel_legal_nome: prev.responsavel_nome || '',
                             ...(prev.responsavel_email ? { responsavel_legal_email: prev.responsavel_email } : {}),
-                            ...(responsavelPrefs?._telefone ? { responsavel_legal_telefone: responsavelPrefs._telefone } : {}),
+                            ...(responsavelPrefs?._telefone ? { responsavel_legal_telefone: formatPhone(responsavelPrefs._telefone) } : {}),
                           }));
                         } else {
                           setLocalFields(prev => ({

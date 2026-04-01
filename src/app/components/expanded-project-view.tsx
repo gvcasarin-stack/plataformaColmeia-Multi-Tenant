@@ -524,6 +524,14 @@ export const ExpandedProjectView = ({
     inversores_fator_potencia: (project as any).inversores_fator_potencia || '',
     inversores_rendimento: (project as any).inversores_rendimento || '',
     inversores_dht_corrente: (project as any).inversores_dht_corrente || '',
+    // Campos de inversores adicionados recentemente
+    inversores_quantidade_mppt: (project as any).inversores_quantidade_mppt || '',
+    inversores_entradas_por_mppt: (project as any).inversores_entradas_por_mppt || '',
+    inversores_potencia_max_saida: (project as any).inversores_potencia_max_saida || '',
+    inversores_tensao_max_ca: (project as any).inversores_tensao_max_ca || '',
+    inversores_tensao_min_ca: (project as any).inversores_tensao_min_ca || '',
+    inversores_tipo_conexao_saida: (project as any).inversores_tipo_conexao_saida || '',
+    carga_levantamento: (project as any).carga_levantamento || '',
     responsavel_email: (project as any).responsavel_email || '',
     responsavel_uf: (project as any).responsavel_uf || '',
     // Características físicas dos módulos (Tabela 4)
