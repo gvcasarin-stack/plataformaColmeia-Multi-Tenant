@@ -158,10 +158,10 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_rendimento', label: 'Rendimento (%)', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '97,60', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_dht_corrente', label: 'DHT de Corrente (%)', type: 'default_with_custom', required: true, defaultValue: '< 3', group: 'Inversores Fotovoltaicos' },
 
-  // Informações Técnicas
-  { key: 'tipo_conexao', label: 'Tipo de Conexão', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Bifásico', label: 'Bifásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Informações Técnicas' },
-  { key: 'tipo_ramal', label: 'Tipo de Ramal', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Aéreo', label: 'Aéreo' }, { value: 'Subterrâneo', label: 'Subterrâneo' }], group: 'Informações Técnicas' },
-  { key: 'tensao_atendimento', label: 'Tensão de Atendimento (V)', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '127/220', label: '127/220' }, { value: '220/380', label: '220/380' }], group: 'Informações Técnicas' },
+  // Informações Técnicas (dentro do Padrão de Entrada)
+  { key: 'tipo_conexao', label: 'Tipo de Conexão', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Bifásico', label: 'Bifásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Padrão de Entrada' },
+  { key: 'tipo_ramal', label: 'Tipo de Ramal', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Aéreo', label: 'Aéreo' }, { value: 'Subterrâneo', label: 'Subterrâneo' }], group: 'Padrão de Entrada' },
+  { key: 'tensao_atendimento', label: 'Tensão de Atendimento (V)', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '127/220', label: '127/220' }, { value: '220/380', label: '220/380' }], group: 'Padrão de Entrada' },
 
   // Dados da Unidade Consumidora
   { key: 'conta_contrato', label: 'Nº Conta Contrato', icon: <Building className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados da Unidade Consumidora' },
@@ -315,7 +315,6 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
 
   useEffect(() => {
     if (!open) return;
-    if (localFields.responsavel_nome) return;
     setResponsavelLoading(true);
     fetch('/api/admin/config')
       .then(res => res.json())
