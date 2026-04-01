@@ -327,16 +327,17 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             responsavel_registro: rt.numeroRegistro || '',
             ...(rt.email ? { responsavel_email: rt.email } : {}),
             ...(rt.uf ? { responsavel_uf: rt.uf } : {}),
+            ...(rt.telefone ? { _telefone: rt.telefone } : {}),
           };
           setResponsavelPrefs(mapped);
           if (!useOutroResponsavel) {
             setLocalFields(prev => ({
               ...prev,
               ...Object.fromEntries(Object.entries(mapped).filter(([k]) => !prev[k])),
-              // Também preenche Responsável Legal se ainda não foi preenchido
-              ...(!prev.responsavel_legal_nome && !useOutroResponsavelLegal
+              // Preenche Responsável Legal com dados do técnico (nome só se vazio, email/telefone sempre se vazios)
+              ...(!useOutroResponsavelLegal
                 ? {
-                    responsavel_legal_nome: rt.nomeCompleto,
+                    ...(!prev.responsavel_legal_nome ? { responsavel_legal_nome: rt.nomeCompleto } : {}),
                     ...(!prev.responsavel_legal_email && rt.email ? { responsavel_legal_email: rt.email } : {}),
                     ...(!prev.responsavel_legal_telefone && rt.telefone ? { responsavel_legal_telefone: rt.telefone } : {}),
                   }
@@ -350,23 +351,41 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Quando o RT já está preenchido (dados salvos), copia para o Responsável Legal se este estiver vazio
+  // Quando o RT já está preenchido (dados salvos), copia para o Responsável Legal se os campos estiverem vazios
   useEffect(() => {
     if (!open) return;
     if (useOutroResponsavelLegal) return;
     setLocalFields(prev => {
-      if (prev.responsavel_legal_nome) return prev;
       if (!prev.responsavel_nome) return prev;
-      return {
-        ...prev,
-        responsavel_legal_nome: prev.responsavel_nome,
-        ...(!prev.responsavel_legal_email && prev.responsavel_email
-          ? { responsavel_legal_email: prev.responsavel_email }
-          : {}),
-      };
+      const updates: Record<string, string> = {};
+      if (!prev.responsavel_legal_nome) updates.responsavel_legal_nome = prev.responsavel_nome;
+      if (!prev.responsavel_legal_email && prev.responsavel_email) updates.responsavel_legal_email = prev.responsavel_email;
+      return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Auto-calcula Potência Disponibilizada (PD) quando tipo_conexao, tensao_atendimento e disjuntor_corrente_a são preenchidos
+  useEffect(() => {
+    const tipoConexao = localFields.tipo_conexao;
+    const tensaoAtendimento = localFields.tensao_atendimento;
+    const corrente = localFields.disjuntor_corrente_a;
+    if (!tipoConexao || !tensaoAtendimento || !corrente) return;
+
+    // Extrai a tensão de linha (maior valor em "127/220", "220/380", etc.)
+    const voltages = String(tensaoAtendimento).split('/').map((v: string) => parseFloat(v.trim())).filter((v: number) => !isNaN(v));
+    if (voltages.length === 0) return;
+    const tensaoLinha = Math.max(...voltages);
+
+    const correnteNum = parseFloat(String(corrente));
+    if (isNaN(tensaoLinha) || isNaN(correnteNum)) return;
+
+    const NF = tipoConexao === 'Trifásico' ? Math.sqrt(3) : 1;
+    const pdKw = Math.floor((NF * tensaoLinha * correnteNum * 0.92) / 1000);
+
+    setLocalFields(prev => ({ ...prev, potencia_disponibilizada_kw: String(pdKw) }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localFields.tipo_conexao, localFields.tensao_atendimento, localFields.disjuntor_corrente_a]);
 
   const fetchAcervoItems = useCallback(async (categoria: string) => {
     const distribuidora = localFields.distribuidora;
@@ -846,7 +865,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                   <div className="rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
                     <p className="text-xs text-blue-700 dark:text-blue-300">
                       <Info className="h-3.5 w-3.5 inline mr-1" />
-                      O nome do responsável legal é preenchido automaticamente com os dados do Responsável Técnico.
+                      Nome, e-mail e telefone do responsável legal são preenchidos automaticamente com os dados do Responsável Técnico.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -860,15 +879,15 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                           setLocalFields(prev => ({
                             ...prev,
                             responsavel_legal_nome: prev.responsavel_nome || '',
-                            ...(!prev.responsavel_legal_email && prev.responsavel_email
-                              ? { responsavel_legal_email: prev.responsavel_email }
-                              : {}),
+                            ...(prev.responsavel_email ? { responsavel_legal_email: prev.responsavel_email } : {}),
+                            ...(responsavelPrefs?._telefone ? { responsavel_legal_telefone: responsavelPrefs._telefone } : {}),
                           }));
                         } else {
                           setLocalFields(prev => ({
                             ...prev,
                             responsavel_legal_nome: '',
                             responsavel_legal_email: '',
+                            responsavel_legal_telefone: '',
                           }));
                         }
                       }}
