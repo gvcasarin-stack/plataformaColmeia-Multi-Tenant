@@ -2543,6 +2543,7 @@ export async function getProjectAction(projectId: string): Promise<{
       inversores_tensao_max_ca: data.inversores_tensao_max_ca || undefined,
       inversores_tensao_min_ca: data.inversores_tensao_min_ca || undefined,
       inversores_tipo_conexao_saida: data.inversores_tipo_conexao_saida || undefined,
+      carga_levantamento: data.carga_levantamento || undefined,
 
       // Características físicas dos módulos (Tabela 4)
       modulos_eficiencia: data.modulos_eficiencia || undefined,

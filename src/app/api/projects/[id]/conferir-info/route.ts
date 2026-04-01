@@ -31,6 +31,7 @@ const CONFERIR_FIELDS = [
   'inversores_entradas_por_mppt', 'inversores_quantidade_mppt',
   'inversores_potencia_max_saida', 'inversores_tensao_max_ca', 'inversores_tensao_min_ca',
   'inversores_tipo_conexao_saida',
+  'carga_levantamento',
   'responsavel_email', 'responsavel_uf',
   // Dimensionamento dos Cabos
   'cabo_isolacao_material',

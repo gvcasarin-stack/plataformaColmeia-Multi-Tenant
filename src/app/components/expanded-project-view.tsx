@@ -61,7 +61,7 @@ import { deleteCommentAction, deleteFileAction, editProjectAction } from '@/lib/
 import { ProjectResponsibleAdmin } from './project-view/project-responsible-admin'
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
-import { MemorialDescritivoPreview } from '@/components/templates/MemorialDescritivoPreview'
+import { MemorialDescritivoPreview, type CargaRow } from '@/components/templates/MemorialDescritivoPreview'
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
 
@@ -2992,7 +2992,17 @@ export const ExpandedProjectView = ({
                               </h3>
                               <div className="rounded-md border border-blue-200 dark:border-blue-700 p-4 max-h-[600px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-                                  <MemorialDescritivoPreview distribuidora={selectedDistribuidoraGerarProjeto} projectData={gerarProjetoFields} />
+                                  <MemorialDescritivoPreview
+                                    distribuidora={selectedDistribuidoraGerarProjeto}
+                                    projectData={gerarProjetoFields}
+                                    onSaveCargaTable={async (rows: CargaRow[]) => {
+                                      await fetch(`/api/projects/${project.id}/conferir-info`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ fields: { carga_levantamento: JSON.stringify(rows) } }),
+                                      });
+                                    }}
+                                  />
                                 </div>
                               </div>
                             </div>

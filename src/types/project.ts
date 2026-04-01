@@ -188,6 +188,9 @@ export interface Project {
   inversores_tensao_min_ca?: string;
   inversores_tipo_conexao_saida?: string;
 
+  // Levantamento de Carga (JSON serializado)
+  carga_levantamento?: string;
+
   // Características físicas dos módulos (Tabela 4)
   modulos_eficiencia?: string;
   modulos_comprimento_m?: string;

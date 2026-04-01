@@ -5,9 +5,45 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2, Plus, Minus, RotateCcw } from 'lucide-react';
 
+export interface CargaRow {
+  id: string;
+  descricao: string;
+  potencia_w: string;
+  quantidade: string;
+  fp: string;
+  fd: string;
+}
+
+const CARGA_TEMPLATE: CargaRow[] = [
+  { id: '1', descricao: 'Tomadas Uso Geral',      potencia_w: '100',  quantidade: '30', fp: '0,92', fd: '1' },
+  { id: '2', descricao: 'Tomadas Uso Específico', potencia_w: '4500', quantidade: '1',  fp: '0,95', fd: '1' },
+  { id: '3', descricao: 'Iluminação Geral',        potencia_w: '50',   quantidade: '10', fp: '0,90', fd: '1' },
+];
+
+function parseBR(val: string): number {
+  return parseFloat(String(val).replace(',', '.')) || 0;
+}
+
+function fmtBR(val: number, decimals = 1): string {
+  return val.toFixed(decimals).replace('.', ',');
+}
+
+function calcRow(row: CargaRow) {
+  const A = parseBR(row.potencia_w);
+  const B = parseBR(row.quantidade);
+  const D = parseBR(row.fp);
+  const F = parseBR(row.fd);
+  const C = (A * B) / 1000;                       // CI(kW)
+  const E = D > 0 ? C / D : 0;                    // CI(kVA)
+  const G = C * F;                                 // D(kW)
+  const H = E * F;                                 // D(kVA)
+  return { C, E, G, H };
+}
+
 interface MemorialDescritivoPreviewProps {
   distribuidora: string;
   projectData?: Record<string, any>;
+  onSaveCargaTable?: (rows: CargaRow[]) => Promise<void>;
 }
 
 const PLACEHOLDER_MAP: Record<string, string> = {
@@ -142,11 +178,60 @@ function PageBreakIndicator({ id, spacing, onSpacingChange }: {
   );
 }
 
-export function MemorialDescritivoPreview({ distribuidora, projectData }: MemorialDescritivoPreviewProps) {
+export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCargaTable }: MemorialDescritivoPreviewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [placaAdvertencia, setPlacaAdvertencia] = useState<{ nome: string; imagem_url: string } | null>(null);
   const [spacings, setSpacings] = useState<Record<string, number>>({});
+
+  // --- Tabela de Levantamento de Carga ---
+  const [cargaRows, setCargaRows] = useState<CargaRow[]>(() => {
+    try {
+      const saved = projectData?.carga_levantamento;
+      if (saved) {
+        const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+    return CARGA_TEMPLATE;
+  });
+  const [cargaSaving, setCargaSaving] = useState(false);
+  const [cargaSaved, setCargaSaved] = useState(false);
+
+  const updateCargaRow = (id: string, field: keyof CargaRow, value: string) => {
+    setCargaRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    setCargaSaved(false);
+  };
+
+  const addCargaRow = () => {
+    const newId = String(Date.now());
+    setCargaRows(prev => [...prev, { id: newId, descricao: '', potencia_w: '0', quantidade: '1', fp: '1', fd: '1' }]);
+    setCargaSaved(false);
+  };
+
+  const removeCargaRow = (id: string) => {
+    setCargaRows(prev => prev.filter(r => r.id !== id));
+    setCargaSaved(false);
+  };
+
+  const saveCarga = async () => {
+    if (!onSaveCargaTable) return;
+    setCargaSaving(true);
+    try {
+      await onSaveCargaTable(cargaRows);
+      setCargaSaved(true);
+    } finally {
+      setCargaSaving(false);
+    }
+  };
+
+  const cargaTotals = cargaRows.reduce(
+    (acc, row) => {
+      const { C, E, G, H } = calcRow(row);
+      return { C: acc.C + C, E: acc.E + E, G: acc.G + G, H: acc.H + H };
+    },
+    { C: 0, E: 0, G: 0, H: 0 }
+  );
   const DECIMAL_FIELDS = ['potencia'];
 
   const handleSpacingChange = useCallback((id: string, delta: number) => {
@@ -455,29 +540,105 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
 
         <h3 className={h3Class}>5.1. Levantamento de Carga</h3>
         <p className="mb-3 italic">Tabela 2 – Levantamento de carga</p>
-        <table className={tableClass}>
-          <thead>
-            <tr>
-              <th className={thClass}>ITEM</th>
-              <th className={thClass}>DESCRIÇÃO</th>
-              <th className={thClass}>P (W)</th>
-              <th className={thClass}>QUANT.</th>
-              <th className={thClass}>CI (kW)</th>
-              <th className={thClass}>FP</th>
-              <th className={thClass}>CI (kVA)</th>
-              <th className={thClass}>FD</th>
-              <th className={thClass}>D(kW)</th>
-              <th className={thClass}>D(kVA)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="text-center">
-              <td className={tdClass} colSpan={10}>
-                <span className="text-gray-400 italic">Dados do levantamento de carga a serem preenchidos</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-xs mb-2">
+            <thead>
+              <tr className="bg-blue-900 text-white">
+                <th className="border border-gray-400 px-1 py-1 text-center w-8">ITEM</th>
+                <th className="border border-gray-400 px-1 py-1 text-left">DESCRIÇÃO</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">P (W)<br/>[A]</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">QUANT.<br/>[B]</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">CI (kW)<br/>[C=(A×B)/1000]</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">FP<br/>[D]</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">CI (kVA)<br/>[E=C/D]</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">FD<br/>[F]</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">D(kW)<br/>[G=C×F]</th>
+                <th className="border border-gray-400 px-1 py-1 text-center whitespace-nowrap">D(kVA)<br/>[H=E×F]</th>
+                {onSaveCargaTable && <th className="border border-gray-400 px-1 py-1 w-6"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {cargaRows.map((row, idx) => {
+                const { C, E, G, H } = calcRow(row);
+                const inputCls = 'w-full bg-transparent border-0 outline-none text-center text-xs py-0 px-0 focus:bg-blue-50 dark:focus:bg-blue-900/20 rounded';
+                const inputDescCls = 'w-full bg-transparent border-0 outline-none text-xs py-0 px-0 focus:bg-blue-50 dark:focus:bg-blue-900/20 rounded';
+                const isEditable = !!onSaveCargaTable;
+                return (
+                  <tr key={row.id} className={idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800/50'}>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center">{idx + 1}</td>
+                    <td className="border border-gray-300 px-1 py-0.5">
+                      {isEditable
+                        ? <input className={inputDescCls} value={row.descricao} onChange={e => updateCargaRow(row.id, 'descricao', e.target.value)} />
+                        : row.descricao}
+                    </td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center">
+                      {isEditable
+                        ? <input className={inputCls} value={row.potencia_w} onChange={e => updateCargaRow(row.id, 'potencia_w', e.target.value)} />
+                        : row.potencia_w}
+                    </td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center">
+                      {isEditable
+                        ? <input className={inputCls} value={row.quantidade} onChange={e => updateCargaRow(row.id, 'quantidade', e.target.value)} />
+                        : row.quantidade}
+                    </td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center text-gray-700 dark:text-gray-300">{fmtBR(C)}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center">
+                      {isEditable
+                        ? <input className={inputCls} value={row.fp} onChange={e => updateCargaRow(row.id, 'fp', e.target.value)} />
+                        : row.fp}
+                    </td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center text-gray-700 dark:text-gray-300">{fmtBR(E)}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center">
+                      {isEditable
+                        ? <input className={inputCls} value={row.fd} onChange={e => updateCargaRow(row.id, 'fd', e.target.value)} />
+                        : row.fd}
+                    </td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center text-gray-700 dark:text-gray-300">{fmtBR(G)}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-center text-gray-700 dark:text-gray-300">{fmtBR(H)}</td>
+                    {isEditable && (
+                      <td className="border border-gray-300 px-1 py-0.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeCargaRow(row.id)}
+                          className="text-red-400 hover:text-red-600 text-xs leading-none"
+                          title="Remover linha"
+                        >✕</button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+              <tr className="font-semibold bg-blue-50 dark:bg-blue-900/20">
+                <td className="border border-gray-300 px-1 py-0.5" colSpan={onSaveCargaTable ? 3 : 3}></td>
+                <td className="border border-gray-300 px-1 py-0.5 text-center font-bold" colSpan={1}>TOTAL</td>
+                <td className="border border-gray-300 px-1 py-0.5 text-center">{fmtBR(cargaTotals.C)}</td>
+                <td className="border border-gray-300 px-1 py-0.5"></td>
+                <td className="border border-gray-300 px-1 py-0.5 text-center">{fmtBR(cargaTotals.E)}</td>
+                <td className="border border-gray-300 px-1 py-0.5"></td>
+                <td className="border border-gray-300 px-1 py-0.5 text-center">{fmtBR(cargaTotals.G)}</td>
+                <td className="border border-gray-300 px-1 py-0.5 text-center">{fmtBR(cargaTotals.H)}</td>
+                {onSaveCargaTable && <td className="border border-gray-300 px-1 py-0.5"></td>}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {onSaveCargaTable && (
+          <div className="flex items-center gap-2 mt-2 no-print">
+            <button
+              type="button"
+              onClick={addCargaRow}
+              className="text-xs px-2 py-1 rounded border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            >+ Adicionar linha</button>
+            <button
+              type="button"
+              onClick={saveCarga}
+              disabled={cargaSaving}
+              className="text-xs px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-colors"
+            >{cargaSaving ? 'Salvando…' : cargaSaved ? '✓ Salvo' : 'Salvar tabela'}</button>
+          </div>
+        )}
 
       </div>
 

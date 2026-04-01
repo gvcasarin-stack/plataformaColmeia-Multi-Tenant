@@ -121,10 +121,16 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
   { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
   { key: 'data_documento', label: 'Data do Documento', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
-  { key: 'tipo_solicitacao', label: 'Tipo de Solicitação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão em UC existente sem aumento de PD' }, { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão em UC existente com aumento de PD' }, { value: 'LIGAÇÃO NOVA DE UC COM MICROGERAÇÃO', label: 'Ligação nova com microgeração' }], group: 'Dados do Projeto' },
+  { key: 'tipo_solicitacao', label: 'Tipo de Solicitação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [
+    { value: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA', label: 'Ligação nova com GD' },
+    { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão GD em UC existente sem aumento de PD' },
+    { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Conexão GD em UC existente com aumento de PD' },
+    { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Aumento potência GD existente sem aumento de PD' },
+    { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'Aumento potência GD existente com aumento de PD' },
+  ], group: 'Dados do Projeto' },
   { key: 'tarifa_branca', label: 'Tarifa Branca?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
   { key: 'possui_cargas_especiais', label: 'Possui Cargas Especiais?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
-  { key: 'carga_declarada_kw', label: 'Carga Declarada da UC (kW)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'kW', group: 'Dados do Projeto' },
+  { key: 'carga_declarada_kw', label: 'Carga Declarada da UC (kW)', icon: <Zap className="h-3.5 w-3.5" />, type: 'default_with_custom', required: true, suffix: 'kW', defaultValue: '8,00', group: 'Dados do Projeto' },
   { key: 'data_inicio_operacao', label: 'Data Início de Operação', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
 
   // Responsável Técnico
@@ -151,10 +157,10 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_fabricante', label: 'Fabricante dos Inversores', type: 'text', required: true, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_modelo', label: 'Modelo dos Inversores', type: 'text', required: true, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_potencia', label: 'Potência nominal – Pn (kW)', type: 'text', required: true, suffix: 'kW', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_potencia_max_saida', label: 'Máxima potência na saída CA – Pca-máx (kW)', type: 'text', required: true, suffix: 'kW', placeholder: 'Ex: 5', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_potencia_max_saida', label: 'Máxima potência na saída CA – Pca-máx (kW)', type: 'default_with_custom', required: true, suffix: 'kW', defaultValue: (fields) => fields.inversores_potencia || '', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_tensao', label: 'Tensão nominal CA (V)', type: 'select', required: true, suffix: 'V', options: [{ value: '127', label: '127 V' }, { value: '220', label: '220 V' }, { value: '380', label: '380 V' }, { value: '800', label: '800 V' }], group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_tensao_max_ca', label: 'Máxima tensão CA – Vca-máx (V)', type: 'text', required: true, suffix: 'V', placeholder: 'Ex: 242', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_tensao_min_ca', label: 'Mínima tensão CA – Vca-min (V)', type: 'text', required: true, suffix: 'V', placeholder: 'Ex: 176', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_tensao_max_ca', label: 'Máxima tensão CA – Vca-máx (V) (Limite do Inversor)', type: 'default_with_custom', required: true, suffix: 'V', defaultValue: '300', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_tensao_min_ca', label: 'Mínima tensão CA – Vca-min (V) (Limite do Inversor)', type: 'default_with_custom', required: true, suffix: 'V', defaultValue: '160', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_faixa_tensao', label: 'Faixa de Tensão de Operação CC (V)', type: 'default_with_custom', required: true, defaultValue: '176 - 242', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_corrente_nominal', label: 'Corrente Nominal CA (A)', type: 'number', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_quantidade_mppt', label: 'Quantidade de MPPTs', type: 'text', required: true, placeholder: 'Ex: 1', group: 'Inversores Fotovoltaicos' },
@@ -221,20 +227,46 @@ interface AcervoItem {
   largura_mm: number | null;
 }
 
+// Campos marcados como "não incluir" quando estão vazios (skipped por padrão)
+const DEFAULT_SKIPPED_WHEN_EMPTY = new Set(['cliente_telefone_fixo']);
+
 const SKIP_DEFAULT_VALUES: Record<string, string> = {
   numero_poste_transformador: 'Não Identificado',
   planta_situacao_url: 'nao_incluir',
+  cliente_telefone_fixo: 'nao_incluir',
 };
 
 function initSkippedFields(fields: Record<string, any>): Set<string> {
   const skipped = new Set<string>();
   for (const [key, defaultVal] of Object.entries(SKIP_DEFAULT_VALUES)) {
-    if (fields[key] === defaultVal) {
-      skipped.add(key);
-    }
+    if (fields[key] === defaultVal) skipped.add(key);
+  }
+  // Campos que devem ser skipped por padrão quando vazios
+  for (const key of DEFAULT_SKIPPED_WHEN_EMPTY) {
+    const val = fields[key];
+    if (!val || val === '' || val === 'nao_incluir') skipped.add(key);
   }
   return skipped;
 }
+
+function formatCEP(val: string): string {
+  const d = val.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}-${d.slice(5)}`;
+}
+
+function formatPhone(val: string): string {
+  const d = val.replace(/\D/g, '').slice(0, 11);
+  if (d.length === 0) return '';
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 3)} ${d.slice(3, 7)}-${d.slice(7)}`;
+}
+
+const PHONE_FIELDS = new Set(['cliente_celular', 'responsavel_legal_telefone']);
+const CEP_FIELDS = new Set(['cliente_cep']);
 
 // Detecta quais campos default_with_custom têm valor salvo diferente do seu default padrão,
 // para manter o checkbox "Usar outro valor" marcado ao reabrir o modal.
@@ -317,7 +349,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, localFields.modulos_quantidade]);
+  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia]);
 
   useEffect(() => {
     if (!open) return;
@@ -801,7 +833,14 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
         step={field.type === 'number' ? '0.01' : undefined}
         value={value}
         onChange={(e) => {
-          const v = field.type === 'number' ? (e.target.value ? Number(e.target.value) : 0) : e.target.value;
+          let v: any = e.target.value;
+          if (field.type === 'number') {
+            v = v ? Number(v) : 0;
+          } else if (PHONE_FIELDS.has(field.key)) {
+            v = formatPhone(v);
+          } else if (CEP_FIELDS.has(field.key)) {
+            v = formatCEP(v);
+          }
           handleFieldChange(field.key, v);
         }}
         placeholder={field.placeholder || ''}
