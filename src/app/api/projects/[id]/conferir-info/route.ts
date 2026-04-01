@@ -28,6 +28,9 @@ const CONFERIR_FIELDS = [
   'modulos_eficiencia', 'modulos_comprimento_m', 'modulos_largura_m', 'modulos_area_unitaria_m2', 'modulos_peso_kg',
   'inversores_faixa_tensao', 'inversores_corrente_nominal', 'inversores_fator_potencia',
   'inversores_rendimento', 'inversores_dht_corrente',
+  'inversores_entradas_por_mppt', 'inversores_quantidade_mppt',
+  'inversores_potencia_max_saida', 'inversores_tensao_max_ca', 'inversores_tensao_min_ca',
+  'inversores_tipo_conexao_saida',
   'responsavel_email', 'responsavel_uf',
   // Dimensionamento dos Cabos
   'cabo_isolacao_material',

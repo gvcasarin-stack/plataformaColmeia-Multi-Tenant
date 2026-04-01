@@ -178,6 +178,16 @@ export interface Project {
   inversores_rendimento?: string;
   inversores_dht_corrente?: string;
 
+  // Inversores - Entrada (MPPT)
+  inversores_entradas_por_mppt?: string;
+  inversores_quantidade_mppt?: string;
+
+  // Inversores - Saída CA
+  inversores_potencia_max_saida?: string;
+  inversores_tensao_max_ca?: string;
+  inversores_tensao_min_ca?: string;
+  inversores_tipo_conexao_saida?: string;
+
   // Características físicas dos módulos (Tabela 4)
   modulos_eficiencia?: string;
   modulos_comprimento_m?: string;

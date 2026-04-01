@@ -44,7 +44,18 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{inversores_modelo}}': 'inversores_modelo',
   '{{inversores_quantidade}}': 'inversores_quantidade',
   '{{inversores_potencia}}': 'inversores_potencia',
+  '{{inversores_potencia_max_saida}}': 'inversores_potencia_max_saida',
   '{{inversores_tensao}}': 'inversores_tensao',
+  '{{inversores_tensao_max_ca}}': 'inversores_tensao_max_ca',
+  '{{inversores_tensao_min_ca}}': 'inversores_tensao_min_ca',
+  '{{inversores_corrente_nominal}}': 'inversores_corrente_nominal',
+  '{{inversores_faixa_tensao}}': 'inversores_faixa_tensao',
+  '{{inversores_quantidade_mppt}}': 'inversores_quantidade_mppt',
+  '{{inversores_entradas_por_mppt}}': 'inversores_entradas_por_mppt',
+  '{{inversores_tipo_conexao_saida}}': 'inversores_tipo_conexao_saida',
+  '{{inversores_fator_potencia}}': 'inversores_fator_potencia',
+  '{{inversores_rendimento}}': 'inversores_rendimento',
+  '{{inversores_dht_corrente}}': 'inversores_dht_corrente',
   '{{numero_condutores_fase}}': 'numero_condutores_fase',
   '{{disjuntor_padrao_entrada}}': 'disjuntorPadraoEntrada',
   '{{responsavel_nome}}': 'responsavel_nome',
@@ -776,15 +787,22 @@ export function MemorialDescritivoPDF({
             <InfoRow label="Máxima tensão MPPT – Vpmp-máx [V]" value="A preencher" />
             <InfoRow label="Mínima tensão MPPT – Vpmp-min [V]" value="A preencher" />
             <InfoRow label="Tensão CC de partida – Vcc-part [V]" value="A preencher" />
+            <InfoRow label="Quantidade de MPPTs" value={v('inversores_quantidade_mppt', projectData)} />
+            <InfoRow label="Quantidade de entradas por MPPT" value={v('inversores_entradas_por_mppt', projectData)} />
             <View style={styles.tableRow} wrap={false}>
               <Text style={[styles.tdLabel, styles.bold, { flex: 1 }]}>Saída</Text>
             </View>
             <InfoRow label="Potência nominal – Pn [kW]" value={v('inversores_potencia', projectData)} />
+            <InfoRow label="Máxima potência na saída CA – Pca-máx [kW]" value={v('inversores_potencia_max_saida', projectData)} />
             <InfoRow label="Tensão nominal CA [V]" value={v('inversores_tensao', projectData)} />
-            <InfoRow label="Corrente máxima CA [A]" value="A preencher" />
+            <InfoRow label="Máxima tensão CA – Vca-máx [V]" value={v('inversores_tensao_max_ca', projectData)} />
+            <InfoRow label="Mínima tensão CA – Vca-min [V]" value={v('inversores_tensao_min_ca', projectData)} />
+            <InfoRow label="Corrente máxima CA [A]" value={v('inversores_corrente_nominal', projectData)} />
             <InfoRow label="Frequência [Hz]" value="60" />
-            <InfoRow label="Fator de potência" value="A preencher" />
-            <InfoRow label="Eficiência máxima [%]" value="A preencher" isLast />
+            <InfoRow label="THD de corrente [%]" value={v('inversores_dht_corrente', projectData)} />
+            <InfoRow label="Fator de potência" value={v('inversores_fator_potencia', projectData)} />
+            <InfoRow label="Tipo de conexão" value={v('inversores_tipo_conexao_saida', projectData)} />
+            <InfoRow label="Eficiência máxima [%]" value={v('inversores_rendimento', projectData)} isLast />
           </View>
         </View>
 

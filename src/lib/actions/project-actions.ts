@@ -2537,6 +2537,12 @@ export async function getProjectAction(projectId: string): Promise<{
       inversores_fator_potencia: data.inversores_fator_potencia || undefined,
       inversores_rendimento: data.inversores_rendimento || undefined,
       inversores_dht_corrente: data.inversores_dht_corrente || undefined,
+      inversores_entradas_por_mppt: data.inversores_entradas_por_mppt || undefined,
+      inversores_quantidade_mppt: data.inversores_quantidade_mppt || undefined,
+      inversores_potencia_max_saida: data.inversores_potencia_max_saida || undefined,
+      inversores_tensao_max_ca: data.inversores_tensao_max_ca || undefined,
+      inversores_tensao_min_ca: data.inversores_tensao_min_ca || undefined,
+      inversores_tipo_conexao_saida: data.inversores_tipo_conexao_saida || undefined,
 
       // Características físicas dos módulos (Tabela 4)
       modulos_eficiencia: data.modulos_eficiencia || undefined,
