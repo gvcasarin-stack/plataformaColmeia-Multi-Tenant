@@ -134,11 +134,20 @@ export interface Project {
   modulos_fabricante?: string;
   modulos_modelo?: string;
   modulos_potencia_wp?: string;
+  modulos_voc?: string;
+  modulos_isc?: string;
+  modulos_vpmp?: string;
+  modulos_ipmp?: string;
   inversores_quantidade?: number;
   inversores_fabricante?: string;
   inversores_modelo?: string;
   inversores_potencia?: string;
   inversores_tensao?: string;
+  inversores_vcc_max?: string;
+  inversores_icc_max?: string;
+  inversores_vpmp_max?: string;
+  inversores_vpmp_min?: string;
+  inversores_vcc_partida?: string;
 
   // ✅ Campos de referência ao acervo técnico
   caixa_medicao_id?: string;

@@ -534,6 +534,17 @@ export const ExpandedProjectView = ({
     carga_levantamento: (project as any).carga_levantamento || '',
     responsavel_email: (project as any).responsavel_email || '',
     responsavel_uf: (project as any).responsavel_uf || '',
+    // Parâmetros elétricos dos módulos
+    modulos_voc: (project as any).modulos_voc || '',
+    modulos_isc: (project as any).modulos_isc || '',
+    modulos_vpmp: (project as any).modulos_vpmp || '',
+    modulos_ipmp: (project as any).modulos_ipmp || '',
+    // Parâmetros CC dos inversores
+    inversores_vcc_max: (project as any).inversores_vcc_max || '',
+    inversores_icc_max: (project as any).inversores_icc_max || '',
+    inversores_vpmp_max: (project as any).inversores_vpmp_max || '',
+    inversores_vpmp_min: (project as any).inversores_vpmp_min || '',
+    inversores_vcc_partida: (project as any).inversores_vcc_partida || '',
     // Características físicas dos módulos (Tabela 4)
     modulos_eficiencia: (project as any).modulos_eficiencia || '',
     modulos_comprimento_m: (project as any).modulos_comprimento_m || '',

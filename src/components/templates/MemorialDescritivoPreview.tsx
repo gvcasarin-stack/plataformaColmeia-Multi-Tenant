@@ -73,6 +73,10 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{modulos_fabricante}}': 'modulos_fabricante',
   '{{modulos_modelo}}': 'modulos_modelo',
   '{{modulos_potencia_wp}}': 'modulos_potencia_wp',
+  '{{modulos_voc}}': 'modulos_voc',
+  '{{modulos_isc}}': 'modulos_isc',
+  '{{modulos_vpmp}}': 'modulos_vpmp',
+  '{{modulos_ipmp}}': 'modulos_ipmp',
   '{{modulos_quantidade}}': 'modulos_quantidade',
   '{{inversores_fabricante}}': 'inversores_fabricante',
   '{{inversores_modelo}}': 'inversores_modelo',
@@ -80,6 +84,11 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{inversores_potencia}}': 'inversores_potencia',
   '{{inversores_potencia_max_saida}}': 'inversores_potencia_max_saida',
   '{{inversores_tensao}}': 'inversores_tensao',
+  '{{inversores_vcc_max}}': 'inversores_vcc_max',
+  '{{inversores_icc_max}}': 'inversores_icc_max',
+  '{{inversores_vpmp_max}}': 'inversores_vpmp_max',
+  '{{inversores_vpmp_min}}': 'inversores_vpmp_min',
+  '{{inversores_vcc_partida}}': 'inversores_vcc_partida',
   '{{inversores_tensao_max_ca}}': 'inversores_tensao_max_ca',
   '{{inversores_tensao_min_ca}}': 'inversores_tensao_min_ca',
   '{{inversores_corrente_nominal}}': 'inversores_corrente_nominal',
@@ -248,6 +257,8 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
     'inversores_potencia',
     'inversores_potencia_max_saida',
     'secao_aterramento_mm2',
+    'secao_fase_mm2',
+    'secao_neutro_mm2',
     'cabo_cc_secao_mm2',
     'cabo_ca_secao_mm2',
   ];
@@ -798,10 +809,10 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
             <tr><td className={tdLabelClass + " w-2/5"}>Fabricante</td><td className={tdClass}><V>{`{{modulos_fabricante}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Modelo</td><td className={tdClass}><V>{`{{modulos_modelo}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Potência nominal – Pn [W]</td><td className={tdClass}><V>{`{{modulos_potencia_wp}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Tensão de circuito aberto – Voc [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Corrente de curto-circuito – Isc [A]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Tensão de máxima potência – Vpmp [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Corrente de máxima potência – Ipmp [A]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
+            <tr><td className={tdLabelClass}>Tensão de circuito aberto – Voc [V]</td><td className={tdClass}><V>{`{{modulos_voc}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Corrente de curto-circuito – Isc [A]</td><td className={tdClass}><V>{`{{modulos_isc}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Tensão de máxima potência – Vpmp [V]</td><td className={tdClass}><V>{`{{modulos_vpmp}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Corrente de máxima potência – Ipmp [A]</td><td className={tdClass}><V>{`{{modulos_ipmp}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Eficiência [%]</td><td className={tdClass}><V>{`{{modulos_eficiencia}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Comprimento [m]</td><td className={tdClass}><V>{`{{modulos_comprimento_m}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Largura [m]</td><td className={tdClass}><V>{`{{modulos_largura_m}}`}</V></td></tr>
@@ -824,11 +835,11 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
             <tr><td className={tdLabelClass}>Modelo</td><td className={tdClass}><V>{`{{inversores_modelo}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Quantidade</td><td className={tdClass}><V>{`{{inversores_quantidade}}`}</V></td></tr>
             <tr><td className={tdLabelClass} colSpan={2}><strong>Entrada</strong></td></tr>
-            <tr><td className={tdLabelClass}>Máxima tensão CC – Vcc-máx [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Máxima corrente CC – Icc-máx [A]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Máxima tensão MPPT – Vpmp-máx [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Mínima tensão MPPT – Vpmp-min [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Tensão CC de partida – Vcc-part [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
+            <tr><td className={tdLabelClass}>Máxima tensão CC – Vcc-máx [V]</td><td className={tdClass}><V>{`{{inversores_vcc_max}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Máxima corrente CC – Icc-máx [A]</td><td className={tdClass}><V>{`{{inversores_icc_max}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Máxima tensão MPPT – Vpmp-máx [V]</td><td className={tdClass}><V>{`{{inversores_vpmp_max}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Mínima tensão MPPT – Vpmp-min [V]</td><td className={tdClass}><V>{`{{inversores_vpmp_min}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Tensão CC de partida – Vcc-part [V]</td><td className={tdClass}><V>{`{{inversores_vcc_partida}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Quantidade de MPPTs</td><td className={tdClass}><V>{`{{inversores_quantidade_mppt}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Quantidade de entradas por MPPT</td><td className={tdClass}><V>{`{{inversores_entradas_por_mppt}}`}</V></td></tr>
             <tr><td className={tdLabelClass} colSpan={2}><strong>Saída</strong></td></tr>

@@ -39,6 +39,10 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{modulos_fabricante}}': 'modulos_fabricante',
   '{{modulos_modelo}}': 'modulos_modelo',
   '{{modulos_potencia_wp}}': 'modulos_potencia_wp',
+  '{{modulos_voc}}': 'modulos_voc',
+  '{{modulos_isc}}': 'modulos_isc',
+  '{{modulos_vpmp}}': 'modulos_vpmp',
+  '{{modulos_ipmp}}': 'modulos_ipmp',
   '{{modulos_quantidade}}': 'modulos_quantidade',
   '{{inversores_fabricante}}': 'inversores_fabricante',
   '{{inversores_modelo}}': 'inversores_modelo',
@@ -46,6 +50,11 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{inversores_potencia}}': 'inversores_potencia',
   '{{inversores_potencia_max_saida}}': 'inversores_potencia_max_saida',
   '{{inversores_tensao}}': 'inversores_tensao',
+  '{{inversores_vcc_max}}': 'inversores_vcc_max',
+  '{{inversores_icc_max}}': 'inversores_icc_max',
+  '{{inversores_vpmp_max}}': 'inversores_vpmp_max',
+  '{{inversores_vpmp_min}}': 'inversores_vpmp_min',
+  '{{inversores_vcc_partida}}': 'inversores_vcc_partida',
   '{{inversores_tensao_max_ca}}': 'inversores_tensao_max_ca',
   '{{inversores_tensao_min_ca}}': 'inversores_tensao_min_ca',
   '{{inversores_corrente_nominal}}': 'inversores_corrente_nominal',
@@ -95,6 +104,8 @@ const DECIMAL_FIELDS = new Set([
   'inversores_potencia',
   'inversores_potencia_max_saida',
   'secao_aterramento_mm2',
+  'secao_fase_mm2',
+  'secao_neutro_mm2',
   'cabo_cc_secao_mm2',
   'cabo_ca_secao_mm2',
 ]);
@@ -776,10 +787,10 @@ export function MemorialDescritivoPDF({
             <InfoRow label="Fabricante" value={v('modulos_fabricante', projectData)} />
             <InfoRow label="Modelo" value={v('modulos_modelo', projectData)} />
             <InfoRow label="Potência nominal – Pn [W]" value={v('modulos_potencia_wp', projectData)} />
-            <InfoRow label="Tensão de circuito aberto – Voc [V]" value="A preencher" />
-            <InfoRow label="Corrente de curto-circuito – Isc [A]" value="A preencher" />
-            <InfoRow label="Tensão de máxima potência – Vpmp [V]" value="A preencher" />
-            <InfoRow label="Corrente de máxima potência – Ipmp [A]" value="A preencher" />
+            <InfoRow label="Tensão de circuito aberto – Voc [V]" value={v('modulos_voc', projectData)} />
+            <InfoRow label="Corrente de curto-circuito – Isc [A]" value={v('modulos_isc', projectData)} />
+            <InfoRow label="Tensão de máxima potência – Vpmp [V]" value={v('modulos_vpmp', projectData)} />
+            <InfoRow label="Corrente de máxima potência – Ipmp [A]" value={v('modulos_ipmp', projectData)} />
             <InfoRow label="Eficiência [%]" value={v('modulos_eficiencia', projectData)} />
             <InfoRow label="Comprimento [m]" value={v('modulos_comprimento_m', projectData)} />
             <InfoRow label="Largura [m]" value={v('modulos_largura_m', projectData)} />
@@ -806,11 +817,11 @@ export function MemorialDescritivoPDF({
             <View style={styles.tableRow} wrap={false}>
               <Text style={[styles.tdLabel, styles.bold, { flex: 1 }]}>Entrada</Text>
             </View>
-            <InfoRow label="Máxima tensão CC – Vcc-máx [V]" value="A preencher" />
-            <InfoRow label="Máxima corrente CC – Icc-máx [A]" value="A preencher" />
-            <InfoRow label="Máxima tensão MPPT – Vpmp-máx [V]" value="A preencher" />
-            <InfoRow label="Mínima tensão MPPT – Vpmp-min [V]" value="A preencher" />
-            <InfoRow label="Tensão CC de partida – Vcc-part [V]" value="A preencher" />
+            <InfoRow label="Máxima tensão CC – Vcc-máx [V]" value={v('inversores_vcc_max', projectData)} />
+            <InfoRow label="Máxima corrente CC – Icc-máx [A]" value={v('inversores_icc_max', projectData)} />
+            <InfoRow label="Máxima tensão MPPT – Vpmp-máx [V]" value={v('inversores_vpmp_max', projectData)} />
+            <InfoRow label="Mínima tensão MPPT – Vpmp-min [V]" value={v('inversores_vpmp_min', projectData)} />
+            <InfoRow label="Tensão CC de partida – Vcc-part [V]" value={v('inversores_vcc_partida', projectData)} />
             <InfoRow label="Quantidade de MPPTs" value={v('inversores_quantidade_mppt', projectData)} />
             <InfoRow label="Quantidade de entradas por MPPT" value={v('inversores_entradas_por_mppt', projectData)} />
             <View style={styles.tableRow} wrap={false}>

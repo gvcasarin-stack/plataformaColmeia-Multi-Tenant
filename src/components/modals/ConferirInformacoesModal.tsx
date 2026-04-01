@@ -145,6 +145,10 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_fabricante', label: 'Fabricante dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_modelo', label: 'Modelo dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_potencia_wp', label: 'Potência dos Módulos (Wp)', type: 'text', required: true, suffix: 'Wp', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_voc', label: 'Tensão de circuito aberto – Voc [V]', type: 'text', required: true, suffix: 'V', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_isc', label: 'Corrente de curto-circuito – Isc [A]', type: 'text', required: true, suffix: 'A', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_vpmp', label: 'Tensão de máxima potência – Vpmp [V]', type: 'text', required: true, suffix: 'V', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_ipmp', label: 'Corrente de máxima potência – Ipmp [A]', type: 'text', required: true, suffix: 'A', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_eficiencia', label: 'Eficiência [%]', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '22,07', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_comprimento_m', label: 'Comprimento [m]', type: 'default_with_custom', required: true, suffix: 'm', defaultValue: '2,0', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_largura_m', label: 'Largura [m]', type: 'default_with_custom', required: true, suffix: 'm', defaultValue: '0,992', group: 'Módulos Fotovoltaicos' },
@@ -162,6 +166,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_tensao_max_ca', label: 'Máxima tensão CA – Vca-máx (V) (Limite do Inversor)', type: 'default_with_custom', required: true, suffix: 'V', defaultValue: '300', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_tensao_min_ca', label: 'Mínima tensão CA – Vca-min (V) (Limite do Inversor)', type: 'default_with_custom', required: true, suffix: 'V', defaultValue: '160', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_faixa_tensao', label: 'Faixa de Tensão de Operação CC (V)', type: 'default_with_custom', required: true, defaultValue: '176 - 242', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_vcc_max', label: 'Máxima tensão CC – Vcc-máx [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_icc_max', label: 'Máxima corrente CC – Icc-máx [A]', type: 'text', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_vpmp_max', label: 'Máxima tensão MPPT – Vpmp-máx [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_vpmp_min', label: 'Mínima tensão MPPT – Vpmp-min [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_vcc_partida', label: 'Tensão CC de partida – Vcc-part [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_corrente_nominal', label: 'Corrente Nominal CA (A)', type: 'number', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_quantidade_mppt', label: 'Quantidade de MPPTs', type: 'text', required: true, placeholder: 'Ex: 1', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_entradas_por_mppt', label: 'Quantidade de entradas por MPPT', type: 'text', required: true, placeholder: 'Ex: 2', group: 'Inversores Fotovoltaicos' },
@@ -679,7 +688,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           }}
           disabled={isSkipped}
         >
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className="h-auto min-h-8 text-sm py-1.5 [&>span]:whitespace-normal [&>span]:text-left [&>span]:leading-snug">
             <SelectValue placeholder="Selecione" />
           </SelectTrigger>
           <SelectContent position="popper" side="bottom" className="max-h-60">
@@ -762,15 +771,15 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     if (field.type === 'default_with_custom') {
       const isOverriding = customOverrides.has(field.key);
       return (
-        <div className="space-y-2">
+        <div className="flex items-center gap-2">
           <Input
             type="text"
             value={value}
             onChange={(e) => handleFieldChange(field.key, e.target.value)}
-            className="h-8 text-sm"
+            className="h-8 text-sm flex-1"
             disabled={!isOverriding || isSkipped}
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <Checkbox
               id={`override-${field.key}`}
               checked={isOverriding}
@@ -792,7 +801,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                 });
               }}
             />
-            <Label htmlFor={`override-${field.key}`} className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+            <Label htmlFor={`override-${field.key}`} className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap cursor-pointer">
               Usar outro valor
             </Label>
           </div>
@@ -802,17 +811,17 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
 
     if (field.type === 'date') {
       return (
-        <div className="space-y-2">
+        <div className="flex items-center gap-2">
           <Input
             type="text"
             value={value}
             onChange={(e) => handleFieldChange(field.key, e.target.value)}
             placeholder="Ex: 23 de março de 2026"
-            className="h-8 text-sm"
+            className="h-8 text-sm flex-1"
             disabled={isSkipped || (field.key === 'data_documento' && !useCustomDate)}
           />
           {field.key === 'data_documento' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <Checkbox
                 id="use-custom-date"
                 checked={useCustomDate}
@@ -826,8 +835,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                   }
                 }}
               />
-              <Label htmlFor="use-custom-date" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-                Utilizar uma data diferente
+              <Label htmlFor="use-custom-date" className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap cursor-pointer">
+                Usar data diferente
               </Label>
             </div>
           )}

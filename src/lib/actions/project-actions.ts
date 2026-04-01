@@ -2545,6 +2545,17 @@ export async function getProjectAction(projectId: string): Promise<{
       inversores_tipo_conexao_saida: data.inversores_tipo_conexao_saida || undefined,
       carga_levantamento: data.carga_levantamento || undefined,
 
+      // Parâmetros elétricos dos módulos
+      modulos_voc: data.modulos_voc || undefined,
+      modulos_isc: data.modulos_isc || undefined,
+      modulos_vpmp: data.modulos_vpmp || undefined,
+      modulos_ipmp: data.modulos_ipmp || undefined,
+      // Parâmetros CC dos inversores
+      inversores_vcc_max: data.inversores_vcc_max || undefined,
+      inversores_icc_max: data.inversores_icc_max || undefined,
+      inversores_vpmp_max: data.inversores_vpmp_max || undefined,
+      inversores_vpmp_min: data.inversores_vpmp_min || undefined,
+      inversores_vcc_partida: data.inversores_vcc_partida || undefined,
       // Características físicas dos módulos (Tabela 4)
       modulos_eficiencia: data.modulos_eficiencia || undefined,
       modulos_comprimento_m: data.modulos_comprimento_m || undefined,
