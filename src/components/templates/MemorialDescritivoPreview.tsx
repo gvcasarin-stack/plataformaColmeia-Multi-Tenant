@@ -42,7 +42,18 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{inversores_modelo}}': 'inversores_modelo',
   '{{inversores_quantidade}}': 'inversores_quantidade',
   '{{inversores_potencia}}': 'inversores_potencia',
+  '{{inversores_potencia_max_saida}}': 'inversores_potencia_max_saida',
   '{{inversores_tensao}}': 'inversores_tensao',
+  '{{inversores_tensao_max_ca}}': 'inversores_tensao_max_ca',
+  '{{inversores_tensao_min_ca}}': 'inversores_tensao_min_ca',
+  '{{inversores_corrente_nominal}}': 'inversores_corrente_nominal',
+  '{{inversores_faixa_tensao}}': 'inversores_faixa_tensao',
+  '{{inversores_quantidade_mppt}}': 'inversores_quantidade_mppt',
+  '{{inversores_entradas_por_mppt}}': 'inversores_entradas_por_mppt',
+  '{{inversores_tipo_conexao_saida}}': 'inversores_tipo_conexao_saida',
+  '{{inversores_fator_potencia}}': 'inversores_fator_potencia',
+  '{{inversores_rendimento}}': 'inversores_rendimento',
+  '{{inversores_dht_corrente}}': 'inversores_dht_corrente',
   '{{numero_condutores_fase}}': 'numero_condutores_fase',
   '{{disjuntor_padrao_entrada}}': 'disjuntorPadraoEntrada',
   '{{responsavel_nome}}': 'responsavel_nome',
@@ -632,13 +643,20 @@ export function MemorialDescritivoPreview({ distribuidora, projectData }: Memori
             <tr><td className={tdLabelClass}>Máxima tensão MPPT – Vpmp-máx [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
             <tr><td className={tdLabelClass}>Mínima tensão MPPT – Vpmp-min [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
             <tr><td className={tdLabelClass}>Tensão CC de partida – Vcc-part [V]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
+            <tr><td className={tdLabelClass}>Quantidade de MPPTs</td><td className={tdClass}><V>{`{{inversores_quantidade_mppt}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Quantidade de entradas por MPPT</td><td className={tdClass}><V>{`{{inversores_entradas_por_mppt}}`}</V></td></tr>
             <tr><td className={tdLabelClass} colSpan={2}><strong>Saída</strong></td></tr>
             <tr><td className={tdLabelClass}>Potência nominal – Pn [kW]</td><td className={tdClass}><V>{`{{inversores_potencia}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Máxima potência na saída CA – Pca-máx [kW]</td><td className={tdClass}><V>{`{{inversores_potencia_max_saida}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Tensão nominal CA [V]</td><td className={tdClass}><V>{`{{inversores_tensao}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Corrente máxima CA [A]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
+            <tr><td className={tdLabelClass}>Máxima tensão CA – Vca-máx [V]</td><td className={tdClass}><V>{`{{inversores_tensao_max_ca}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Mínima tensão CA – Vca-min [V]</td><td className={tdClass}><V>{`{{inversores_tensao_min_ca}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Corrente máxima CA [A]</td><td className={tdClass}><V>{`{{inversores_corrente_nominal}}`}</V></td></tr>
             <tr><td className={tdLabelClass}>Frequência [Hz]</td><td className={tdClass}>60</td></tr>
-            <tr><td className={tdLabelClass}>Fator de potência</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
-            <tr><td className={tdLabelClass}>Eficiência máxima [%]</td><td className={tdClass}><span className="text-gray-400 italic">A preencher</span></td></tr>
+            <tr><td className={tdLabelClass}>THD de corrente [%]</td><td className={tdClass}><V>{`{{inversores_dht_corrente}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Fator de potência</td><td className={tdClass}><V>{`{{inversores_fator_potencia}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Tipo de conexão</td><td className={tdClass}><V>{`{{inversores_tipo_conexao_saida}}`}</V></td></tr>
+            <tr><td className={tdLabelClass}>Eficiência máxima [%]</td><td className={tdClass}><V>{`{{inversores_rendimento}}`}</V></td></tr>
           </tbody>
         </table>
       </div>
