@@ -385,10 +385,14 @@ export function MemorialDescritivoPDF({
 
           {/* Descrição do projeto — centralizada verticalmente no espaço do meio */}
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+            <Text style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.7, marginBottom: 4 }}>
+              {`${classificacao} UTILIZANDO UM SISTEMA FOTOVOLTAICO DE ${potencia}\u00A0kWp`}
+            </Text>
+            <Text style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.7, marginBottom: 4 }}>
+              {`CONECTADO À REDE DE ENERGIA ELÉTRICA DE BAIXA TENSÃO EM ${tensao} V`}
+            </Text>
             <Text style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.7 }}>
-              {classificacao} UTILIZANDO UM SISTEMA FOTOVOLTAICO DE {potencia}{'\u00A0'}kWp{'\n'}
-              CONECTADO À REDE DE ENERGIA ELÉTRICA DE BAIXA TENSÃO EM {tensao} V{'\n'}
-              CARACTERIZADO COMO {modalidade}
+              {`CARACTERIZADO COMO ${modalidade}`}
             </Text>
           </View>
 
@@ -851,7 +855,7 @@ export function MemorialDescritivoPDF({
         </View>
 
         {/* ==================== 7. DIMENSIONAMENTO DO GERADOR ==================== */}
-        <View break style={styles.sectionBreak}>
+        <View style={styles.sectionBreak}>
           <SH2>7. DIMENSIONAMENTO DO GERADOR</SH2>
           <Text style={{ marginBottom: 6 }}>Características técnicas dos módulos fotovoltaicos:</Text>
           <Text style={[styles.italic, { marginBottom: 8 }]}>Tabela 4 – Características técnicas dos módulos fotovoltaicos</Text>
