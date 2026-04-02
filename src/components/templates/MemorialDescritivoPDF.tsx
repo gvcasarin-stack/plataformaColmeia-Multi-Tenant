@@ -386,7 +386,7 @@ export function MemorialDescritivoPDF({
           {/* Descrição do projeto — centralizada verticalmente no espaço do meio */}
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
             <Text style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.7 }}>
-              {classificacao} UTILIZANDO UM SISTEMA FOTOVOLTAICO DE {potencia} kWp{'\n'}
+              {classificacao} UTILIZANDO UM SISTEMA FOTOVOLTAICO DE {potencia}{'\u00A0'}kWp{'\n'}
               CONECTADO À REDE DE ENERGIA ELÉTRICA DE BAIXA TENSÃO EM {tensao} V{'\n'}
               CARACTERIZADO COMO {modalidade}
             </Text>
@@ -677,11 +677,81 @@ export function MemorialDescritivoPDF({
               <Text style={[styles.tdHeader, styles.tdCenter, { width: 40 }]}>D(kW)</Text>
               <Text style={[styles.tdHeader, styles.tdCenter, { width: 45, borderRightWidth: 0 }]}>D(kVA)</Text>
             </View>
-            <View style={styles.tableRowLast}>
-              <Text style={[styles.tdValue, styles.italic, styles.tdCenter, { flex: 1 }]}>
-                Dados do levantamento de carga a serem preenchidos
-              </Text>
-            </View>
+            {(() => {
+              // Parsear carga_levantamento salvo no banco (JSON)
+              let rows: any[] = [];
+              try {
+                const raw = projectData?.carga_levantamento;
+                if (raw) {
+                  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                  if (Array.isArray(parsed) && parsed.length > 0) rows = parsed;
+                }
+              } catch { /* ignore */ }
+
+              function parseBR(val: string): number {
+                return parseFloat(String(val).replace(',', '.')) || 0;
+              }
+              function fmtBR(val: number): string {
+                return val.toFixed(1).replace('.', ',');
+              }
+
+              if (rows.length === 0) {
+                return (
+                  <View style={styles.tableRowLast}>
+                    <Text style={[styles.tdValue, styles.italic, styles.tdCenter, { flex: 1 }]}>
+                      Dados do levantamento de carga a serem preenchidos
+                    </Text>
+                  </View>
+                );
+              }
+
+              let totC = 0, totE = 0, totG = 0, totH = 0;
+              const renderedRows = rows.map((row: any, idx: number) => {
+                const A = parseBR(row.potencia_w);
+                const B = parseBR(row.quantidade);
+                const D = parseBR(row.fp);
+                const F = parseBR(row.fd);
+                const C = (A * B) / 1000;
+                const E = D > 0 ? C / D : 0;
+                const G = C * F;
+                const H = E * F;
+                totC += C; totE += E; totG += G; totH += H;
+                const isLast = idx === rows.length - 1;
+                const rowStyle = isLast ? styles.tableRowLast : styles.tableRow;
+                return (
+                  <View key={row.id || idx} style={rowStyle}>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 30 }]}>{idx + 1}</Text>
+                    <Text style={[styles.tdValue, { flex: 3 }]}>{row.descricao}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 40 }]}>{row.potencia_w}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 45 }]}>{row.quantidade}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 45 }]}>{fmtBR(C)}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 30 }]}>{row.fp}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 45 }]}>{fmtBR(E)}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 30 }]}>{row.fd}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 40 }]}>{fmtBR(G)}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 45, borderRightWidth: 0 }]}>{fmtBR(H)}</Text>
+                  </View>
+                );
+              });
+
+              return (
+                <>
+                  {renderedRows}
+                  <View style={styles.tableRowLast}>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 30 }]}></Text>
+                    <Text style={[styles.tdValue, { flex: 3 }]}></Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 40 }]}></Text>
+                    <Text style={[styles.tdHeader, styles.tdCenter, { width: 45 }]}>TOTAL</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 45 }]}>{fmtBR(totC)}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 30 }]}></Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 45 }]}>{fmtBR(totE)}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 30 }]}></Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 40 }]}>{fmtBR(totG)}</Text>
+                    <Text style={[styles.tdValue, styles.tdCenter, { width: 45, borderRightWidth: 0 }]}>{fmtBR(totH)}</Text>
+                  </View>
+                </>
+              );
+            })()}
           </View>
         </View>
 
@@ -714,11 +784,13 @@ export function MemorialDescritivoPDF({
             <InfoRow label="CURVA DE ATUAÇÃO (DISPARO)" value="C" isLast />
           </View>
 
+          <View wrap={false}>
           <SH3>6.3. Potência Disponibilizada</SH3>
           <Text style={styles.para}>
             A potência disponibilizada para a unidade consumidora onde será instalada
             a {classificacao} é igual à:
           </Text>
+          </View>
           <View style={styles.monoBox}>
             <Text style={styles.monoText}>PD [kVA] = (VN [V] × IDG [A] × NF) / 1000</Text>
             <Text style={styles.monoText}>PD [kW] = PD [kVA] × FP</Text>
@@ -757,7 +829,7 @@ export function MemorialDescritivoPDF({
             <View style={styles.imageContainer}>
               <Image
                 src={projectData.caixa_medicao_imagem_url}
-                style={styles.figureImage}
+                style={[styles.figureImage, { maxHeight: 320 }]}
                 cache={false}
               />
               <Text style={styles.figureCaption}>
