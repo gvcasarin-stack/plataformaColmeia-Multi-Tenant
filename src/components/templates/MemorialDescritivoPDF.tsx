@@ -375,7 +375,7 @@ export function MemorialDescritivoPDF({
   const distribuidora = v('distribuidora', projectData);
 
   return (
-    <Document>
+    <Document hyphenationCallback={(word) => [word]}>
       <Page size="A4" style={styles.page} wrap>
         {/* ==================== CAPA ==================== */}
         <View style={{ minHeight: 750, flexDirection: 'column' }}>
@@ -829,7 +829,7 @@ export function MemorialDescritivoPDF({
             <View style={styles.imageContainer}>
               <Image
                 src={projectData.caixa_medicao_imagem_url}
-                style={[styles.figureImage, { maxHeight: 320 }]}
+                style={[styles.figureImage, { maxHeight: 256 }]}
                 cache={false}
               />
               <Text style={styles.figureCaption}>
@@ -953,7 +953,7 @@ export function MemorialDescritivoPDF({
           <Li>Valor da resistência de aterramento: 15 ohms;</Li>
           <Li>Barramento de equipotencialização: Barramento de cobre de medidas 1/2" x 1/16".</Li>
 
-          <SH3>9.4. Requisitos de Proteção</SH3>
+          <View break><SH3>9.4. Requisitos de Proteção</SH3></View>
           <Text style={[styles.bold, styles.tdCenter, { marginBottom: 8 }]}>Tabela 7 – Características técnicas do gerador</Text>
           <View style={styles.tableContainer}>
             <View style={styles.tableRow}>
