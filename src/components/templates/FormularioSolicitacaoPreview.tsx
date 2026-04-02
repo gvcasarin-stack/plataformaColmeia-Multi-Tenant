@@ -162,8 +162,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           <tbody>
             <tr>
               <td style={{ ...D, width: '180px', textAlign: 'center', padding: '6px 4px', borderRight: B }}>
-                <div style={{ fontWeight: 'bold', fontSize: '9px', color: '#404040' }}>GRUPO</div>
-                <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#0070C0', letterSpacing: '1px' }}>equatorial</div>
+                <img src="/images/logo.equatorial.png" style={{ width: '110px', objectFit: 'contain' }} alt="Grupo Equatorial" />
               </td>
               <td style={{ ...D, textAlign: 'center', padding: '4px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '9px' }}>NT.00020.EQTL.Normas e Qualidade</div>
