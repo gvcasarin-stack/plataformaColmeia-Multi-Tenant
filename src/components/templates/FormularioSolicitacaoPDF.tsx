@@ -108,8 +108,8 @@ const s = StyleSheet.create({
   },
   row: { flexDirection: 'row' },
   sh: {
-    backgroundColor: '#404040',
-    color: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
     fontFamily: 'Helvetica-Bold',
     fontSize: 7,
     padding: 2,
@@ -127,7 +127,7 @@ const s = StyleSheet.create({
     borderColor: BC,
   },
   lr: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#D9D9D9',
     color: '#FF0000',
     fontFamily: 'Helvetica-Bold',
     fontSize: 6,
@@ -137,7 +137,7 @@ const s = StyleSheet.create({
     borderColor: BC,
   },
   l: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#D9D9D9',
     fontSize: 6,
     padding: 2,
     borderRightWidth: B,
@@ -153,8 +153,8 @@ const s = StyleSheet.create({
     borderColor: BC,
   },
   okCell: {
-    backgroundColor: '#E2EFDA',
-    color: '#375623',
+    backgroundColor: '#70AD47',
+    color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
     fontSize: 6,
     padding: 2,
@@ -502,19 +502,15 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.sh, { width: '100%' }]}><Text>6. Solicitações e Declarações</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text></Text></View>
-          </View>
-          <View style={s.row}>
-            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.</Text></View>
-            <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
-          </View>
-          <View style={s.row}>
             <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Solicito que a contagem do prazo para realização da vistoria pela CONCESSIONÁRIA, conforme art. 68 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação.</Text></View>
             <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Autorizo a distribuidora a entregar junto com o orçamento de conexão os contratos e o documento ou meio para pagamento de custos de minha responsabilidade.</Text></View>
+            <View style={[s.d, { width: '8%' }]}><Text></Text></View>
+          </View>
+          <View style={s.row}>
+            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnica - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.</Text></View>
             <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
           </View>
           <View style={s.row}>
