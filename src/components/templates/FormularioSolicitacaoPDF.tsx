@@ -93,26 +93,29 @@ const BC = '#000000';
 const s = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 7,
+    fontSize: 6,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     color: '#000000',
-    lineHeight: 1.25,
+    lineHeight: 1.3,
   },
   tbl: {
     borderLeftWidth: B,
     borderTopWidth: B,
     borderColor: BC,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   row: { flexDirection: 'row' },
   sh: {
     backgroundColor: '#FFFFFF',
     color: '#000000',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7,
-    padding: 2,
+    fontSize: 6,
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 2,
+    paddingRight: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -120,34 +123,46 @@ const s = StyleSheet.create({
   ssh: {
     backgroundColor: '#D9D9D9',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7,
-    padding: 2,
+    fontSize: 6,
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 2,
+    paddingRight: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
   },
   lr: {
     backgroundColor: '#D9D9D9',
-    color: '#FF0000',
+    color: '#000000',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 6,
-    padding: 2,
+    fontSize: 5,
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 2,
+    paddingRight: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
   },
   l: {
     backgroundColor: '#D9D9D9',
-    fontSize: 6,
-    padding: 2,
+    fontSize: 5,
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 2,
+    paddingRight: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
   },
   d: {
     backgroundColor: '#FFFFFF',
-    fontSize: 7,
-    padding: 2,
+    fontSize: 6,
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 2,
+    paddingRight: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -156,7 +171,7 @@ const s = StyleSheet.create({
     backgroundColor: '#70AD47',
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 6,
+    fontSize: 5,
     padding: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
@@ -166,7 +181,7 @@ const s = StyleSheet.create({
   noOkCell: {
     backgroundColor: '#FFFFFF',
     color: '#C00000',
-    fontSize: 6,
+    fontSize: 5,
     padding: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
@@ -176,7 +191,7 @@ const s = StyleSheet.create({
   ch: {
     backgroundColor: '#D9D9D9',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 6,
+    fontSize: 5,
     padding: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
@@ -186,7 +201,7 @@ const s = StyleSheet.create({
   tot: {
     backgroundColor: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7,
+    fontSize: 6,
     padding: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
@@ -195,13 +210,13 @@ const s = StyleSheet.create({
   },
   bold: { fontFamily: 'Helvetica-Bold' },
   center: { textAlign: 'center' },
-  small: { fontSize: 5, color: '#595959', fontFamily: 'Helvetica-Oblique' },
-  sectionLabel: { fontFamily: 'Helvetica-Bold', fontSize: 7, marginBottom: 2 },
+  small: { fontSize: 4, color: '#595959', fontFamily: 'Helvetica-Oblique' },
+  sectionLabel: { fontFamily: 'Helvetica-Bold', fontSize: 6, marginBottom: 2 },
   chBlue: {
     backgroundColor: '#595959',
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 6,
+    fontSize: 5,
     padding: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
@@ -210,7 +225,7 @@ const s = StyleSheet.create({
   },
   dPeach: {
     backgroundColor: '#FCE4D6',
-    fontSize: 7,
+    fontSize: 6,
     padding: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
@@ -220,7 +235,7 @@ const s = StyleSheet.create({
     backgroundColor: '#808080',
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7,
+    fontSize: 6,
     padding: 2,
     borderRightWidth: B,
     borderBottomWidth: B,
@@ -259,8 +274,8 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
               <Image src={logoUrl} style={{ width: 90, height: 40, objectFit: 'contain' }} cache={false} />
             </View>
             <View style={[s.d, { flex: 1 }]}>
-              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center' }}>NT.00020.EQTL.Normas e Qualidade</Text>
-              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 8, textAlign: 'center', marginTop: 3 }}>
+              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 6, textAlign: 'center' }}>NT.00020.EQTL.Normas e Qualidade</Text>
+              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center', marginTop: 3 }}>
                 ANEXO I - Formulário de Solicitação de Orçamento de Microgeração Distribuída Grupo B
               </Text>
             </View>
@@ -272,26 +287,31 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           <View style={s.row}>
             <View style={[s.sh, { width: '100%' }]}>
               <Text>{'1. Identificação e Dados Cadastrais da Unidade Consumidora - '}
-                <Text style={{ color: '#FF9999' }}>PREENCHER, OBRIGATORIAMENTE, TODOS OS CAMPOS NA COR VERMELHA</Text>
+                <Text style={{ color: '#FF6600' }}>PREENCHER, OBRIGATORIAMENTE, TODOS OS CAMPOS</Text>
               </Text>
             </View>
           </View>
-          {/* Nome / CPF */}
+          {/* Nome / CPF — label em cima, valor embaixo */}
           <View style={s.row}>
-            <View style={[s.lr, { width: '38%' }]}><Text>Nome do Cliente / Razão Social (Titular da UC)</Text></View>
-            <View style={[s.d, { width: '34%' }]}><Text>{v('cliente_nome', pd)}</Text></View>
-            <View style={[s.lr, { width: '14%' }]}><Text>CPF/CNPJ</Text></View>
-            <View style={[s.d, { width: '14%' }]}><Text>{v('cliente_cpf', pd)}</Text></View>
+            <View style={[s.lr, { width: '52%' }]}><Text>Nome do Cliente / Razão Social (Titular da UC)</Text></View>
+            <View style={[s.lr, { width: '48%' }]}><Text>CPF/CNPJ</Text></View>
           </View>
-          {/* Endereço / Contatos */}
           <View style={s.row}>
-            <View style={[s.lr, { width: '38%' }]}><Text>Endereço</Text></View>
-            <View style={[s.d, { width: '28%' }]}><Text>{v('endereco', pd)}</Text></View>
-            <View style={[s.l, { width: '8%' }]}><Text>Contatos telefônicos</Text></View>
-            <View style={[s.l, { width: '4%' }]}><Text>Celular</Text></View>
-            <View style={[s.d, { width: '10%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
-            <View style={[s.l, { width: '4%' }]}><Text>Fixo</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text>{v('cliente_telefone_fixo', pd)}</Text></View>
+            <View style={[s.d, { width: '52%' }]}><Text>{v('cliente_nome', pd)}</Text></View>
+            <View style={[s.d, { width: '48%' }]}><Text>{v('cliente_cpf', pd)}</Text></View>
+          </View>
+          {/* Endereço / Contatos — label em cima, valor embaixo */}
+          <View style={s.row}>
+            <View style={[s.lr, { width: '52%' }]}><Text>Endereço</Text></View>
+            <View style={[s.l, { width: '14%' }]}><Text>Contatos telefônicos</Text></View>
+            <View style={[s.l, { width: '17%' }]}><Text>Celular</Text></View>
+            <View style={[s.l, { width: '17%' }]}><Text>Fixo</Text></View>
+          </View>
+          <View style={s.row}>
+            <View style={[s.d, { width: '52%' }]}><Text>{v('endereco', pd)}</Text></View>
+            <View style={[s.d, { width: '14%' }]}><Text></Text></View>
+            <View style={[s.d, { width: '17%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
+            <View style={[s.d, { width: '17%' }]}><Text>{v('cliente_telefone_fixo', pd)}</Text></View>
           </View>
           {/* CEP / Município / UF / E-mail */}
           <View style={s.row}>
@@ -390,7 +410,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           <View style={s.row}>
             <View style={[s.d, { width: '100%' }]}>
               <Text>
-                <Text style={{ color: '#FF0000', fontFamily: 'Helvetica-Bold', fontSize: 6 }}>E-mail do Responsável Legal</Text>
+                <Text style={{ color: '#000000', fontFamily: 'Helvetica-Bold', fontSize: 5 }}>E-mail do Responsável Legal</Text>
                 {'  '}{v('responsavel_legal_email', pd)}
               </Text>
             </View>
@@ -412,7 +432,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           <View style={s.row}>
             <View style={[s.d, { width: '55%' }]}>
-              <Text><Text style={{ color: '#FF0000', fontFamily: 'Helvetica-Bold', fontSize: 6 }}>UF</Text>{'  '}{v('responsavel_uf', pd)}</Text>
+              <Text><Text style={{ color: '#000000', fontFamily: 'Helvetica-Bold', fontSize: 5 }}>UF</Text>{'  '}{v('responsavel_uf', pd)}</Text>
             </View>
             <View style={[s.d, { width: '45%' }]}><Text></Text></View>
           </View>
@@ -604,7 +624,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             </View>
             <View style={[s.d, { width: '30%', fontSize: 6 }]}>
               <View style={{ borderWidth: 0.5, borderColor: BC, padding: 3 }}>
-                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 7 }}>{v('responsavel_nome', pd)}</Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 6 }}>{v('responsavel_nome', pd)}</Text>
                 <Text style={{ fontSize: 6, marginTop: 2 }}>
                   {v('responsavel_profissao', pd)}{'\n'}Reg.: {v('responsavel_registro', pd)}
                 </Text>
@@ -805,15 +825,35 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.chBlue, { width: '20%' }]}><Text>Periodicidade</Text></View>
             <View style={[s.chBlue, { width: '20%' }]}><Text>Observação</Text></View>
           </View>
-          {(['Fabricante das Turbinas*', 'Tipo de Turbina* (1)'] as string[]).map(label => (
+          {([
+            ['Fabricante das Turbinas*', ''],
+            ['Tipo de Turbina* (1)', ''],
+            ['Fabricante/Modelo do Gerador', ''],
+            ['Potência Nominal de Placa', 'kVA'],
+            ['Potência Máxima em Regime Contínuo', 'kW'],
+            ['Corrente Nominal', 'A'],
+            ['Tensão Nominal', 'kV'],
+            ['Frequência Nominal', 'Hz'],
+            ['Velocidade Nominal', 'rpm'],
+            ['Número de fases', ''],
+            ['Tipo e Ligação (2)', ''],
+            ['Número de pólos', ''],
+            ['Fator de Potência Máximo* (3)', ''],
+          ] as [string, string][]).map(([label, unit]) => (
             <View key={label} style={s.row}>
               <View style={[s.l, { width: '20%' }]}><Text>{label}</Text></View>
               <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
+              <View style={unit ? [s.d, { width: '20%' }] : [s.dPeach, { width: '20%' }]}><Text>{unit}</Text></View>
               <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
               <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
             </View>
           ))}
+        </View>
+        {/* Rodapé legenda Térmica */}
+        <View style={{ marginTop: 2 }}>
+          <Text style={s.small}>(1) G/V/O</Text>
+          <Text style={s.small}>(2) Y ou Δ</Text>
+          <Text style={s.small}>(3) Sobre-excitado ou Sub-excitado</Text>
         </View>
       </Page>
     </Document>

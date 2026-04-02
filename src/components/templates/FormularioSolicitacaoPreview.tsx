@@ -69,12 +69,12 @@ const B = '1px solid #000000';
 const SH: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
 // Sub-header — cinza médio
 const SSH: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
-// Label obrigatório — fundo cinza médio, texto VERMELHO
-const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#FF0000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+// Label obrigatório — fundo cinza médio, texto preto
+const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '6px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Label normal — fundo cinza médio, texto preto
-const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '6px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Célula de dado — fundo branco
-const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '2px 3px', border: B, verticalAlign: 'top', overflow: 'hidden', wordBreak: 'break-word' };
+const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, verticalAlign: 'top', overflow: 'hidden', wordBreak: 'break-word' };
 // OK verde forte
 const OK: React.CSSProperties = { backgroundColor: '#70AD47', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Cabeçalho de coluna página 1 (cinza)
@@ -183,37 +183,45 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
         {/* ===== SEÇÃO 1 ===== */}
         <table style={T}>
           <colgroup>
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '22%' }} />
             <col style={{ width: '10%' }} />
             <col style={{ width: '14%' }} />
-            <col style={{ width: '10%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '8%' }} />
             <col style={{ width: '14%' }} />
-            <col style={{ width: '7%' }} />
-            <col style={{ width: '7%' }} />
+            <col style={{ width: '17%' }} />
+            <col style={{ width: '17%' }} />
           </colgroup>
           <tbody>
             <tr>
               <td colSpan={8} style={SH}>
                 1. Identificação e Dados Cadastrais da Unidade Consumidora -{' '}
-                <span style={{ color: '#FF9999' }}>PREENCHER, OBRIGATORIAMENTE, TODOS OS CAMPOS NA COR VERMELHA</span>
+                <span style={{ color: '#FF6600' }}>PREENCHER, OBRIGATORIAMENTE, TODOS OS CAMPOS</span>
               </td>
             </tr>
 
-            {/* Nome / CPF */}
+            {/* Nome / CPF — label em cima, valor embaixo */}
             <tr>
-              <td colSpan={2} style={LR}>Nome do Cliente / Razão Social (Titular da Unidade Consumidora)</td>
-              <td colSpan={3} style={D}><V>{`{{cliente_nome}}`}</V></td>
-              <td style={LR}>CPF/CNPJ</td>
-              <td colSpan={2} style={D}><V>{`{{cliente_cpf}}`}</V></td>
+              <td colSpan={5} style={LR}>Nome do Cliente / Razão Social (Titular da Unidade Consumidora)</td>
+              <td colSpan={3} style={LR}>CPF/CNPJ</td>
+            </tr>
+            <tr>
+              <td colSpan={5} style={D}><V>{`{{cliente_nome}}`}</V></td>
+              <td colSpan={3} style={D}><V>{`{{cliente_cpf}}`}</V></td>
             </tr>
 
-            {/* Endereço / Contatos */}
+            {/* Endereço / Contatos — label em cima, valor embaixo */}
             <tr>
-              <td colSpan={2} style={LR}>Endereço</td>
-              <td colSpan={3} style={D}><V>{`{{endereco}}`}</V></td>
+              <td colSpan={5} style={LR}>Endereço</td>
               <td style={L}>Contatos telefônicos</td>
-              <td style={L} colSpan={2}>Celular &nbsp;<V>{`{{cliente_celular}}`}</V> &nbsp; Fixo &nbsp;<V>{`{{cliente_telefone_fixo}}`}</V></td>
+              <td style={L}>Celular</td>
+              <td style={L}>Fixo</td>
+            </tr>
+            <tr>
+              <td colSpan={5} style={D}><V>{`{{endereco}}`}</V></td>
+              <td style={D}></td>
+              <td style={D}><V>{`{{cliente_celular}}`}</V></td>
+              <td style={D}><V>{`{{cliente_telefone_fixo}}`}</V></td>
             </tr>
 
             {/* CEP / Município / UF / E-mail */}
@@ -833,11 +841,60 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                   <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Tipo de Turbina* (1)</td>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Tipo de Turbina* <sup>(1)</sup></td>
+                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Fabricante/Modelo do Gerador</td>
+                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Potência Nominal de Placa</td>
+                  <td style={DPeach}></td><td style={D}>kVA</td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Potência Máxima em Regime Contínuo</td>
+                  <td style={DPeach}></td><td style={D}>kW</td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Corrente Nominal</td>
+                  <td style={DPeach}></td><td style={D}>A</td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Tensão Nominal</td>
+                  <td style={DPeach}></td><td style={D}>kV</td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Frequência Nominal</td>
+                  <td style={DPeach}></td><td style={D}>Hz</td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Velocidade Nominal</td>
+                  <td style={DPeach}></td><td style={D}>rpm</td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Número de fases</td>
+                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Tipo e Ligação <sup>(2)</sup></td>
+                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Número de pólos</td>
+                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                </tr>
+                <tr>
+                  <td style={{ ...L, whiteSpace: 'normal' }}>Fator de Potência Máximo* <sup>(3)</sup></td>
                   <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
                 </tr>
               </tbody>
             </table>
+            <div style={{ fontSize: '7px', marginTop: '2px', lineHeight: '1.4' }}>
+              <div><sup>(1)</sup> G/V/O</div>
+              <div><sup>(2)</sup> Y ou Δ</div>
+              <div><sup>(3)</sup> Sobre-excitado ou Sub-excitado</div>
+            </div>
           </div>
         </div>
 
