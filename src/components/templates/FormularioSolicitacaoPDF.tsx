@@ -67,6 +67,13 @@ const STATE_NAMES: Record<string, string> = {
   TO: 'TOCANTINS',
 };
 
+function fmtKW(val: string | number | undefined): string {
+  if (val === undefined || val === null || val === '') return '___';
+  const n = parseFloat(String(val).replace(',', '.'));
+  if (isNaN(n) || n === 0) return '___';
+  return n.toFixed(2).replace('.', ',');
+}
+
 function v(placeholder: string, projectData?: Record<string, any>): string {
   const fieldKey = PLACEHOLDER_MAP[`{{${placeholder}}}`];
   const raw = fieldKey && projectData ? projectData[fieldKey] : undefined;
@@ -248,8 +255,10 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           <View style={s.row}>
             <View style={[s.lr, { width: '38%' }]}><Text>Endereço</Text></View>
             <View style={[s.d, { width: '34%' }]}><Text>{v('endereco', pd)}</Text></View>
-            <View style={[s.l, { width: '14%' }]}><Text>Contatos telefônicos</Text></View>
-            <View style={[s.d, { width: '14%' }]}><Text>Cel {v('cliente_celular', pd)}  Fix {v('cliente_telefone_fixo', pd)}</Text></View>
+            <View style={[s.l, { width: '5%' }]}><Text>Cel.</Text></View>
+            <View style={[s.d, { width: '11%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
+            <View style={[s.l, { width: '4%' }]}><Text>Fix.</Text></View>
+            <View style={[s.d, { width: '8%' }]}><Text>{v('cliente_telefone_fixo', pd)}</Text></View>
           </View>
           {/* CEP / Município / UF / E-mail */}
           <View style={s.row}>
@@ -277,9 +286,12 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {/* INFORMAR CONTA CONTRATO */}
           <View style={s.row}>
-            <View style={[s.d, { width: '100%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
-              <Text style={s.bold}>INFORMAR O NÚMERO DA CONTA CONTRATO</Text>
+            <View style={[s.d, { width: '55%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
+              <Text style={s.bold}>INFORMAR O NÚMERO DA CONTA CONTRATO E POTÊNCIA DA GD EXISTENTE</Text>
             </View>
+            <View style={[s.l, { width: '25%' }]}><Text>Potência de Geração Existente</Text></View>
+            <View style={[s.d, { width: '12%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '8%', textAlign: 'center' }]}><Text>kW</Text></View>
           </View>
           {/* Tarifa Branca */}
           <View style={s.row}>
@@ -312,11 +324,11 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           {/* Carga Declarada / Disjuntor / PD */}
           <View style={s.row}>
             <View style={[s.lr, { width: '38%' }]}><Text>Carga Declarada da UC</Text></View>
-            <View style={[s.d, { width: '10%' }]}><Text>{v('carga_declarada_kw', pd)} kW</Text></View>
+            <View style={[s.d, { width: '10%' }]}><Text>{fmtKW(pd?.carga_declarada_kw)} kW</Text></View>
             <View style={[s.lr, { width: '24%' }]}><Text>Disjuntor de Entrada da UC (selecionar)</Text></View>
             <View style={[s.d, { width: '14%' }]}><Text>{v('disjuntor_corrente_a', pd)} A</Text></View>
             <View style={[s.lr, { width: '7%' }]}><Text>Potência Disponibilizada (PD)</Text></View>
-            <View style={[s.d, { width: '7%' }]}><Text>{v('potencia_disponibilizada_kw', pd)} kW</Text></View>
+            <View style={[s.d, { width: '7%' }]}><Text>{fmtKW(pd?.potencia_disponibilizada_kw)} kW</Text></View>
           </View>
           {/* OK Carga / Ramal / Poste */}
           <View style={s.row}>
@@ -373,11 +385,13 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           <View style={s.row}>
             <View style={[s.lr, { width: '20%' }]}><Text>E-mail</Text></View>
-            <View style={[s.d, { width: '50%' }]}><Text>{v('responsavel_email', pd)}</Text></View>
-            <View style={[s.l, { width: '10%' }]}><Text>Telefone Fixo</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text></Text></View>
-            <View style={[s.l, { width: '6%' }]}><Text>Celular</Text></View>
-            <View style={[s.d, { width: '6%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
+            <View style={[s.d, { width: '30%' }]}><Text>{v('responsavel_email', pd)}</Text></View>
+            <View style={[s.l, { width: '13%' }]}><Text>Empresa (opcional)</Text></View>
+            <View style={[s.d, { width: '15%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '9%' }]}><Text>Telefone Fixo</Text></View>
+            <View style={[s.d, { width: '7%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '3%' }]}><Text>Cel.</Text></View>
+            <View style={[s.d, { width: '3%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
           </View>
         </View>
 
@@ -488,12 +502,12 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.sh, { width: '100%' }]}><Text>6. Solicitações e Declarações</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.</Text></View>
-            <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
-          </View>
-          <View style={s.row}>
             <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.</Text></View>
             <View style={[s.d, { width: '8%' }]}><Text></Text></View>
+          </View>
+          <View style={s.row}>
+            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.</Text></View>
+            <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Solicito que a contagem do prazo para realização da vistoria pela CONCESSIONÁRIA, conforme art. 68 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação.</Text></View>
