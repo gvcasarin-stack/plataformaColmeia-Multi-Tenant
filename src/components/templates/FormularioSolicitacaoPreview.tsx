@@ -65,22 +65,28 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 // Estilo base reutilizável
 const T: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', marginBottom: '2px', fontSize: '8px', lineHeight: '1.25' };
 const B = '1px solid #000000';
-// Section header — cinza escuro fundo, branco texto
-const SH: React.CSSProperties = { backgroundColor: '#404040', color: '#FFFFFF', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
-// Sub-header — cinza claro
+// Section header — fundo branco, texto preto (igual ao original)
+const SH: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
+// Sub-header — cinza médio
 const SSH: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
-// Label obrigatório — fundo cinza claro, texto VERMELHO
-const LR: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#FF0000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
-// Label normal — fundo cinza claro, texto preto
-const L: React.CSSProperties = { backgroundColor: '#F2F2F2', color: '#000000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+// Label obrigatório — fundo cinza médio, texto VERMELHO
+const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#FF0000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+// Label normal — fundo cinza médio, texto preto
+const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Célula de dado — fundo branco
 const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '2px 3px', border: B, verticalAlign: 'top', overflow: 'hidden', wordBreak: 'break-word' };
-// OK verde
-const OK: React.CSSProperties = { backgroundColor: '#E2EFDA', color: '#375623', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
-// Cabeçalho de coluna nas tabelas de geradores
+// OK verde forte
+const OK: React.CSSProperties = { backgroundColor: '#70AD47', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+// Cabeçalho de coluna página 1 (cinza)
 const CH: React.CSSProperties = { backgroundColor: '#D9D9D9', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
-// Célula TOTAL
+// Cabeçalho de coluna página 2 (azul)
+const CHBlue: React.CSSProperties = { backgroundColor: '#4472C4', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+// Célula vazia página 2 (pêssego)
+const DPeach: React.CSSProperties = { backgroundColor: '#FCE4D6', fontSize: '7px', padding: '2px 3px', border: B, textAlign: 'center', verticalAlign: 'middle' };
+// Célula TOTAL valor
 const TOT: React.CSSProperties = { ...D, fontWeight: 'bold', textAlign: 'center' };
+// Célula TOTAL cinza
+const TOTGray: React.CSSProperties = { backgroundColor: '#808080', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 
 export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicitacaoPreviewProps) {
   const [generating, setGenerating] = useState(false);
@@ -635,19 +641,19 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             <table style={T}>
               <thead>
                 <tr>
-                  <th style={{ ...CH, width: '5%' }}>Item</th>
-                  <th style={{ ...CH, width: '16%' }}>Potência do Módulo (W)</th>
-                  <th style={{ ...CH, width: '12%' }}>Quantidade</th>
-                  <th style={{ ...CH, width: '18%' }}>Potência de Pico (kWp):</th>
-                  <th style={{ ...CH, width: '16%' }}>Área do arranjo (m²):</th>
-                  <th style={{ ...CH, width: '20%' }}>Fabricante(s) dos Módulos</th>
-                  <th style={{ ...CH, width: '13%' }}>Modelo</th>
+                  <th style={{ ...CHBlue, width: '5%' }}>Item</th>
+                  <th style={{ ...CHBlue, width: '16%' }}>Potência do Módulo (W)</th>
+                  <th style={{ ...CHBlue, width: '12%' }}>Quantidade</th>
+                  <th style={{ ...CHBlue, width: '18%' }}>Potência de Pico (kWp):</th>
+                  <th style={{ ...CHBlue, width: '16%' }}>Área do arranjo (m²):</th>
+                  <th style={{ ...CHBlue, width: '20%' }}>Fabricante(s) dos Módulos</th>
+                  <th style={{ ...CHBlue, width: '13%' }}>Modelo</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Linha preenchida */}
                 <tr>
-                  <td style={{ ...D, textAlign: 'center' }}>1</td>
+                  <td style={{ ...D, textAlign: 'center', color: '#4472C4' }}>1</td>
                   <td style={{ ...D, textAlign: 'center' }}><V>{`{{modulos_potencia_wp}}`}</V></td>
                   <td style={{ ...D, textAlign: 'center' }}><V>{`{{modulos_quantidade}}`}</V></td>
                   <td style={{ ...D, textAlign: 'center' }}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>}</td>
@@ -658,19 +664,19 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 {/* Linhas vazias */}
                 {emptyModuloRows.map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...D, textAlign: 'center', color: '#999', fontSize: '7px' }}>{i + 2}</td>
-                    <td style={D}></td><td style={D}></td><td style={D}></td>
-                    <td style={D}></td><td style={D}></td><td style={D}></td>
+                    <td style={{ ...DPeach, color: '#4472C4' }}>{i + 2}</td>
+                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
                   </tr>
                 ))}
                 {/* Total */}
                 <tr>
-                  <td style={TOT} colSpan={1}>TOTAL</td>
-                  <td style={D}></td>
-                  <td style={{ ...TOT }}><V>{`{{modulos_quantidade}}`}</V></td>
-                  <td style={{ ...TOT }}>{potenciaKwp ?? ''}</td>
-                  <td style={{ ...TOT }}><V>{`{{modulos_area_m2}}`}</V></td>
-                  <td style={D}></td><td style={D}></td>
+                  <td style={TOTGray}>TOTAL</td>
+                  <td style={TOTGray}></td>
+                  <td style={TOT}><V>{`{{modulos_quantidade}}`}</V></td>
+                  <td style={TOT}>{potenciaKwp ?? ''}</td>
+                  <td style={TOT}><V>{`{{modulos_area_m2}}`}</V></td>
+                  <td style={TOTGray}></td><td style={TOTGray}></td>
                 </tr>
               </tbody>
             </table>
@@ -685,22 +691,22 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             <table style={T}>
               <thead>
                 <tr>
-                  <th style={{ ...CH, width: '4%' }}>Item</th>
-                  <th style={{ ...CH, width: '14%' }}>Fabricante*</th>
-                  <th style={{ ...CH, width: '16%' }}>Modelo*</th>
-                  <th style={{ ...CH, width: '12%' }}>Potência Nominal (kW)</th>
-                  <th style={{ ...CH, width: '13%' }}>Faixa de tensão de operação (V)</th>
-                  <th style={{ ...CH, width: '10%' }}>Corrente Nominal (A)</th>
-                  <th style={{ ...CH, width: '11%' }}>Fator de Potência</th>
-                  <th style={{ ...CH, width: '10%' }}>Rendimento (%)</th>
-                  <th style={{ ...CH, width: '10%' }}>DHT de Corrente (%)</th>
+                  <th style={{ ...CHBlue, width: '4%' }}>Item</th>
+                  <th style={{ ...CHBlue, width: '14%' }}>Fabricante*</th>
+                  <th style={{ ...CHBlue, width: '16%' }}>Modelo*</th>
+                  <th style={{ ...CHBlue, width: '12%' }}>Potência Nominal (kW)</th>
+                  <th style={{ ...CHBlue, width: '13%' }}>Faixa de tensão de operação (V)</th>
+                  <th style={{ ...CHBlue, width: '10%' }}>Corrente Nominal (A)</th>
+                  <th style={{ ...CHBlue, width: '11%' }}>Fator de Potência</th>
+                  <th style={{ ...CHBlue, width: '10%' }}>Rendimento (%)</th>
+                  <th style={{ ...CHBlue, width: '10%' }}>DHT de Corrente (%)</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Linhas preenchidas */}
                 {Array.from({ length: inversoresQtd }).map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...D, textAlign: 'center' }}>{i + 1}</td>
+                    <td style={{ ...D, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
                     <td style={D}><V>{`{{inversores_fabricante}}`}</V></td>
                     <td style={D}><V>{`{{inversores_modelo}}`}</V></td>
                     <td style={{ ...D, textAlign: 'center' }}><V>{`{{inversores_potencia}}`}</V></td>
@@ -714,19 +720,19 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 {/* Linhas vazias */}
                 {emptyInversorRows.map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...D, textAlign: 'center', color: '#999', fontSize: '7px' }}>{inversoresQtd + i + 1}</td>
-                    <td style={D}></td><td style={D}></td><td style={D}></td>
-                    <td style={D}></td><td style={D}></td><td style={D}></td>
-                    <td style={D}></td><td style={D}></td>
+                    <td style={{ ...DPeach, color: '#4472C4' }}>{inversoresQtd + i + 1}</td>
+                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                    <td style={DPeach}></td><td style={DPeach}></td>
                   </tr>
                 ))}
                 {/* Total */}
                 <tr>
-                  <td style={TOT}>TOTAL</td>
-                  <td style={D}></td><td style={D}></td>
+                  <td style={TOTGray}>TOTAL</td>
+                  <td style={TOTGray}></td><td style={TOTGray}></td>
                   <td style={TOT}>{totalInvPotencia}</td>
-                  <td style={D}></td><td style={D}></td><td style={D}></td>
-                  <td style={D}></td><td style={D}></td>
+                  <td style={TOTGray}></td><td style={TOTGray}></td><td style={TOTGray}></td>
+                  <td style={TOTGray}></td><td style={TOTGray}></td>
                 </tr>
               </tbody>
             </table>
