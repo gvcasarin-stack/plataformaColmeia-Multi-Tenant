@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 
@@ -83,30 +83,29 @@ const CH: React.CSSProperties = { backgroundColor: '#D9D9D9', fontSize: '7px', p
 const TOT: React.CSSProperties = { ...D, fontWeight: 'bold', textAlign: 'center' };
 
 export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicitacaoPreviewProps) {
-  const contentRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
 
   const handleGeneratePdf = async () => {
-    if (!contentRef.current) return;
     setGenerating(true);
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
+      const { pdf } = await import('@react-pdf/renderer');
+      const { FormularioSolicitacaoPDF } = await import('./FormularioSolicitacaoPDF');
+      const React = await import('react');
       const clientName = projectData?.nomeClienteFinal || 'projeto';
       const filename = `Formulário Solicitação de Acesso - ${clientName}.pdf`;
-      contentRef.current.classList.add('pdf-printing');
-      const opt = {
-        margin: [6, 6, 6, 6],
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, width: 794, windowWidth: 794 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-        pagebreak: { mode: ['css'], before: '.break-before-page' },
-      };
-      await html2pdf().set(opt).from(contentRef.current).save();
-      contentRef.current.classList.remove('pdf-printing');
+      const blob = await pdf(
+        React.createElement(FormularioSolicitacaoPDF, { projectData })
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Erro ao gerar PDF:', err);
-      contentRef.current?.classList.remove('pdf-printing');
     } finally {
       setGenerating(false);
     }
@@ -155,7 +154,6 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
   return (
     <>
       <div
-        ref={contentRef}
         style={{ width: '794px', padding: '18px', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', fontSize: '8px', backgroundColor: '#FFFFFF', lineHeight: '1.25', color: '#000000' }}
       >
 
