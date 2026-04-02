@@ -198,7 +198,7 @@ const s = StyleSheet.create({
   small: { fontSize: 5, color: '#595959', fontFamily: 'Helvetica-Oblique' },
   sectionLabel: { fontFamily: 'Helvetica-Bold', fontSize: 7, marginBottom: 2 },
   chBlue: {
-    backgroundColor: '#4472C4',
+    backgroundColor: '#595959',
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
     fontSize: 6,
@@ -295,14 +295,14 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {/* CEP / Município / UF / E-mail */}
           <View style={s.row}>
-            <View style={[s.lr, { width: '16%' }]}><Text>CEP:</Text></View>
-            <View style={[s.d, { width: '22%' }]}><Text>{v('cliente_cep', pd)}</Text></View>
-            <View style={[s.lr, { width: '10%' }]}><Text>Município</Text></View>
-            <View style={[s.d, { width: '14%' }]}><Text>{v('cidade', pd)}</Text></View>
-            <View style={[s.lr, { width: '10%' }]}><Text>UF</Text></View>
-            <View style={[s.d, { width: '14%' }]}><Text>{v('estado', pd)}</Text></View>
+            <View style={[s.lr, { width: '8%' }]}><Text>CEP:</Text></View>
+            <View style={[s.d, { width: '12%' }]}><Text>{v('cliente_cep', pd)}</Text></View>
+            <View style={[s.lr, { width: '8%' }]}><Text>Município</Text></View>
+            <View style={[s.d, { width: '12%' }]}><Text>{v('cidade', pd)}</Text></View>
+            <View style={[s.lr, { width: '5%' }]}><Text>UF</Text></View>
+            <View style={[s.d, { width: '8%' }]}><Text>{v('estado', pd)}</Text></View>
             <View style={[s.lr, { width: '7%' }]}><Text>E-mail</Text></View>
-            <View style={[s.d, { width: '7%' }]}><Text>{v('cliente_email', pd)}</Text></View>
+            <View style={[s.d, { width: '40%' }]}><Text>{v('cliente_email', pd)}</Text></View>
           </View>
           {/* Tipo de orçamento / Conta Contrato */}
           <View style={s.row}>
@@ -654,7 +654,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.chBlue, { width: '13%' }]}><Text>Modelo</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '5%', textAlign: 'center', color: '#4472C4' }]}><Text>1</Text></View>
+            <View style={[s.d, { width: '5%', textAlign: 'center' }]}><Text>1</Text></View>
             <View style={[s.d, { width: '16%', textAlign: 'center' }]}><Text>{v('modulos_potencia_wp', pd)}</Text></View>
             <View style={[s.d, { width: '12%', textAlign: 'center' }]}><Text>{v('modulos_quantidade', pd)}</Text></View>
             <View style={[s.d, { width: '18%', textAlign: 'center' }]}><Text>{potenciaKwp}</Text></View>
@@ -664,7 +664,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {Array.from({ length: 9 }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '5%', textAlign: 'center', color: '#4472C4' }]}><Text>{i + 2}</Text></View>
+              <View style={[s.dPeach, { width: '5%', textAlign: 'center' }]}><Text>{i + 2}</Text></View>
               <View style={[s.dPeach, { width: '16%' }]}><Text></Text></View>
               <View style={[s.dPeach, { width: '12%' }]}><Text></Text></View>
               <View style={[s.dPeach, { width: '18%' }]}><Text></Text></View>
@@ -701,7 +701,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {Array.from({ length: inversoresQtd }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.d, { width: '4%', textAlign: 'center', color: '#4472C4' }]}><Text>{i + 1}</Text></View>
+              <View style={[s.d, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
               <View style={[s.d, { width: '14%' }]}><Text>{v('inversores_fabricante', pd)}</Text></View>
               <View style={[s.d, { width: '16%' }]}><Text>{v('inversores_modelo', pd)}</Text></View>
               <View style={[s.d, { width: '12%', textAlign: 'center' }]}><Text>{v('inversores_potencia', pd)}</Text></View>
@@ -714,7 +714,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           ))}
           {Array.from({ length: Math.max(0, 30 - inversoresQtd) }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '4%', textAlign: 'center', color: '#4472C4' }]}><Text>{inversoresQtd + i + 1}</Text></View>
+              <View style={[s.dPeach, { width: '4%', textAlign: 'center' }]}><Text>{inversoresQtd + i + 1}</Text></View>
               <View style={[s.dPeach, { width: '14%' }]}><Text></Text></View>
               <View style={[s.dPeach, { width: '16%' }]}><Text></Text></View>
               <View style={[s.dPeach, { width: '12%' }]}><Text></Text></View>
@@ -759,7 +759,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {Array.from({ length: 10 }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '4%', textAlign: 'center', color: '#4472C4' }]}><Text>{i + 1}</Text></View>
+              <View style={[s.dPeach, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
               {([16, 9, 8, 8, 9, 8, 9, 9, 9, 9, 6, 6] as number[]).map((w, j) => (
                 <View key={j} style={[s.dPeach, { width: `${w}%` }]}><Text></Text></View>
               ))}
@@ -785,7 +785,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {[1, 2, 3].map(i => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '4%', textAlign: 'center', color: '#4472C4' }]}><Text>{i}</Text></View>
+              <View style={[s.dPeach, { width: '4%', textAlign: 'center' }]}><Text>{i}</Text></View>
               {Array.from({ length: 9 }).map((_, j) => <View key={j} style={[s.dPeach, { flex: 1 }]}><Text></Text></View>)}
             </View>
           ))}
