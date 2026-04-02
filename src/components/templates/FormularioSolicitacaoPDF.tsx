@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 interface FormularioSolicitacaoPDFProps {
   projectData?: Record<string, any>;
@@ -201,6 +201,9 @@ const s = StyleSheet.create({
 
 export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoPDFProps) {
   const pd = projectData;
+  const logoUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/images/logo.equatorial.png`
+    : '/images/logo.equatorial.png';
 
   const potenciaNum = parseFloat(String(pd?.potencia || '0')) || 0;
   const potenciaKwp = potenciaNum > 0 ? potenciaNum.toFixed(2).replace('.', ',') : '___';
@@ -222,9 +225,8 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
         {/* ===== CABEÇALHO ===== */}
         <View style={s.tbl}>
           <View style={s.row}>
-            <View style={[s.d, { width: '25%' }]}>
-              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 7, color: '#404040' }}>GRUPO</Text>
-              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 14, color: '#0070C0' }}>equatorial</Text>
+            <View style={[s.d, { width: '25%', justifyContent: 'center', alignItems: 'center' }]}>
+              <Image src={logoUrl} style={{ width: 90, height: 40, objectFit: 'contain' }} cache={false} />
             </View>
             <View style={[s.d, { flex: 1 }]}>
               <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center' }}>NT.00020.EQTL.Normas e Qualidade</Text>
@@ -254,10 +256,11 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           {/* Endereço / Contatos */}
           <View style={s.row}>
             <View style={[s.lr, { width: '38%' }]}><Text>Endereço</Text></View>
-            <View style={[s.d, { width: '34%' }]}><Text>{v('endereco', pd)}</Text></View>
-            <View style={[s.l, { width: '5%' }]}><Text>Cel.</Text></View>
-            <View style={[s.d, { width: '11%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
-            <View style={[s.l, { width: '4%' }]}><Text>Fix.</Text></View>
+            <View style={[s.d, { width: '28%' }]}><Text>{v('endereco', pd)}</Text></View>
+            <View style={[s.l, { width: '8%' }]}><Text>Contatos telefônicos</Text></View>
+            <View style={[s.l, { width: '4%' }]}><Text>Celular</Text></View>
+            <View style={[s.d, { width: '10%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
+            <View style={[s.l, { width: '4%' }]}><Text>Fixo</Text></View>
             <View style={[s.d, { width: '8%' }]}><Text>{v('cliente_telefone_fixo', pd)}</Text></View>
           </View>
           {/* CEP / Município / UF / E-mail */}
