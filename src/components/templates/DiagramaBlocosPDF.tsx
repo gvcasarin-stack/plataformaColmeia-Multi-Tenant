@@ -136,16 +136,18 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
 
         <View style={s.vLine} />
 
-        {/* 4. QGBT + Unidade Consumidora lado a lado */}
-        <View style={s.row}>
+        {/* 4. QGBT centralizado + Unidade Consumidora à direita */}
+        <View style={{ width: BOX_W, position: 'relative' }}>
           <View style={s.box}>
             <Text style={s.normalLine}>QGBT</Text>
             <Text style={s.normalLine}>Quadro de baixa tensão</Text>
           </View>
-          <View style={s.hLine} />
-          <View style={[s.box, { width: 120 }]}>
-            <Text style={s.normalLine}>Unidade</Text>
-            <Text style={s.normalLine}>Consumidora/Geradora</Text>
+          <View style={{ position: 'absolute', top: 0, left: BOX_W, flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+            <View style={[s.hLine, { alignSelf: 'center' }]} />
+            <View style={[s.box, { width: 120 }]}>
+              <Text style={s.normalLine}>Unidade</Text>
+              <Text style={s.normalLine}>Consumidora/Geradora</Text>
+            </View>
           </View>
         </View>
 

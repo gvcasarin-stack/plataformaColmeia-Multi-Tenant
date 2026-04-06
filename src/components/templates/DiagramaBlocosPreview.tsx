@@ -117,16 +117,18 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
 
         <div style={V_LINE} />
 
-        {/* 4. QGBT + Unidade Consumidora */}
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+        {/* 4. QGBT centralizado + Unidade Consumidora à direita */}
+        <div style={{ position: 'relative', width: '200px' }}>
           <div style={BOX}>
             <div style={NORMAL}>QGBT</div>
             <div style={NORMAL}>Quadro de baixa tensão</div>
           </div>
-          <div style={H_LINE} />
-          <div style={{ ...BOX, width: '140px' }}>
-            <div style={NORMAL}>Unidade</div>
-            <div style={NORMAL}>Consumidora/Geradora</div>
+          <div style={{ position: 'absolute', top: 0, left: '200px', display: 'flex', flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+            <div style={H_LINE} />
+            <div style={{ ...BOX, width: '140px' }}>
+              <div style={NORMAL}>Unidade</div>
+              <div style={NORMAL}>Consumidora/Geradora</div>
+            </div>
           </div>
         </div>
 
