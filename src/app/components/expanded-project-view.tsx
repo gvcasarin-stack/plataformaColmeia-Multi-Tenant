@@ -63,6 +63,7 @@ import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
 import { MemorialDescritivoPreview, type CargaRow } from '@/components/templates/MemorialDescritivoPreview'
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
+import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
 
 // Import custom icon components
@@ -2974,6 +2975,34 @@ export const ExpandedProjectView = ({
                               </Card>
 
                               <Card
+                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'diagrama' ? null : 'diagrama')}
+                                className={`border cursor-pointer group transition-all duration-200 ${
+                                  activeTemplatePreview === 'diagrama'
+                                    ? 'border-purple-500 dark:border-purple-400 shadow-md ring-2 ring-purple-200 dark:ring-purple-800'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md'
+                                }`}
+                              >
+                                <CardContent className="p-5">
+                                  <div className="flex items-start gap-3">
+                                    <div className={`p-2 rounded-lg transition-colors ${
+                                      activeTemplatePreview === 'diagrama'
+                                        ? 'bg-purple-100 dark:bg-purple-900/50'
+                                        : 'bg-purple-50 dark:bg-purple-900/30 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50'
+                                    }`}>
+                                      <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Diagrama de Blocos</h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Diagrama unifilar de blocos do sistema fotovoltaico.
+                                      </p>
+                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
+                              <Card
                                 onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'procuracao' ? null : 'procuracao')}
                                 className={`border cursor-pointer group transition-all duration-200 ${
                                   activeTemplatePreview === 'procuracao'
@@ -3022,6 +3051,20 @@ export const ExpandedProjectView = ({
                                       });
                                     }}
                                   />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTemplatePreview === 'diagrama' && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-purple-500" />
+                                Pré-visualização — Diagrama de Blocos
+                              </h3>
+                              <div className="rounded-md border border-purple-200 dark:border-purple-700 p-4 max-h-[700px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <DiagramaBlocosPreview projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>
