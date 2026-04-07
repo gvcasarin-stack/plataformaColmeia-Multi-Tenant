@@ -110,6 +110,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const owner      = fv(pd.nomeClienteFinal,  'NOME DO PROPRIETÁRIO');
   const endereco   = fv(pd.endereco_local,    'ENDEREÇO DA OBRA');
   const cidade     = fv(pd.client_city,       'Cidade');
+  const uf         = fv(pd.client_state,      '');
   const cep        = fv(pd.cliente_cep,       '00.000-000');
   const respNome   = fv(pd.responsavel_nome,  'RESPONSÁVEL TÉCNICO');
   const respCft    = fv(pd.responsavel_registro, '00000000000');
@@ -436,58 +437,73 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="43" y="970" fontSize="9" fontWeight="bold">DIAGRAMA UNIFILAR</text>
 
           {/* ═══════════════ TITLE BLOCK ═══════════════ */}
-          <rect x="5" y="978" width="885" height="108" fill="white" stroke="#000" strokeWidth="1.2" />
+          <rect x="5" y="978" width="885" height="112" fill="white" stroke="#000" strokeWidth="1.2" />
 
-          {/* Vertical dividers */}
-          <line x1="178" y1="978" x2="178" y2="1086" stroke="#000" strokeWidth="0.8" />
-          <line x1="545" y1="978" x2="545" y2="1086" stroke="#000" strokeWidth="0.8" />
-          <line x1="718" y1="978" x2="718" y2="1086" stroke="#000" strokeWidth="0.8" />
+          {/* Vertical dividers: Left|Mid at x=178, Mid|Right at x=700 */}
+          <line x1="178" y1="978" x2="178" y2="1090" stroke="#000" strokeWidth="0.8" />
+          <line x1="700" y1="978" x2="700" y2="1090" stroke="#000" strokeWidth="0.8" />
+          {/* Left sub-col: labels | R values — starts below PRODUTO section */}
+          <line x1="118" y1="1008" x2="118" y2="1090" stroke="#000" strokeWidth="0.6" />
 
           {/* Horizontal dividers */}
-          <line x1="5"   y1="1002" x2="890" y2="1002" stroke="#000" strokeWidth="0.7" />
-          <line x1="5"   y1="1026" x2="890" y2="1026" stroke="#000" strokeWidth="0.7" />
-          <line x1="5"   y1="1050" x2="890" y2="1050" stroke="#000" strokeWidth="0.7" />
-          <line x1="5"   y1="1074" x2="890" y2="1074" stroke="#000" strokeWidth="0.7" />
+          {/* Below PRODUTO section (left + mid cols) */}
+          <line x1="5"   y1="1008" x2="700" y2="1008" stroke="#000" strokeWidth="0.7" />
+          {/* Left col row separators */}
+          <line x1="5"   y1="1030" x2="178" y2="1030" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1052" x2="178" y2="1052" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1068" x2="178" y2="1068" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1079" x2="178" y2="1079" stroke="#000" strokeWidth="0.5" />
+          {/* Mid col: owner | resp separator */}
+          <line x1="178" y1="1058" x2="700" y2="1058" stroke="#000" strokeWidth="0.5" />
 
-          {/* PRODUTO */}
-          <text x="12" y="992"  fontSize="5.5" fontWeight="bold">PRODUTO</text>
-          <text x="12" y="1018" fontSize="9"   fontWeight="bold">GFV {potKwp} kWp</text>
-
-          {/* Proprietário e Obra */}
-          <text x="185" y="992"  fontSize="5.5" fontWeight="bold">Proprietário e Obra:</text>
-          <text x="185" y="1018" fontSize="6">Nome: {owner}</text>
-          <text x="185" y="1042" fontSize="6">Endereço: {endereco}</text>
-          <text x="185" y="1066" fontSize="6">Cidade: {cidade}</text>
-          <text x="185" y="1083" fontSize="6">CEP: {cep}</text>
-
-          {/* TÍTULO */}
-          <text x="552" y="992"  fontSize="5.5" fontWeight="bold">TÍTULO</text>
-          <text x="632" y="1017" fontSize="11"  fontWeight="bold" textAnchor="middle">DIAGRAMA UNIFILAR</text>
+          {/* === LEFT COLUMN — PRODUTO (top) === */}
+          <text x="12" y="989"  fontSize="5.5" fontWeight="bold">PRODUTO</text>
+          <text x="12" y="1003" fontSize="9"   fontWeight="bold">GFV {potKwp} kWp</text>
 
           {/* DATA */}
-          <text x="725" y="992"  fontSize="5.5" fontWeight="bold">DATA</text>
-          <text x="725" y="1018" fontSize="6">{dataDoc}</text>
+          <text x="12" y="1018" fontSize="5.5" fontWeight="bold">DATA</text>
+          <text x="12" y="1027" fontSize="6">{dataDoc}</text>
+          <text x="122" y="1020" fontSize="5.5">R1:</text>
 
-          {/* ESCALA / TAMANHO / FOLHA / REVISÃO */}
-          <text x="12" y="1038"  fontSize="5.5" fontWeight="bold">ESCALA</text>
-          <text x="12" y="1050"  fontSize="6">S/ ESCALA</text>
-          <text x="95" y="1038"  fontSize="5.5" fontWeight="bold">TAMANHO</text>
-          <text x="95" y="1050"  fontSize="6">A2</text>
-          <text x="12" y="1063"  fontSize="5.5" fontWeight="bold">FOLHA</text>
-          <text x="12" y="1075"  fontSize="6">1/1</text>
-          <text x="95" y="1063"  fontSize="5.5" fontWeight="bold">REVISÃO</text>
-          <text x="95" y="1075"  fontSize="6">R0</text>
+          {/* ESCALA */}
+          <text x="12" y="1040" fontSize="5.5" fontWeight="bold">ESCALA</text>
+          <text x="12" y="1049" fontSize="6">S/ ESCALA</text>
+          <text x="122" y="1040" fontSize="5.5">R2:</text>
 
-          {/* Responsável Técnico */}
-          <text x="552" y="1008" fontSize="5.5" fontWeight="bold">Responsável Técnico:</text>
-          <text x="552" y="1022" fontSize="6">{respNome}</text>
-          <text x="552" y="1036" fontSize="5.5">TÉCNICO EM ELETROTÉCNICA</text>
-          <text x="552" y="1050" fontSize="5.5">CFT: {respCft}</text>
+          {/* TAMANHO */}
+          <text x="12" y="1057" fontSize="5.5" fontWeight="bold">TAMANHO</text>
+          <text x="12" y="1066" fontSize="6">A3</text>
+          <text x="122" y="1057" fontSize="5.5">R3:</text>
 
-          {/* R1–R5 revision rows */}
-          {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
-            <text key={r} x="725" y={1012 + i * 14} fontSize="5.5">{r}</text>
-          ))}
+          {/* FOLHA */}
+          <text x="12" y="1072" fontSize="5.5" fontWeight="bold">FOLHA</text>
+          <text x="12" y="1078" fontSize="6">1/1</text>
+          <text x="122" y="1072" fontSize="5.5">R4:</text>
+
+          {/* REVISÃO */}
+          <text x="12" y="1083" fontSize="5.5" fontWeight="bold">REVISÃO</text>
+          <text x="12" y="1089" fontSize="6">R0</text>
+          <text x="122" y="1083" fontSize="5.5">R5:</text>
+
+          {/* === MIDDLE COLUMN — TÍTULO (top) === */}
+          <text x="185" y="989" fontSize="5.5" fontWeight="bold">TÍTULO</text>
+          <text x="439" y="1003" fontSize="11" fontWeight="bold" textAnchor="middle">DIAGRAMA UNIFILAR</text>
+
+          {/* === MIDDLE COLUMN — OWNER BLOCK === */}
+          <text x="439" y="1018" fontSize="5.5" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
+          <text x="439" y="1028" fontSize="6" textAnchor="middle">Nome: {owner}</text>
+          <text x="439" y="1038" fontSize="6" textAnchor="middle">Endereço: {endereco}</text>
+          <text x="439" y="1048" fontSize="6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
+          <text x="439" y="1056" fontSize="6" textAnchor="middle">CEP: {cep}</text>
+
+          {/* === MIDDLE COLUMN — RESPONSÁVEL BLOCK === */}
+          <text x="439" y="1068" fontSize="5.5" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
+          <text x="439" y="1077" fontSize="6" fontWeight="bold" textAnchor="middle">{respNome}</text>
+          <text x="439" y="1084" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
+          <text x="439" y="1089" fontSize="5.5" textAnchor="middle">CFT: {respCft}</text>
+
+          {/* === RIGHT COLUMN — Logo placeholder === */}
+          <text x="792" y="1034" fontSize="6" textAnchor="middle" fill="#999">[Logo]</text>
 
         </svg>
       </div>

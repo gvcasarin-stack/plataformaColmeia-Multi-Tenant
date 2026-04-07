@@ -8,7 +8,6 @@ import {
   Circle,
   Path,
   Text,
-  G,
 } from '@react-pdf/renderer';
 
 interface DiagramaUnifilarPDFProps {
@@ -27,45 +26,45 @@ function fn(val: any, dec = 2, fb = '___'): string {
   return n.toFixed(dec).replace('.', ',');
 }
 
-// ── Electrical Symbols (react-pdf SVG) ─────────────────────────────────────
+// ── Electrical symbols — returns arrays (no G wrapper, react-pdf v4 safe) ──
 
 function PDFTerra({ x, y }: { x: number; y: number }) {
   return (
-    <G>
+    <>
       <Line x1={x}      y1={y}      x2={x}      y2={y + 7}  stroke="#000" strokeWidth={1} />
       <Line x1={x - 11} y1={y + 7}  x2={x + 11} y2={y + 7}  stroke="#000" strokeWidth={1.3} />
       <Line x1={x - 7}  y1={y + 11} x2={x + 7}  y2={y + 11} stroke="#000" strokeWidth={1.3} />
       <Line x1={x - 3}  y1={y + 15} x2={x + 3}  y2={y + 15} stroke="#000" strokeWidth={1.3} />
-    </G>
+    </>
   );
 }
 
 function PDFDisjuntor({ x, y }: { x: number; y: number }) {
   return (
-    <G>
+    <>
       <Rect x={x - 11} y={y - 7} width={22} height={14} fill="white" stroke="#000" strokeWidth={1} />
       <Line x1={x - 7} y1={y - 4} x2={x + 7} y2={y + 4} stroke="#000" strokeWidth={0.8} />
-    </G>
+    </>
   );
 }
 
 function PDFDPSSymbol({ x, y }: { x: number; y: number }) {
   return (
-    <G>
+    <>
       <Rect x={x - 9} y={y - 9} width={18} height={18} fill="white" stroke="#000" strokeWidth={0.8} />
       <Polygon points={`${x},${y - 5} ${x - 5},${y + 4} ${x + 5},${y + 4}`} fill="#000" />
       <Line x1={x - 5} y1={y + 5} x2={x + 5} y2={y + 5} stroke="#000" strokeWidth={0.8} />
-    </G>
+    </>
   );
 }
 
 function PDFChaveSeccionadora({ x, y }: { x: number; y: number }) {
   return (
-    <G>
+    <>
       <Circle cx={x}      cy={y}      r={3.5} fill="white" stroke="#000" strokeWidth={0.9} />
       <Line   x1={x}      y1={y - 3.5} x2={x + 14} y2={y - 17} stroke="#000" strokeWidth={1} />
       <Circle cx={x + 14} cy={y - 17}  r={3.5} fill="white" stroke="#000" strokeWidth={0.9} />
-    </G>
+    </>
   );
 }
 
@@ -114,28 +113,27 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const djTipo     = djPolos <= 1 ? 'Monopolar' : 'Bipolar';
   const djLabel    = `${djTipo} - ${djCorr} A / ${djTensao} Vca`;
 
-  const owner      = fv(pd.nomeClienteFinal,     'NOME DO PROPRIETARIO');
-  const endereco   = fv(pd.endereco_local,        'ENDERECO DA OBRA');
-  const cidade     = fv(pd.client_city,           'Cidade');
-  const cep        = fv(pd.cliente_cep,           '00.000-000');
-  const respNome   = fv(pd.responsavel_nome,      'RESPONSAVEL TECNICO');
-  const respCft    = fv(pd.responsavel_registro,  '00000000000');
+  const owner      = fv(pd.nomeClienteFinal,    'NOME DO PROPRIETARIO');
+  const endereco   = fv(pd.endereco_local,       'ENDERECO DA OBRA');
+  const cidade     = fv(pd.client_city,          'Cidade');
+  const uf         = fv(pd.client_state,         '');
+  const cep        = fv(pd.cliente_cep,          '00.000-000');
+  const respNome   = fv(pd.responsavel_nome,     'RESPONSAVEL TECNICO');
+  const respCft    = fv(pd.responsavel_registro, '00000000000');
   const dataDoc    = fv(pd.data_documento, new Date().toLocaleDateString('pt-BR'));
 
   const CX = 340;
   const BX = 220;
   const BW = 240;
-  const BR = BX + BW; // 460
+  const BR = BX + BW;
 
-  // A3 portrait: 841.89 x 1190.55 pt → usable with 15pt padding: ~812 x 1161
-  // viewBox 900 x 1090 → scale 812/900 ≈ 0.902 → height 983 < 1161 ✓
-  const SVG_W = 812;
-  const SVG_H = 983;
+  // Seal column centers
+  const MID_CTR = 439; // center of middle col (178-700)
 
   return (
     <Document>
       <Page size="A3" style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={SVG_W} height={SVG_H} viewBox="0 0 900 1090">
+        <Svg width={812} height={983} viewBox="0 0 900 1090">
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line x1={90} y1={28} x2={490} y2={28} stroke="#000" strokeWidth={1.8} />
@@ -147,9 +145,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 8} y={47} fontSize={6.5} fill="#000">ACESSADA</Text>
           <Text x={CX + 8} y={57} fontSize={6.5} fill="#000">ACESSANTE</Text>
 
-          {/* Ramal annotation */}
-          <Line x1={BX} y1={76} x2={140} y2={76} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
-          <Line x1={140} y1={28} x2={140} y2={76} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+          <Line x1={BX} y1={76} x2={140} y2={76} stroke="#000" strokeWidth={0.6} />
+          <Line x1={140} y1={28} x2={140} y2={76} stroke="#000" strokeWidth={0.6} />
           <Text x={5} y={42} fontSize={5.8} fill="#000">Ramal de Ligacao</Text>
           <Text x={5} y={51} fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
           <Text x={5} y={60} fontSize={5.8} fill="#000">1 #{secaoFase}mm2 (F)</Text>
@@ -158,7 +155,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* ═══ PADRÃO DE ENTRADA ═══ */}
           <Rect x={BX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={CX} y={60} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
-          <Text x={CX} y={73} fontSize={7}   textAnchor="middle" fill="#000">(caixa de medicao)</Text>
+          <Text x={CX} y={73} fontSize={7} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
           <Rect x={262} y={79} width={156} height={38} fill="white" stroke="#000" strokeWidth={1} />
           <Text x={CX} y={102} fontSize={9} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">MEDIDOR</Text>
 
@@ -166,28 +163,24 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <PDFDisjuntor x={CX} y={145} />
           <Text x={CX + 15} y={143} fontSize={6.5} fill="#000">D1</Text>
           <Text x={CX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
-
-          <Line x1={CX} y1={152} x2={CX}       y2={165}       stroke="#000" strokeWidth={1} />
-          <Line x1={CX} y1={165} x2={BR - 18}  y2={165}       stroke="#000" strokeWidth={1} />
+          <Line x1={CX} y1={152} x2={CX} y2={165} stroke="#000" strokeWidth={1} />
+          <Line x1={CX} y1={165} x2={BR - 18} y2={165} stroke="#000" strokeWidth={1} />
           <PDFTerra x={BR - 18} y={165} />
           <Line x1={CX} y1={165} x2={CX} y2={220} stroke="#000" strokeWidth={1} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           <Rect x={BX} y={220} width={BW} height={82} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={CX} y={267} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">QUADRO DE DISTRIBUICAO</Text>
-
           <Line x1={BX} y1={261} x2={118} y2={261} stroke="#000" strokeWidth={1} />
           <Line x1={118} y1={261} x2={118} y2={290} stroke="#000" strokeWidth={1} />
           <PDFTerra x={118} y={290} />
-
           <Text x={5} y={240} fontSize={5.8} fill="#000">Cargas ({cargaKw !== '___' ? cargaKw : '--'} kW)</Text>
           <Text x={5} y={250} fontSize={5.8} fill="#000">Tensao Nominal: {tensaoNom} V</Text>
           <Text x={5} y={260} fontSize={5.8} fill="#000">Corrente: {corrCargas !== '___' ? corrCargas : '--'} A</Text>
 
           <Line x1={CX} y1={302} x2={CX} y2={348} stroke="#000" strokeWidth={1} />
 
-          {/* CA cables RIGHT (above QUADRO CA) */}
-          <Line x1={BR} y1={324} x2={BR + 14} y2={324} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+          <Line x1={BR} y1={324} x2={BR + 14} y2={324} stroke="#000" strokeWidth={0.6} />
           <Text x={BR + 17} y={319} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
           <Text x={BR + 17} y={327} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (F)</Text>
           <Text x={BR + 17} y={335} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (N)</Text>
@@ -197,7 +190,6 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Rect x={BX} y={348} width={BW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={CX} y={370} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">QUADRO DE</Text>
           <Text x={CX} y={382} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PROTECAO CA</Text>
-
           <Text x={228} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">2x DPS CA</Text>
           <Text x={228} y={405} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
           <Text x={228} y={414} fontSize={5.5} fill="#000">Classe II</Text>
@@ -212,11 +204,9 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <PDFDisjuntor x={CX} y={405} />
           <Text x={CX + 15} y={403} fontSize={6.5} fill="#000">D2</Text>
           <Text x={CX + 15} y={413} fontSize={5.5} fill="#000">Bipolar - {djCorr} A / {djTensao} Vca</Text>
-          <Line x1={CX} y1={412} x2={CX} y2={470} stroke="#000" strokeWidth={1} />
-          <Line x1={CX} y1={470} x2={CX} y2={514} stroke="#000" strokeWidth={1} />
+          <Line x1={CX} y1={412} x2={CX} y2={514} stroke="#000" strokeWidth={1} />
 
-          {/* CA cables LEFT (below QUADRO CA) */}
-          <Line x1={BX} y1={491} x2={BX - 14} y2={491} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+          <Line x1={BX} y1={491} x2={BX - 14} y2={491} stroke="#000" strokeWidth={0.6} />
           <Text x={5} y={483} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
           <Text x={5} y={492} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (F)</Text>
           <Text x={5} y={500} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (N)</Text>
@@ -225,13 +215,12 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* ═══ INVERSOR ═══ */}
           <Rect x={BX} y={514} width={BW} height={110} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={CX} y={572} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">INVERSOR</Text>
-
           <Line x1={CX - 24} y1={556} x2={CX - 10} y2={556} stroke="#000" strokeWidth={0.9} />
           <Line x1={CX - 24} y1={560} x2={CX - 10} y2={560} stroke="#000" strokeWidth={0.9} />
           <Path d={`M${CX + 10} 558 Q${CX + 14} 551 ${CX + 18} 558 Q${CX + 22} 565 ${CX + 26} 558`}
                 stroke="#000" strokeWidth={0.9} fill="none" />
 
-          <Line x1={BX} y1={561} x2={BX - 14} y2={561} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+          <Line x1={BX} y1={561} x2={BX - 14} y2={561} stroke="#000" strokeWidth={0.6} />
           <Text x={5} y={521} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
           <Text x={5} y={530} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
           <Text x={5} y={539} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
@@ -241,27 +230,23 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={5} y={575} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
           <Text x={5} y={584} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
 
-          {/* Protection boxes */}
-          {([
-            { l: '25', s: '' },
-            { l: '27', s: '' },
-            { l: '59', s: '' },
-            { l: '81', s: 'U/O' },
-          ] as { l: string; s: string }[]).map(({ l, s }, i) => (
-            <G key={l}>
-              <Rect x={BR + 8} y={520 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth={0.8} />
-              <Text x={BR + 21} y={s ? 531 + i * 25 : 534 + i * 25}
+          {[
+            { l: '25', s: '' }, { l: '27', s: '' },
+            { l: '59', s: '' }, { l: '81', s: 'U/O' },
+          ].map(({ l, s }, i) => (
+            <>
+              <Rect key={`r${l}`} x={BR + 8} y={520 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth={0.8} />
+              <Text key={`t${l}`} x={BR + 21} y={s ? 531 + i * 25 : 534 + i * 25}
                     fontSize={7} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
-              {s ? <Text x={BR + 21} y={538 + i * 25} fontSize={5.5} textAnchor="middle" fill="#000">{s}</Text> : null}
-            </G>
+              {s ? <Text key={`s${l}`} x={BR + 21} y={538 + i * 25} fontSize={5.5} textAnchor="middle" fill="#000">{s}</Text> : null}
+            </>
           ))}
           <Line x1={BR + 34} y1={614} x2={BR + 56} y2={614} stroke="#000" strokeWidth={0.8} />
           <Text x={BR + 58} y={618} fontSize={6} fill="#000">ANTI-ILHAMENTO</Text>
 
           <Line x1={CX} y1={624} x2={CX} y2={668} stroke="#000" strokeWidth={1} />
 
-          {/* CC cables RIGHT (inversor → QUADRO CC) */}
-          <Line x1={BR} y1={645} x2={BR + 14} y2={645} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+          <Line x1={BR} y1={645} x2={BR + 14} y2={645} stroke="#000" strokeWidth={0.6} />
           <Text x={BR + 17} y={639} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
           <Text x={BR + 17} y={647} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
           <Text x={BR + 17} y={655} fontSize={5.5} fill="#000">Para cada string:</Text>
@@ -274,10 +259,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Rect x={BX} y={668} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={CX} y={692} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">QUADRO DE</Text>
           <Text x={CX} y={704} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PROTECAO CC</Text>
-
           <Text x={5} y={677} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
           <Text x={5} y={686} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
-
           <Text x={228} y={718} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
           <Text x={228} y={727} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
           <Text x={228} y={736} fontSize={5.5} fill="#000">Classe II</Text>
@@ -295,11 +278,9 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 22} y={728} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
           <Text x={CX + 22} y={737} fontSize={5.5} fill="#000">(4 polos)</Text>
           <Text x={CX + 22} y={746} fontSize={5.5} fill="#000">1200 Vcc 32 A</Text>
-
           <Line x1={CX} y1={743} x2={CX} y2={808} stroke="#000" strokeWidth={1} />
 
-          {/* CC cables RIGHT (below QUADRO CC) */}
-          <Line x1={BR} y1={780} x2={BR + 14} y2={780} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+          <Line x1={BR} y1={780} x2={BR + 14} y2={780} stroke="#000" strokeWidth={0.6} />
           <Text x={BR + 17} y={775} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
           <Text x={BR + 17} y={783} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
           <Text x={BR + 17} y={791} fontSize={5.5} fill="#000">Para cada string:</Text>
@@ -315,7 +296,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={916} x2={CX} y2={930} stroke="#000" strokeWidth={1.2} />
           <PDFTerra x={CX} y={930} />
 
-          <Line x1={CX + 35} y1={881} x2={CX + 52} y2={881} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+          <Line x1={CX + 35} y1={881} x2={CX + 52} y2={881} stroke="#000" strokeWidth={0.6} />
           <Text x={CX + 55} y={848} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
           <Text x={CX + 55} y={858} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
           <Text x={CX + 55} y={867} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
@@ -369,54 +350,88 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={724} y1={320} x2={736} y2={320} stroke="#000" strokeWidth={1.3} />
           <Line x1={728} y1={324} x2={732} y2={324} stroke="#000" strokeWidth={1.3} />
 
-          {/* ═══ TITLE BLOCK ═══ */}
+          {/* ═══════════════════════════════════════════
+              TITLE BLOCK / SELO
+          ═══════════════════════════════════════════ */}
+
+          {/* "1 | DIAGRAMA UNIFILAR" bar */}
           <Line x1={5} y1={952} x2={890} y2={952} stroke="#000" strokeWidth={1} />
           <Rect x={5} y={954} width={32} height={24} fill="white" stroke="#000" strokeWidth={1} />
           <Text x={21} y={971} fontSize={14} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">1</Text>
           <Line x1={37} y1={954} x2={37} y2={978} stroke="#000" strokeWidth={1} />
           <Text x={43} y={970} fontSize={9} fontFamily="Helvetica-Bold" fill="#000">DIAGRAMA UNIFILAR</Text>
 
-          <Rect x={5} y={978} width={885} height={108} fill="white" stroke="#000" strokeWidth={1.2} />
-          <Line x1={178} y1={978} x2={178} y2={1086} stroke="#000" strokeWidth={0.8} />
-          <Line x1={545} y1={978} x2={545} y2={1086} stroke="#000" strokeWidth={0.8} />
-          <Line x1={718} y1={978} x2={718} y2={1086} stroke="#000" strokeWidth={0.8} />
-          <Line x1={5}   y1={1002} x2={890} y2={1002} stroke="#000" strokeWidth={0.7} />
-          <Line x1={5}   y1={1026} x2={890} y2={1026} stroke="#000" strokeWidth={0.7} />
-          <Line x1={5}   y1={1050} x2={890} y2={1050} stroke="#000" strokeWidth={0.7} />
-          <Line x1={5}   y1={1074} x2={890} y2={1074} stroke="#000" strokeWidth={0.7} />
+          {/* Seal outer rect */}
+          <Rect x={5} y={978} width={885} height={112} fill="white" stroke="#000" strokeWidth={1.2} />
 
-          <Text x={12}  y={992}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
-          <Text x={12}  y={1018} fontSize={9}   fontFamily="Helvetica-Bold" fill="#000">GFV {potKwp} kWp</Text>
+          {/* === COLUMN DIVIDERS === */}
+          {/* Left | Mid */}
+          <Line x1={178} y1={978} x2={178} y2={1090} stroke="#000" strokeWidth={0.8} />
+          {/* Mid | Right (logo area) */}
+          <Line x1={700} y1={978} x2={700} y2={1090} stroke="#000" strokeWidth={0.8} />
+          {/* Left sub-col (values | R labels): starts below PRODUTO section */}
+          <Line x1={118} y1={1008} x2={118} y2={1090} stroke="#000" strokeWidth={0.6} />
 
-          <Text x={185} y={992}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Proprietario e Obra:</Text>
-          <Text x={185} y={1018} fontSize={6}   fill="#000">Nome: {owner}</Text>
-          <Text x={185} y={1042} fontSize={6}   fill="#000">Endereco: {endereco}</Text>
-          <Text x={185} y={1066} fontSize={6}   fill="#000">Cidade: {cidade}</Text>
-          <Text x={185} y={1083} fontSize={6}   fill="#000">CEP: {cep}</Text>
+          {/* === HORIZONTAL DIVIDERS === */}
+          {/* Below PRODUTO section (left + mid cols) */}
+          <Line x1={5} y1={1008} x2={700} y2={1008} stroke="#000" strokeWidth={0.7} />
+          {/* Left col row separators */}
+          <Line x1={5} y1={1030} x2={178} y2={1030} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1052} x2={178} y2={1052} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1068} x2={178} y2={1068} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1079} x2={178} y2={1079} stroke="#000" strokeWidth={0.5} />
+          {/* Mid col: owner / responsavel separator */}
+          <Line x1={178} y1={1058} x2={700} y2={1058} stroke="#000" strokeWidth={0.5} />
 
-          <Text x={552} y={992}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
-          <Text x={632} y={1017} fontSize={11}  fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
+          {/* === LEFT COLUMN — PRODUTO === */}
+          <Text x={12} y={989} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
+          <Text x={12} y={1003} fontSize={9} fontFamily="Helvetica-Bold" fill="#000">GFV {potKwp} kWp</Text>
 
-          <Text x={725} y={992}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
-          <Text x={725} y={1018} fontSize={6}   fill="#000">{dataDoc}</Text>
+          {/* === LEFT COLUMN — ROWS === */}
+          {/* DATA */}
+          <Text x={12} y={1018} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
+          <Text x={12} y={1027} fontSize={6} fill="#000">{dataDoc}</Text>
+          <Text x={122} y={1020} fontSize={5.5} fill="#000">R1:</Text>
 
-          <Text x={12}  y={1038} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
-          <Text x={12}  y={1050} fontSize={6}   fill="#000">S/ ESCALA</Text>
-          <Text x={95}  y={1038} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
-          <Text x={95}  y={1050} fontSize={6}   fill="#000">A3</Text>
-          <Text x={12}  y={1063} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
-          <Text x={12}  y={1075} fontSize={6}   fill="#000">1/1</Text>
-          <Text x={95}  y={1063} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
-          <Text x={95}  y={1075} fontSize={6}   fill="#000">R0</Text>
+          {/* ESCALA */}
+          <Text x={12} y={1040} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
+          <Text x={12} y={1049} fontSize={6} fill="#000">S/ ESCALA</Text>
+          <Text x={122} y={1040} fontSize={5.5} fill="#000">R2:</Text>
 
-          <Text x={552} y={1008} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Responsavel Tecnico:</Text>
-          <Text x={552} y={1022} fontSize={6}   fill="#000">{respNome}</Text>
-          <Text x={552} y={1036} fontSize={5.5} fill="#000">TECNICO EM ELETROTECNICA</Text>
-          <Text x={552} y={1050} fontSize={5.5} fill="#000">CFT: {respCft}</Text>
+          {/* TAMANHO */}
+          <Text x={12} y={1057} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
+          <Text x={12} y={1066} fontSize={6} fill="#000">A3</Text>
+          <Text x={122} y={1057} fontSize={5.5} fill="#000">R3:</Text>
 
-          {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
-            <Text key={r} x={725} y={1012 + i * 14} fontSize={5.5} fill="#000">{r}</Text>
-          ))}
+          {/* FOLHA */}
+          <Text x={12} y={1072} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
+          <Text x={12} y={1078} fontSize={6} fill="#000">1/1</Text>
+          <Text x={122} y={1072} fontSize={5.5} fill="#000">R4:</Text>
+
+          {/* REVISAO */}
+          <Text x={12} y={1083} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
+          <Text x={12} y={1089} fontSize={6} fill="#000">R0</Text>
+          <Text x={122} y={1083} fontSize={5.5} fill="#000">R5:</Text>
+
+          {/* === MIDDLE COLUMN — TOP (TITULO) === */}
+          <Text x={185} y={989} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
+          <Text x={MID_CTR} y={1003} fontSize={11} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
+
+          {/* === MIDDLE COLUMN — OWNER BLOCK === */}
+          <Text x={MID_CTR} y={1018} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
+          <Text x={MID_CTR} y={1028} fontSize={6} textAnchor="middle" fill="#000">Nome: {owner}</Text>
+          <Text x={MID_CTR} y={1038} fontSize={6} textAnchor="middle" fill="#000">Endereco: {endereco}</Text>
+          <Text x={MID_CTR} y={1048} fontSize={6} textAnchor="middle" fill="#000">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+          <Text x={MID_CTR} y={1056} fontSize={6} textAnchor="middle" fill="#000">CEP: {cep}</Text>
+
+          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK === */}
+          <Text x={MID_CTR} y={1068} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
+          <Text x={MID_CTR} y={1077} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
+          <Text x={MID_CTR} y={1084} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
+          <Text x={MID_CTR} y={1089} fontSize={5.5} textAnchor="middle" fill="#000">CFT: {respCft}</Text>
+
+          {/* === RIGHT COLUMN — Logo placeholder === */}
+          {/* Empty — space reserved for company logo */}
 
         </Svg>
       </Page>
