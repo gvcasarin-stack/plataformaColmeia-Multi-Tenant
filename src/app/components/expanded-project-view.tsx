@@ -64,6 +64,7 @@ import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoM
 import { MemorialDescritivoPreview, type CargaRow } from '@/components/templates/MemorialDescritivoPreview'
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
+import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
 
 // Import custom icon components
@@ -3003,6 +3004,33 @@ export const ExpandedProjectView = ({
                               </Card>
 
                               <Card
+                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'unifilar' ? null : 'unifilar')}
+                                className={`border cursor-pointer group transition-all duration-200 ${
+                                  activeTemplatePreview === 'unifilar'
+                                    ? 'border-indigo-500 dark:border-indigo-400 shadow-md ring-2 ring-indigo-200 dark:ring-indigo-800'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md'
+                                }`}
+                              >
+                                <CardContent className="p-5">
+                                  <div className="flex items-start gap-3">
+                                    <div className={`p-2 rounded-lg transition-colors ${
+                                      activeTemplatePreview === 'unifilar'
+                                        ? 'bg-indigo-100 dark:bg-indigo-900/50'
+                                        : 'bg-indigo-50 dark:bg-indigo-900/30 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50'
+                                    }`}>
+                                      <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Diagrama Unifilar</h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Diagrama unifilar monofásico do sistema fotovoltaico.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
+                              <Card
                                 onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'procuracao' ? null : 'procuracao')}
                                 className={`border cursor-pointer group transition-all duration-200 ${
                                   activeTemplatePreview === 'procuracao'
@@ -3065,6 +3093,20 @@ export const ExpandedProjectView = ({
                               <div className="rounded-md border border-purple-200 dark:border-purple-700 p-4 max-h-[700px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                                   <DiagramaBlocosPreview projectData={gerarProjetoFields} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTemplatePreview === 'unifilar' && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-indigo-500" />
+                                Pré-visualização — Diagrama Unifilar
+                              </h3>
+                              <div className="rounded-md border border-indigo-200 dark:border-indigo-700 p-4 max-h-[900px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <DiagramaUnifilarPreview projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>
