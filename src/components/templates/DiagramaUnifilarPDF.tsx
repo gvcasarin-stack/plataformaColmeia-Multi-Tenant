@@ -354,12 +354,6 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
               TITLE BLOCK / SELO
           ═══════════════════════════════════════════ */}
 
-          {/* Folha nº bar */}
-          <Line x1={5} y1={952} x2={890} y2={952} stroke="#000" strokeWidth={1} />
-          <Rect x={5} y={954} width={32} height={24} fill="white" stroke="#000" strokeWidth={1} />
-          <Text x={21} y={971} fontSize={14} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">1</Text>
-          <Line x1={37} y1={954} x2={37} y2={978} stroke="#000" strokeWidth={1} />
-
           {/* Seal outer rect */}
           <Rect x={5} y={978} width={885} height={112} fill="white" stroke="#000" strokeWidth={1.2} />
 
@@ -415,17 +409,17 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={185} y={989} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
           <Text x={MID_CTR} y={1003} fontSize={11} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
 
-          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056) === */}
-          <Text x={MID_CTR} y={1018} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
-          <Text x={MID_CTR} y={1028} fontSize={6} textAnchor="middle" fill="#000">Nome: {owner}</Text>
-          <Text x={MID_CTR} y={1038} fontSize={6} textAnchor="middle" fill="#000">Endereco: {endereco}</Text>
-          <Text x={MID_CTR} y={1047} fontSize={6} textAnchor="middle" fill="#000">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
-          <Text x={MID_CTR} y={1054} fontSize={6} textAnchor="middle" fill="#000">CEP: {cep}</Text>
+          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056, 5 items equidistant 9px) === */}
+          <Text x={MID_CTR} y={1017} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
+          <Text x={MID_CTR} y={1026} fontSize={6} textAnchor="middle" fill="#000">Nome: {owner}</Text>
+          <Text x={MID_CTR} y={1035} fontSize={6} textAnchor="middle" fill="#000">Endereco: {endereco}</Text>
+          <Text x={MID_CTR} y={1044} fontSize={6} textAnchor="middle" fill="#000">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+          <Text x={MID_CTR} y={1053} fontSize={6} textAnchor="middle" fill="#000">CEP: {cep}</Text>
 
-          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1056–1090) === */}
-          <Text x={MID_CTR} y={1066} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
-          <Text x={MID_CTR} y={1075} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
-          <Text x={MID_CTR} y={1083} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
+          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1056–1090, 4 items equidistant 8px) === */}
+          <Text x={MID_CTR} y={1065} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
+          <Text x={MID_CTR} y={1073} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
+          <Text x={MID_CTR} y={1081} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
           <Text x={MID_CTR} y={1089} fontSize={5.5} textAnchor="middle" fill="#000">CFT: {respCft}</Text>
 
           {/* === RIGHT COLUMN — Logo placeholder === */}

@@ -429,12 +429,6 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1="724" y1="320" x2="736" y2="320" stroke="#000" strokeWidth="1.3" />
           <line x1="728" y1="324" x2="732" y2="324" stroke="#000" strokeWidth="1.3" />
 
-          {/* ═══════════════ Folha nº bar ═══════════════ */}
-          <line x1="5" y1="952" x2="890" y2="952" stroke="#000" strokeWidth="1" />
-          <rect x="5" y="954" width="32" height="24" fill="white" stroke="#000" strokeWidth="1" />
-          <text x="21" y="971" fontSize="14" fontWeight="bold" textAnchor="middle">1</text>
-          <line x1="37" y1="954" x2="37" y2="978" stroke="#000" strokeWidth="1" />
-
           {/* ═══════════════ TITLE BLOCK ═══════════════ */}
           <rect x="5" y="978" width="885" height="112" fill="white" stroke="#000" strokeWidth="1.2" />
 
@@ -488,17 +482,17 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="185" y="989" fontSize="5.5" fontWeight="bold">TÍTULO</text>
           <text x="439" y="1003" fontSize="11" fontWeight="bold" textAnchor="middle">DIAGRAMA UNIFILAR</text>
 
-          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056) === */}
-          <text x="439" y="1018" fontSize="5.5" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
-          <text x="439" y="1028" fontSize="6" textAnchor="middle">Nome: {owner}</text>
-          <text x="439" y="1038" fontSize="6" textAnchor="middle">Endereço: {endereco}</text>
-          <text x="439" y="1047" fontSize="6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
-          <text x="439" y="1054" fontSize="6" textAnchor="middle">CEP: {cep}</text>
+          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056, 5 items equidistant 9px) === */}
+          <text x="439" y="1017" fontSize="5.5" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
+          <text x="439" y="1026" fontSize="6" textAnchor="middle">Nome: {owner}</text>
+          <text x="439" y="1035" fontSize="6" textAnchor="middle">Endereço: {endereco}</text>
+          <text x="439" y="1044" fontSize="6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
+          <text x="439" y="1053" fontSize="6" textAnchor="middle">CEP: {cep}</text>
 
-          {/* === MIDDLE COLUMN — RESPONSÁVEL BLOCK (y=1056–1090) === */}
-          <text x="439" y="1066" fontSize="5.5" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
-          <text x="439" y="1075" fontSize="6" fontWeight="bold" textAnchor="middle">{respNome}</text>
-          <text x="439" y="1083" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
+          {/* === MIDDLE COLUMN — RESPONSÁVEL BLOCK (y=1056–1090, 4 items equidistant 8px) === */}
+          <text x="439" y="1065" fontSize="5.5" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
+          <text x="439" y="1073" fontSize="6" fontWeight="bold" textAnchor="middle">{respNome}</text>
+          <text x="439" y="1081" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
           <text x="439" y="1089" fontSize="5.5" textAnchor="middle">CFT: {respCft}</text>
 
           {/* === RIGHT COLUMN — Logo placeholder === */}
