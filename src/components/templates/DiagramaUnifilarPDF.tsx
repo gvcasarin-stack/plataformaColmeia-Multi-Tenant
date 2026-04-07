@@ -354,12 +354,11 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
               TITLE BLOCK / SELO
           ═══════════════════════════════════════════ */}
 
-          {/* "1 | DIAGRAMA UNIFILAR" bar */}
+          {/* Folha nº bar */}
           <Line x1={5} y1={952} x2={890} y2={952} stroke="#000" strokeWidth={1} />
           <Rect x={5} y={954} width={32} height={24} fill="white" stroke="#000" strokeWidth={1} />
           <Text x={21} y={971} fontSize={14} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">1</Text>
           <Line x1={37} y1={954} x2={37} y2={978} stroke="#000" strokeWidth={1} />
-          <Text x={43} y={970} fontSize={9} fontFamily="Helvetica-Bold" fill="#000">DIAGRAMA UNIFILAR</Text>
 
           {/* Seal outer rect */}
           <Rect x={5} y={978} width={885} height={112} fill="white" stroke="#000" strokeWidth={1.2} />
@@ -369,65 +368,64 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={178} y1={978} x2={178} y2={1090} stroke="#000" strokeWidth={0.8} />
           {/* Mid | Right (logo area) */}
           <Line x1={700} y1={978} x2={700} y2={1090} stroke="#000" strokeWidth={0.8} />
-          {/* Left sub-col (values | R labels): starts below PRODUTO section */}
+          {/* Left sub-col: label area | R values — starts below PRODUTO section */}
           <Line x1={118} y1={1008} x2={118} y2={1090} stroke="#000" strokeWidth={0.6} />
 
           {/* === HORIZONTAL DIVIDERS === */}
           {/* Below PRODUTO section (left + mid cols) */}
           <Line x1={5} y1={1008} x2={700} y2={1008} stroke="#000" strokeWidth={0.7} />
-          {/* Left col row separators */}
-          <Line x1={5} y1={1030} x2={178} y2={1030} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1052} x2={178} y2={1052} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1068} x2={178} y2={1068} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1079} x2={178} y2={1079} stroke="#000" strokeWidth={0.5} />
-          {/* Mid col: owner / responsavel separator */}
-          <Line x1={178} y1={1058} x2={700} y2={1058} stroke="#000" strokeWidth={0.5} />
+          {/* Left col — 4 equal rows of 16px + last row to 1090 */}
+          <Line x1={5} y1={1024} x2={178} y2={1024} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1040} x2={178} y2={1040} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1056} x2={178} y2={1056} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1072} x2={178} y2={1072} stroke="#000" strokeWidth={0.5} />
+          {/* Mid col: owner | responsavel separator (aligns with left col row 3 end) */}
+          <Line x1={178} y1={1056} x2={700} y2={1056} stroke="#000" strokeWidth={0.5} />
 
-          {/* === LEFT COLUMN — PRODUTO === */}
-          <Text x={12} y={989} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
-          <Text x={12} y={1003} fontSize={9} fontFamily="Helvetica-Bold" fill="#000">GFV {potKwp} kWp</Text>
+          {/* === LEFT COLUMN — PRODUTO (top, full width, value centered) === */}
+          <Text x={8}  y={987}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
+          <Text x={92} y={1002} fontSize={9}   fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">GFV {potKwp} kWp</Text>
 
-          {/* === LEFT COLUMN — ROWS === */}
-          {/* DATA */}
-          <Text x={12} y={1018} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
-          <Text x={12} y={1027} fontSize={6} fill="#000">{dataDoc}</Text>
-          <Text x={122} y={1020} fontSize={5.5} fill="#000">R1:</Text>
+          {/* DATA  (row 1: y=1008–1024) */}
+          <Text x={8}   y={1015} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
+          <Text x={62}  y={1022} fontSize={6}   textAnchor="middle" fill="#000">{dataDoc}</Text>
+          <Text x={148} y={1019} fontSize={5.5} textAnchor="middle" fill="#000">R1:</Text>
 
-          {/* ESCALA */}
-          <Text x={12} y={1040} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
-          <Text x={12} y={1049} fontSize={6} fill="#000">S/ ESCALA</Text>
-          <Text x={122} y={1040} fontSize={5.5} fill="#000">R2:</Text>
+          {/* ESCALA  (row 2: y=1024–1040) */}
+          <Text x={8}   y={1031} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
+          <Text x={62}  y={1038} fontSize={6}   textAnchor="middle" fill="#000">S/ ESCALA</Text>
+          <Text x={148} y={1035} fontSize={5.5} textAnchor="middle" fill="#000">R2:</Text>
 
-          {/* TAMANHO */}
-          <Text x={12} y={1057} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
-          <Text x={12} y={1066} fontSize={6} fill="#000">A3</Text>
-          <Text x={122} y={1057} fontSize={5.5} fill="#000">R3:</Text>
+          {/* TAMANHO  (row 3: y=1040–1056) */}
+          <Text x={8}   y={1047} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
+          <Text x={62}  y={1054} fontSize={6}   textAnchor="middle" fill="#000">A3</Text>
+          <Text x={148} y={1051} fontSize={5.5} textAnchor="middle" fill="#000">R3:</Text>
 
-          {/* FOLHA */}
-          <Text x={12} y={1072} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
-          <Text x={12} y={1078} fontSize={6} fill="#000">1/1</Text>
-          <Text x={122} y={1072} fontSize={5.5} fill="#000">R4:</Text>
+          {/* FOLHA  (row 4: y=1056–1072) */}
+          <Text x={8}   y={1063} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
+          <Text x={62}  y={1070} fontSize={6}   textAnchor="middle" fill="#000">1/1</Text>
+          <Text x={148} y={1067} fontSize={5.5} textAnchor="middle" fill="#000">R4:</Text>
 
-          {/* REVISAO */}
-          <Text x={12} y={1083} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
-          <Text x={12} y={1089} fontSize={6} fill="#000">R0</Text>
-          <Text x={122} y={1083} fontSize={5.5} fill="#000">R5:</Text>
+          {/* REVISAO  (row 5: y=1072–1090) */}
+          <Text x={8}   y={1079} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
+          <Text x={62}  y={1086} fontSize={6}   textAnchor="middle" fill="#000">R0</Text>
+          <Text x={148} y={1083} fontSize={5.5} textAnchor="middle" fill="#000">R5:</Text>
 
-          {/* === MIDDLE COLUMN — TOP (TITULO) === */}
+          {/* === MIDDLE COLUMN — TITULO (top) === */}
           <Text x={185} y={989} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
           <Text x={MID_CTR} y={1003} fontSize={11} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
 
-          {/* === MIDDLE COLUMN — OWNER BLOCK === */}
+          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056) === */}
           <Text x={MID_CTR} y={1018} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
           <Text x={MID_CTR} y={1028} fontSize={6} textAnchor="middle" fill="#000">Nome: {owner}</Text>
           <Text x={MID_CTR} y={1038} fontSize={6} textAnchor="middle" fill="#000">Endereco: {endereco}</Text>
-          <Text x={MID_CTR} y={1048} fontSize={6} textAnchor="middle" fill="#000">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
-          <Text x={MID_CTR} y={1056} fontSize={6} textAnchor="middle" fill="#000">CEP: {cep}</Text>
+          <Text x={MID_CTR} y={1047} fontSize={6} textAnchor="middle" fill="#000">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+          <Text x={MID_CTR} y={1054} fontSize={6} textAnchor="middle" fill="#000">CEP: {cep}</Text>
 
-          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK === */}
-          <Text x={MID_CTR} y={1068} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
-          <Text x={MID_CTR} y={1077} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
-          <Text x={MID_CTR} y={1084} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
+          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1056–1090) === */}
+          <Text x={MID_CTR} y={1066} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
+          <Text x={MID_CTR} y={1075} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
+          <Text x={MID_CTR} y={1083} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
           <Text x={MID_CTR} y={1089} fontSize={5.5} textAnchor="middle" fill="#000">CFT: {respCft}</Text>
 
           {/* === RIGHT COLUMN — Logo placeholder === */}

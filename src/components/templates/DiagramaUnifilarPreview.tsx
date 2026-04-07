@@ -429,12 +429,11 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1="724" y1="320" x2="736" y2="320" stroke="#000" strokeWidth="1.3" />
           <line x1="728" y1="324" x2="732" y2="324" stroke="#000" strokeWidth="1.3" />
 
-          {/* ═══════════════ "1 | DIAGRAMA UNIFILAR" bar ═══════════════ */}
+          {/* ═══════════════ Folha nº bar ═══════════════ */}
           <line x1="5" y1="952" x2="890" y2="952" stroke="#000" strokeWidth="1" />
           <rect x="5" y="954" width="32" height="24" fill="white" stroke="#000" strokeWidth="1" />
           <text x="21" y="971" fontSize="14" fontWeight="bold" textAnchor="middle">1</text>
           <line x1="37" y1="954" x2="37" y2="978" stroke="#000" strokeWidth="1" />
-          <text x="43" y="970" fontSize="9" fontWeight="bold">DIAGRAMA UNIFILAR</text>
 
           {/* ═══════════════ TITLE BLOCK ═══════════════ */}
           <rect x="5" y="978" width="885" height="112" fill="white" stroke="#000" strokeWidth="1.2" />
@@ -442,64 +441,64 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* Vertical dividers: Left|Mid at x=178, Mid|Right at x=700 */}
           <line x1="178" y1="978" x2="178" y2="1090" stroke="#000" strokeWidth="0.8" />
           <line x1="700" y1="978" x2="700" y2="1090" stroke="#000" strokeWidth="0.8" />
-          {/* Left sub-col: labels | R values — starts below PRODUTO section */}
+          {/* Left sub-col: label area | R values — starts below PRODUTO section */}
           <line x1="118" y1="1008" x2="118" y2="1090" stroke="#000" strokeWidth="0.6" />
 
           {/* Horizontal dividers */}
           {/* Below PRODUTO section (left + mid cols) */}
           <line x1="5"   y1="1008" x2="700" y2="1008" stroke="#000" strokeWidth="0.7" />
-          {/* Left col row separators */}
-          <line x1="5"   y1="1030" x2="178" y2="1030" stroke="#000" strokeWidth="0.5" />
-          <line x1="5"   y1="1052" x2="178" y2="1052" stroke="#000" strokeWidth="0.5" />
-          <line x1="5"   y1="1068" x2="178" y2="1068" stroke="#000" strokeWidth="0.5" />
-          <line x1="5"   y1="1079" x2="178" y2="1079" stroke="#000" strokeWidth="0.5" />
-          {/* Mid col: owner | resp separator */}
-          <line x1="178" y1="1058" x2="700" y2="1058" stroke="#000" strokeWidth="0.5" />
+          {/* Left col — 4 equal rows of 16px + last row to 1090 */}
+          <line x1="5"   y1="1024" x2="178" y2="1024" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1040" x2="178" y2="1040" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1056" x2="178" y2="1056" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1072" x2="178" y2="1072" stroke="#000" strokeWidth="0.5" />
+          {/* Mid col: owner | resp separator (aligns with left col row 3 end) */}
+          <line x1="178" y1="1056" x2="700" y2="1056" stroke="#000" strokeWidth="0.5" />
 
-          {/* === LEFT COLUMN — PRODUTO (top) === */}
-          <text x="12" y="989"  fontSize="5.5" fontWeight="bold">PRODUTO</text>
-          <text x="12" y="1003" fontSize="9"   fontWeight="bold">GFV {potKwp} kWp</text>
+          {/* === LEFT COLUMN — PRODUTO (top, full width, centered) === */}
+          <text x="8"  y="987"  fontSize="5.5" fontWeight="bold">PRODUTO</text>
+          <text x="92" y="1002" fontSize="9"   fontWeight="bold" textAnchor="middle">GFV {potKwp} kWp</text>
 
-          {/* DATA */}
-          <text x="12" y="1018" fontSize="5.5" fontWeight="bold">DATA</text>
-          <text x="12" y="1027" fontSize="6">{dataDoc}</text>
-          <text x="122" y="1020" fontSize="5.5">R1:</text>
+          {/* DATA  (row 1: y=1008–1024) */}
+          <text x="8"  y="1015" fontSize="5.5" fontWeight="bold">DATA</text>
+          <text x="62" y="1022" fontSize="6"   textAnchor="middle">{dataDoc}</text>
+          <text x="148" y="1019" fontSize="5.5" textAnchor="middle">R1:</text>
 
-          {/* ESCALA */}
-          <text x="12" y="1040" fontSize="5.5" fontWeight="bold">ESCALA</text>
-          <text x="12" y="1049" fontSize="6">S/ ESCALA</text>
-          <text x="122" y="1040" fontSize="5.5">R2:</text>
+          {/* ESCALA  (row 2: y=1024–1040) */}
+          <text x="8"  y="1031" fontSize="5.5" fontWeight="bold">ESCALA</text>
+          <text x="62" y="1038" fontSize="6"   textAnchor="middle">S/ ESCALA</text>
+          <text x="148" y="1035" fontSize="5.5" textAnchor="middle">R2:</text>
 
-          {/* TAMANHO */}
-          <text x="12" y="1057" fontSize="5.5" fontWeight="bold">TAMANHO</text>
-          <text x="12" y="1066" fontSize="6">A3</text>
-          <text x="122" y="1057" fontSize="5.5">R3:</text>
+          {/* TAMANHO  (row 3: y=1040–1056) */}
+          <text x="8"  y="1047" fontSize="5.5" fontWeight="bold">TAMANHO</text>
+          <text x="62" y="1054" fontSize="6"   textAnchor="middle">A3</text>
+          <text x="148" y="1051" fontSize="5.5" textAnchor="middle">R3:</text>
 
-          {/* FOLHA */}
-          <text x="12" y="1072" fontSize="5.5" fontWeight="bold">FOLHA</text>
-          <text x="12" y="1078" fontSize="6">1/1</text>
-          <text x="122" y="1072" fontSize="5.5">R4:</text>
+          {/* FOLHA  (row 4: y=1056–1072) */}
+          <text x="8"  y="1063" fontSize="5.5" fontWeight="bold">FOLHA</text>
+          <text x="62" y="1070" fontSize="6"   textAnchor="middle">1/1</text>
+          <text x="148" y="1067" fontSize="5.5" textAnchor="middle">R4:</text>
 
-          {/* REVISÃO */}
-          <text x="12" y="1083" fontSize="5.5" fontWeight="bold">REVISÃO</text>
-          <text x="12" y="1089" fontSize="6">R0</text>
-          <text x="122" y="1083" fontSize="5.5">R5:</text>
+          {/* REVISÃO  (row 5: y=1072–1090) */}
+          <text x="8"  y="1079" fontSize="5.5" fontWeight="bold">REVISÃO</text>
+          <text x="62" y="1086" fontSize="6"   textAnchor="middle">R0</text>
+          <text x="148" y="1083" fontSize="5.5" textAnchor="middle">R5:</text>
 
           {/* === MIDDLE COLUMN — TÍTULO (top) === */}
           <text x="185" y="989" fontSize="5.5" fontWeight="bold">TÍTULO</text>
           <text x="439" y="1003" fontSize="11" fontWeight="bold" textAnchor="middle">DIAGRAMA UNIFILAR</text>
 
-          {/* === MIDDLE COLUMN — OWNER BLOCK === */}
+          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056) === */}
           <text x="439" y="1018" fontSize="5.5" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
           <text x="439" y="1028" fontSize="6" textAnchor="middle">Nome: {owner}</text>
           <text x="439" y="1038" fontSize="6" textAnchor="middle">Endereço: {endereco}</text>
-          <text x="439" y="1048" fontSize="6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
-          <text x="439" y="1056" fontSize="6" textAnchor="middle">CEP: {cep}</text>
+          <text x="439" y="1047" fontSize="6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
+          <text x="439" y="1054" fontSize="6" textAnchor="middle">CEP: {cep}</text>
 
-          {/* === MIDDLE COLUMN — RESPONSÁVEL BLOCK === */}
-          <text x="439" y="1068" fontSize="5.5" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
-          <text x="439" y="1077" fontSize="6" fontWeight="bold" textAnchor="middle">{respNome}</text>
-          <text x="439" y="1084" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
+          {/* === MIDDLE COLUMN — RESPONSÁVEL BLOCK (y=1056–1090) === */}
+          <text x="439" y="1066" fontSize="5.5" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
+          <text x="439" y="1075" fontSize="6" fontWeight="bold" textAnchor="middle">{respNome}</text>
+          <text x="439" y="1083" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
           <text x="439" y="1089" fontSize="5.5" textAnchor="middle">CFT: {respCft}</text>
 
           {/* === RIGHT COLUMN — Logo placeholder === */}
