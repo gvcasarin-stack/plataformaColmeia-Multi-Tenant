@@ -146,12 +146,11 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 8} y={57} fontSize={6.5} fill="#000">ACESSANTE</Text>
 
           {/* Ramal de Ligação — annotation left of MEDIDOR (y=78–105) */}
-          <Line x1={140} y1={28}  x2={140} y2={85} stroke="#000" strokeWidth={0.6} />
-          <Line x1={140} y1={85}  x2={BX}  y2={85} stroke="#000" strokeWidth={0.6} />
-          <Text x={5} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
-          <Text x={5} y={87}  fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
-          <Text x={5} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (F)`}</Text>
-          <Text x={5} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (N)`}</Text>
+          {/* Ramal de Ligação — inside PADRÃO box, left of MEDIDOR */}
+          <Text x={228} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
+          <Text x={228} y={87}  fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
+          <Text x={228} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (F)`}</Text>
+          <Text x={228} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (N)`}</Text>
 
           {/* ═══ PADRÃO DE ENTRADA ═══ */}
           <Rect x={BX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
@@ -182,24 +181,37 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           <Rect x={BX} y={220} width={BW} height={82} fill="white" stroke="#000" strokeWidth={1.2} />
-          <Text x={CX} y={267} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">QUADRO DE DISTRIBUICAO</Text>
-          <Line x1={BX} y1={261} x2={118} y2={261} stroke="#000" strokeWidth={1} />
-          <Line x1={118} y1={261} x2={118} y2={290} stroke="#000" strokeWidth={1} />
-          <PDFTerra x={118} y={290} />
-          <Text x={5} y={240} fontSize={5.8} fill="#000">Cargas ({cargaKw !== '___' ? cargaKw : '--'} kW)</Text>
-          <Text x={5} y={250} fontSize={5.8} fill="#000">Tensao Nominal: {tensaoNom} V</Text>
-          <Text x={5} y={260} fontSize={5.8} fill="#000">Corrente: {corrCargas !== '___' ? corrCargas : '--'} A</Text>
+          {/* Label — upper right */}
+          <Text x={BR - 8} y={233} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE DISTRIBUICAO</Text>
 
-          <Line x1={CX} y1={302} x2={CX} y2={348} stroke="#000" strokeWidth={1} />
+          {/* Main vertical line through box */}
+          <Line x1={CX} y1={220} x2={CX} y2={302} stroke="#000" strokeWidth={1} />
 
-          <Line x1={BR} y1={324} x2={BR + 14} y2={324} stroke="#000" strokeWidth={0.6} />
-          <Text x={BR + 17} y={319} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
-          <Text x={BR + 17} y={327} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (F)</Text>
-          <Text x={BR + 17} y={335} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (N)</Text>
-          <Text x={BR + 17} y={343} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (T)</Text>
+          {/* Barramento horizontal */}
+          <Line x1={BX} y1={255} x2={BR} y2={255} stroke="#000" strokeWidth={1} />
+
+          {/* Terra — right branch (short) */}
+          <Line x1={BR} y1={255} x2={BR + 22} y2={255} stroke="#000" strokeWidth={1} />
+          <PDFTerra x={BR + 22} y={255} />
+
+          {/* Cargas derivation — drops from barramento left end with arrow */}
+          <Line x1={BX} y1={255} x2={BX} y2={315} stroke="#000" strokeWidth={1} />
+          <Polygon points={`${BX - 5},315 ${BX + 5},315 ${BX},325`} fill="#000" />
+          <Text x={BX + 7} y={311} fontSize={5.8} fill="#000">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</Text>
+          <Text x={BX + 7} y={320} fontSize={5.8} fill="#000">{`Tensao Nominal: ${tensaoNom} V`}</Text>
+          <Text x={BX + 7} y={329} fontSize={5.8} fill="#000">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</Text>
+
+          <Line x1={CX} y1={302} x2={CX} y2={358} stroke="#000" strokeWidth={1} />
+
+          {/* CA cables annotation — centered on main line */}
+          <Line x1={CX} y1={330} x2={CX + 12} y2={330} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={323} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
+          <Text x={CX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
+          <Text x={CX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
+          <Text x={CX + 15} y={347} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
 
           {/* ═══ QUADRO DE PROTEÇÃO CA ═══ */}
-          <Rect x={BX} y={348} width={BW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Rect x={BX} y={358} width={BW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={CX} y={370} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">QUADRO DE</Text>
           <Text x={CX} y={382} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PROTECAO CA</Text>
           <Text x={228} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">2x DPS CA</Text>

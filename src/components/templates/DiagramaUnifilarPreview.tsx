@@ -168,13 +168,11 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 8} y="47" fontSize="6.5">ACESSADA</text>
           <text x={CX + 8} y="57" fontSize="6.5">ACESSANTE</text>
 
-          {/* Ramal de Ligação — annotation left of MEDIDOR (y=78–105) */}
-          <line x1="140" y1="28"  x2="140" y2="85" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <line x1="140" y1="85"  x2={BX}  y2="85" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x="5" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
-          <text x="5" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
-          <text x="5" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
-          <text x="5" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
+          {/* Ramal de Ligação — inside PADRÃO box, left of MEDIDOR */}
+          <text x="228" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
+          <text x="228" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
+          <text x="228" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
+          <text x="228" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
           {/* ═══════════════ PADRÃO DE ENTRADA ═══════════════ */}
           <rect x={BX} y="42" width={BW} height="150" fill="white" stroke="#000" strokeWidth="1.2" />
@@ -207,30 +205,38 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect x={BX} y="220" width={BW} height="82" fill="white" stroke="#000" strokeWidth="1.2" />
-          <text x={CX} y="267" fontSize="8.5" fontWeight="bold" textAnchor="middle">QUADRO DE DISTRIBUIÇÃO</text>
+          {/* Label — upper right */}
+          <text x={BR - 8} y="233" fontSize="8.5" fontWeight="bold" textAnchor="end">QUADRO DE DISTRIBUIÇÃO</text>
 
-          {/* Left branch: cargas + ground */}
-          <line x1={BX} y1="261" x2="118" y2="261" stroke="#000" strokeWidth="1" />
-          <line x1="118" y1="261" x2="118" y2="290" stroke="#000" strokeWidth="1" />
-          <Terra x={118} y={290} />
+          {/* Main vertical line through box */}
+          <line x1={CX} y1="220" x2={CX} y2="302" stroke="#000" strokeWidth="1" />
 
-          {/* Cargas annotation (left) */}
-          <text x="5" y="240" fontSize="5.8">Cargas ({cargaKw !== '___' ? cargaKw : '--'} kW)</text>
-          <text x="5" y="250" fontSize="5.8">Tensão Nominal: {tensaoNom} V</text>
-          <text x="5" y="260" fontSize="5.8">Corrente: {corrCargas !== '___' ? corrCargas : '--'} A</text>
+          {/* Barramento horizontal */}
+          <line x1={BX} y1="255" x2={BR} y2="255" stroke="#000" strokeWidth="1" />
 
-          {/* Wire → QUADRO CA */}
-          <line x1={CX} y1="302" x2={CX} y2="348" stroke="#000" strokeWidth="1" />
+          {/* Terra — right branch (short) */}
+          <line x1={BR} y1="255" x2={BR + 22} y2="255" stroke="#000" strokeWidth="1" />
+          <Terra x={BR + 22} y={255} />
 
-          {/* CA cables annotation RIGHT (above QUADRO CA) */}
-          <line x1={BR} y1="324" x2={BR + 14} y2="324" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={BR + 17} y="319" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
-          <text x={BR + 17} y="327" fontSize="5.5">1 #{caboCA}mm² (F)</text>
-          <text x={BR + 17} y="335" fontSize="5.5">1 #{caboCA}mm² (N)</text>
-          <text x={BR + 17} y="343" fontSize="5.5">1 #{caboCA}mm² (T)</text>
+          {/* Cargas derivation — drops from barramento left end with arrow */}
+          <line x1={BX} y1="255" x2={BX} y2="315" stroke="#000" strokeWidth="1" />
+          <polygon points={`${BX - 5},315 ${BX + 5},315 ${BX},325`} fill="#000" />
+          <text x={BX + 7} y="311" fontSize="5.8">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</text>
+          <text x={BX + 7} y="320" fontSize="5.8">{`Tensão Nominal: ${tensaoNom} V`}</text>
+          <text x={BX + 7} y="329" fontSize="5.8">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</text>
+
+          {/* Wire → QUADRO CA (+10px extra gap) */}
+          <line x1={CX} y1="302" x2={CX} y2="358" stroke="#000" strokeWidth="1" />
+
+          {/* CA cables annotation — centered on main line */}
+          <line x1={CX} y1="330" x2={CX + 12} y2="330" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 15} y="323" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
+          <text x={CX + 15} y="331" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
+          <text x={CX + 15} y="339" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
+          <text x={CX + 15} y="347" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
           {/* ═══════════════ QUADRO DE PROTEÇÃO CA ═══════════════ */}
-          <rect x={BX} y="348" width={BW} height="122" fill="white" stroke="#000" strokeWidth="1.2" />
+          <rect x={BX} y="358" width={BW} height="122" fill="white" stroke="#000" strokeWidth="1.2" />
           <text x={CX} y="370" fontSize="8" fontWeight="bold" textAnchor="middle">QUADRO DE</text>
           <text x={CX} y="382" fontSize="8" fontWeight="bold" textAnchor="middle">PROTEÇÃO CA</text>
 
@@ -251,10 +257,10 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <Disjuntor x={CX} y={405} />
           <text x={CX + 15} y="403" fontSize="6.5">D2</text>
           <text x={CX + 15} y="413" fontSize="5.5">Bipolar - {djCorr} A / {djTensao} Vca</text>
-          <line x1={CX} y1="412" x2={CX} y2="470" stroke="#000" strokeWidth="1" />
+          <line x1={CX} y1="412" x2={CX} y2="480" stroke="#000" strokeWidth="1" />
 
           {/* Wire → INVERSOR */}
-          <line x1={CX} y1="470" x2={CX} y2="514" stroke="#000" strokeWidth="1" />
+          <line x1={CX} y1="480" x2={CX} y2="514" stroke="#000" strokeWidth="1" />
 
           {/* CA cables annotation LEFT (below QUADRO CA) */}
           <line x1={BX} y1="491" x2={BX - 14} y2="491" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
