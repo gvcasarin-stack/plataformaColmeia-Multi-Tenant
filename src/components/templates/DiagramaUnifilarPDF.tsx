@@ -137,7 +137,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line x1={90} y1={28} x2={490} y2={28} stroke="#000" strokeWidth={1.8} />
-          <Text x={290} y={21} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">REDE DE BAIXA TENSAO</Text>
+          <Text x={CX} y={21} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">REDE DE BAIXA TENSAO</Text>
 
           <Line x1={CX} y1={28} x2={CX} y2={44} stroke="#000" strokeWidth={1} />
           <Polygon points={`${CX - 5},28 ${CX + 5},28 ${CX},40`} fill="#000" />
@@ -146,20 +146,14 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 8} y={57} fontSize={6.5} fill="#000">ACESSANTE</Text>
 
           {/* Ramal de Ligação — annotation left of MEDIDOR (y=78–105) */}
-          {/* Ramal de Ligação — inside PADRÃO box, left of MEDIDOR */}
-          <Text x={228} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
-          <Text x={228} y={87}  fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
-          <Text x={228} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (F)`}</Text>
-          <Text x={228} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (N)`}</Text>
-
           {/* ═══ PADRÃO DE ENTRADA ═══ */}
           <Rect x={BX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
           {/* Label right-shifted inside box */}
           <Text x={406} y={57} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
           <Text x={406} y={67} fontSize={6} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
 
-          {/* Main vertical line — continuous from ponto de entrega to D1 */}
-          <Line x1={CX} y1={44} x2={CX} y2={138} stroke="#000" strokeWidth={1} />
+          {/* Main vertical — starts at box top (y=42) to close the small gap */}
+          <Line x1={CX} y1={42} x2={CX} y2={138} stroke="#000" strokeWidth={1} />
 
           {/* Horizontal tap to MEDIDOR (branch right) */}
           <Line x1={CX} y1={85} x2={355} y2={85} stroke="#000" strokeWidth={1} />
@@ -167,6 +161,12 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* MEDIDOR box — right of main line */}
           <Rect x={355} y={71} width={95} height={28} fill="white" stroke="#000" strokeWidth={1} />
           <Text x={402} y={88} fontSize={9} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">MEDIDOR</Text>
+
+          {/* Ramal de Ligação — drawn AFTER rects so visible over white fills */}
+          <Text x={228} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
+          <Text x={228} y={87}  fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
+          <Text x={228} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (F)`}</Text>
+          <Text x={228} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (N)`}</Text>
 
           {/* D1 on main vertical line */}
           <PDFDisjuntor x={CX} y={145} />
@@ -180,26 +180,27 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={165} x2={CX} y2={220} stroke="#000" strokeWidth={1} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
-          <Rect x={BX} y={220} width={BW} height={82} fill="white" stroke="#000" strokeWidth={1.2} />
+          {/* Wider box (x=150) — cargas derivation inside the rect */}
+          <Rect x={150} y={220} width={310} height={82} fill="white" stroke="#000" strokeWidth={1.2} />
           {/* Label — upper right */}
           <Text x={BR - 8} y={233} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE DISTRIBUICAO</Text>
 
           {/* Main vertical line through box */}
           <Line x1={CX} y1={220} x2={CX} y2={302} stroke="#000" strokeWidth={1} />
 
-          {/* Barramento horizontal */}
-          <Line x1={BX} y1={255} x2={BR} y2={255} stroke="#000" strokeWidth={1} />
+          {/* Barramento horizontal (full width of wider box) */}
+          <Line x1={150} y1={255} x2={BR} y2={255} stroke="#000" strokeWidth={1} />
 
           {/* Terra — right branch (short) */}
           <Line x1={BR} y1={255} x2={BR + 22} y2={255} stroke="#000" strokeWidth={1} />
           <PDFTerra x={BR + 22} y={255} />
 
-          {/* Cargas derivation — drops from barramento left end with arrow */}
-          <Line x1={BX} y1={255} x2={BX} y2={315} stroke="#000" strokeWidth={1} />
-          <Polygon points={`${BX - 5},315 ${BX + 5},315 ${BX},325`} fill="#000" />
-          <Text x={BX + 7} y={311} fontSize={5.8} fill="#000">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</Text>
-          <Text x={BX + 7} y={320} fontSize={5.8} fill="#000">{`Tensao Nominal: ${tensaoNom} V`}</Text>
-          <Text x={BX + 7} y={329} fontSize={5.8} fill="#000">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</Text>
+          {/* Cargas derivation — inside box (x=195), drops with arrow */}
+          <Line x1={195} y1={255} x2={195} y2={315} stroke="#000" strokeWidth={1} />
+          <Polygon points="190,315 200,315 195,325" fill="#000" />
+          <Text x={202} y={311} fontSize={5.8} fill="#000">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</Text>
+          <Text x={202} y={320} fontSize={5.8} fill="#000">{`Tensao Nominal: ${tensaoNom} V`}</Text>
+          <Text x={202} y={329} fontSize={5.8} fill="#000">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</Text>
 
           <Line x1={CX} y1={302} x2={CX} y2={358} stroke="#000" strokeWidth={1} />
 
@@ -212,17 +213,18 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* ═══ QUADRO DE PROTEÇÃO CA ═══ */}
           <Rect x={BX} y={358} width={BW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
-          <Text x={CX} y={370} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">QUADRO DE</Text>
-          <Text x={CX} y={382} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PROTECAO CA</Text>
+          <Text x={BR - 8} y={370} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+          <Text x={BR - 8} y={382} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
           <Text x={228} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">2x DPS CA</Text>
           <Text x={228} y={405} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
           <Text x={228} y={414} fontSize={5.5} fill="#000">Classe II</Text>
 
-          <Line x1={CX} y1={365} x2={257} y2={365} stroke="#000" strokeWidth={0.8} />
-          <Line x1={257} y1={365} x2={257} y2={417} stroke="#000" strokeWidth={0.8} />
-          <PDFDPSSymbol x={257} y={426} />
-          <Line x1={257} y1={435} x2={257} y2={447} stroke="#000" strokeWidth={0.8} />
-          <PDFTerra x={257} y={447} />
+          {/* DPS CA shifted right for label clearance */}
+          <Line x1={CX} y1={365} x2={290} y2={365} stroke="#000" strokeWidth={0.8} />
+          <Line x1={290} y1={365} x2={290} y2={417} stroke="#000" strokeWidth={0.8} />
+          <PDFDPSSymbol x={290} y={426} />
+          <Line x1={290} y1={435} x2={290} y2={447} stroke="#000" strokeWidth={0.8} />
+          <PDFTerra x={290} y={447} />
 
           <Line x1={CX} y1={365} x2={CX} y2={397} stroke="#000" strokeWidth={1} />
           <PDFDisjuntor x={CX} y={405} />

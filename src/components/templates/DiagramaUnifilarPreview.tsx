@@ -159,7 +159,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ REDE DE BAIXA TENSÃO ═══════════════ */}
           <line x1="90" y1="28" x2="490" y2="28" stroke="#000" strokeWidth="1.8" />
-          <text x="290" y="21" fontSize="8" fontWeight="bold" textAnchor="middle">REDE DE BAIXA TENSÃO</text>
+          <text x={CX} y="21" fontSize="8" fontWeight="bold" textAnchor="middle">REDE DE BAIXA TENSÃO</text>
 
           {/* Ponto de entrega */}
           <line    x1={CX} y1="28" x2={CX} y2="44" stroke="#000" strokeWidth="1" />
@@ -168,20 +168,14 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 8} y="47" fontSize="6.5">ACESSADA</text>
           <text x={CX + 8} y="57" fontSize="6.5">ACESSANTE</text>
 
-          {/* Ramal de Ligação — inside PADRÃO box, left of MEDIDOR */}
-          <text x="228" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
-          <text x="228" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
-          <text x="228" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
-          <text x="228" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
-
           {/* ═══════════════ PADRÃO DE ENTRADA ═══════════════ */}
           <rect x={BX} y="42" width={BW} height="150" fill="white" stroke="#000" strokeWidth="1.2" />
           {/* Label right-shifted inside box */}
           <text x="406" y="57" fontSize="7.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
           <text x="406" y="67" fontSize="6"   textAnchor="middle">(caixa de medição)</text>
 
-          {/* Main vertical line — continuous from ponto de entrega to D1 */}
-          <line x1={CX} y1="44" x2={CX} y2="138" stroke="#000" strokeWidth="1" />
+          {/* Main vertical — starts at box top (y=42) to close the small gap */}
+          <line x1={CX} y1="42" x2={CX} y2="138" stroke="#000" strokeWidth="1" />
 
           {/* Horizontal tap to MEDIDOR (branch right) */}
           <line x1={CX} y1="85" x2="355" y2="85" stroke="#000" strokeWidth="1" />
@@ -189,6 +183,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* MEDIDOR box — right of main line */}
           <rect x="355" y="71" width="95" height="28" fill="white" stroke="#000" strokeWidth="1" />
           <text x="402" y="88" fontSize="9" fontWeight="bold" textAnchor="middle">MEDIDOR</text>
+
+          {/* Ramal de Ligação — drawn AFTER rects so it's visible over white fills */}
+          <text x="228" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
+          <text x="228" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
+          <text x="228" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
+          <text x="228" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
           {/* D1 on main vertical line */}
           <Disjuntor x={CX} y={145} />
@@ -204,26 +204,27 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1={CX} y1="165" x2={CX} y2="220" stroke="#000" strokeWidth="1" />
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
-          <rect x={BX} y="220" width={BW} height="82" fill="white" stroke="#000" strokeWidth="1.2" />
+          {/* Wider box (x=150) — cargas derivation inside the rect */}
+          <rect x="150" y="220" width="310" height="82" fill="white" stroke="#000" strokeWidth="1.2" />
           {/* Label — upper right */}
           <text x={BR - 8} y="233" fontSize="8.5" fontWeight="bold" textAnchor="end">QUADRO DE DISTRIBUIÇÃO</text>
 
           {/* Main vertical line through box */}
           <line x1={CX} y1="220" x2={CX} y2="302" stroke="#000" strokeWidth="1" />
 
-          {/* Barramento horizontal */}
-          <line x1={BX} y1="255" x2={BR} y2="255" stroke="#000" strokeWidth="1" />
+          {/* Barramento horizontal (full width of wider box) */}
+          <line x1="150" y1="255" x2={BR} y2="255" stroke="#000" strokeWidth="1" />
 
           {/* Terra — right branch (short) */}
           <line x1={BR} y1="255" x2={BR + 22} y2="255" stroke="#000" strokeWidth="1" />
           <Terra x={BR + 22} y={255} />
 
-          {/* Cargas derivation — drops from barramento left end with arrow */}
-          <line x1={BX} y1="255" x2={BX} y2="315" stroke="#000" strokeWidth="1" />
-          <polygon points={`${BX - 5},315 ${BX + 5},315 ${BX},325`} fill="#000" />
-          <text x={BX + 7} y="311" fontSize="5.8">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</text>
-          <text x={BX + 7} y="320" fontSize="5.8">{`Tensão Nominal: ${tensaoNom} V`}</text>
-          <text x={BX + 7} y="329" fontSize="5.8">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</text>
+          {/* Cargas derivation — inside box (x=195), drops with arrow */}
+          <line x1="195" y1="255" x2="195" y2="315" stroke="#000" strokeWidth="1" />
+          <polygon points="190,315 200,315 195,325" fill="#000" />
+          <text x="202" y="311" fontSize="5.8">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</text>
+          <text x="202" y="320" fontSize="5.8">{`Tensão Nominal: ${tensaoNom} V`}</text>
+          <text x="202" y="329" fontSize="5.8">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</text>
 
           {/* Wire → QUADRO CA (+10px extra gap) */}
           <line x1={CX} y1="302" x2={CX} y2="358" stroke="#000" strokeWidth="1" />
@@ -237,20 +238,20 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ QUADRO DE PROTEÇÃO CA ═══════════════ */}
           <rect x={BX} y="358" width={BW} height="122" fill="white" stroke="#000" strokeWidth="1.2" />
-          <text x={CX} y="370" fontSize="8" fontWeight="bold" textAnchor="middle">QUADRO DE</text>
-          <text x={CX} y="382" fontSize="8" fontWeight="bold" textAnchor="middle">PROTEÇÃO CA</text>
+          <text x={BR - 8} y="370" fontSize="8" fontWeight="bold" textAnchor="end">QUADRO DE</text>
+          <text x={BR - 8} y="382" fontSize="8" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
 
           {/* DPS CA label (left inside box) */}
           <text x="228" y="396" fontSize="5.5" fontWeight="bold">2x DPS CA</text>
           <text x="228" y="405" fontSize="5.5">275 Vca, 20-40 kA</text>
           <text x="228" y="414" fontSize="5.5">Classe II</text>
 
-          {/* Tap main wire → DPS CA */}
-          <line x1={CX} y1="365" x2="257" y2="365" stroke="#000" strokeWidth="0.8" />
-          <line x1="257" y1="365" x2="257" y2="417" stroke="#000" strokeWidth="0.8" />
-          <DPSSymbol x={257} y={426} />
-          <line x1="257" y1="435" x2="257" y2="447" stroke="#000" strokeWidth="0.8" />
-          <Terra x={257} y={447} />
+          {/* Tap main wire → DPS CA (shifted right for label clearance) */}
+          <line x1={CX} y1="365" x2="290" y2="365" stroke="#000" strokeWidth="0.8" />
+          <line x1="290" y1="365" x2="290" y2="417" stroke="#000" strokeWidth="0.8" />
+          <DPSSymbol x={290} y={426} />
+          <line x1="290" y1="435" x2="290" y2="447" stroke="#000" strokeWidth="0.8" />
+          <Terra x={290} y={447} />
 
           {/* D2 on main wire */}
           <line x1={CX} y1="365" x2={CX} y2="397" stroke="#000" strokeWidth="1" />
