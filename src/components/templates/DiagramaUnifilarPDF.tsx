@@ -180,20 +180,20 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={165} x2={CX} y2={220} stroke="#000" strokeWidth={1} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
-          {/* Wider box (x=150) — cargas derivation inside the rect */}
-          <Rect x={150} y={220} width={310} height={82} fill="white" stroke="#000" strokeWidth={1.2} />
-          {/* Label — upper right */}
-          <Text x={BR - 8} y={233} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE DISTRIBUICAO</Text>
+          {/* Wider box — extended both left (x=150) and right (to x=520) */}
+          <Rect x={150} y={220} width={370} height={82} fill="white" stroke="#000" strokeWidth={1.2} />
+          {/* Label — upper right, clear of center line */}
+          <Text x={512} y={233} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE DISTRIBUICAO</Text>
 
           {/* Main vertical line through box */}
           <Line x1={CX} y1={220} x2={CX} y2={302} stroke="#000" strokeWidth={1} />
 
-          {/* Barramento horizontal (full width of wider box) */}
-          <Line x1={150} y1={255} x2={BR} y2={255} stroke="#000" strokeWidth={1} />
+          {/* Barramento horizontal — with margin at each end */}
+          <Line x1={175} y1={255} x2={495} y2={255} stroke="#000" strokeWidth={1} />
 
-          {/* Terra — right branch (short) */}
-          <Line x1={BR} y1={255} x2={BR + 22} y2={255} stroke="#000" strokeWidth={1} />
-          <PDFTerra x={BR + 22} y={255} />
+          {/* Terra — lower-right corner of box */}
+          <Line x1={500} y1={255} x2={500} y2={280} stroke="#000" strokeWidth={1} />
+          <PDFTerra x={500} y={280} />
 
           {/* Cargas derivation — inside box (x=195), drops with arrow */}
           <Line x1={195} y1={255} x2={195} y2={315} stroke="#000" strokeWidth={1} />
@@ -219,18 +219,21 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={228} y={405} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
           <Text x={228} y={414} fontSize={5.5} fill="#000">Classe II</Text>
 
-          {/* DPS CA shifted right for label clearance */}
-          <Line x1={CX} y1={365} x2={290} y2={365} stroke="#000" strokeWidth={0.8} />
-          <Line x1={290} y1={365} x2={290} y2={417} stroke="#000" strokeWidth={0.8} />
-          <PDFDPSSymbol x={290} y={426} />
-          <Line x1={290} y1={435} x2={290} y2={447} stroke="#000" strokeWidth={0.8} />
-          <PDFTerra x={290} y={447} />
+          {/* Main vertical — continuous from box top (y=358) through D2 */}
+          <Line x1={CX} y1={358} x2={CX} y2={408} stroke="#000" strokeWidth={1} />
 
-          <Line x1={CX} y1={365} x2={CX} y2={397} stroke="#000" strokeWidth={1} />
-          <PDFDisjuntor x={CX} y={405} />
-          <Text x={CX + 15} y={403} fontSize={6.5} fill="#000">D2</Text>
-          <Text x={CX + 15} y={413} fontSize={5.5} fill="#000">Bipolar - {djCorr} A / {djTensao} Vca</Text>
-          <Line x1={CX} y1={412} x2={CX} y2={514} stroke="#000" strokeWidth={1} />
+          {/* DPS CA — slightly lower tap */}
+          <Line x1={CX} y1={368} x2={290} y2={368} stroke="#000" strokeWidth={0.8} />
+          <Line x1={290} y1={368} x2={290} y2={420} stroke="#000" strokeWidth={0.8} />
+          <PDFDPSSymbol x={290} y={429} />
+          <Line x1={290} y1={438} x2={290} y2={450} stroke="#000" strokeWidth={0.8} />
+          <PDFTerra x={290} y={450} />
+
+          {/* D2 — moved slightly lower to center in box */}
+          <PDFDisjuntor x={CX} y={415} />
+          <Text x={CX + 15} y={413} fontSize={6.5} fill="#000">D2</Text>
+          <Text x={CX + 15} y={423} fontSize={5.5} fill="#000">Bipolar - {djCorr} A / {djTensao} Vca</Text>
+          <Line x1={CX} y1={422} x2={CX} y2={514} stroke="#000" strokeWidth={1} />
 
           <Line x1={BX} y1={491} x2={BX - 14} y2={491} stroke="#000" strokeWidth={0.6} />
           <Text x={5} y={483} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
@@ -239,22 +242,23 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={5} y={508} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (T)</Text>
 
           {/* ═══ INVERSOR ═══ */}
-          <Rect x={BX} y={514} width={BW} height={110} fill="white" stroke="#000" strokeWidth={1.2} />
-          <Text x={CX} y={572} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">INVERSOR</Text>
-          <Line x1={CX - 24} y1={556} x2={CX - 10} y2={556} stroke="#000" strokeWidth={0.9} />
-          <Line x1={CX - 24} y1={560} x2={CX - 10} y2={560} stroke="#000" strokeWidth={0.9} />
-          <Path d={`M${CX + 10} 558 Q${CX + 14} 551 ${CX + 18} 558 Q${CX + 22} 565 ${CX + 26} 558`}
+          {/* Reduced to ~1/4 size (w=120, h=55), centered at CX */}
+          <Rect x={280} y={514} width={120} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Text x={CX} y={547} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">INVERSOR</Text>
+          <Line x1={CX - 24} y1={530} x2={CX - 10} y2={530} stroke="#000" strokeWidth={0.9} />
+          <Line x1={CX - 24} y1={534} x2={CX - 10} y2={534} stroke="#000" strokeWidth={0.9} />
+          <Path d={`M${CX + 10} 532 Q${CX + 14} 525 ${CX + 18} 532 Q${CX + 22} 539 ${CX + 26} 532`}
                 stroke="#000" strokeWidth={0.9} fill="none" />
 
-          <Line x1={BX} y1={561} x2={BX - 14} y2={561} stroke="#000" strokeWidth={0.6} />
-          <Text x={5} y={521} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
-          <Text x={5} y={530} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
-          <Text x={5} y={539} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
-          <Text x={5} y={548} fontSize={5.5} fill="#000">Entrada - Tensao max: {invVccMax} Vcc</Text>
-          <Text x={5} y={557} fontSize={5.5} fill="#000">  - Corrente max: {invIccMax} A</Text>
-          <Text x={5} y={566} fontSize={5.5} fill="#000">Saida - Tensao: {tensaoNom} Vca</Text>
-          <Text x={5} y={575} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
-          <Text x={5} y={584} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
+          <Line x1={280} y1={540} x2={266} y2={540} stroke="#000" strokeWidth={0.6} />
+          <Text x={5} y={517} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
+          <Text x={5} y={524} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
+          <Text x={5} y={531} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
+          <Text x={5} y={538} fontSize={5.5} fill="#000">Entrada - Tensao max: {invVccMax} Vcc</Text>
+          <Text x={5} y={545} fontSize={5.5} fill="#000">  - Corrente max: {invIccMax} A</Text>
+          <Text x={5} y={552} fontSize={5.5} fill="#000">Saida - Tensao: {tensaoNom} Vca</Text>
+          <Text x={5} y={559} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
+          <Text x={5} y={566} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
 
           {[
             { l: '25', s: '' }, { l: '27', s: '' },
@@ -270,7 +274,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={BR + 34} y1={614} x2={BR + 56} y2={614} stroke="#000" strokeWidth={0.8} />
           <Text x={BR + 58} y={618} fontSize={6} fill="#000">ANTI-ILHAMENTO</Text>
 
-          <Line x1={CX} y1={624} x2={CX} y2={668} stroke="#000" strokeWidth={1} />
+          <Line x1={CX} y1={569} x2={CX} y2={668} stroke="#000" strokeWidth={1} />
 
           <Line x1={BR} y1={645} x2={BR + 14} y2={645} stroke="#000" strokeWidth={0.6} />
           <Text x={BR + 17} y={639} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>

@@ -204,20 +204,20 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1={CX} y1="165" x2={CX} y2="220" stroke="#000" strokeWidth="1" />
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
-          {/* Wider box (x=150) — cargas derivation inside the rect */}
-          <rect x="150" y="220" width="310" height="82" fill="white" stroke="#000" strokeWidth="1.2" />
-          {/* Label — upper right */}
-          <text x={BR - 8} y="233" fontSize="8.5" fontWeight="bold" textAnchor="end">QUADRO DE DISTRIBUIÇÃO</text>
+          {/* Wider box — extended both left (x=150) and right (to x=520) */}
+          <rect x="150" y="220" width="370" height="82" fill="white" stroke="#000" strokeWidth="1.2" />
+          {/* Label — upper right, clear of center line */}
+          <text x="512" y="233" fontSize="8.5" fontWeight="bold" textAnchor="end">QUADRO DE DISTRIBUIÇÃO</text>
 
           {/* Main vertical line through box */}
           <line x1={CX} y1="220" x2={CX} y2="302" stroke="#000" strokeWidth="1" />
 
-          {/* Barramento horizontal (full width of wider box) */}
-          <line x1="150" y1="255" x2={BR} y2="255" stroke="#000" strokeWidth="1" />
+          {/* Barramento horizontal — with margin at each end */}
+          <line x1="175" y1="255" x2="495" y2="255" stroke="#000" strokeWidth="1" />
 
-          {/* Terra — right branch (short) */}
-          <line x1={BR} y1="255" x2={BR + 22} y2="255" stroke="#000" strokeWidth="1" />
-          <Terra x={BR + 22} y={255} />
+          {/* Terra — lower-right corner of box */}
+          <line x1="500" y1="255" x2="500" y2="280" stroke="#000" strokeWidth="1" />
+          <Terra x={500} y={280} />
 
           {/* Cargas derivation — inside box (x=195), drops with arrow */}
           <line x1="195" y1="255" x2="195" y2="315" stroke="#000" strokeWidth="1" />
@@ -246,19 +246,21 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="228" y="405" fontSize="5.5">275 Vca, 20-40 kA</text>
           <text x="228" y="414" fontSize="5.5">Classe II</text>
 
-          {/* Tap main wire → DPS CA (shifted right for label clearance) */}
-          <line x1={CX} y1="365" x2="290" y2="365" stroke="#000" strokeWidth="0.8" />
-          <line x1="290" y1="365" x2="290" y2="417" stroke="#000" strokeWidth="0.8" />
-          <DPSSymbol x={290} y={426} />
-          <line x1="290" y1="435" x2="290" y2="447" stroke="#000" strokeWidth="0.8" />
-          <Terra x={290} y={447} />
+          {/* Main vertical — continuous from box top (y=358) through D2 */}
+          <line x1={CX} y1="358" x2={CX} y2="408" stroke="#000" strokeWidth="1" />
 
-          {/* D2 on main wire */}
-          <line x1={CX} y1="365" x2={CX} y2="397" stroke="#000" strokeWidth="1" />
-          <Disjuntor x={CX} y={405} />
-          <text x={CX + 15} y="403" fontSize="6.5">D2</text>
-          <text x={CX + 15} y="413" fontSize="5.5">Bipolar - {djCorr} A / {djTensao} Vca</text>
-          <line x1={CX} y1="412" x2={CX} y2="480" stroke="#000" strokeWidth="1" />
+          {/* Tap main wire → DPS CA (slightly lower for label clearance) */}
+          <line x1={CX} y1="368" x2="290" y2="368" stroke="#000" strokeWidth="0.8" />
+          <line x1="290" y1="368" x2="290" y2="420" stroke="#000" strokeWidth="0.8" />
+          <DPSSymbol x={290} y={429} />
+          <line x1="290" y1="438" x2="290" y2="450" stroke="#000" strokeWidth="0.8" />
+          <Terra x={290} y={450} />
+
+          {/* D2 — moved slightly lower to center in box */}
+          <Disjuntor x={CX} y={415} />
+          <text x={CX + 15} y="413" fontSize="6.5">D2</text>
+          <text x={CX + 15} y="423" fontSize="5.5">Bipolar - {djCorr} A / {djTensao} Vca</text>
+          <line x1={CX} y1="422" x2={CX} y2="480" stroke="#000" strokeWidth="1" />
 
           {/* Wire → INVERSOR */}
           <line x1={CX} y1="480" x2={CX} y2="514" stroke="#000" strokeWidth="1" />
@@ -271,28 +273,29 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="5" y="508" fontSize="5.5">1 #{caboCA}mm² (T)</text>
 
           {/* ═══════════════ INVERSOR ═══════════════ */}
-          <rect x={BX} y="514" width={BW} height="110" fill="white" stroke="#000" strokeWidth="1.2" />
-          <text x={CX} y="572" fontSize="8.5" fontWeight="bold" textAnchor="middle">INVERSOR</text>
+          {/* Reduced to ~1/4 size (w=120, h=55), centered at CX */}
+          <rect x="280" y="514" width="120" height="55" fill="white" stroke="#000" strokeWidth="1.2" />
+          <text x={CX} y="547" fontSize="8.5" fontWeight="bold" textAnchor="middle">INVERSOR</text>
 
           {/* DC = symbol */}
-          <line x1={CX - 24} y1="556" x2={CX - 10} y2="556" stroke="#000" strokeWidth="0.9" />
-          <line x1={CX - 24} y1="560" x2={CX - 10} y2="560" stroke="#000" strokeWidth="0.9" />
+          <line x1={CX - 24} y1="530" x2={CX - 10} y2="530" stroke="#000" strokeWidth="0.9" />
+          <line x1={CX - 24} y1="534" x2={CX - 10} y2="534" stroke="#000" strokeWidth="0.9" />
           {/* AC ~ symbol */}
           <path
-            d={`M${CX + 10},558 Q${CX + 14},551 ${CX + 18},558 Q${CX + 22},565 ${CX + 26},558`}
+            d={`M${CX + 10},532 Q${CX + 14},525 ${CX + 18},532 Q${CX + 22},539 ${CX + 26},532`}
             stroke="#000" strokeWidth="0.9" fill="none"
           />
 
           {/* Inversor info (left annotation) */}
-          <line x1={BX} y1="561" x2={BX - 14} y2="561" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x="5" y="521" fontSize="5.5">Marca: {invFab}</text>
-          <text x="5" y="530" fontSize="5.5">Modelo: {invMod}</text>
-          <text x="5" y="539" fontSize="5.5">Potência: {invPot} kW</text>
-          <text x="5" y="548" fontSize="5.5">Entrada - Tensão max: {invVccMax} Vcc</text>
-          <text x="5" y="557" fontSize="5.5">  - Corrente max: {invIccMax} A</text>
-          <text x="5" y="566" fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
-          <text x="5" y="575" fontSize="5.5">  - Corrente: {invCorrOut} A</text>
-          <text x="5" y="584" fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
+          <line x1="280" y1="540" x2="266" y2="540" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x="5" y="517" fontSize="5.5">Marca: {invFab}</text>
+          <text x="5" y="524" fontSize="5.5">Modelo: {invMod}</text>
+          <text x="5" y="531" fontSize="5.5">Potência: {invPot} kW</text>
+          <text x="5" y="538" fontSize="5.5">Entrada - Tensão max: {invVccMax} Vcc</text>
+          <text x="5" y="545" fontSize="5.5">  - Corrente max: {invIccMax} A</text>
+          <text x="5" y="552" fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
+          <text x="5" y="559" fontSize="5.5">  - Corrente: {invCorrOut} A</text>
+          <text x="5" y="566" fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
 
           {/* Protection relay boxes (right) */}
           {([
@@ -318,7 +321,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={BR + 58} y="618" fontSize="6">ANTI-ILHAMENTO</text>
 
           {/* Wire INVERSOR → QUADRO CC */}
-          <line x1={CX} y1="624" x2={CX} y2="668" stroke="#000" strokeWidth="1" />
+          <line x1={CX} y1="569" x2={CX} y2="668" stroke="#000" strokeWidth="1" />
 
           {/* CC cables annotation RIGHT (inversor→quadro CC) */}
           <line x1={BR} y1="645" x2={BR + 14} y2="645" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
