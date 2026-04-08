@@ -145,24 +145,36 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 8} y={47} fontSize={6.5} fill="#000">ACESSADA</Text>
           <Text x={CX + 8} y={57} fontSize={6.5} fill="#000">ACESSANTE</Text>
 
-          <Line x1={BX} y1={76} x2={140} y2={76} stroke="#000" strokeWidth={0.6} />
-          <Line x1={140} y1={28} x2={140} y2={76} stroke="#000" strokeWidth={0.6} />
-          <Text x={5} y={42} fontSize={5.8} fill="#000">Ramal de Ligacao</Text>
-          <Text x={5} y={51} fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
-          <Text x={5} y={60} fontSize={5.8} fill="#000">1 #{secaoFase}mm2 (F)</Text>
-          <Text x={5} y={69} fontSize={5.8} fill="#000">1 #{secaoFase}mm2 (N)</Text>
+          {/* Ramal de Ligação — annotation left of MEDIDOR (y=78–105) */}
+          <Line x1={140} y1={28}  x2={140} y2={85} stroke="#000" strokeWidth={0.6} />
+          <Line x1={140} y1={85}  x2={BX}  y2={85} stroke="#000" strokeWidth={0.6} />
+          <Text x={5} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
+          <Text x={5} y={87}  fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
+          <Text x={5} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (F)`}</Text>
+          <Text x={5} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (N)`}</Text>
 
           {/* ═══ PADRÃO DE ENTRADA ═══ */}
           <Rect x={BX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
-          <Text x={CX} y={60} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
-          <Text x={CX} y={73} fontSize={7} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
-          <Rect x={262} y={79} width={156} height={38} fill="white" stroke="#000" strokeWidth={1} />
-          <Text x={CX} y={102} fontSize={9} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">MEDIDOR</Text>
+          {/* Label right-shifted inside box */}
+          <Text x={406} y={57} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
+          <Text x={406} y={67} fontSize={6} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
 
-          <Line x1={CX} y1={117} x2={CX} y2={138} stroke="#000" strokeWidth={1} />
+          {/* Main vertical line — continuous from ponto de entrega to D1 */}
+          <Line x1={CX} y1={44} x2={CX} y2={138} stroke="#000" strokeWidth={1} />
+
+          {/* Horizontal tap to MEDIDOR (branch right) */}
+          <Line x1={CX} y1={85} x2={355} y2={85} stroke="#000" strokeWidth={1} />
+
+          {/* MEDIDOR box — right of main line */}
+          <Rect x={355} y={71} width={95} height={28} fill="white" stroke="#000" strokeWidth={1} />
+          <Text x={402} y={88} fontSize={9} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">MEDIDOR</Text>
+
+          {/* D1 on main vertical line */}
           <PDFDisjuntor x={CX} y={145} />
           <Text x={CX + 15} y={143} fontSize={6.5} fill="#000">D1</Text>
           <Text x={CX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
+
+          {/* D1 exit → terra → continue down */}
           <Line x1={CX} y1={152} x2={CX} y2={165} stroke="#000" strokeWidth={1} />
           <Line x1={CX} y1={165} x2={BR - 18} y2={165} stroke="#000" strokeWidth={1} />
           <PDFTerra x={BR - 18} y={165} />
@@ -411,16 +423,16 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056, 5 items equidistant 9px) === */}
           <Text x={MID_CTR} y={1017} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
-          <Text x={MID_CTR} y={1026} fontSize={6} textAnchor="middle" fill="#000">Nome: {owner}</Text>
-          <Text x={MID_CTR} y={1035} fontSize={6} textAnchor="middle" fill="#000">Endereco: {endereco}</Text>
-          <Text x={MID_CTR} y={1044} fontSize={6} textAnchor="middle" fill="#000">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
-          <Text x={MID_CTR} y={1053} fontSize={6} textAnchor="middle" fill="#000">CEP: {cep}</Text>
+          <Text x={MID_CTR} y={1026} fontSize={6} textAnchor="middle" fill="#000">{`Nome: ${owner}`}</Text>
+          <Text x={MID_CTR} y={1035} fontSize={6} textAnchor="middle" fill="#000">{`Endereco: ${endereco}`}</Text>
+          <Text x={MID_CTR} y={1044} fontSize={6} textAnchor="middle" fill="#000">{`Cidade: ${uf ? `${cidade} - ${uf}` : cidade}`}</Text>
+          <Text x={MID_CTR} y={1053} fontSize={6} textAnchor="middle" fill="#000">{`CEP: ${cep}`}</Text>
 
           {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1056–1090, 4 items equidistant 8px) === */}
           <Text x={MID_CTR} y={1065} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
           <Text x={MID_CTR} y={1073} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
           <Text x={MID_CTR} y={1081} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
-          <Text x={MID_CTR} y={1089} fontSize={5.5} textAnchor="middle" fill="#000">CFT: {respCft}</Text>
+          <Text x={MID_CTR} y={1089} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
 
           {/* === RIGHT COLUMN — Logo placeholder === */}
           {/* Empty — space reserved for company logo */}

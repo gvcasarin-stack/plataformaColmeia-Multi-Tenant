@@ -168,25 +168,31 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 8} y="47" fontSize="6.5">ACESSADA</text>
           <text x={CX + 8} y="57" fontSize="6.5">ACESSANTE</text>
 
-          {/* Ramal de Ligação (left annotation) */}
-          <line x1={BX} y1="76" x2="140" y2="76" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <line x1="140" y1="28" x2="140" y2="76" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x="5" y="42" fontSize="5.8">Ramal de Ligação</text>
-          <text x="5" y="51" fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
-          <text x="5" y="60" fontSize="5.8">1 #{secaoFase}mm² (F)</text>
-          <text x="5" y="69" fontSize="5.8">1 #{secaoFase}mm² (N)</text>
+          {/* Ramal de Ligação — annotation left of MEDIDOR (y=78–105) */}
+          <line x1="140" y1="28"  x2="140" y2="85" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <line x1="140" y1="85"  x2={BX}  y2="85" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x="5" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
+          <text x="5" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
+          <text x="5" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
+          <text x="5" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
           {/* ═══════════════ PADRÃO DE ENTRADA ═══════════════ */}
           <rect x={BX} y="42" width={BW} height="150" fill="white" stroke="#000" strokeWidth="1.2" />
-          <text x={CX} y="60" fontSize="8.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
-          <text x={CX} y="73" fontSize="7"   textAnchor="middle">(caixa de medição)</text>
+          {/* Label right-shifted inside box */}
+          <text x="406" y="57" fontSize="7.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
+          <text x="406" y="67" fontSize="6"   textAnchor="middle">(caixa de medição)</text>
 
-          {/* MEDIDOR inner box */}
-          <rect x="262" y="79" width="156" height="38" fill="white" stroke="#000" strokeWidth="1" />
-          <text x={CX} y="102" fontSize="9" fontWeight="bold" textAnchor="middle">MEDIDOR</text>
+          {/* Main vertical line — continuous from ponto de entrega to D1 */}
+          <line x1={CX} y1="44" x2={CX} y2="138" stroke="#000" strokeWidth="1" />
 
-          {/* Wire → D1 */}
-          <line x1={CX} y1="117" x2={CX} y2="138" stroke="#000" strokeWidth="1" />
+          {/* Horizontal tap to MEDIDOR (branch right) */}
+          <line x1={CX} y1="85" x2="355" y2="85" stroke="#000" strokeWidth="1" />
+
+          {/* MEDIDOR box — right of main line */}
+          <rect x="355" y="71" width="95" height="28" fill="white" stroke="#000" strokeWidth="1" />
+          <text x="402" y="88" fontSize="9" fontWeight="bold" textAnchor="middle">MEDIDOR</text>
+
+          {/* D1 on main vertical line */}
           <Disjuntor x={CX} y={145} />
           <text x={CX + 15} y="143" fontSize="6.5">D1</text>
           <text x={CX + 15} y="152" fontSize="5.5">{djLabel}</text>
@@ -197,8 +203,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <Terra x={BR - 18} y={165} />
 
           {/* Wire out of PADRÃO */}
-          <line x1={CX} y1="165" x2={CX} y2="192" stroke="#000" strokeWidth="1" />
-          <line x1={CX} y1="192" x2={CX} y2="220" stroke="#000" strokeWidth="1" />
+          <line x1={CX} y1="165" x2={CX} y2="220" stroke="#000" strokeWidth="1" />
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect x={BX} y="220" width={BW} height="82" fill="white" stroke="#000" strokeWidth="1.2" />
