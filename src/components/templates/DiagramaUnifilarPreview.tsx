@@ -185,10 +185,10 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="402" y="88" fontSize="9" fontWeight="bold" textAnchor="middle">MEDIDOR</text>
 
           {/* Ramal de Ligação — drawn AFTER rects so it's visible over white fills */}
-          <text x="228" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
-          <text x="228" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
-          <text x="228" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
-          <text x="228" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
+          <text x="244" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
+          <text x="244" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
+          <text x="244" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
+          <text x="244" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
           {/* D1 on main vertical line */}
           <Disjuntor x={CX} y={145} />
@@ -215,16 +215,16 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* Barramento horizontal — with margin at each end */}
           <line x1="175" y1="255" x2="495" y2="255" stroke="#000" strokeWidth="1" />
 
-          {/* Terra — lower-right corner of box */}
-          <line x1="500" y1="255" x2="500" y2="280" stroke="#000" strokeWidth="1" />
-          <Terra x={500} y={280} />
+          {/* Terra — exactly at lower-right corner of box (bottom at y=302) */}
+          <line x1="505" y1="255" x2="505" y2="287" stroke="#000" strokeWidth="1" />
+          <Terra x={505} y={287} />
 
           {/* Cargas derivation — inside box (x=195), drops with arrow */}
           <line x1="195" y1="255" x2="195" y2="315" stroke="#000" strokeWidth="1" />
           <polygon points="190,315 200,315 195,325" fill="#000" />
-          <text x="202" y="311" fontSize="5.8">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</text>
-          <text x="202" y="320" fontSize="5.8">{`Tensão Nominal: ${tensaoNom} V`}</text>
-          <text x="202" y="329" fontSize="5.8">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</text>
+          <text x="215" y="311" fontSize="5.8">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</text>
+          <text x="215" y="320" fontSize="5.8">{`Tensão Nominal: ${tensaoNom} V`}</text>
+          <text x="215" y="329" fontSize="5.8">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</text>
 
           {/* Wire → QUADRO CA (+10px extra gap) */}
           <line x1={CX} y1="302" x2={CX} y2="358" stroke="#000" strokeWidth="1" />
@@ -277,17 +277,23 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <rect x="280" y="514" width="120" height="55" fill="white" stroke="#000" strokeWidth="1.2" />
           <text x={CX} y="547" fontSize="8.5" fontWeight="bold" textAnchor="middle">INVERSOR</text>
 
-          {/* DC = symbol */}
-          <line x1={CX - 24} y1="530" x2={CX - 10} y2="530" stroke="#000" strokeWidth="0.9" />
-          <line x1={CX - 24} y1="534" x2={CX - 10} y2="534" stroke="#000" strokeWidth="0.9" />
-          {/* AC ~ symbol */}
+          {/* Diagonal line across inversor center */}
+          <line x1="283" y1="516" x2="397" y2="567" stroke="#000" strokeWidth="0.9" />
+          {/* AC ~ symbol — now on LEFT side */}
           <path
-            d={`M${CX + 10},532 Q${CX + 14},525 ${CX + 18},532 Q${CX + 22},539 ${CX + 26},532`}
+            d={`M${CX - 26},532 Q${CX - 22},525 ${CX - 18},532 Q${CX - 14},539 ${CX - 10},532`}
             stroke="#000" strokeWidth="0.9" fill="none"
           />
+          {/* DC = symbol — now on RIGHT side */}
+          <line x1={CX + 10} y1="530" x2={CX + 24} y2="530" stroke="#000" strokeWidth="0.9" />
+          <line x1={CX + 10} y1="534" x2={CX + 24} y2="534" stroke="#000" strokeWidth="0.9" />
 
-          {/* Inversor info (left annotation) */}
-          <line x1="280" y1="540" x2="266" y2="540" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          {/* Horizontal line from right side of inversor → vertical line connecting relay boxes */}
+          <line x1="400" y1="541" x2="467" y2="541" stroke="#000" strokeWidth="1" />
+          {/* Vertical line connecting all relay boxes */}
+          <line x1="467" y1="520" x2="467" y2="637" stroke="#000" strokeWidth="1" />
+
+          {/* Left annotation (no dashed line — text only) */}
           <text x="5" y="517" fontSize="5.5">Marca: {invFab}</text>
           <text x="5" y="524" fontSize="5.5">Modelo: {invMod}</text>
           <text x="5" y="531" fontSize="5.5">Potência: {invPot} kW</text>
@@ -316,9 +322,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               )}
             </g>
           ))}
-          {/* ANTI-ILHAMENTO line + label */}
-          <line x1={BR + 34} y1="614" x2={BR + 56} y2="614" stroke="#000" strokeWidth="0.8" />
-          <text x={BR + 58} y="618" fontSize="6">ANTI-ILHAMENTO</text>
+          {/* ANTI-ILHAMENTO — rectangular block at bottom of relay column */}
+          <rect x="468" y="621" width="90" height="16" fill="white" stroke="#000" strokeWidth="0.8" />
+          <text x="513" y="632" fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
 
           {/* Wire INVERSOR → QUADRO CC */}
           <line x1={CX} y1="569" x2={CX} y2="668" stroke="#000" strokeWidth="1" />
