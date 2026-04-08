@@ -212,12 +212,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* Main vertical line through box */}
           <line x1={CX} y1="220" x2={CX} y2="302" stroke="#000" strokeWidth="1" />
 
-          {/* Barramento horizontal — with margin at each end */}
-          <line x1="175" y1="255" x2="495" y2="255" stroke="#000" strokeWidth="1" />
+          {/* Barramento horizontal — with margin at left, extends to terra at x=505 */}
+          <line x1="175" y1="255" x2="505" y2="255" stroke="#000" strokeWidth="1" />
 
-          {/* Terra — exactly at lower-right corner of box (bottom at y=302) */}
-          <line x1="505" y1="255" x2="505" y2="287" stroke="#000" strokeWidth="1" />
-          <Terra x={505} y={287} />
+          {/* Terra — vertical line down to bottom-right corner (y=302 = box bottom) */}
+          <line x1="505" y1="255" x2="505" y2="302" stroke="#000" strokeWidth="1" />
+          <Terra x={505} y={302} />
 
           {/* Cargas derivation — inside box (x=195), drops with arrow */}
           <line x1="195" y1="255" x2="195" y2="315" stroke="#000" strokeWidth="1" />
@@ -277,16 +277,16 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <rect x="280" y="514" width="120" height="55" fill="white" stroke="#000" strokeWidth="1.2" />
           <text x={CX} y="547" fontSize="8.5" fontWeight="bold" textAnchor="middle">INVERSOR</text>
 
-          {/* Diagonal line across inversor center */}
-          <line x1="283" y1="516" x2="397" y2="567" stroke="#000" strokeWidth="0.9" />
-          {/* AC ~ symbol — now on LEFT side */}
+          {/* Diagonal line across inversor — corner to corner */}
+          <line x1="280" y1="514" x2="400" y2="569" stroke="#000" strokeWidth="0.9" />
+          {/* AC ~ symbol — lower-left corner of inversor */}
           <path
-            d={`M${CX - 26},532 Q${CX - 22},525 ${CX - 18},532 Q${CX - 14},539 ${CX - 10},532`}
+            d="M284,558 Q288,551 292,558 Q296,565 300,558"
             stroke="#000" strokeWidth="0.9" fill="none"
           />
-          {/* DC = symbol — now on RIGHT side */}
-          <line x1={CX + 10} y1="530" x2={CX + 24} y2="530" stroke="#000" strokeWidth="0.9" />
-          <line x1={CX + 10} y1="534" x2={CX + 24} y2="534" stroke="#000" strokeWidth="0.9" />
+          {/* DC = symbol — upper-right corner of inversor */}
+          <line x1="374" y1="520" x2="396" y2="520" stroke="#000" strokeWidth="0.9" />
+          <line x1="374" y1="524" x2="396" y2="524" stroke="#000" strokeWidth="0.9" />
 
           {/* Horizontal line from right side of inversor → vertical line connecting relay boxes */}
           <line x1="400" y1="541" x2="467" y2="541" stroke="#000" strokeWidth="1" />
@@ -303,7 +303,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="5" y="559" fontSize="5.5">  - Corrente: {invCorrOut} A</text>
           <text x="5" y="566" fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
 
-          {/* Protection relay boxes (right) */}
+          {/* Protection relay boxes — moved right (x=490), connected via horizontal lines to vertical at x=467 */}
           {([
             { l: '25', s: '' },
             { l: '27', s: '' },
@@ -311,20 +311,23 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             { l: '81', s: 'U/O' },
           ] as { l: string; s: string }[]).map(({ l, s }, i) => (
             <g key={l}>
-              <rect x={BR + 8} y={520 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth="0.8" />
+              {/* Horizontal connection from vertical line (x=467) to box left (x=490) at box center */}
+              <line x1="467" y1={530 + i * 25} x2="490" y2={530 + i * 25} stroke="#000" strokeWidth="0.8" />
+              <rect x="490" y={520 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth="0.8" />
               <text
-                x={BR + 21}
+                x="503"
                 y={s ? 531 + i * 25 : 534 + i * 25}
                 fontSize="7" fontWeight="bold" textAnchor="middle"
               >{l}</text>
               {s && (
-                <text x={BR + 21} y={538 + i * 25} fontSize="5.5" textAnchor="middle">{s}</text>
+                <text x="503" y={538 + i * 25} fontSize="5.5" textAnchor="middle">{s}</text>
               )}
             </g>
           ))}
-          {/* ANTI-ILHAMENTO — rectangular block at bottom of relay column */}
-          <rect x="468" y="621" width="90" height="16" fill="white" stroke="#000" strokeWidth="0.8" />
-          <text x="513" y="632" fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
+          {/* ANTI-ILHAMENTO — rectangular block, moved right (x=490) with horizontal connection */}
+          <line x1="467" y1="629" x2="490" y2="629" stroke="#000" strokeWidth="0.8" />
+          <rect x="490" y="621" width="90" height="16" fill="white" stroke="#000" strokeWidth="0.8" />
+          <text x="535" y="632" fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
 
           {/* Wire INVERSOR → QUADRO CC */}
           <line x1={CX} y1="569" x2={CX} y2="668" stroke="#000" strokeWidth="1" />

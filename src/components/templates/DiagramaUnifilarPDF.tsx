@@ -188,12 +188,12 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* Main vertical line through box */}
           <Line x1={CX} y1={220} x2={CX} y2={302} stroke="#000" strokeWidth={1} />
 
-          {/* Barramento horizontal — with margin at each end */}
-          <Line x1={175} y1={255} x2={495} y2={255} stroke="#000" strokeWidth={1} />
+          {/* Barramento horizontal — with margin at left, extends to terra at x=505 */}
+          <Line x1={175} y1={255} x2={505} y2={255} stroke="#000" strokeWidth={1} />
 
-          {/* Terra — exactly at lower-right corner of box (bottom at y=302) */}
-          <Line x1={505} y1={255} x2={505} y2={287} stroke="#000" strokeWidth={1} />
-          <PDFTerra x={505} y={287} />
+          {/* Terra — vertical line down to bottom-right corner (y=302 = box bottom) */}
+          <Line x1={505} y1={255} x2={505} y2={302} stroke="#000" strokeWidth={1} />
+          <PDFTerra x={505} y={302} />
 
           {/* Cargas derivation — inside box (x=195), drops with arrow */}
           <Line x1={195} y1={255} x2={195} y2={315} stroke="#000" strokeWidth={1} />
@@ -245,14 +245,14 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* Reduced to ~1/4 size (w=120, h=55), centered at CX */}
           <Rect x={280} y={514} width={120} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={CX} y={547} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">INVERSOR</Text>
-          {/* Diagonal line across inversor center */}
-          <Line x1={283} y1={516} x2={397} y2={567} stroke="#000" strokeWidth={0.9} />
-          {/* AC ~ symbol — now on LEFT side */}
-          <Path d={`M${CX - 26} 532 Q${CX - 22} 525 ${CX - 18} 532 Q${CX - 14} 539 ${CX - 10} 532`}
+          {/* Diagonal line across inversor — corner to corner */}
+          <Line x1={280} y1={514} x2={400} y2={569} stroke="#000" strokeWidth={0.9} />
+          {/* AC ~ symbol — lower-left corner of inversor */}
+          <Path d="M284 558 Q288 551 292 558 Q296 565 300 558"
                 stroke="#000" strokeWidth={0.9} fill="none" />
-          {/* DC = symbol — now on RIGHT side */}
-          <Line x1={CX + 10} y1={530} x2={CX + 24} y2={530} stroke="#000" strokeWidth={0.9} />
-          <Line x1={CX + 10} y1={534} x2={CX + 24} y2={534} stroke="#000" strokeWidth={0.9} />
+          {/* DC = symbol — upper-right corner of inversor */}
+          <Line x1={374} y1={520} x2={396} y2={520} stroke="#000" strokeWidth={0.9} />
+          <Line x1={374} y1={524} x2={396} y2={524} stroke="#000" strokeWidth={0.9} />
 
           {/* Horizontal line from right side of inversor → vertical line connecting relay boxes */}
           <Line x1={400} y1={541} x2={467} y2={541} stroke="#000" strokeWidth={1} />
@@ -269,20 +269,23 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={5} y={559} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
           <Text x={5} y={566} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
 
+          {/* Protection relay boxes — moved right (x=490), connected via horizontal lines to vertical at x=467 */}
           {[
             { l: '25', s: '' }, { l: '27', s: '' },
             { l: '59', s: '' }, { l: '81', s: 'U/O' },
           ].map(({ l, s }, i) => (
             <>
-              <Rect key={`r${l}`} x={BR + 8} y={520 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth={0.8} />
-              <Text key={`t${l}`} x={BR + 21} y={s ? 531 + i * 25 : 534 + i * 25}
+              <Line key={`ln${l}`} x1={467} y1={530 + i * 25} x2={490} y2={530 + i * 25} stroke="#000" strokeWidth={0.8} />
+              <Rect key={`r${l}`} x={490} y={520 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth={0.8} />
+              <Text key={`t${l}`} x={503} y={s ? 531 + i * 25 : 534 + i * 25}
                     fontSize={7} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
-              {s ? <Text key={`s${l}`} x={BR + 21} y={538 + i * 25} fontSize={5.5} textAnchor="middle" fill="#000">{s}</Text> : null}
+              {s ? <Text key={`s${l}`} x={503} y={538 + i * 25} fontSize={5.5} textAnchor="middle" fill="#000">{s}</Text> : null}
             </>
           ))}
-          {/* ANTI-ILHAMENTO — rectangular block at bottom of relay column */}
-          <Rect x={468} y={621} width={90} height={16} fill="white" stroke="#000" strokeWidth={0.8} />
-          <Text x={513} y={632} fontSize={6} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
+          {/* ANTI-ILHAMENTO — rectangular block, moved right (x=490) with horizontal connection */}
+          <Line x1={467} y1={629} x2={490} y2={629} stroke="#000" strokeWidth={0.8} />
+          <Rect x={490} y={621} width={90} height={16} fill="white" stroke="#000" strokeWidth={0.8} />
+          <Text x={535} y={632} fontSize={6} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
 
           <Line x1={CX} y1={569} x2={CX} y2={668} stroke="#000" strokeWidth={1} />
 
