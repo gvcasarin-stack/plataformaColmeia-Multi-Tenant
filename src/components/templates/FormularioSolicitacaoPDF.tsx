@@ -114,8 +114,8 @@ const s = StyleSheet.create({
     fontSize: 6,
     paddingTop: 3,
     paddingBottom: 3,
-    paddingLeft: 2,
-    paddingRight: 2,
+    paddingLeft: 5,
+    paddingRight: 5,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -126,8 +126,8 @@ const s = StyleSheet.create({
     fontSize: 6,
     paddingTop: 3,
     paddingBottom: 3,
-    paddingLeft: 2,
-    paddingRight: 2,
+    paddingLeft: 5,
+    paddingRight: 5,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -136,22 +136,22 @@ const s = StyleSheet.create({
     backgroundColor: '#D9D9D9',
     color: '#000000',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 5,
-    paddingTop: 3,
-    paddingBottom: 3,
-    paddingLeft: 2,
-    paddingRight: 2,
+    fontSize: 5.5,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 4,
+    paddingRight: 4,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
   },
   l: {
     backgroundColor: '#D9D9D9',
-    fontSize: 5,
-    paddingTop: 3,
-    paddingBottom: 3,
-    paddingLeft: 2,
-    paddingRight: 2,
+    fontSize: 5.5,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 4,
+    paddingRight: 4,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -159,10 +159,10 @@ const s = StyleSheet.create({
   d: {
     backgroundColor: '#FFFFFF',
     fontSize: 6,
-    paddingTop: 3,
-    paddingBottom: 3,
-    paddingLeft: 2,
-    paddingRight: 2,
+    paddingTop: 4,
+    paddingBottom: 4,
+    paddingLeft: 5,
+    paddingRight: 5,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -172,7 +172,10 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
     fontSize: 5,
-    padding: 2,
+    paddingTop: 4,
+    paddingBottom: 4,
+    paddingLeft: 3,
+    paddingRight: 3,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -303,15 +306,13 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           {/* Endereço / Contatos — label em cima, valor embaixo */}
           <View style={s.row}>
             <View style={[s.lr, { width: '52%' }]}><Text>Endereço</Text></View>
-            <View style={[s.l, { width: '14%' }]}><Text>Contatos telefônicos</Text></View>
-            <View style={[s.l, { width: '17%' }]}><Text>Celular</Text></View>
-            <View style={[s.l, { width: '17%' }]}><Text>Fixo</Text></View>
+            <View style={[s.l, { width: '48%' }]}><Text>Contatos telefônicos</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.d, { width: '52%' }]}><Text>{v('endereco', pd)}</Text></View>
-            <View style={[s.d, { width: '14%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '14%' }]}><Text>Celular</Text></View>
             <View style={[s.d, { width: '17%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
-            <View style={[s.d, { width: '17%' }]}><Text>{v('cliente_telefone_fixo', pd)}</Text></View>
+            <View style={[s.d, { width: '17%' }]}><Text>Fixo: {v('cliente_telefone_fixo', pd)}</Text></View>
           </View>
           {/* CEP / Município / UF / E-mail */}
           <View style={s.row}>

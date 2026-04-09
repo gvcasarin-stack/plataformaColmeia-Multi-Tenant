@@ -63,30 +63,30 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 };
 
 // Estilo base reutilizável
-const T: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', marginBottom: '2px', fontSize: '8px', lineHeight: '1.25' };
+const T: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', marginBottom: '2px', fontSize: '8px', lineHeight: '1.3' };
 const B = '1px solid #000000';
 // Section header — fundo branco, texto preto (igual ao original)
-const SH: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
+const SH: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', padding: '3px 5px', fontSize: '8px', border: B };
 // Sub-header — cinza médio
-const SSH: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontWeight: 'bold', padding: '2px 4px', fontSize: '8px', border: B };
+const SSH: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontWeight: 'bold', padding: '3px 5px', fontSize: '8px', border: B };
 // Label obrigatório — fundo cinza médio, texto preto
-const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '6px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 5px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Label normal — fundo cinza médio, texto preto
-const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '6px', padding: '2px 3px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 5px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Célula de dado — fundo branco
-const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, verticalAlign: 'top', overflow: 'hidden', wordBreak: 'break-word' };
+const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '4px 6px', border: B, verticalAlign: 'middle', overflow: 'hidden', wordBreak: 'break-word' };
 // OK verde forte
-const OK: React.CSSProperties = { backgroundColor: '#70AD47', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+const OK: React.CSSProperties = { backgroundColor: '#70AD47', color: '#FFFFFF', fontSize: '7px', padding: '4px 5px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Cabeçalho de coluna página 1 (cinza)
-const CH: React.CSSProperties = { backgroundColor: '#D9D9D9', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+const CH: React.CSSProperties = { backgroundColor: '#D9D9D9', fontSize: '7px', padding: '3px 4px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Cabeçalho de coluna página 2 (cinza escuro)
-const CHBlue: React.CSSProperties = { backgroundColor: '#595959', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+const CHBlue: React.CSSProperties = { backgroundColor: '#595959', color: '#FFFFFF', fontSize: '7px', padding: '3px 4px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Célula vazia página 2 (pêssego)
-const DPeach: React.CSSProperties = { backgroundColor: '#FCE4D6', fontSize: '7px', padding: '2px 3px', border: B, textAlign: 'center', verticalAlign: 'middle' };
+const DPeach: React.CSSProperties = { backgroundColor: '#FCE4D6', fontSize: '7px', padding: '4px 5px', border: B, textAlign: 'center', verticalAlign: 'middle' };
 // Célula TOTAL valor
 const TOT: React.CSSProperties = { ...D, fontWeight: 'bold', textAlign: 'center' };
 // Célula TOTAL cinza
-const TOTGray: React.CSSProperties = { backgroundColor: '#808080', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+const TOTGray: React.CSSProperties = { backgroundColor: '#808080', color: '#FFFFFF', fontSize: '7px', padding: '4px 5px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 
 export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicitacaoPreviewProps) {
   const [generating, setGenerating] = useState(false);
@@ -213,15 +213,13 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             {/* Endereço / Contatos — label em cima, valor embaixo */}
             <tr>
               <td colSpan={5} style={LR}>Endereço</td>
-              <td style={L}>Contatos telefônicos</td>
-              <td style={L}>Celular</td>
-              <td style={L}>Fixo</td>
+              <td colSpan={3} style={L}>Contatos telefônicos</td>
             </tr>
             <tr>
               <td colSpan={5} style={D}><V>{`{{endereco}}`}</V></td>
-              <td style={D}></td>
+              <td style={L}>Celular</td>
               <td style={D}><V>{`{{cliente_celular}}`}</V></td>
-              <td style={D}><V>{`{{cliente_telefone_fixo}}`}</V></td>
+              <td style={D}>Fixo:&nbsp;&nbsp;<V>{`{{cliente_telefone_fixo}}`}</V></td>
             </tr>
 
             {/* CEP / Município / UF / E-mail */}
