@@ -8,6 +8,7 @@ import {
   Circle,
   Path,
   Text,
+  Tspan,
 } from '@react-pdf/renderer';
 
 interface DiagramaUnifilarPDFProps {
@@ -133,7 +134,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   return (
     <Document>
       <Page size="A3" style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={812} height={991} viewBox="0 0 900 1178">
+        <Svg width={812} height={991} viewBox="0 -25 900 1203">
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line x1={90} y1={28} x2={490} y2={28} stroke="#000" strokeWidth={1.8} />
@@ -165,8 +166,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* Ramal de Ligação — drawn AFTER rects so visible over white fills */}
           <Text x={244} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
           <Text x={244} y={87}  fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
-          <Text x={244} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (F)`}</Text>
-          <Text x={244} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm2 (N)`}</Text>
+          <Text x={244} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (F)</Tspan></Text>
+          <Text x={244} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (N)</Tspan></Text>
 
           {/* D1 on main vertical line */}
           <PDFDisjuntor x={CX} y={145} />
@@ -206,9 +207,9 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* CA cables annotation — centered on main line */}
           <Line x1={CX} y1={330} x2={CX + 12} y2={330} stroke="#000" strokeWidth={0.6} />
           <Text x={CX + 15} y={323} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
-          <Text x={CX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
-          <Text x={CX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
-          <Text x={CX + 15} y={347} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
+          <Text x={CX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (F)</Tspan></Text>
+          <Text x={CX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (N)</Tspan></Text>
+          <Text x={CX + 15} y={347} fontSize={5.5} fill="#000">{`1 #${caboCA}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (T)</Tspan></Text>
 
           {/* ═══ QUADRO DE PROTEÇÃO CA ═══ */}
           <Rect x={BX} y={358} width={BW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
@@ -222,8 +223,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={358} x2={CX} y2={408} stroke="#000" strokeWidth={1} />
 
           {/* DPS CA — slightly lower tap */}
-          <Line x1={CX} y1={368} x2={290} y2={368} stroke="#000" strokeWidth={0.8} />
-          <Line x1={290} y1={368} x2={290} y2={420} stroke="#000" strokeWidth={0.8} />
+          <Line x1={CX} y1={385} x2={290} y2={385} stroke="#000" strokeWidth={0.8} />
+          <Line x1={290} y1={385} x2={290} y2={420} stroke="#000" strokeWidth={0.8} />
           <PDFDPSSymbol x={290} y={429} />
           <Line x1={290} y1={438} x2={290} y2={450} stroke="#000" strokeWidth={0.8} />
           <PDFTerra x={290} y={450} />
@@ -237,9 +238,9 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
           <Line x1={CX} y1={502} x2={CX + 12} y2={502} stroke="#000" strokeWidth={0.6} />
           <Text x={CX + 15} y={495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
-          <Text x={CX + 15} y={503} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
-          <Text x={CX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
-          <Text x={CX + 15} y={519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
+          <Text x={CX + 15} y={503} fontSize={5.5} fill="#000">{`1 #${caboCA}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (F)</Tspan></Text>
+          <Text x={CX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (N)</Tspan></Text>
+          <Text x={CX + 15} y={519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (T)</Tspan></Text>
 
           {/* ═══ INVERSOR ═══ */}
           {/* Label outside box, above upper-right corner */}
@@ -295,10 +296,10 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 15} y={636} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
           <Text x={CX + 15} y={644} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
           <Text x={CX + 15} y={652} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={CX + 15} y={659} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
-          <Text x={CX + 15} y={666} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={659} fontSize={5.5} fill="#000">{`1 #${caboCC}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (-)</Tspan></Text>
+          <Text x={CX + 15} y={666} fontSize={5.5} fill="#000">{`1 #${caboCC}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (+)</Tspan></Text>
           <Text x={CX + 15} y={674} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={681} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          <Text x={CX + 15} y={681} fontSize={5.5} fill="#000">1 #6,0mm<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (T)</Tspan></Text>
 
           {/* ═══ QUADRO DE PROTEÇÃO CC ═══ */}
           <Rect x={BX} y={708} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
@@ -336,10 +337,10 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 15} y={865} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
           <Text x={CX + 15} y={873} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
           <Text x={CX + 15} y={881} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={CX + 15} y={888} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
-          <Text x={CX + 15} y={895} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={888} fontSize={5.5} fill="#000">{`1 #${caboCC}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (-)</Tspan></Text>
+          <Text x={CX + 15} y={895} fontSize={5.5} fill="#000">{`1 #${caboCC}mm`}<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (+)</Tspan></Text>
           <Text x={CX + 15} y={903} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={910} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          <Text x={CX + 15} y={910} fontSize={5.5} fill="#000">1 #6,0mm<Tspan dy={-2} fontSize={4} fill="#000">2</Tspan><Tspan dy={2} fill="#000"> (T)</Tspan></Text>
 
           {/* ═══ G — GERADOR ═══ */}
           <Line x1={CX} y1={848} x2={CX} y2={935} stroke="#000" strokeWidth={1} />
