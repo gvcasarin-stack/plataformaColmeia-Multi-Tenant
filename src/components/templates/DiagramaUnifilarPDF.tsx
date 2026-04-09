@@ -259,15 +259,15 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* Vertical line — raised to align column midpoint with inversor horizontal (y=541) */}
           <Line x1={467} y1={494} x2={467} y2={611} stroke="#000" strokeWidth={1} />
 
-          {/* Left annotation (text only) */}
-          <Text x={5} y={517} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
-          <Text x={5} y={524} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
-          <Text x={5} y={531} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
-          <Text x={5} y={538} fontSize={5.5} fill="#000">Entrada - Tensao max: {invVccMax} Vcc</Text>
-          <Text x={5} y={545} fontSize={5.5} fill="#000">  - Corrente max: {invIccMax} A</Text>
-          <Text x={5} y={552} fontSize={5.5} fill="#000">Saida - Tensao: {tensaoNom} Vca</Text>
-          <Text x={5} y={559} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
-          <Text x={5} y={566} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
+          {/* Left annotation — moved closer to inversor (x=150) */}
+          <Text x={150} y={517} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
+          <Text x={150} y={524} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
+          <Text x={150} y={531} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
+          <Text x={150} y={538} fontSize={5.5} fill="#000">Entrada - Tensao max: {invVccMax} Vcc</Text>
+          <Text x={150} y={545} fontSize={5.5} fill="#000">  - Corrente max: {invIccMax} A</Text>
+          <Text x={150} y={552} fontSize={5.5} fill="#000">Saida - Tensao: {tensaoNom} Vca</Text>
+          <Text x={150} y={559} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
+          <Text x={150} y={566} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
 
           {/* Protection relay boxes — raised so column midpoint aligns with inversor horizontal (y=541) */}
           {[
@@ -300,21 +300,27 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* ═══ QUADRO DE PROTEÇÃO CC ═══ */}
           <Rect x={BX} y={668} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
-          <Text x={CX} y={692} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">QUADRO DE</Text>
-          <Text x={CX} y={704} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PROTECAO CC</Text>
-          <Text x={5} y={677} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
-          <Text x={5} y={686} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+          {/* Label — upper right (same style as QUADRO CA) */}
+          <Text x={BR - 8} y={680} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+          <Text x={BR - 8} y={692} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
+
+          {/* (ACOPLADO AO INVERSOR FV) — inside box, upper-left corner */}
+          <Text x={BX + 6} y={681} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
+          <Text x={BX + 6} y={690} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+
           <Text x={228} y={718} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
           <Text x={228} y={727} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
           <Text x={228} y={736} fontSize={5.5} fill="#000">Classe II</Text>
 
-          <Line x1={CX} y1={685} x2={257} y2={685} stroke="#000" strokeWidth={0.8} />
-          <Line x1={257} y1={685} x2={257} y2={740} stroke="#000" strokeWidth={0.8} />
-          <PDFDPSSymbol x={257} y={749} />
-          <Line x1={257} y1={758} x2={257} y2={770} stroke="#000" strokeWidth={0.8} />
-          <PDFTerra x={257} y={770} />
+          {/* Main vertical — continuous from box top (y=668) to C1 */}
+          <Line x1={CX} y1={668} x2={CX} y2={718} stroke="#000" strokeWidth={1} />
 
-          <Line x1={CX} y1={685} x2={CX} y2={718} stroke="#000" strokeWidth={1} />
+          {/* Tap main → DPS CC (shifted right to x=290, same as DPS CA) */}
+          <Line x1={CX} y1={685} x2={290} y2={685} stroke="#000" strokeWidth={0.8} />
+          <Line x1={290} y1={685} x2={290} y2={740} stroke="#000" strokeWidth={0.8} />
+          <PDFDPSSymbol x={290} y={749} />
+          <Line x1={290} y1={758} x2={290} y2={770} stroke="#000" strokeWidth={0.8} />
+          <PDFTerra x={290} y={770} />
           <PDFChaveSeccionadora x={CX} y={726} />
           <Line x1={CX + 14} y1={709} x2={CX + 14} y2={703} stroke="#000" strokeWidth={0.8} />
           <Text x={CX + 22} y={718} fontSize={5.5} fill="#000">C1</Text>

@@ -293,15 +293,15 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* Vertical line connecting all relay boxes — shifted up to align midpoint with y=541 */}
           <line x1="467" y1="494" x2="467" y2="611" stroke="#000" strokeWidth="1" />
 
-          {/* Left annotation (no dashed line — text only) */}
-          <text x="5" y="517" fontSize="5.5">Marca: {invFab}</text>
-          <text x="5" y="524" fontSize="5.5">Modelo: {invMod}</text>
-          <text x="5" y="531" fontSize="5.5">Potência: {invPot} kW</text>
-          <text x="5" y="538" fontSize="5.5">Entrada - Tensão max: {invVccMax} Vcc</text>
-          <text x="5" y="545" fontSize="5.5">  - Corrente max: {invIccMax} A</text>
-          <text x="5" y="552" fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
-          <text x="5" y="559" fontSize="5.5">  - Corrente: {invCorrOut} A</text>
-          <text x="5" y="566" fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
+          {/* Left annotation — moved closer to inversor (x=150) */}
+          <text x="150" y="517" fontSize="5.5">Marca: {invFab}</text>
+          <text x="150" y="524" fontSize="5.5">Modelo: {invMod}</text>
+          <text x="150" y="531" fontSize="5.5">Potência: {invPot} kW</text>
+          <text x="150" y="538" fontSize="5.5">Entrada - Tensão max: {invVccMax} Vcc</text>
+          <text x="150" y="545" fontSize="5.5">  - Corrente max: {invIccMax} A</text>
+          <text x="150" y="552" fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
+          <text x="150" y="559" fontSize="5.5">  - Corrente: {invCorrOut} A</text>
+          <text x="150" y="566" fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
 
           {/* Protection relay boxes — raised so column midpoint aligns with inversor horizontal (y=541) */}
           {([
@@ -344,27 +344,30 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ QUADRO DE PROTEÇÃO CC ═══════════════ */}
           <rect x={BX} y="668" width={BW} height="140" fill="white" stroke="#000" strokeWidth="1.2" />
-          <text x={CX} y="692" fontSize="8" fontWeight="bold" textAnchor="middle">QUADRO DE</text>
-          <text x={CX} y="704" fontSize="8" fontWeight="bold" textAnchor="middle">PROTEÇÃO CC</text>
+          {/* Label — upper right (same style as QUADRO CA) */}
+          <text x={BR - 8} y="680" fontSize="8" fontWeight="bold" textAnchor="end">QUADRO DE</text>
+          <text x={BR - 8} y="692" fontSize="8" fontWeight="bold" textAnchor="end">PROTEÇÃO CC</text>
 
-          {/* (ACOPLADO AO INVERSOR FV) left annotation */}
-          <text x="5" y="677" fontSize="5.5">(ACOPLADO AO</text>
-          <text x="5" y="686" fontSize="5.5">INVERSOR FV)</text>
+          {/* (ACOPLADO AO INVERSOR FV) — inside box, upper-left corner */}
+          <text x={BX + 6} y="681" fontSize="5.5">(ACOPLADO AO</text>
+          <text x={BX + 6} y="690" fontSize="5.5">INVERSOR FV)</text>
 
           {/* DPS CC label (left inside box) */}
           <text x="228" y="718" fontSize="5.5" fontWeight="bold">DPS CC</text>
           <text x="228" y="727" fontSize="5.5">1040 Vcc, 18-40 kA</text>
           <text x="228" y="736" fontSize="5.5">Classe II</text>
 
-          {/* Tap main → DPS CC */}
-          <line x1={CX} y1="685" x2="257" y2="685" stroke="#000" strokeWidth="0.8" />
-          <line x1="257" y1="685" x2="257" y2="740" stroke="#000" strokeWidth="0.8" />
-          <DPSSymbol x={257} y={749} />
-          <line x1="257" y1="758" x2="257" y2="770" stroke="#000" strokeWidth="0.8" />
-          <Terra x={257} y={770} />
+          {/* Main vertical — continuous from box top (y=668) to C1 */}
+          <line x1={CX} y1="668" x2={CX} y2="718" stroke="#000" strokeWidth="1" />
+
+          {/* Tap main → DPS CC (shifted right to x=290, same as DPS CA) */}
+          <line x1={CX} y1="685" x2="290" y2="685" stroke="#000" strokeWidth="0.8" />
+          <line x1="290" y1="685" x2="290" y2="740" stroke="#000" strokeWidth="0.8" />
+          <DPSSymbol x={290} y={749} />
+          <line x1="290" y1="758" x2="290" y2="770" stroke="#000" strokeWidth="0.8" />
+          <Terra x={290} y={770} />
 
           {/* C1 Chave Seccionadora on main wire */}
-          <line x1={CX} y1="685" x2={CX} y2="718" stroke="#000" strokeWidth="1" />
           <ChaveSeccionadora x={CX} y={726} />
           {/* second terminal wire up */}
           <line x1={CX + 14} y1="709" x2={CX + 14} y2="703" stroke="#000" strokeWidth="0.8" />
