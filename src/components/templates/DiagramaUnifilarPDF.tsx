@@ -235,11 +235,11 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={422} x2={CX} y2={554} stroke="#000" strokeWidth={1} />
 
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
-          <Line x1={CX} y1={517} x2={CX + 12} y2={517} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={510} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
-          <Text x={CX + 15} y={518} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
-          <Text x={CX + 15} y={526} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
-          <Text x={CX + 15} y={534} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
+          <Line x1={CX} y1={502} x2={CX + 12} y2={502} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
+          <Text x={CX + 15} y={503} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
+          <Text x={CX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
+          <Text x={CX + 15} y={519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
 
           {/* ═══ INVERSOR ═══ */}
           {/* Label outside box, above upper-right corner */}
@@ -291,14 +291,14 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={609} x2={CX} y2={708} stroke="#000" strokeWidth={1} />
 
           {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
-          <Line x1={CX} y1={659} x2={CX + 12} y2={659} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={651} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={CX + 15} y={659} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={667} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={CX + 15} y={674} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
-          <Text x={CX + 15} y={681} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
-          <Text x={CX + 15} y={689} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={696} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          <Line x1={CX} y1={644} x2={CX + 12} y2={644} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={636} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+          <Text x={CX + 15} y={644} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={652} fontSize={5.5} fill="#000">Para cada string:</Text>
+          <Text x={CX + 15} y={659} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
+          <Text x={CX + 15} y={666} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={674} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={681} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
 
           {/* ═══ QUADRO DE PROTEÇÃO CC ═══ */}
           <Rect x={BX} y={708} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
@@ -324,7 +324,6 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={290} y1={798} x2={290} y2={810} stroke="#000" strokeWidth={0.8} />
           <PDFTerra x={290} y={810} />
           <PDFChaveSeccionadora x={CX} y={766} />
-          <Line x1={CX + 14} y1={749} x2={CX + 14} y2={743} stroke="#000" strokeWidth={0.8} />
           <Text x={CX + 22} y={758} fontSize={5.5} fill="#000">C1</Text>
           <Text x={CX + 22} y={768} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
           <Text x={CX + 22} y={777} fontSize={5.5} fill="#000">(4 polos)</Text>
@@ -333,33 +332,33 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={770} x2={CX} y2={848} stroke="#000" strokeWidth={1} />
 
           {/* CC cables annotation — between QUADRO CC and GERADOR/modules (tap from main line) */}
-          <Line x1={CX} y1={887} x2={CX + 12} y2={887} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={880} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={CX + 15} y={888} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={896} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={CX + 15} y={903} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
-          <Text x={CX + 15} y={910} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
-          <Text x={CX + 15} y={918} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={925} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          <Line x1={CX} y1={872} x2={CX + 12} y2={872} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={865} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+          <Text x={CX + 15} y={873} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={881} fontSize={5.5} fill="#000">Para cada string:</Text>
+          <Text x={CX + 15} y={888} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
+          <Text x={CX + 15} y={895} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={903} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={910} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
 
           {/* ═══ G — GERADOR ═══ */}
-          <Line x1={CX} y1={848} x2={CX} y2={925} stroke="#000" strokeWidth={1} />
-          <Circle cx={CX} cy={961} r={35} fill="white" stroke="#000" strokeWidth={1.5} />
-          <Text x={CX} y={968} fontSize={22} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
-          <Line x1={CX} y1={996} x2={CX} y2={1010} stroke="#000" strokeWidth={1.2} />
-          <PDFTerra x={CX} y={1010} />
+          <Line x1={CX} y1={848} x2={CX} y2={955} stroke="#000" strokeWidth={1} />
+          <Circle cx={CX} cy={991} r={35} fill="white" stroke="#000" strokeWidth={1.5} />
+          <Text x={CX} y={998} fontSize={22} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
+          <Line x1={CX} y1={1026} x2={CX} y2={1040} stroke="#000" strokeWidth={1.2} />
+          <PDFTerra x={CX} y={1040} />
 
-          <Line x1={CX + 35} y1={961} x2={CX + 52} y2={961} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 55} y={928} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
-          <Text x={CX + 55} y={938} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-          <Text x={CX + 55} y={947} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-          <Text x={CX + 55} y={956} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
-          <Text x={CX + 55} y={965} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-          <Text x={CX + 55} y={974} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-          <Text x={CX + 55} y={983} fontSize={5.5} fill="#000">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</Text>
-          <Text x={CX + 55} y={992} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
-          <Text x={CX + 55} y={1001} fontSize={5.5} fill="#000">Tensao de operacao strings: {tensaoStr} V</Text>
-          <Text x={CX + 55} y={1010} fontSize={5.5} fill="#000">Corrente de saida das strings: {corrStr} A</Text>
+          <Line x1={CX + 35} y1={991} x2={CX + 52} y2={991} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 55} y={958} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+          <Text x={CX + 55} y={968} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+          <Text x={CX + 55} y={977} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+          <Text x={CX + 55} y={986} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+          <Text x={CX + 55} y={995} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+          <Text x={CX + 55} y={1004} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+          <Text x={CX + 55} y={1013} fontSize={5.5} fill="#000">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</Text>
+          <Text x={CX + 55} y={1022} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
+          <Text x={CX + 55} y={1031} fontSize={5.5} fill="#000">Tensao de operacao strings: {tensaoStr} V</Text>
+          <Text x={CX + 55} y={1040} fontSize={5.5} fill="#000">Corrente de saida das strings: {corrStr} A</Text>
 
           {/* ═══ LEGENDA ═══ */}
           <Rect x={655} y={22} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />

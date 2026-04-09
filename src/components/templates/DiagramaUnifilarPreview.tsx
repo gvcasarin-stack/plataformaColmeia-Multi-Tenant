@@ -263,11 +263,11 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1={CX} y1="480" x2={CX} y2="554" stroke="#000" strokeWidth="1" />
 
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
-          <line x1={CX} y1="517" x2={CX + 12} y2="517" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={CX + 15} y="510" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
-          <text x={CX + 15} y="518" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
-          <text x={CX + 15} y="526" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
-          <text x={CX + 15} y="534" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+          <line x1={CX} y1="502" x2={CX + 12} y2="502" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 15} y="495" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
+          <text x={CX + 15} y="503" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
+          <text x={CX + 15} y="511" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
+          <text x={CX + 15} y="519" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
           {/* ═══════════════ INVERSOR ═══════════════ */}
           {/* Reduced to ~1/4 size (w=120, h=55), centered at CX */}
@@ -331,14 +331,14 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1={CX} y1="609" x2={CX} y2="708" stroke="#000" strokeWidth="1" />
 
           {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
-          <line x1={CX} y1="659" x2={CX + 12} y2="659" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={CX + 15} y="651" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-          <text x={CX + 15} y="659" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
-          <text x={CX + 15} y="667" fontSize="5.5">Para cada string:</text>
-          <text x={CX + 15} y="674" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
-          <text x={CX + 15} y="681" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
-          <text x={CX + 15} y="689" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-          <text x={CX + 15} y="696" fontSize="5.5">1 #6,0mm² (T)</text>
+          <line x1={CX} y1="644" x2={CX + 12} y2="644" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 15} y="636" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+          <text x={CX + 15} y="644" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="652" fontSize="5.5">Para cada string:</text>
+          <text x={CX + 15} y="659" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+          <text x={CX + 15} y="666" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+          <text x={CX + 15} y="674" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="681" fontSize="5.5">1 #6,0mm² (T)</text>
 
           {/* ═══════════════ QUADRO DE PROTEÇÃO CC ═══════════════ */}
           <rect x={BX} y="708" width={BW} height="140" fill="white" stroke="#000" strokeWidth="1.2" />
@@ -367,8 +367,6 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* C1 Chave Seccionadora on main wire */}
           <ChaveSeccionadora x={CX} y={766} />
-          {/* second terminal wire up */}
-          <line x1={CX + 14} y1="749" x2={CX + 14} y2="743" stroke="#000" strokeWidth="0.8" />
           <text x={CX + 22} y="758" fontSize="5.5">C1</text>
           <text x={CX + 22} y="768" fontSize="5.5">Chave Seccionadora</text>
           <text x={CX + 22} y="777" fontSize="5.5">(4 polos)</text>
@@ -378,34 +376,34 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1={CX} y1="770" x2={CX} y2="848" stroke="#000" strokeWidth="1" />
 
           {/* CC cables annotation — between QUADRO CC and GERADOR/modules (tap from main line) */}
-          <line x1={CX} y1="887" x2={CX + 12} y2="887" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={CX + 15} y="880" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-          <text x={CX + 15} y="888" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
-          <text x={CX + 15} y="896" fontSize="5.5">Para cada string:</text>
-          <text x={CX + 15} y="903" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
-          <text x={CX + 15} y="910" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
-          <text x={CX + 15} y="918" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-          <text x={CX + 15} y="925" fontSize="5.5">1 #6,0mm² (T)</text>
+          <line x1={CX} y1="872" x2={CX + 12} y2="872" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 15} y="865" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+          <text x={CX + 15} y="873" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="881" fontSize="5.5">Para cada string:</text>
+          <text x={CX + 15} y="888" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+          <text x={CX + 15} y="895" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+          <text x={CX + 15} y="903" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="910" fontSize="5.5">1 #6,0mm² (T)</text>
 
           {/* ═══════════════ G — GERADOR ═══════════════ */}
-          <line x1={CX} y1="848" x2={CX} y2="925" stroke="#000" strokeWidth="1" />
-          <circle cx={CX} cy="961" r="35" fill="white" stroke="#000" strokeWidth="1.5" />
-          <text x={CX} y="968" fontSize="22" fontWeight="bold" textAnchor="middle">G</text>
-          <line x1={CX} y1="996" x2={CX} y2="1010" stroke="#000" strokeWidth="1.2" />
-          <Terra x={CX} y={1010} />
+          <line x1={CX} y1="848" x2={CX} y2="955" stroke="#000" strokeWidth="1" />
+          <circle cx={CX} cy="991" r="35" fill="white" stroke="#000" strokeWidth="1.5" />
+          <text x={CX} y="998" fontSize="22" fontWeight="bold" textAnchor="middle">G</text>
+          <line x1={CX} y1="1026" x2={CX} y2="1040" stroke="#000" strokeWidth="1.2" />
+          <Terra x={CX} y={1040} />
 
           {/* Module annotation (right of G) */}
-          <line x1={CX + 35} y1="961" x2={CX + 52} y2="961" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={CX + 55} y="928" fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
-          <text x={CX + 55} y="938" fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
-          <text x={CX + 55} y="947" fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
-          <text x={CX + 55} y="956" fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
-          <text x={CX + 55} y="965" fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
-          <text x={CX + 55} y="974" fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
-          <text x={CX + 55} y="983" fontSize="5.5">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</text>
-          <text x={CX + 55} y="992" fontSize="5.5">Potência total: {potKwp} kWp</text>
-          <text x={CX + 55} y="1001" fontSize="5.5">Tensão de operação strings: {tensaoStr} V</text>
-          <text x={CX + 55} y="1010" fontSize="5.5">Corrente de saída das strings: {corrStr} A</text>
+          <line x1={CX + 35} y1="991" x2={CX + 52} y2="991" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 55} y="958" fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
+          <text x={CX + 55} y="968" fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
+          <text x={CX + 55} y="977" fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
+          <text x={CX + 55} y="986" fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
+          <text x={CX + 55} y="995" fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
+          <text x={CX + 55} y="1004" fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
+          <text x={CX + 55} y="1013" fontSize="5.5">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</text>
+          <text x={CX + 55} y="1022" fontSize="5.5">Potência total: {potKwp} kWp</text>
+          <text x={CX + 55} y="1031" fontSize="5.5">Tensão de operação strings: {tensaoStr} V</text>
+          <text x={CX + 55} y="1040" fontSize="5.5">Corrente de saída das strings: {corrStr} A</text>
 
           {/* ═══════════════ LEGENDA (top right) ═══════════════ */}
           <rect x="655" y="22" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
