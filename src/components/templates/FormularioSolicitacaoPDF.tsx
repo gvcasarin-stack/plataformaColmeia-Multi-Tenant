@@ -423,28 +423,26 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.sh, { width: '100%' }]}><Text>2. Dados Cadastrais do Responsável Técnico</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.lr, { width: '20%' }]}><Text>Nome Completo</Text></View>
-            <View style={[s.d, { width: '35%' }]}><Text>{v('responsavel_nome', pd)}</Text></View>
-            <View style={[s.lr, { width: '25%' }]}><Text>Titulo Profissional</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text>{v('responsavel_profissao', pd)}</Text></View>
-            <View style={[s.lr, { width: '6%' }]}><Text>Registro</Text></View>
-            <View style={[s.d, { width: '6%' }]}><Text>Nº {v('responsavel_registro', pd)}</Text></View>
+            <View style={[s.lr, { width: '16%' }]}><Text>Nome Completo</Text></View>
+            <View style={[s.d, { width: '28%' }]}><Text>{v('responsavel_nome', pd)}</Text></View>
+            <View style={[s.lr, { width: '18%' }]}><Text>Título Profissional</Text></View>
+            <View style={[s.d, { width: '16%' }]}><Text>{v('responsavel_profissao', pd)}</Text></View>
+            <View style={[s.lr, { width: '12%' }]}><Text>Registro Profissional</Text></View>
+            <View style={[s.d, { width: '10%' }]}><Text>Nº {v('responsavel_registro', pd)}</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '55%' }]}>
+            <View style={[s.d, { width: '44%' }]}>
               <Text><Text style={{ color: '#000000', fontFamily: 'Helvetica-Bold', fontSize: 5 }}>UF</Text>{'  '}{v('responsavel_uf', pd)}</Text>
             </View>
-            <View style={[s.d, { width: '45%' }]}><Text></Text></View>
+            <View style={[s.d, { width: '56%' }]}><Text></Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.lr, { width: '20%' }]}><Text>E-mail</Text></View>
-            <View style={[s.d, { width: '30%' }]}><Text>{v('responsavel_email', pd)}</Text></View>
-            <View style={[s.l, { width: '13%' }]}><Text>Empresa (opcional)</Text></View>
-            <View style={[s.d, { width: '15%' }]}><Text></Text></View>
-            <View style={[s.l, { width: '9%' }]}><Text>Telefone Fixo</Text></View>
-            <View style={[s.d, { width: '7%' }]}><Text></Text></View>
-            <View style={[s.l, { width: '3%' }]}><Text>Cel.</Text></View>
-            <View style={[s.d, { width: '3%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
+            <View style={[s.lr, { width: '16%' }]}><Text>E-mail</Text></View>
+            <View style={[s.d, { width: '38%' }]}><Text>{v('responsavel_email', pd)}</Text></View>
+            <View style={[s.l, { width: '12%' }]}><Text>Telefone Fixo</Text></View>
+            <View style={[s.d, { width: '14%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '8%' }]}><Text>Celular</Text></View>
+            <View style={[s.d, { width: '12%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
           </View>
         </View>
 
@@ -555,20 +553,19 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.sh, { width: '100%' }]}><Text>6. Solicitações e Declarações</Text></View>
           </View>
           <View style={s.row}>
+            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnica - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.</Text></View>
+            <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
+          </View>
+          <View style={s.row}>
             <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Solicito que a contagem do prazo para realização da vistoria pela CONCESSIONÁRIA, conforme art. 68 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação.</Text></View>
             <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Autorizo a distribuidora a entregar junto com o orçamento de conexão os contratos e o documento ou meio para pagamento de custos de minha responsabilidade.</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text></Text></View>
-          </View>
-          <View style={s.row}>
-            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnica - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.</Text></View>
             <View style={[s.d, { width: '8%', textAlign: 'center' }]}><Text style={s.bold}>SIM</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '92%', fontSize: 6 }]}><Text>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A da REN 1000, na seguinte regra:</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text></Text></View>
+            <View style={[s.d, { width: '100%', fontSize: 6 }]}><Text>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A da REN 1000, na seguinte regra:</Text></View>
           </View>
           {([
             ['Não injeção na rede de distribuição de energia elétrica ("Grid Zero")', 'NÃO'],
@@ -632,14 +629,8 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             </View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '35%', fontSize: 6 }]}>
-              <Text>Local: {v('cidade', pd)}-{v('estado', pd)}</Text>
-            </View>
-            <View style={[s.d, { width: '35%', fontSize: 6 }]}>
-              <Text>Data: {v('data', pd)}</Text>
-            </View>
-            <View style={[s.d, { width: '30%', fontSize: 6, textAlign: 'center' }]}>
-              <Text style={{ borderTopWidth: 0.5, borderColor: BC, paddingTop: 14, marginTop: 4 }}>Assinatura do Responsável</Text>
+            <View style={[s.d, { width: '100%', fontSize: 6 }]}>
+              <Text>Local: {v('cidade', pd)}-{v('estado', pd)}{'        '}Data: {v('data', pd)}{'        '}Assinatura do Responsável Técnico: __________________________________________________</Text>
             </View>
           </View>
         </View>

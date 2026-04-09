@@ -296,7 +296,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td style={D}><V>{`{{carga_declarada_kw}}`}</V> kW</td>
               <td style={LR} colSpan={2}>Disjuntor de Entrada da UC (selecionar)</td>
               <td style={D}><V>{`{{disjuntor_corrente_a}}`}</V> A</td>
-              <td style={LR}>Potência Disponibilizada (PD) para a UC</td>
+              <td style={{ ...LR, whiteSpace: 'normal' }}>Potência Disponibilizada (PD) para a UC</td>
               <td style={D}><V>{`{{potencia_disponibilizada_kw}}`}</V> kW</td>
             </tr>
 
@@ -339,12 +339,12 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
         {/* ===== SEÇÃO 2 ===== */}
         <table style={T}>
           <colgroup>
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '15%' }} />
-            <col style={{ width: '15%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '8%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '22%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '12%' }} />
             <col style={{ width: '6%' }} />
             <col style={{ width: '6%' }} />
           </colgroup>
@@ -353,23 +353,23 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             <tr>
               <td style={LR}>Nome Completo</td>
               <td style={D} colSpan={2}><V>{`{{responsavel_nome}}`}</V></td>
-              <td style={LR} colSpan={2}>Titulo Profissional</td>
-              <td style={D}><V upper>{`{{responsavel_profissao}}`}</V></td>
-              <td style={LR}>Registro Profissional</td>
-              <td style={D}>Nº <V>{`{{responsavel_registro}}`}</V></td>
+              <td style={LR} colSpan={1}>Título Profissional</td>
+              <td style={D} colSpan={1}><V upper>{`{{responsavel_profissao}}`}</V></td>
+              <td style={LR} colSpan={1}>Registro Profissional</td>
+              <td style={D} colSpan={2}>Nº <V>{`{{responsavel_registro}}`}</V></td>
             </tr>
             <tr>
-              <td colSpan={3} style={D}>
+              <td colSpan={2} style={D}>
                 <span style={{ fontSize: '7px', color: '#FF0000', fontWeight: '500' }}>UF</span>&nbsp;<V>{`{{responsavel_uf}}`}</V>
               </td>
-              <td colSpan={5} style={D}></td>
+              <td colSpan={6} style={D}></td>
             </tr>
             <tr>
               <td style={LR}>E-mail</td>
               <td style={D} colSpan={3}><V>{`{{responsavel_email}}`}</V></td>
-              <td style={L}>Telefone Fixo</td>
-              <td style={D}></td>
-              <td style={L}>Telefone Celular</td>
+              <td style={L} colSpan={1}>Telefone Fixo</td>
+              <td style={D} colSpan={1}></td>
+              <td style={L} colSpan={1}>Celular</td>
               <td style={D}><V>{`{{cliente_celular}}`}</V></td>
             </tr>
           </tbody>
@@ -519,10 +519,6 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>SIM</td>
             </tr>
             <tr>
-              <td style={{ ...D, fontSize: '7px' }}>Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.</td>
-              <td style={D}></td>
-            </tr>
-            <tr>
               <td style={{ ...D, fontSize: '7px' }}>Solicito que a contagem do prazo para realização da vistoria pela CONCESSIONÁRIA, conforme art. 68 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação.</td>
               <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>SIM</td>
             </tr>
@@ -531,8 +527,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>SIM</td>
             </tr>
             <tr>
-              <td style={{ ...D, fontSize: '7px' }}>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A da REN 1000, na seguinte regra:</td>
-              <td style={D}></td>
+              <td colSpan={2} style={{ ...D, fontSize: '7px' }}>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A da REN 1000, na seguinte regra:</td>
             </tr>
             {[
               ['Não injeção na rede de distribuição de energia elétrica ("Grid Zero")', 'NÃO'],
@@ -611,16 +606,12 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               </td>
             </tr>
             <tr>
-              <td style={{ ...D, fontSize: '7px' }}>
+              <td colSpan={3} style={{ ...D, fontSize: '7px' }}>
                 Local: <V>{`{{cidade}}`}</V>-<V>{`{{estado}}`}</V>
-              </td>
-              <td style={{ ...D, fontSize: '7px' }}>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 Data: <V>{`{{data}}`}</V>
-              </td>
-              <td style={{ ...D, fontSize: '7px', textAlign: 'center' }}>
-                <div style={{ borderTop: B, paddingTop: '16px', marginTop: '4px' }}>
-                  Assinatura do Responsável
-                </div>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                Assinatura do Responsável Técnico: __________________________________________________
               </td>
             </tr>
           </tbody>
