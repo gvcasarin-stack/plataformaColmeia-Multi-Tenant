@@ -164,59 +164,63 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
         </div>
 
         {/* ═══ SELO ═══ */}
-        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', marginTop: '28px', width: '100%', fontFamily: 'Arial, sans-serif', fontSize: '6px' }}>
+        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', marginTop: '48px', width: '100%', fontFamily: 'Arial, sans-serif', height: '120px', boxSizing: 'border-box', overflow: 'hidden' }}>
 
           {/* LEFT COLUMN */}
-          <div style={{ width: '20%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column' }}>
-            {/* PRODUTO */}
-            <div style={{ borderBottom: '0.7px solid #000', padding: '3px 4px', minHeight: '30px' }}>
+          <div style={{ width: '20%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
+            {/* PRODUTO — 30px */}
+            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 4px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>PRODUTO</div>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', textAlign: 'center', marginTop: '2px' }}>GFV {potenciaTotal} kWp</div>
+              <div style={{ fontSize: '9px', fontWeight: 'bold', textAlign: 'center' }}>GFV {potenciaTotal} kWp</div>
             </div>
-            {/* Sub-col rows */}
-            <div style={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
+            {/* Sub-col rows — 90px */}
+            <div style={{ display: 'flex', flexDirection: 'row', height: '90px' }}>
               <div style={{ flex: 1, borderRight: '0.6px solid #000', display: 'flex', flexDirection: 'column' }}>
-                {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([label, value], i, arr) => (
-                  <div key={label} style={{ borderBottom: i < arr.length - 1 ? '0.5px solid #000' : undefined, padding: '2px 4px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '5.5px', fontWeight: 'bold' }}>{label}</span>
-                    <span style={{ fontSize: '6px', textAlign: 'center' }}>{value}</span>
-                  </div>
-                ))}
+                {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((label, i) => {
+                  const values = [dataDoc, 'S/ ESCALA', 'A3', '1/1', 'R0'];
+                  const h = i < 4 ? '16px' : '26px';
+                  return (
+                    <div key={label} style={{ height: h, borderBottom: i < 4 ? '0.5px solid #000' : undefined, padding: '1px 3px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }}>
+                      <span style={{ fontSize: '5px', fontWeight: 'bold', lineHeight: 1 }}>{label}</span>
+                      <span style={{ fontSize: '5.5px', textAlign: 'center', lineHeight: 1 }}>{values[i]}</span>
+                    </div>
+                  );
+                })}
               </div>
               <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
-                {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i, arr) => (
-                  <div key={r} style={{ borderBottom: i < arr.length - 1 ? '0.5px solid #000' : undefined, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5.5px' }}>{r}</div>
+                {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
+                  <div key={r} style={{ height: i < 4 ? '16px' : '26px', borderBottom: i < 4 ? '0.5px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5.5px', boxSizing: 'border-box' }}>{r}</div>
                 ))}
               </div>
             </div>
           </div>
 
           {/* MIDDLE COLUMN */}
-          <div style={{ flex: 1, borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column' }}>
-            {/* Title */}
-            <div style={{ borderBottom: '0.7px solid #000', padding: '3px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '30px' }}>
+          <div style={{ flex: 1, borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
+            {/* Title — 30px */}
+            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ fontSize: '5.5px', fontWeight: 'bold', alignSelf: 'flex-start' }}>TÍTULO</div>
-              <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</div>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.1 }}>DIAGRAMA DE BLOCOS</div>
             </div>
-            {/* Owner */}
-            <div style={{ borderBottom: '0.5px solid #000', padding: '3px 6px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>Proprietário e Obra:</div>
-              <div style={{ fontSize: '6px' }}>Nome: {owner}</div>
-              <div style={{ fontSize: '6px' }}>Endereço: {endereco}</div>
-              <div style={{ fontSize: '6px' }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</div>
-              <div style={{ fontSize: '6px' }}>CEP: {cep}</div>
+            {/* Owner — 48px */}
+            <div style={{ height: '48px', borderBottom: '0.5px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>Nome: {owner}</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>Endereço: {endereco}</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>CEP: {cep}</div>
             </div>
-            {/* Responsável */}
-            <div style={{ padding: '3px 6px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>Responsável Técnico:</div>
-              <div style={{ fontSize: '6px', fontWeight: 'bold' }}>{respNome}</div>
-              <div style={{ fontSize: '5.5px' }}>TÉCNICO EM ELETROTÉCNICA</div>
-              <div style={{ fontSize: '5.5px' }}>CFT: {respCft}</div>
+            {/* Responsável — 42px */}
+            <div style={{ height: '42px', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
+              <div style={{ fontSize: '6px', fontWeight: 'bold', lineHeight: 1 }}>{respNome}</div>
+              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
+              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>CFT: {respCft}</div>
             </div>
           </div>
 
           {/* RIGHT COLUMN — Logo */}
-          <div style={{ width: '15%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+          <div style={{ width: '15%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', height: '120px', boxSizing: 'border-box' }}>
             <span style={{ fontSize: '6px', color: '#999' }}>[Logo]</span>
           </div>
 
