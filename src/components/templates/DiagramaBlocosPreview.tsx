@@ -167,7 +167,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
         <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', marginTop: '48px', width: '100%', fontFamily: 'Arial, sans-serif', height: '120px', boxSizing: 'border-box', overflow: 'hidden' }}>
 
           {/* LEFT COLUMN */}
-          <div style={{ width: '20%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
+          <div style={{ width: '28%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
             {/* PRODUTO — 30px */}
             <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 4px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>PRODUTO</div>
@@ -180,7 +180,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                   const values = [dataDoc, 'S/ ESCALA', 'A3', '1/1', 'R0'];
                   const h = i < 4 ? '16px' : '26px';
                   return (
-                    <div key={label} style={{ height: h, borderBottom: i < 4 ? '0.5px solid #000' : undefined, padding: '1px 3px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }}>
+                    <div key={label} style={{ height: h, borderBottom: i < 4 ? '0.5px solid #000' : undefined, padding: '1px 3px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: i < 4 ? 'space-between' : 'center', gap: i >= 4 ? '2px' : undefined, overflow: 'hidden' }}>
                       <span style={{ fontSize: '5px', fontWeight: 'bold', lineHeight: 1 }}>{label}</span>
                       <span style={{ fontSize: '5.5px', textAlign: 'center', lineHeight: 1 }}>{values[i]}</span>
                     </div>
@@ -220,7 +220,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           </div>
 
           {/* RIGHT COLUMN — Logo */}
-          <div style={{ width: '15%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', height: '120px', boxSizing: 'border-box' }}>
+          <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', height: '120px', boxSizing: 'border-box' }}>
             <span style={{ fontSize: '6px', color: '#999' }}>[Logo]</span>
           </div>
 

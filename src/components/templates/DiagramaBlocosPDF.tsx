@@ -80,7 +80,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   sealLeft: {
-    width: '20%',
+    width: '28%',
     height: 120,
     borderRightWidth: 0.8,
     borderRightColor: BC,
@@ -99,7 +99,7 @@ const s = StyleSheet.create({
   sealSubcols: { flexDirection: 'row', height: 90 },
   sealSubLeft: { flex: 1, borderRightWidth: 0.6, borderRightColor: BC, flexDirection: 'column' },
   sealSubRow: { height: 16, padding: 1, flexDirection: 'column', justifyContent: 'space-between', borderBottomWidth: 0.5, borderBottomColor: BC },
-  sealSubRowLast: { height: 26, padding: 1, flexDirection: 'column', justifyContent: 'space-between' },
+  sealSubRowLast: { height: 26, padding: 1, flexDirection: 'column', justifyContent: 'center', gap: 2 },
   sealSubLabel: { fontFamily: 'Helvetica-Bold', fontSize: 5 },
   sealSubValue: { fontSize: 5.5, textAlign: 'center' },
   sealRcol: { width: '28%', flexDirection: 'column' },
@@ -115,7 +115,7 @@ const s = StyleSheet.create({
   sealOwnerNormal: { fontSize: 6, textAlign: 'center' },
   sealRespBold: { fontFamily: 'Helvetica-Bold', fontSize: 6, textAlign: 'center' },
   sealRespNormal: { fontSize: 5.5, textAlign: 'center' },
-  sealRight: { width: '15%', height: 120, alignItems: 'center', justifyContent: 'center', padding: 4 },
+  sealRight: { width: '20%', height: 120, alignItems: 'center', justifyContent: 'center', padding: 4 },
   sealLogoText: { fontSize: 6, color: '#999999' },
 });
 
