@@ -133,7 +133,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   return (
     <Document>
       <Page size="A3" style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={812} height={983} viewBox="0 0 900 1090">
+        <Svg width={812} height={983} viewBox="0 0 900 1170">
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line x1={90} y1={28} x2={490} y2={28} stroke="#000" strokeWidth={1.8} />
@@ -175,6 +175,9 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* D1 exit → out of PADRÃO (continuous, grounding branch removed) */}
           <Line x1={CX} y1={152} x2={CX} y2={220} stroke="#000" strokeWidth={1} />
+
+          {/* Terra — lower-right corner of PADRAO DE ENTRADA */}
+          <PDFTerra x={BR - 18} y={192} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           {/* Wider box — extended both left (x=150) and right (to x=520) */}
@@ -229,134 +232,134 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <PDFDisjuntor x={CX} y={415} />
           <Text x={CX + 15} y={413} fontSize={6.5} fill="#000">D2</Text>
           <Text x={CX + 15} y={423} fontSize={5.5} fill="#000">Bipolar - {djCorr} A / {djTensao} Vca</Text>
-          <Line x1={CX} y1={422} x2={CX} y2={514} stroke="#000" strokeWidth={1} />
+          <Line x1={CX} y1={422} x2={CX} y2={554} stroke="#000" strokeWidth={1} />
 
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
-          <Line x1={CX} y1={490} x2={CX + 12} y2={490} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={483} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
-          <Text x={CX + 15} y={491} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
-          <Text x={CX + 15} y={499} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
-          <Text x={CX + 15} y={507} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
+          <Line x1={CX} y1={517} x2={CX + 12} y2={517} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={510} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
+          <Text x={CX + 15} y={518} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
+          <Text x={CX + 15} y={526} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
+          <Text x={CX + 15} y={534} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
 
           {/* ═══ INVERSOR ═══ */}
           {/* Label outside box, above upper-right corner */}
-          <Text x={400} y={511} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">INVERSOR</Text>
+          <Text x={400} y={551} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">INVERSOR</Text>
           {/* Reduced to ~1/4 size (w=120, h=55), centered at CX */}
-          <Rect x={280} y={514} width={120} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Rect x={280} y={554} width={120} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
           {/* Diagonal line across inversor — corner to corner */}
-          <Line x1={280} y1={514} x2={400} y2={569} stroke="#000" strokeWidth={0.9} />
+          <Line x1={280} y1={554} x2={400} y2={609} stroke="#000" strokeWidth={0.9} />
           {/* AC ~ symbol — lower-left corner of inversor */}
-          <Path d="M284 558 Q288 551 292 558 Q296 565 300 558"
+          <Path d="M284 598 Q288 591 292 598 Q296 605 300 598"
                 stroke="#000" strokeWidth={0.9} fill="none" />
           {/* DC = symbol — upper-right corner of inversor */}
-          <Line x1={374} y1={520} x2={396} y2={520} stroke="#000" strokeWidth={0.9} />
-          <Line x1={374} y1={524} x2={396} y2={524} stroke="#000" strokeWidth={0.9} />
+          <Line x1={374} y1={560} x2={396} y2={560} stroke="#000" strokeWidth={0.9} />
+          <Line x1={374} y1={564} x2={396} y2={564} stroke="#000" strokeWidth={0.9} />
 
           {/* Horizontal line from right side of inversor → vertical line connecting relay boxes */}
-          <Line x1={400} y1={541} x2={467} y2={541} stroke="#000" strokeWidth={1} />
-          {/* Vertical line — raised to align column midpoint with inversor horizontal (y=541) */}
-          <Line x1={467} y1={494} x2={467} y2={611} stroke="#000" strokeWidth={1} />
+          <Line x1={400} y1={581} x2={467} y2={581} stroke="#000" strokeWidth={1} />
+          {/* Vertical line — raised to align column midpoint with inversor horizontal (y=581) */}
+          <Line x1={467} y1={534} x2={467} y2={651} stroke="#000" strokeWidth={1} />
 
           {/* Left annotation — moved closer to inversor (x=150) */}
-          <Text x={150} y={517} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
-          <Text x={150} y={524} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
-          <Text x={150} y={531} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
-          <Text x={150} y={538} fontSize={5.5} fill="#000">Entrada - Tensao max: {invVccMax} Vcc</Text>
-          <Text x={150} y={545} fontSize={5.5} fill="#000">  - Corrente max: {invIccMax} A</Text>
-          <Text x={150} y={552} fontSize={5.5} fill="#000">Saida - Tensao: {tensaoNom} Vca</Text>
-          <Text x={150} y={559} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
-          <Text x={150} y={566} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
+          <Text x={150} y={557} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
+          <Text x={150} y={564} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
+          <Text x={150} y={571} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
+          <Text x={150} y={578} fontSize={5.5} fill="#000">Entrada - Tensao max: {invVccMax} Vcc</Text>
+          <Text x={150} y={585} fontSize={5.5} fill="#000">  - Corrente max: {invIccMax} A</Text>
+          <Text x={150} y={592} fontSize={5.5} fill="#000">Saida - Tensao: {tensaoNom} Vca</Text>
+          <Text x={150} y={599} fontSize={5.5} fill="#000">  - Corrente: {invCorrOut} A</Text>
+          <Text x={150} y={606} fontSize={5.5} fill="#000">Ver datasheet para mais detalhes</Text>
 
-          {/* Protection relay boxes — raised so column midpoint aligns with inversor horizontal (y=541) */}
+          {/* Protection relay boxes — raised so column midpoint aligns with inversor horizontal (y=581) */}
           {[
             { l: '25', s: '' }, { l: '27', s: '' },
             { l: '59', s: '' }, { l: '81', s: 'U/O' },
           ].map(({ l, s }, i) => (
             <>
-              <Line key={`ln${l}`} x1={467} y1={504 + i * 25} x2={490} y2={504 + i * 25} stroke="#000" strokeWidth={0.8} />
-              <Rect key={`r${l}`} x={490} y={494 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth={0.8} />
-              <Text key={`t${l}`} x={503} y={s ? 505 + i * 25 : 508 + i * 25}
+              <Line key={`ln${l}`} x1={467} y1={544 + i * 25} x2={490} y2={544 + i * 25} stroke="#000" strokeWidth={0.8} />
+              <Rect key={`r${l}`} x={490} y={534 + i * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth={0.8} />
+              <Text key={`t${l}`} x={503} y={s ? 545 + i * 25 : 548 + i * 25}
                     fontSize={7} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
-              {s ? <Text key={`s${l}`} x={503} y={512 + i * 25} fontSize={5.5} textAnchor="middle" fill="#000">{s}</Text> : null}
+              {s ? <Text key={`s${l}`} x={503} y={552 + i * 25} fontSize={5.5} textAnchor="middle" fill="#000">{s}</Text> : null}
             </>
           ))}
           {/* ANTI-ILHAMENTO — rectangular block with horizontal connection */}
-          <Line x1={467} y1={603} x2={490} y2={603} stroke="#000" strokeWidth={0.8} />
-          <Rect x={490} y={595} width={90} height={16} fill="white" stroke="#000" strokeWidth={0.8} />
-          <Text x={535} y={606} fontSize={6} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
+          <Line x1={467} y1={643} x2={490} y2={643} stroke="#000" strokeWidth={0.8} />
+          <Rect x={490} y={635} width={90} height={16} fill="white" stroke="#000" strokeWidth={0.8} />
+          <Text x={535} y={646} fontSize={6} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
 
-          <Line x1={CX} y1={569} x2={CX} y2={668} stroke="#000" strokeWidth={1} />
+          <Line x1={CX} y1={609} x2={CX} y2={708} stroke="#000" strokeWidth={1} />
 
           {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
-          <Line x1={CX} y1={618} x2={CX + 12} y2={618} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={611} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={CX + 15} y={619} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={627} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={CX + 15} y={634} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
-          <Text x={CX + 15} y={641} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
-          <Text x={CX + 15} y={649} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={656} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          <Line x1={CX} y1={659} x2={CX + 12} y2={659} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={651} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+          <Text x={CX + 15} y={659} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={667} fontSize={5.5} fill="#000">Para cada string:</Text>
+          <Text x={CX + 15} y={674} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
+          <Text x={CX + 15} y={681} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={689} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={696} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
 
           {/* ═══ QUADRO DE PROTEÇÃO CC ═══ */}
-          <Rect x={BX} y={668} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Rect x={BX} y={708} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
           {/* Label — upper right (same style as QUADRO CA) */}
-          <Text x={BR - 8} y={680} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
-          <Text x={BR - 8} y={692} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
+          <Text x={BR - 8} y={720} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+          <Text x={BR - 8} y={732} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
 
           {/* (ACOPLADO AO INVERSOR FV) — inside box, upper-left corner */}
-          <Text x={BX + 6} y={681} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
-          <Text x={BX + 6} y={690} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+          <Text x={BX + 6} y={721} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
+          <Text x={BX + 6} y={730} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
 
-          <Text x={228} y={718} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
-          <Text x={228} y={727} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
-          <Text x={228} y={736} fontSize={5.5} fill="#000">Classe II</Text>
+          <Text x={228} y={758} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
+          <Text x={228} y={767} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
+          <Text x={228} y={776} fontSize={5.5} fill="#000">Classe II</Text>
 
-          {/* Main vertical — continuous from box top (y=668) to C1 bottom circle (y≈722) */}
-          <Line x1={CX} y1={668} x2={CX} y2={722} stroke="#000" strokeWidth={1} />
+          {/* Main vertical — continuous from box top (y=708) to C1 bottom circle (y≈762) */}
+          <Line x1={CX} y1={708} x2={CX} y2={762} stroke="#000" strokeWidth={1} />
 
           {/* Tap main → DPS CC (shifted right to x=290, same as DPS CA) */}
-          <Line x1={CX} y1={685} x2={290} y2={685} stroke="#000" strokeWidth={0.8} />
-          <Line x1={290} y1={685} x2={290} y2={740} stroke="#000" strokeWidth={0.8} />
-          <PDFDPSSymbol x={290} y={749} />
-          <Line x1={290} y1={758} x2={290} y2={770} stroke="#000" strokeWidth={0.8} />
-          <PDFTerra x={290} y={770} />
-          <PDFChaveSeccionadora x={CX} y={726} />
-          <Line x1={CX + 14} y1={709} x2={CX + 14} y2={703} stroke="#000" strokeWidth={0.8} />
-          <Text x={CX + 22} y={718} fontSize={5.5} fill="#000">C1</Text>
-          <Text x={CX + 22} y={728} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
-          <Text x={CX + 22} y={737} fontSize={5.5} fill="#000">(4 polos)</Text>
-          <Text x={CX + 22} y={746} fontSize={5.5} fill="#000">1200 Vcc 32 A</Text>
-          {/* Continuous line — starts right after C1 bottom circle (y≈730) */}
-          <Line x1={CX} y1={730} x2={CX} y2={808} stroke="#000" strokeWidth={1} />
+          <Line x1={CX} y1={725} x2={290} y2={725} stroke="#000" strokeWidth={0.8} />
+          <Line x1={290} y1={725} x2={290} y2={780} stroke="#000" strokeWidth={0.8} />
+          <PDFDPSSymbol x={290} y={789} />
+          <Line x1={290} y1={798} x2={290} y2={810} stroke="#000" strokeWidth={0.8} />
+          <PDFTerra x={290} y={810} />
+          <PDFChaveSeccionadora x={CX} y={766} />
+          <Line x1={CX + 14} y1={749} x2={CX + 14} y2={743} stroke="#000" strokeWidth={0.8} />
+          <Text x={CX + 22} y={758} fontSize={5.5} fill="#000">C1</Text>
+          <Text x={CX + 22} y={768} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
+          <Text x={CX + 22} y={777} fontSize={5.5} fill="#000">(4 polos)</Text>
+          <Text x={CX + 22} y={786} fontSize={5.5} fill="#000">1200 Vcc 32 A</Text>
+          {/* Continuous line — starts right after C1 bottom circle (y≈770) */}
+          <Line x1={CX} y1={770} x2={CX} y2={848} stroke="#000" strokeWidth={1} />
 
           {/* CC cables annotation — between QUADRO CC and GERADOR/modules (tap from main line) */}
-          <Line x1={CX} y1={826} x2={CX + 12} y2={826} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={819} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={CX + 15} y={827} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={835} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={CX + 15} y={842} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
-          <Text x={CX + 15} y={849} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
-          <Text x={CX + 15} y={857} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={CX + 15} y={864} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          <Line x1={CX} y1={887} x2={CX + 12} y2={887} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={880} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+          <Text x={CX + 15} y={888} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={896} fontSize={5.5} fill="#000">Para cada string:</Text>
+          <Text x={CX + 15} y={903} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
+          <Text x={CX + 15} y={910} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={918} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={925} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
 
           {/* ═══ G — GERADOR ═══ */}
-          <Line x1={CX} y1={808} x2={CX} y2={845} stroke="#000" strokeWidth={1} />
-          <Circle cx={CX} cy={881} r={35} fill="white" stroke="#000" strokeWidth={1.5} />
-          <Text x={CX} y={888} fontSize={22} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
-          <Line x1={CX} y1={916} x2={CX} y2={930} stroke="#000" strokeWidth={1.2} />
-          <PDFTerra x={CX} y={930} />
+          <Line x1={CX} y1={848} x2={CX} y2={925} stroke="#000" strokeWidth={1} />
+          <Circle cx={CX} cy={961} r={35} fill="white" stroke="#000" strokeWidth={1.5} />
+          <Text x={CX} y={968} fontSize={22} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
+          <Line x1={CX} y1={996} x2={CX} y2={1010} stroke="#000" strokeWidth={1.2} />
+          <PDFTerra x={CX} y={1010} />
 
-          <Line x1={CX + 35} y1={881} x2={CX + 52} y2={881} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 55} y={848} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
-          <Text x={CX + 55} y={858} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-          <Text x={CX + 55} y={867} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-          <Text x={CX + 55} y={876} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
-          <Text x={CX + 55} y={885} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-          <Text x={CX + 55} y={894} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-          <Text x={CX + 55} y={903} fontSize={5.5} fill="#000">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</Text>
-          <Text x={CX + 55} y={912} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
-          <Text x={CX + 55} y={921} fontSize={5.5} fill="#000">Tensao de operacao strings: {tensaoStr} V</Text>
-          <Text x={CX + 55} y={930} fontSize={5.5} fill="#000">Corrente de saida das strings: {corrStr} A</Text>
+          <Line x1={CX + 35} y1={961} x2={CX + 52} y2={961} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 55} y={928} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+          <Text x={CX + 55} y={938} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+          <Text x={CX + 55} y={947} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+          <Text x={CX + 55} y={956} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+          <Text x={CX + 55} y={965} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+          <Text x={CX + 55} y={974} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+          <Text x={CX + 55} y={983} fontSize={5.5} fill="#000">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</Text>
+          <Text x={CX + 55} y={992} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
+          <Text x={CX + 55} y={1001} fontSize={5.5} fill="#000">Tensao de operacao strings: {tensaoStr} V</Text>
+          <Text x={CX + 55} y={1010} fontSize={5.5} fill="#000">Corrente de saida das strings: {corrStr} A</Text>
 
           {/* ═══ LEGENDA ═══ */}
           <Rect x={655} y={22} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
@@ -405,72 +408,72 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           ═══════════════════════════════════════════ */}
 
           {/* Seal outer rect */}
-          <Rect x={5} y={978} width={885} height={112} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Rect x={5} y={1058} width={885} height={112} fill="white" stroke="#000" strokeWidth={1.2} />
 
           {/* === COLUMN DIVIDERS === */}
           {/* Left | Mid */}
-          <Line x1={178} y1={978} x2={178} y2={1090} stroke="#000" strokeWidth={0.8} />
+          <Line x1={178} y1={1058} x2={178} y2={1170} stroke="#000" strokeWidth={0.8} />
           {/* Mid | Right (logo area) */}
-          <Line x1={700} y1={978} x2={700} y2={1090} stroke="#000" strokeWidth={0.8} />
+          <Line x1={700} y1={1058} x2={700} y2={1170} stroke="#000" strokeWidth={0.8} />
           {/* Left sub-col: label area | R values — starts below PRODUTO section */}
-          <Line x1={118} y1={1008} x2={118} y2={1090} stroke="#000" strokeWidth={0.6} />
+          <Line x1={118} y1={1088} x2={118} y2={1170} stroke="#000" strokeWidth={0.6} />
 
           {/* === HORIZONTAL DIVIDERS === */}
           {/* Below PRODUTO section (left + mid cols) */}
-          <Line x1={5} y1={1008} x2={700} y2={1008} stroke="#000" strokeWidth={0.7} />
-          {/* Left col — 4 equal rows of 16px + last row to 1090 */}
-          <Line x1={5} y1={1024} x2={178} y2={1024} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1040} x2={178} y2={1040} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1056} x2={178} y2={1056} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1072} x2={178} y2={1072} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1088} x2={700} y2={1088} stroke="#000" strokeWidth={0.7} />
+          {/* Left col — 4 equal rows of 16px + last row to 1170 */}
+          <Line x1={5} y1={1104} x2={178} y2={1104} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1120} x2={178} y2={1120} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1136} x2={178} y2={1136} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1152} x2={178} y2={1152} stroke="#000" strokeWidth={0.5} />
           {/* Mid col: owner | responsavel separator (aligns with left col row 3 end) */}
-          <Line x1={178} y1={1056} x2={700} y2={1056} stroke="#000" strokeWidth={0.5} />
+          <Line x1={178} y1={1136} x2={700} y2={1136} stroke="#000" strokeWidth={0.5} />
 
           {/* === LEFT COLUMN — PRODUTO (top, full width, value centered) === */}
-          <Text x={8}  y={987}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
-          <Text x={92} y={1002} fontSize={9}   fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">GFV {potKwp} kWp</Text>
+          <Text x={8}  y={1067}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
+          <Text x={92} y={1082} fontSize={9}   fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">GFV {potKwp} kWp</Text>
 
-          {/* DATA  (row 1: y=1008–1024) */}
-          <Text x={8}   y={1015} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
-          <Text x={62}  y={1022} fontSize={6}   textAnchor="middle" fill="#000">{dataDoc}</Text>
-          <Text x={148} y={1019} fontSize={5.5} textAnchor="middle" fill="#000">R1:</Text>
+          {/* DATA  (row 1: y=1088–1104) */}
+          <Text x={8}   y={1095} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
+          <Text x={62}  y={1102} fontSize={6}   textAnchor="middle" fill="#000">{dataDoc}</Text>
+          <Text x={148} y={1099} fontSize={5.5} textAnchor="middle" fill="#000">R1:</Text>
 
-          {/* ESCALA  (row 2: y=1024–1040) */}
-          <Text x={8}   y={1031} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
-          <Text x={62}  y={1038} fontSize={6}   textAnchor="middle" fill="#000">S/ ESCALA</Text>
-          <Text x={148} y={1035} fontSize={5.5} textAnchor="middle" fill="#000">R2:</Text>
+          {/* ESCALA  (row 2: y=1104–1120) */}
+          <Text x={8}   y={1111} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
+          <Text x={62}  y={1118} fontSize={6}   textAnchor="middle" fill="#000">S/ ESCALA</Text>
+          <Text x={148} y={1115} fontSize={5.5} textAnchor="middle" fill="#000">R2:</Text>
 
-          {/* TAMANHO  (row 3: y=1040–1056) */}
-          <Text x={8}   y={1047} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
-          <Text x={62}  y={1054} fontSize={6}   textAnchor="middle" fill="#000">A3</Text>
-          <Text x={148} y={1051} fontSize={5.5} textAnchor="middle" fill="#000">R3:</Text>
+          {/* TAMANHO  (row 3: y=1120–1136) */}
+          <Text x={8}   y={1127} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
+          <Text x={62}  y={1134} fontSize={6}   textAnchor="middle" fill="#000">A3</Text>
+          <Text x={148} y={1131} fontSize={5.5} textAnchor="middle" fill="#000">R3:</Text>
 
-          {/* FOLHA  (row 4: y=1056–1072) */}
-          <Text x={8}   y={1063} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
-          <Text x={62}  y={1070} fontSize={6}   textAnchor="middle" fill="#000">1/1</Text>
-          <Text x={148} y={1067} fontSize={5.5} textAnchor="middle" fill="#000">R4:</Text>
+          {/* FOLHA  (row 4: y=1136–1152) */}
+          <Text x={8}   y={1143} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
+          <Text x={62}  y={1150} fontSize={6}   textAnchor="middle" fill="#000">1/1</Text>
+          <Text x={148} y={1147} fontSize={5.5} textAnchor="middle" fill="#000">R4:</Text>
 
-          {/* REVISAO  (row 5: y=1072–1090) */}
-          <Text x={8}   y={1079} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
-          <Text x={62}  y={1086} fontSize={6}   textAnchor="middle" fill="#000">R0</Text>
-          <Text x={148} y={1083} fontSize={5.5} textAnchor="middle" fill="#000">R5:</Text>
+          {/* REVISAO  (row 5: y=1152–1170) */}
+          <Text x={8}   y={1159} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
+          <Text x={62}  y={1166} fontSize={6}   textAnchor="middle" fill="#000">R0</Text>
+          <Text x={148} y={1163} fontSize={5.5} textAnchor="middle" fill="#000">R5:</Text>
 
           {/* === MIDDLE COLUMN — TITULO (top) === */}
-          <Text x={185} y={989} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
-          <Text x={MID_CTR} y={1003} fontSize={11} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
+          <Text x={185} y={1069} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
+          <Text x={MID_CTR} y={1083} fontSize={11} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
 
-          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1008–1056, 5 items equidistant 9px) === */}
-          <Text x={MID_CTR} y={1017} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
-          <Text x={MID_CTR} y={1026} fontSize={6} textAnchor="middle" fill="#000">{`Nome: ${owner}`}</Text>
-          <Text x={MID_CTR} y={1035} fontSize={6} textAnchor="middle" fill="#000">{`Endereco: ${endereco}`}</Text>
-          <Text x={MID_CTR} y={1044} fontSize={6} textAnchor="middle" fill="#000">{`Cidade: ${uf ? `${cidade} - ${uf}` : cidade}`}</Text>
-          <Text x={MID_CTR} y={1053} fontSize={6} textAnchor="middle" fill="#000">{`CEP: ${cep}`}</Text>
+          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1088–1136, 5 items equidistant 9px) === */}
+          <Text x={MID_CTR} y={1097} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
+          <Text x={MID_CTR} y={1106} fontSize={6} textAnchor="middle" fill="#000">{`Nome: ${owner}`}</Text>
+          <Text x={MID_CTR} y={1115} fontSize={6} textAnchor="middle" fill="#000">{`Endereco: ${endereco}`}</Text>
+          <Text x={MID_CTR} y={1124} fontSize={6} textAnchor="middle" fill="#000">{`Cidade: ${uf ? `${cidade} - ${uf}` : cidade}`}</Text>
+          <Text x={MID_CTR} y={1133} fontSize={6} textAnchor="middle" fill="#000">{`CEP: ${cep}`}</Text>
 
-          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1056–1090, 4 items equidistant 8px) === */}
-          <Text x={MID_CTR} y={1065} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
-          <Text x={MID_CTR} y={1073} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
-          <Text x={MID_CTR} y={1081} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
-          <Text x={MID_CTR} y={1089} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
+          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1136–1170, 4 items equidistant 8px) === */}
+          <Text x={MID_CTR} y={1145} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
+          <Text x={MID_CTR} y={1153} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
+          <Text x={MID_CTR} y={1161} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
+          <Text x={MID_CTR} y={1169} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
 
           {/* === RIGHT COLUMN — Logo placeholder === */}
           {/* Empty — space reserved for company logo */}
