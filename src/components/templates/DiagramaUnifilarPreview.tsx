@@ -186,7 +186,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* Ramal de Ligação — drawn AFTER rects so it's visible over white fills */}
           <text x="244" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
-          <text x="244" y="87"  fontSize="5.8">Alumínio Concêntrico - 1,0 kV</text>
+          <text x="244" y="87"  fontSize="5.8" fontWeight="bold">Alumínio Concêntrico - 1,0 kV</text>
           <text x="244" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
           <text x="244" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
@@ -228,7 +228,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* CA cables annotation — centered on main line */}
           <line x1={CX} y1="330" x2={CX + 12} y2="330" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={CX + 15} y="323" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
+          <text x={CX + 15} y="323" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
           <text x={CX + 15} y="331" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
           <text x={CX + 15} y="339" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
           <text x={CX + 15} y="347" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
@@ -264,7 +264,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
           <line x1={CX} y1="502" x2={CX + 12} y2="502" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={CX + 15} y="495" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
+          <text x={CX + 15} y="495" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
           <text x={CX + 15} y="503" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
           <text x={CX + 15} y="511" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
           <text x={CX + 15} y="519" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
@@ -333,7 +333,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
           <line x1={CX} y1="644" x2={CX + 12} y2="644" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
           <text x={CX + 15} y="636" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-          <text x={CX + 15} y="644" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="644" fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
           <text x={CX + 15} y="652" fontSize="5.5">Para cada string:</text>
           <text x={CX + 15} y="659" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
           <text x={CX + 15} y="666" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
@@ -378,7 +378,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* CC cables annotation — between QUADRO CC and GERADOR/modules (tap from main line) */}
           <line x1={CX} y1="872" x2={CX + 12} y2="872" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
           <text x={CX + 15} y="865" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-          <text x={CX + 15} y="873" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="873" fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
           <text x={CX + 15} y="881" fontSize="5.5">Para cada string:</text>
           <text x={CX + 15} y="888" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
           <text x={CX + 15} y="895" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>

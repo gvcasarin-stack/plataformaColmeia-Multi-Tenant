@@ -164,7 +164,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* Ramal de Ligação — drawn AFTER rects so visible over white fills */}
           <Text x={244} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
-          <Text x={244} y={87}  fontSize={5.8} fill="#000">Aluminio Concentrico - 1,0 kV</Text>
+          <Text x={244} y={87}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Aluminio Concentrico - 1,0 kV</Text>
           <Text x={244} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (F)`}</Text>
           <Text x={244} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (N)`}</Text>
 
@@ -205,7 +205,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* CA cables annotation — centered on main line */}
           <Line x1={CX} y1={330} x2={CX + 12} y2={330} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={323} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
+          <Text x={CX + 15} y={323} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
           <Text x={CX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (F)`}</Text>
           <Text x={CX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (N)`}</Text>
           <Text x={CX + 15} y={347} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
@@ -236,7 +236,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
           <Line x1={CX} y1={502} x2={CX + 12} y2={502} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 15} y={495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
+          <Text x={CX + 15} y={495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
           <Text x={CX + 15} y={503} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (F)`}</Text>
           <Text x={CX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (N)`}</Text>
           <Text x={CX + 15} y={519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
@@ -293,7 +293,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
           <Line x1={CX} y1={644} x2={CX + 12} y2={644} stroke="#000" strokeWidth={0.6} />
           <Text x={CX + 15} y={636} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={CX + 15} y={644} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={644} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
           <Text x={CX + 15} y={652} fontSize={5.5} fill="#000">Para cada string:</Text>
           <Text x={CX + 15} y={659} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
           <Text x={CX + 15} y={666} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
@@ -334,7 +334,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* CC cables annotation — between QUADRO CC and GERADOR/modules (tap from main line) */}
           <Line x1={CX} y1={872} x2={CX + 12} y2={872} stroke="#000" strokeWidth={0.6} />
           <Text x={CX + 15} y={865} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={CX + 15} y={873} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={873} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
           <Text x={CX + 15} y={881} fontSize={5.5} fill="#000">Para cada string:</Text>
           <Text x={CX + 15} y={888} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
           <Text x={CX + 15} y={895} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
