@@ -55,6 +55,16 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
   const fabricante = pd?.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
   const invPotencia = fmt2(pd?.inversores_potencia);
 
+  // ── Seal fields ────────────────────────────────────────────────────────────
+  const owner    = String(pd?.nomeClienteFinal  || 'NOME DO PROPRIETÁRIO');
+  const endereco = String(pd?.endereco_local     || 'ENDEREÇO DA OBRA');
+  const cidade   = String(pd?.client_city        || 'Cidade');
+  const uf       = String(pd?.client_state       || '');
+  const cep      = String(pd?.cliente_cep        || '00.000-000');
+  const respNome = String(pd?.responsavel_nome   || 'RESPONSÁVEL TÉCNICO');
+  const respCft  = String(pd?.responsavel_registro || '00000000000');
+  const dataDoc  = String(pd?.data_documento     || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
+
   const handleGeneratePdf = async () => {
     setGenerating(true);
     try {
@@ -83,10 +93,6 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
     <>
       {/* Diagrama */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px', fontFamily: 'Arial, sans-serif' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '20px', textAlign: 'center' }}>
-          DIAGRAMA UNIFILAR DE BLOCOS
-        </div>
-
         {/* 1. Módulos */}
         <div style={BOX}>
           <div style={BOLD}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</div>
@@ -155,6 +161,65 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           <div style={{ color: '#1F4E79', fontWeight: 'bold', fontSize: '8px', textAlign: 'center', lineHeight: '1.5' }}>
             REDE DE DISTRIBUIÇÃO
           </div>
+        </div>
+
+        {/* ═══ SELO ═══ */}
+        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', marginTop: '28px', width: '100%', fontFamily: 'Arial, sans-serif', fontSize: '6px' }}>
+
+          {/* LEFT COLUMN */}
+          <div style={{ width: '20%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column' }}>
+            {/* PRODUTO */}
+            <div style={{ borderBottom: '0.7px solid #000', padding: '3px 4px', minHeight: '30px' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>PRODUTO</div>
+              <div style={{ fontSize: '9px', fontWeight: 'bold', textAlign: 'center', marginTop: '2px' }}>GFV {potenciaTotal} kWp</div>
+            </div>
+            {/* Sub-col rows */}
+            <div style={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
+              <div style={{ flex: 1, borderRight: '0.6px solid #000', display: 'flex', flexDirection: 'column' }}>
+                {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([label, value], i, arr) => (
+                  <div key={label} style={{ borderBottom: i < arr.length - 1 ? '0.5px solid #000' : undefined, padding: '2px 4px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '5.5px', fontWeight: 'bold' }}>{label}</span>
+                    <span style={{ fontSize: '6px', textAlign: 'center' }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
+                {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i, arr) => (
+                  <div key={r} style={{ borderBottom: i < arr.length - 1 ? '0.5px solid #000' : undefined, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5.5px' }}>{r}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* MIDDLE COLUMN */}
+          <div style={{ flex: 1, borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column' }}>
+            {/* Title */}
+            <div style={{ borderBottom: '0.7px solid #000', padding: '3px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '30px' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold', alignSelf: 'flex-start' }}>TÍTULO</div>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</div>
+            </div>
+            {/* Owner */}
+            <div style={{ borderBottom: '0.5px solid #000', padding: '3px 6px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>Proprietário e Obra:</div>
+              <div style={{ fontSize: '6px' }}>Nome: {owner}</div>
+              <div style={{ fontSize: '6px' }}>Endereço: {endereco}</div>
+              <div style={{ fontSize: '6px' }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</div>
+              <div style={{ fontSize: '6px' }}>CEP: {cep}</div>
+            </div>
+            {/* Responsável */}
+            <div style={{ padding: '3px 6px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>Responsável Técnico:</div>
+              <div style={{ fontSize: '6px', fontWeight: 'bold' }}>{respNome}</div>
+              <div style={{ fontSize: '5.5px' }}>TÉCNICO EM ELETROTÉCNICA</div>
+              <div style={{ fontSize: '5.5px' }}>CFT: {respCft}</div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN — Logo */}
+          <div style={{ width: '15%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+            <span style={{ fontSize: '6px', color: '#999' }}>[Logo]</span>
+          </div>
+
         </div>
       </div>
 

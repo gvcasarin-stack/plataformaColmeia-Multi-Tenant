@@ -69,6 +69,50 @@ const s = StyleSheet.create({
     backgroundColor: BC,
     marginBottom: 4,
   },
+  // ── Seal ──
+  sealOuter: {
+    flexDirection: 'row',
+    borderWidth: 1.2,
+    borderColor: BC,
+    marginTop: 28,
+    width: '100%',
+  },
+  sealLeft: {
+    width: '20%',
+    borderRightWidth: 0.8,
+    borderRightColor: BC,
+    flexDirection: 'column',
+  },
+  sealProduto: {
+    borderBottomWidth: 0.7,
+    borderBottomColor: BC,
+    padding: 3,
+    minHeight: 30,
+    alignItems: 'center',
+  },
+  sealProdutoLabel: { fontFamily: 'Helvetica-Bold', fontSize: 5.5 },
+  sealProdutoValue: { fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center', marginTop: 2 },
+  sealSubcols: { flexDirection: 'row', flex: 1 },
+  sealSubLeft: { flex: 1, borderRightWidth: 0.6, borderRightColor: BC, flexDirection: 'column' },
+  sealSubRow: { flex: 1, padding: 2, flexDirection: 'column', justifyContent: 'space-between', borderBottomWidth: 0.5, borderBottomColor: BC },
+  sealSubRowLast: { flex: 1, padding: 2, flexDirection: 'column', justifyContent: 'space-between' },
+  sealSubLabel: { fontFamily: 'Helvetica-Bold', fontSize: 5.5 },
+  sealSubValue: { fontSize: 6, textAlign: 'center' },
+  sealRcol: { width: '28%', flexDirection: 'column' },
+  sealRrow: { flex: 1, alignItems: 'center', justifyContent: 'center', fontSize: 5.5, borderBottomWidth: 0.5, borderBottomColor: BC },
+  sealRrowLast: { flex: 1, alignItems: 'center', justifyContent: 'center', fontSize: 5.5 },
+  sealMid: { flex: 1, borderRightWidth: 0.8, borderRightColor: BC, flexDirection: 'column' },
+  sealTitleBlock: { borderBottomWidth: 0.7, borderBottomColor: BC, padding: 3, alignItems: 'center', minHeight: 30, justifyContent: 'center' },
+  sealTitleLabel: { fontFamily: 'Helvetica-Bold', fontSize: 5.5, alignSelf: 'flex-start' },
+  sealTitleValue: { fontFamily: 'Helvetica-Bold', fontSize: 11, textAlign: 'center' },
+  sealOwner: { flex: 1, padding: 3, alignItems: 'center', justifyContent: 'space-evenly', borderBottomWidth: 0.5, borderBottomColor: BC },
+  sealResp: { flex: 1, padding: 3, alignItems: 'center', justifyContent: 'space-evenly' },
+  sealOwnerBold: { fontFamily: 'Helvetica-Bold', fontSize: 5.5 },
+  sealOwnerNormal: { fontSize: 6, textAlign: 'center' },
+  sealRespBold: { fontFamily: 'Helvetica-Bold', fontSize: 6, textAlign: 'center' },
+  sealRespNormal: { fontSize: 5.5, textAlign: 'center' },
+  sealRight: { width: '15%', alignItems: 'center', justifyContent: 'center', padding: 4 },
+  sealLogoText: { fontSize: 6, color: '#999999' },
 });
 
 function fmt2(val: string | number | undefined): string {
@@ -101,11 +145,19 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
   const fabricante = pd?.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
   const invPotencia = fmt2(pd?.inversores_potencia);
 
+  // ── Seal fields ────────────────────────────────────────────────────────────
+  const owner    = String(pd?.nomeClienteFinal   || 'NOME DO PROPRIETARIO');
+  const endereco = String(pd?.endereco_local      || 'ENDERECO DA OBRA');
+  const cidade   = String(pd?.client_city         || 'Cidade');
+  const uf       = String(pd?.client_state        || '');
+  const cep      = String(pd?.cliente_cep         || '00.000-000');
+  const respNome = String(pd?.responsavel_nome    || 'RESPONSAVEL TECNICO');
+  const respCft  = String(pd?.responsavel_registro || '00000000000');
+  const dataDoc  = String(pd?.data_documento      || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
+
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Text style={s.title}>DIAGRAMA UNIFILAR DE BLOCOS</Text>
-
         {/* 1. Módulos */}
         <View style={s.box}>
           <Text style={s.boldLine}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</Text>
@@ -173,6 +225,61 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
           <View style={s.redeBar} />
           <Text style={s.redeText}>REDE DE</Text>
           <Text style={s.redeText}>DISTRIBUIÇÃO</Text>
+        </View>
+
+        {/* ═══ SELO ═══ */}
+        <View style={s.sealOuter}>
+
+          {/* LEFT COLUMN */}
+          <View style={s.sealLeft}>
+            <View style={s.sealProduto}>
+              <Text style={s.sealProdutoLabel}>PRODUTO</Text>
+              <Text style={s.sealProdutoValue}>GFV {potenciaTotal} kWp</Text>
+            </View>
+            <View style={s.sealSubcols}>
+              <View style={s.sealSubLeft}>
+                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>DATA</Text><Text style={s.sealSubValue}>{dataDoc}</Text></View>
+                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>ESCALA</Text><Text style={s.sealSubValue}>S/ ESCALA</Text></View>
+                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>TAMANHO</Text><Text style={s.sealSubValue}>A3</Text></View>
+                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>FOLHA</Text><Text style={s.sealSubValue}>1/1</Text></View>
+                <View style={s.sealSubRowLast}><Text style={s.sealSubLabel}>REVISAO</Text><Text style={s.sealSubValue}>R0</Text></View>
+              </View>
+              <View style={s.sealRcol}>
+                <View style={s.sealRrow}><Text style={s.sealSubValue}>R1:</Text></View>
+                <View style={s.sealRrow}><Text style={s.sealSubValue}>R2:</Text></View>
+                <View style={s.sealRrow}><Text style={s.sealSubValue}>R3:</Text></View>
+                <View style={s.sealRrow}><Text style={s.sealSubValue}>R4:</Text></View>
+                <View style={s.sealRrowLast}><Text style={s.sealSubValue}>R5:</Text></View>
+              </View>
+            </View>
+          </View>
+
+          {/* MIDDLE COLUMN */}
+          <View style={s.sealMid}>
+            <View style={s.sealTitleBlock}>
+              <Text style={s.sealTitleLabel}>TITULO</Text>
+              <Text style={s.sealTitleValue}>DIAGRAMA DE BLOCOS</Text>
+            </View>
+            <View style={s.sealOwner}>
+              <Text style={s.sealOwnerBold}>Proprietario e Obra:</Text>
+              <Text style={s.sealOwnerNormal}>{`Nome: ${owner}`}</Text>
+              <Text style={s.sealOwnerNormal}>{`Endereco: ${endereco}`}</Text>
+              <Text style={s.sealOwnerNormal}>{`Cidade: ${uf ? `${cidade} - ${uf}` : cidade}`}</Text>
+              <Text style={s.sealOwnerNormal}>{`CEP: ${cep}`}</Text>
+            </View>
+            <View style={s.sealResp}>
+              <Text style={s.sealOwnerBold}>Responsavel Tecnico:</Text>
+              <Text style={s.sealRespBold}>{respNome}</Text>
+              <Text style={s.sealRespNormal}>TECNICO EM ELETROTECNICA</Text>
+              <Text style={s.sealRespNormal}>{`CFT: ${respCft}`}</Text>
+            </View>
+          </View>
+
+          {/* RIGHT COLUMN */}
+          <View style={s.sealRight}>
+            <Text style={s.sealLogoText}>[Logo]</Text>
+          </View>
+
         </View>
       </Page>
     </Document>
