@@ -314,8 +314,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={228} y={767} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
           <Text x={228} y={776} fontSize={5.5} fill="#000">Classe II</Text>
 
-          {/* Main vertical — continuous from box top (y=708) to C1 bottom circle (y≈762) */}
-          <Line x1={CX} y1={708} x2={CX} y2={762} stroke="#000" strokeWidth={1} />
+          {/* Main vertical — from box top to just above upper circle of C1 (gap = switch open space) */}
+          <Line x1={CX} y1={708} x2={CX} y2={745} stroke="#000" strokeWidth={1} />
 
           {/* Tap main → DPS CC (shifted right to x=290, same as DPS CA) */}
           <Line x1={CX} y1={725} x2={290} y2={725} stroke="#000" strokeWidth={0.8} />
@@ -382,25 +382,6 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
             <Text key={i} x={663} y={52 + i * 13} fontSize={6.5} fill="#000">{ln}</Text>
           ))}
 
-          {/* ═══ DETALHE 1 ═══ */}
-          <Text x={748} y={262} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DETALHE 1</Text>
-          <Line x1={714} y1={266} x2={714} y2={278} stroke="#000" strokeWidth={1} />
-          <Rect x={703} y={278} width={22} height={18} fill="white" stroke="#000" strokeWidth={0.8} />
-          <Polygon points="714,281 708,291 720,291" fill="#000" />
-          <Line x1={707} y1={292} x2={721} y2={292} stroke="#000" strokeWidth={0.8} />
-          <Line x1={714} y1={296} x2={714} y2={306} stroke="#000" strokeWidth={0.8} />
-          <Line x1={714} y1={278} x2={714} y2={272} stroke="#000" strokeWidth={1} />
-          <Line x1={714} y1={272} x2={746} y2={272} stroke="#000" strokeWidth={1} />
-          <Line x1={746} y1={272} x2={746} y2={278} stroke="#000" strokeWidth={1} />
-          <Rect x={735} y={278} width={22} height={18} fill="white" stroke="#000" strokeWidth={0.8} />
-          <Polygon points="746,281 740,291 752,291" fill="#000" />
-          <Line x1={739} y1={292} x2={753} y2={292} stroke="#000" strokeWidth={0.8} />
-          <Line x1={746} y1={296} x2={746} y2={306} stroke="#000" strokeWidth={0.8} />
-          <Line x1={700} y1={306} x2={760} y2={306} stroke="#000" strokeWidth={1} />
-          <Line x1={730} y1={306} x2={730} y2={316} stroke="#000" strokeWidth={1} />
-          <Line x1={720} y1={316} x2={740} y2={316} stroke="#000" strokeWidth={1.3} />
-          <Line x1={724} y1={320} x2={736} y2={320} stroke="#000" strokeWidth={1.3} />
-          <Line x1={728} y1={324} x2={732} y2={324} stroke="#000" strokeWidth={1.3} />
 
           {/* ═══════════════════════════════════════════
               TITLE BLOCK / SELO
