@@ -150,7 +150,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox="0 0 900 1170"
+          viewBox="0 0 900 1178"
           width="100%"
           style={{ maxWidth: 900, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
@@ -386,24 +386,24 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 15} y="910" fontSize="5.5">1 #6,0mm² (T)</text>
 
           {/* ═══════════════ G — GERADOR ═══════════════ */}
-          <line x1={CX} y1="848" x2={CX} y2="955" stroke="#000" strokeWidth="1" />
-          <circle cx={CX} cy="991" r="35" fill="white" stroke="#000" strokeWidth="1.5" />
-          <text x={CX} y="998" fontSize="22" fontWeight="bold" textAnchor="middle">G</text>
-          <line x1={CX} y1="1026" x2={CX} y2="1040" stroke="#000" strokeWidth="1.2" />
-          <Terra x={CX} y={1040} />
+          <line x1={CX} y1="848" x2={CX} y2="935" stroke="#000" strokeWidth="1" />
+          <circle cx={CX} cy="971" r="35" fill="white" stroke="#000" strokeWidth="1.5" />
+          <text x={CX} y="978" fontSize="22" fontWeight="bold" textAnchor="middle">G</text>
+          <line x1={CX} y1="1006" x2={CX} y2="1020" stroke="#000" strokeWidth="1.2" />
+          <Terra x={CX} y={1020} />
 
           {/* Module annotation (right of G) */}
-          <line x1={CX + 35} y1="991" x2={CX + 52} y2="991" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={CX + 55} y="958" fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
-          <text x={CX + 55} y="968" fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
-          <text x={CX + 55} y="977" fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
-          <text x={CX + 55} y="986" fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
-          <text x={CX + 55} y="995" fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
-          <text x={CX + 55} y="1004" fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
-          <text x={CX + 55} y="1013" fontSize="5.5">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</text>
-          <text x={CX + 55} y="1022" fontSize="5.5">Potência total: {potKwp} kWp</text>
-          <text x={CX + 55} y="1031" fontSize="5.5">Tensão de operação strings: {tensaoStr} V</text>
-          <text x={CX + 55} y="1040" fontSize="5.5">Corrente de saída das strings: {corrStr} A</text>
+          <line x1={CX + 35} y1="971" x2={CX + 52} y2="971" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 55} y="938" fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
+          <text x={CX + 55} y="948" fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
+          <text x={CX + 55} y="957" fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
+          <text x={CX + 55} y="966" fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
+          <text x={CX + 55} y="975" fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
+          <text x={CX + 55} y="984" fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
+          <text x={CX + 55} y="993" fontSize="5.5">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</text>
+          <text x={CX + 55} y="1002" fontSize="5.5">Potência total: {potKwp} kWp</text>
+          <text x={CX + 55} y="1011" fontSize="5.5">Tensão de operação strings: {tensaoStr} V</text>
+          <text x={CX + 55} y="1020" fontSize="5.5">Corrente de saída das strings: {corrStr} A</text>
 
           {/* ═══════════════ LEGENDA (top right) ═══════════════ */}
           <rect x="655" y="22" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
@@ -453,13 +453,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <line x1="728" y1="324" x2="732" y2="324" stroke="#000" strokeWidth="1.3" />
 
           {/* ═══════════════ TITLE BLOCK ═══════════════ */}
-          <rect x="5" y="1058" width="885" height="112" fill="white" stroke="#000" strokeWidth="1.2" />
+          <rect x="5" y="1058" width="885" height="120" fill="white" stroke="#000" strokeWidth="1.2" />
 
           {/* Vertical dividers: Left|Mid at x=178, Mid|Right at x=700 */}
-          <line x1="178" y1="1058" x2="178" y2="1170" stroke="#000" strokeWidth="0.8" />
-          <line x1="700" y1="1058" x2="700" y2="1170" stroke="#000" strokeWidth="0.8" />
+          <line x1="178" y1="1058" x2="178" y2="1178" stroke="#000" strokeWidth="0.8" />
+          <line x1="700" y1="1058" x2="700" y2="1178" stroke="#000" strokeWidth="0.8" />
           {/* Left sub-col: label area | R values — starts below PRODUTO section */}
-          <line x1="118" y1="1088" x2="118" y2="1170" stroke="#000" strokeWidth="0.6" />
+          <line x1="118" y1="1088" x2="118" y2="1178" stroke="#000" strokeWidth="0.6" />
 
           {/* Horizontal dividers */}
           {/* Below PRODUTO section (left + mid cols) */}

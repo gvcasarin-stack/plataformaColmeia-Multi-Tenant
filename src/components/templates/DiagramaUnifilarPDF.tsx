@@ -133,7 +133,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   return (
     <Document>
       <Page size="A3" style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={812} height={983} viewBox="0 0 900 1170">
+        <Svg width={812} height={991} viewBox="0 0 900 1178">
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line x1={90} y1={28} x2={490} y2={28} stroke="#000" strokeWidth={1.8} />
@@ -342,23 +342,23 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 15} y={910} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
 
           {/* ═══ G — GERADOR ═══ */}
-          <Line x1={CX} y1={848} x2={CX} y2={955} stroke="#000" strokeWidth={1} />
-          <Circle cx={CX} cy={991} r={35} fill="white" stroke="#000" strokeWidth={1.5} />
-          <Text x={CX} y={998} fontSize={22} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
-          <Line x1={CX} y1={1026} x2={CX} y2={1040} stroke="#000" strokeWidth={1.2} />
-          <PDFTerra x={CX} y={1040} />
+          <Line x1={CX} y1={848} x2={CX} y2={935} stroke="#000" strokeWidth={1} />
+          <Circle cx={CX} cy={971} r={35} fill="white" stroke="#000" strokeWidth={1.5} />
+          <Text x={CX} y={978} fontSize={22} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
+          <Line x1={CX} y1={1006} x2={CX} y2={1020} stroke="#000" strokeWidth={1.2} />
+          <PDFTerra x={CX} y={1020} />
 
-          <Line x1={CX + 35} y1={991} x2={CX + 52} y2={991} stroke="#000" strokeWidth={0.6} />
-          <Text x={CX + 55} y={958} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
-          <Text x={CX + 55} y={968} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-          <Text x={CX + 55} y={977} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-          <Text x={CX + 55} y={986} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
-          <Text x={CX + 55} y={995} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-          <Text x={CX + 55} y={1004} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-          <Text x={CX + 55} y={1013} fontSize={5.5} fill="#000">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</Text>
-          <Text x={CX + 55} y={1022} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
-          <Text x={CX + 55} y={1031} fontSize={5.5} fill="#000">Tensao de operacao strings: {tensaoStr} V</Text>
-          <Text x={CX + 55} y={1040} fontSize={5.5} fill="#000">Corrente de saida das strings: {corrStr} A</Text>
+          <Line x1={CX + 35} y1={971} x2={CX + 52} y2={971} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 55} y={938} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+          <Text x={CX + 55} y={948} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+          <Text x={CX + 55} y={957} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+          <Text x={CX + 55} y={966} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+          <Text x={CX + 55} y={975} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+          <Text x={CX + 55} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+          <Text x={CX + 55} y={993} fontSize={5.5} fill="#000">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</Text>
+          <Text x={CX + 55} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
+          <Text x={CX + 55} y={1011} fontSize={5.5} fill="#000">Tensao de operacao strings: {tensaoStr} V</Text>
+          <Text x={CX + 55} y={1020} fontSize={5.5} fill="#000">Corrente de saida das strings: {corrStr} A</Text>
 
           {/* ═══ LEGENDA ═══ */}
           <Rect x={655} y={22} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
@@ -407,15 +407,15 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           ═══════════════════════════════════════════ */}
 
           {/* Seal outer rect */}
-          <Rect x={5} y={1058} width={885} height={112} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Rect x={5} y={1058} width={885} height={120} fill="white" stroke="#000" strokeWidth={1.2} />
 
           {/* === COLUMN DIVIDERS === */}
           {/* Left | Mid */}
-          <Line x1={178} y1={1058} x2={178} y2={1170} stroke="#000" strokeWidth={0.8} />
+          <Line x1={178} y1={1058} x2={178} y2={1178} stroke="#000" strokeWidth={0.8} />
           {/* Mid | Right (logo area) */}
-          <Line x1={700} y1={1058} x2={700} y2={1170} stroke="#000" strokeWidth={0.8} />
+          <Line x1={700} y1={1058} x2={700} y2={1178} stroke="#000" strokeWidth={0.8} />
           {/* Left sub-col: label area | R values — starts below PRODUTO section */}
-          <Line x1={118} y1={1088} x2={118} y2={1170} stroke="#000" strokeWidth={0.6} />
+          <Line x1={118} y1={1088} x2={118} y2={1178} stroke="#000" strokeWidth={0.6} />
 
           {/* === HORIZONTAL DIVIDERS === */}
           {/* Below PRODUTO section (left + mid cols) */}
