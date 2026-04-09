@@ -105,6 +105,7 @@ const s = StyleSheet.create({
     borderTopWidth: B,
     borderColor: BC,
     marginBottom: 4,
+    gap: 2,
   },
   row: { flexDirection: 'row' },
   sh: {

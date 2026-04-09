@@ -63,8 +63,8 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 };
 
 // Estilo base reutilizável
-const T: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', marginBottom: '2px', fontSize: '8px', lineHeight: '1.3' };
-const B = '1px solid #000000';
+const T: React.CSSProperties = { width: '100%', borderCollapse: 'separate', borderSpacing: '0 2px', marginBottom: '4px', fontSize: '8px', lineHeight: '1.3' };
+const B = '0.5px solid #000000';
 // Section header — fundo branco, texto preto (igual ao original)
 const SH: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', padding: '3px 5px', fontSize: '8px', border: B };
 // Sub-header — cinza médio
