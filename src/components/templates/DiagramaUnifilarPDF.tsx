@@ -173,11 +173,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 15} y={143} fontSize={6.5} fill="#000">D1</Text>
           <Text x={CX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
 
-          {/* D1 exit → terra → continue down */}
-          <Line x1={CX} y1={152} x2={CX} y2={165} stroke="#000" strokeWidth={1} />
-          <Line x1={CX} y1={165} x2={BR - 18} y2={165} stroke="#000" strokeWidth={1} />
-          <PDFTerra x={BR - 18} y={165} />
-          <Line x1={CX} y1={165} x2={CX} y2={220} stroke="#000" strokeWidth={1} />
+          {/* D1 exit → out of PADRÃO (continuous, grounding branch removed) */}
+          <Line x1={CX} y1={152} x2={CX} y2={220} stroke="#000" strokeWidth={1} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           {/* Wider box — extended both left (x=150) and right (to x=520) */}
@@ -234,11 +231,12 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 15} y={423} fontSize={5.5} fill="#000">Bipolar - {djCorr} A / {djTensao} Vca</Text>
           <Line x1={CX} y1={422} x2={CX} y2={514} stroke="#000" strokeWidth={1} />
 
-          <Line x1={BX} y1={491} x2={BX - 14} y2={491} stroke="#000" strokeWidth={0.6} />
-          <Text x={5} y={483} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
-          <Text x={5} y={492} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (F)</Text>
-          <Text x={5} y={500} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (N)</Text>
-          <Text x={5} y={508} fontSize={5.5} fill="#000">1 #{caboCA}mm2 (T)</Text>
+          {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
+          <Line x1={CX} y1={490} x2={CX + 12} y2={490} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={483} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70 - 1,0 kV</Text>
+          <Text x={CX + 15} y={491} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (F)`}</Text>
+          <Text x={CX + 15} y={499} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (N)`}</Text>
+          <Text x={CX + 15} y={507} fontSize={5.5} fill="#000">{`1 #${caboCA}mm2 (T)`}</Text>
 
           {/* ═══ INVERSOR ═══ */}
           {/* Label outside box, above upper-right corner */}
@@ -289,14 +287,15 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           <Line x1={CX} y1={569} x2={CX} y2={668} stroke="#000" strokeWidth={1} />
 
-          <Line x1={BR} y1={645} x2={BR + 14} y2={645} stroke="#000" strokeWidth={0.6} />
-          <Text x={BR + 17} y={639} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={BR + 17} y={647} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
-          <Text x={BR + 17} y={655} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={BR + 17} y={662} fontSize={5.5} fill="#000">1 #{caboCC}mm2 (-)</Text>
-          <Text x={BR + 17} y={669} fontSize={5.5} fill="#000">1 #{caboCC}mm2 (+)</Text>
-          <Text x={BR + 17} y={677} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={BR + 17} y={684} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
+          <Line x1={CX} y1={618} x2={CX + 12} y2={618} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={611} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+          <Text x={CX + 15} y={619} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={627} fontSize={5.5} fill="#000">Para cada string:</Text>
+          <Text x={CX + 15} y={634} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
+          <Text x={CX + 15} y={641} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={649} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={656} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
 
           {/* ═══ QUADRO DE PROTEÇÃO CC ═══ */}
           <Rect x={BX} y={668} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
@@ -312,8 +311,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={228} y={727} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
           <Text x={228} y={736} fontSize={5.5} fill="#000">Classe II</Text>
 
-          {/* Main vertical — continuous from box top (y=668) to C1 */}
-          <Line x1={CX} y1={668} x2={CX} y2={718} stroke="#000" strokeWidth={1} />
+          {/* Main vertical — continuous from box top (y=668) to C1 bottom circle (y≈722) */}
+          <Line x1={CX} y1={668} x2={CX} y2={722} stroke="#000" strokeWidth={1} />
 
           {/* Tap main → DPS CC (shifted right to x=290, same as DPS CA) */}
           <Line x1={CX} y1={685} x2={290} y2={685} stroke="#000" strokeWidth={0.8} />
@@ -327,16 +326,18 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 22} y={728} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
           <Text x={CX + 22} y={737} fontSize={5.5} fill="#000">(4 polos)</Text>
           <Text x={CX + 22} y={746} fontSize={5.5} fill="#000">1200 Vcc 32 A</Text>
-          <Line x1={CX} y1={743} x2={CX} y2={808} stroke="#000" strokeWidth={1} />
+          {/* Continuous line — starts right after C1 bottom circle (y≈730) */}
+          <Line x1={CX} y1={730} x2={CX} y2={808} stroke="#000" strokeWidth={1} />
 
-          <Line x1={BR} y1={780} x2={BR + 14} y2={780} stroke="#000" strokeWidth={0.6} />
-          <Text x={BR + 17} y={775} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-          <Text x={BR + 17} y={783} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
-          <Text x={BR + 17} y={791} fontSize={5.5} fill="#000">Para cada string:</Text>
-          <Text x={BR + 17} y={798} fontSize={5.5} fill="#000">1 #{caboCC}mm2 (-)</Text>
-          <Text x={BR + 17} y={805} fontSize={5.5} fill="#000">1 #{caboCC}mm2 (+)</Text>
-          <Text x={BR + 17} y={813} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-          <Text x={BR + 17} y={820} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
+          {/* CC cables annotation — between QUADRO CC and GERADOR/modules (tap from main line) */}
+          <Line x1={CX} y1={826} x2={CX + 12} y2={826} stroke="#000" strokeWidth={0.6} />
+          <Text x={CX + 15} y={819} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+          <Text x={CX + 15} y={827} fontSize={5.5} fill="#000">HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={835} fontSize={5.5} fill="#000">Para cada string:</Text>
+          <Text x={CX + 15} y={842} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (-)`}</Text>
+          <Text x={CX + 15} y={849} fontSize={5.5} fill="#000">{`1 #${caboCC}mm2 (+)`}</Text>
+          <Text x={CX + 15} y={857} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+          <Text x={CX + 15} y={864} fontSize={5.5} fill="#000">1 #6,0mm2 (T)</Text>
 
           {/* ═══ G — GERADOR ═══ */}
           <Line x1={CX} y1={808} x2={CX} y2={845} stroke="#000" strokeWidth={1} />

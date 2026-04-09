@@ -195,13 +195,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 15} y="143" fontSize="6.5">D1</text>
           <text x={CX + 15} y="152" fontSize="5.5">{djLabel}</text>
 
-          {/* Wire D1 → exit + ground right */}
-          <line x1={CX} y1="152" x2={CX} y2="165" stroke="#000" strokeWidth="1" />
-          <line x1={CX} y1="165" x2={BR - 18} y2="165" stroke="#000" strokeWidth="1" />
-          <Terra x={BR - 18} y={165} />
-
-          {/* Wire out of PADRÃO */}
-          <line x1={CX} y1="165" x2={CX} y2="220" stroke="#000" strokeWidth="1" />
+          {/* Wire D1 → out of PADRÃO (continuous, grounding branch removed) */}
+          <line x1={CX} y1="152" x2={CX} y2="220" stroke="#000" strokeWidth="1" />
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           {/* Wider box — extended both left (x=150) and right (to x=520) */}
@@ -264,12 +259,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* Wire → INVERSOR */}
           <line x1={CX} y1="480" x2={CX} y2="514" stroke="#000" strokeWidth="1" />
 
-          {/* CA cables annotation LEFT (below QUADRO CA) */}
-          <line x1={BX} y1="491" x2={BX - 14} y2="491" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x="5" y="483" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
-          <text x="5" y="492" fontSize="5.5">1 #{caboCA}mm² (F)</text>
-          <text x="5" y="500" fontSize="5.5">1 #{caboCA}mm² (N)</text>
-          <text x="5" y="508" fontSize="5.5">1 #{caboCA}mm² (T)</text>
+          {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
+          <line x1={CX} y1="490" x2={CX + 12} y2="490" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 15} y="483" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70° - 1,0 kV</text>
+          <text x={CX + 15} y="491" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
+          <text x={CX + 15} y="499" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
+          <text x={CX + 15} y="507" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
           {/* ═══════════════ INVERSOR ═══════════════ */}
           {/* Reduced to ~1/4 size (w=120, h=55), centered at CX */}
@@ -332,15 +327,15 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* Wire INVERSOR → QUADRO CC */}
           <line x1={CX} y1="569" x2={CX} y2="668" stroke="#000" strokeWidth="1" />
 
-          {/* CC cables annotation RIGHT (inversor→quadro CC) */}
-          <line x1={BR} y1="645" x2={BR + 14} y2="645" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={BR + 17} y="639" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-          <text x={BR + 17} y="647" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
-          <text x={BR + 17} y="655" fontSize="5.5">Para cada string:</text>
-          <text x={BR + 17} y="662" fontSize="5.5">1 #{caboCC}mm² (-)</text>
-          <text x={BR + 17} y="669" fontSize="5.5">1 #{caboCC}mm² (+)</text>
-          <text x={BR + 17} y="677" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-          <text x={BR + 17} y="684" fontSize="5.5">1 #6,0mm² (T)</text>
+          {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
+          <line x1={CX} y1="618" x2={CX + 12} y2="618" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 15} y="611" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+          <text x={CX + 15} y="619" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="627" fontSize="5.5">Para cada string:</text>
+          <text x={CX + 15} y="634" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+          <text x={CX + 15} y="641" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+          <text x={CX + 15} y="649" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="656" fontSize="5.5">1 #6,0mm² (T)</text>
 
           {/* ═══════════════ QUADRO DE PROTEÇÃO CC ═══════════════ */}
           <rect x={BX} y="668" width={BW} height="140" fill="white" stroke="#000" strokeWidth="1.2" />
@@ -357,8 +352,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="228" y="727" fontSize="5.5">1040 Vcc, 18-40 kA</text>
           <text x="228" y="736" fontSize="5.5">Classe II</text>
 
-          {/* Main vertical — continuous from box top (y=668) to C1 */}
-          <line x1={CX} y1="668" x2={CX} y2="718" stroke="#000" strokeWidth="1" />
+          {/* Main vertical — continuous from box top (y=668) to C1 bottom circle (y≈722) */}
+          <line x1={CX} y1="668" x2={CX} y2="722" stroke="#000" strokeWidth="1" />
 
           {/* Tap main → DPS CC (shifted right to x=290, same as DPS CA) */}
           <line x1={CX} y1="685" x2="290" y2="685" stroke="#000" strokeWidth="0.8" />
@@ -376,18 +371,18 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 22} y="737" fontSize="5.5">(4 polos)</text>
           <text x={CX + 22} y="746" fontSize="5.5">1200 Vcc 32 A</text>
 
-          {/* Wire out of QUADRO CC */}
-          <line x1={CX} y1="743" x2={CX} y2="808" stroke="#000" strokeWidth="1" />
+          {/* Wire out of QUADRO CC — starts right after C1 bottom circle (y≈730) */}
+          <line x1={CX} y1="730" x2={CX} y2="808" stroke="#000" strokeWidth="1" />
 
-          {/* CC cables annotation RIGHT (below QUADRO CC) */}
-          <line x1={BR} y1="780" x2={BR + 14} y2="780" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-          <text x={BR + 17} y="775" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-          <text x={BR + 17} y="783" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
-          <text x={BR + 17} y="791" fontSize="5.5">Para cada string:</text>
-          <text x={BR + 17} y="798" fontSize="5.5">1 #{caboCC}mm² (-)</text>
-          <text x={BR + 17} y="805" fontSize="5.5">1 #{caboCC}mm² (+)</text>
-          <text x={BR + 17} y="813" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-          <text x={BR + 17} y="820" fontSize="5.5">1 #6,0mm² (T)</text>
+          {/* CC cables annotation — between QUADRO CC and GERADOR/modules (tap from main line) */}
+          <line x1={CX} y1="826" x2={CX + 12} y2="826" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+          <text x={CX + 15} y="819" fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+          <text x={CX + 15} y="827" fontSize="5.5">HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="835" fontSize="5.5">Para cada string:</text>
+          <text x={CX + 15} y="842" fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+          <text x={CX + 15} y="849" fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+          <text x={CX + 15} y="857" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+          <text x={CX + 15} y="864" fontSize="5.5">1 #6,0mm² (T)</text>
 
           {/* ═══════════════ G — GERADOR ═══════════════ */}
           <line x1={CX} y1="808" x2={CX} y2="845" stroke="#000" strokeWidth="1" />
