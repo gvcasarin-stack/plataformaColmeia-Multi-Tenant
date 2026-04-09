@@ -337,38 +337,37 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
         {/* ===== SEÇÃO 2 ===== */}
         <table style={T}>
           <colgroup>
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '22%' }} />
-            <col style={{ width: '12%' }} />
             <col style={{ width: '14%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '6%' }} />
+            <col style={{ width: '19%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '8%' }} />
           </colgroup>
           <tbody>
-            <tr><td colSpan={8} style={SH}>2. Dados Cadastrais do Responsável Técnico</td></tr>
+            <tr><td colSpan={9} style={SH}>2. Dados Cadastrais do Responsável Técnico</td></tr>
             <tr>
               <td style={LR}>Nome Completo</td>
               <td style={D} colSpan={2}><V>{`{{responsavel_nome}}`}</V></td>
-              <td style={LR} colSpan={1}>Título Profissional</td>
-              <td style={D} colSpan={1}><V upper>{`{{responsavel_profissao}}`}</V></td>
-              <td style={LR} colSpan={1}>Registro Profissional</td>
-              <td style={D} colSpan={2}>Nº <V>{`{{responsavel_registro}}`}</V></td>
-            </tr>
-            <tr>
-              <td colSpan={2} style={D}>
-                <span style={{ fontSize: '7px', color: '#FF0000', fontWeight: '500' }}>UF</span>&nbsp;<V>{`{{responsavel_uf}}`}</V>
-              </td>
-              <td colSpan={6} style={D}></td>
+              <td style={LR}>Titulo Profissional</td>
+              <td style={D}><V upper>{`{{responsavel_profissao}}`}</V></td>
+              <td style={LR}>Registro Profissional</td>
+              <td style={D}>Nº <V>{`{{responsavel_registro}}`}</V></td>
+              <td style={LR}>UF</td>
+              <td style={D}><V>{`{{responsavel_uf}}`}</V></td>
             </tr>
             <tr>
               <td style={LR}>E-mail</td>
-              <td style={D} colSpan={3}><V>{`{{responsavel_email}}`}</V></td>
-              <td style={L} colSpan={1}>Telefone Fixo</td>
-              <td style={D} colSpan={1}></td>
-              <td style={L} colSpan={1}>Celular</td>
+              <td style={D} colSpan={2}><V>{`{{responsavel_email}}`}</V></td>
+              <td style={L}>Telefone Fixo</td>
+              <td style={D}></td>
+              <td style={L}>Telefone Celular</td>
               <td style={D}><V>{`{{cliente_celular}}`}</V></td>
+              <td style={L}>Empresa (opcional)</td>
+              <td style={D}></td>
             </tr>
           </tbody>
         </table>
@@ -511,17 +510,17 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           <tbody>
             <tr><td colSpan={2} style={SH}>6. Solicitações e Declarações</td></tr>
             <tr>
-              <td style={{ ...D, fontSize: '7px' }}>
-                Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnica - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.
-              </td>
-              <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>SIM</td>
-            </tr>
-            <tr>
               <td style={{ ...D, fontSize: '7px' }}>Solicito que a contagem do prazo para realização da vistoria pela CONCESSIONÁRIA, conforme art. 68 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação.</td>
               <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>SIM</td>
             </tr>
             <tr>
               <td style={{ ...D, fontSize: '7px' }}>Autorizo a distribuidora a entregar junto com o orçamento de conexão os contratos e o documento ou meio para pagamento de custos de minha responsabilidade.</td>
+              <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>SIM</td>
+            </tr>
+            <tr>
+              <td style={{ ...D, fontSize: '7px' }}>
+                Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnica - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável.
+              </td>
               <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>SIM</td>
             </tr>
             <tr>
@@ -604,12 +603,16 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               </td>
             </tr>
             <tr>
-              <td colSpan={3} style={{ ...D, fontSize: '7px' }}>
-                Local: <V>{`{{cidade}}`}</V>-<V>{`{{estado}}`}</V>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                Data: <V>{`{{data}}`}</V>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                Assinatura do Responsável Técnico: __________________________________________________
+              <td style={{ ...D, fontSize: '7px' }}>
+                <V>{`{{cidade}}`}</V>-<V>{`{{estado}}`}</V>
+                <div style={{ borderTop: B, marginTop: '16px', paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Local</div>
+              </td>
+              <td style={{ ...D, fontSize: '7px' }}>
+                <V>{`{{data}}`}</V>
+                <div style={{ borderTop: B, marginTop: '16px', paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Data</div>
+              </td>
+              <td style={{ ...D, fontSize: '7px', textAlign: 'center' }}>
+                <div style={{ borderTop: B, marginTop: '28px', paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Assinatura do Responsável</div>
               </td>
             </tr>
           </tbody>
