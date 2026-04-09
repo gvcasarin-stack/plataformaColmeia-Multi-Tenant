@@ -88,6 +88,16 @@ const TOT: React.CSSProperties = { ...D, fontWeight: 'bold', textAlign: 'center'
 // Célula TOTAL cinza
 const TOTGray: React.CSSProperties = { backgroundColor: '#808080', color: '#FFFFFF', fontSize: '7px', padding: '4px 5px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 
+// ── Página 2 — estilos compactos (tabelas de equipamentos, sem border-spacing) ──
+const Bc = '1px solid #000000';
+const T2: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', marginBottom: '2px', fontSize: '8px', lineHeight: '1.3' };
+const CHBlue2: React.CSSProperties = { backgroundColor: '#595959', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: Bc, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+const DPeach2: React.CSSProperties = { backgroundColor: '#FCE4D6', fontSize: '7px', padding: '2px 3px', border: Bc, textAlign: 'center', verticalAlign: 'middle' };
+const D2: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: Bc, verticalAlign: 'top', overflow: 'hidden', wordBreak: 'break-word' };
+const TOT2: React.CSSProperties = { ...D2, fontWeight: 'bold', textAlign: 'center' };
+const TOTGray2: React.CSSProperties = { backgroundColor: '#808080', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: Bc, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+const L2: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 3px', border: Bc, fontWeight: '500', verticalAlign: 'top', overflow: 'hidden' };
+
 export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicitacaoPreviewProps) {
   const [generating, setGenerating] = useState(false);
 
@@ -624,10 +634,10 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
 
         {/* ===== PÁGINA 2 — UNIDADES GERADORAS ===== */}
         <div className="break-before-page" style={{ marginTop: '20px' }}>
-          <table style={{ ...T, border: B, marginBottom: '8px' }}>
+          <table style={{ ...T2, border: Bc, marginBottom: '8px' }}>
             <tbody>
               <tr>
-                <td colSpan={7} style={{ ...SH, fontSize: '8px' }}>
+                <td colSpan={7} style={{ ...SH, fontSize: '8px', border: Bc }}>
                   Informações das Unidades Geradoras (UG):{' '}
                   <span style={{ color: '#FF9999' }}>(PREENCHER CONFORME O TIPO DE FONTE DE GERAÇÃO)</span>
                 </td>
@@ -638,45 +648,45 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           {/* 1. Solar Fotovoltaica */}
           <div style={{ marginBottom: '6px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '8px', marginBottom: '2px' }}>1. Solar Fotovoltaica</div>
-            <table style={T}>
+            <table style={T2}>
               <thead>
                 <tr>
-                  <th style={{ ...CHBlue, width: '5%' }}>Item</th>
-                  <th style={{ ...CHBlue, width: '16%' }}>Potência do Módulo (W)</th>
-                  <th style={{ ...CHBlue, width: '12%' }}>Quantidade</th>
-                  <th style={{ ...CHBlue, width: '18%' }}>Potência de Pico (kWp):</th>
-                  <th style={{ ...CHBlue, width: '16%' }}>Área do arranjo (m²):</th>
-                  <th style={{ ...CHBlue, width: '20%' }}>Fabricante(s) dos Módulos</th>
-                  <th style={{ ...CHBlue, width: '13%' }}>Modelo</th>
+                  <th style={{ ...CHBlue2, width: '5%' }}>Item</th>
+                  <th style={{ ...CHBlue2, width: '16%' }}>Potência do Módulo (W)</th>
+                  <th style={{ ...CHBlue2, width: '12%' }}>Quantidade</th>
+                  <th style={{ ...CHBlue2, width: '18%' }}>Potência de Pico (kWp):</th>
+                  <th style={{ ...CHBlue2, width: '16%' }}>Área do arranjo (m²):</th>
+                  <th style={{ ...CHBlue2, width: '20%' }}>Fabricante(s) dos Módulos</th>
+                  <th style={{ ...CHBlue2, width: '13%' }}>Modelo</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Linha preenchida */}
                 <tr>
-                  <td style={{ ...D, textAlign: 'center', color: '#4472C4' }}>1</td>
-                  <td style={{ ...D, textAlign: 'center' }}><V>{`{{modulos_potencia_wp}}`}</V></td>
-                  <td style={{ ...D, textAlign: 'center' }}><V>{`{{modulos_quantidade}}`}</V></td>
-                  <td style={{ ...D, textAlign: 'center' }}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>}</td>
-                  <td style={{ ...D, textAlign: 'center' }}><V>{`{{modulos_area_m2}}`}</V></td>
-                  <td style={D}><V>{`{{modulos_fabricante}}`}</V></td>
-                  <td style={D}><V>{`{{modulos_modelo}}`}</V></td>
+                  <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>1</td>
+                  <td style={{ ...D2, textAlign: 'center' }}><V>{`{{modulos_potencia_wp}}`}</V></td>
+                  <td style={{ ...D2, textAlign: 'center' }}><V>{`{{modulos_quantidade}}`}</V></td>
+                  <td style={{ ...D2, textAlign: 'center' }}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>}</td>
+                  <td style={{ ...D2, textAlign: 'center' }}><V>{`{{modulos_area_m2}}`}</V></td>
+                  <td style={D2}><V>{`{{modulos_fabricante}}`}</V></td>
+                  <td style={D2}><V>{`{{modulos_modelo}}`}</V></td>
                 </tr>
                 {/* Linhas vazias */}
                 {emptyModuloRows.map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...DPeach, textAlign: 'center' }}>{i + 2}</td>
-                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
-                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                    <td style={{ ...DPeach2, textAlign: 'center' }}>{i + 2}</td>
+                    <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
+                    <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                   </tr>
                 ))}
                 {/* Total */}
                 <tr>
-                  <td style={TOTGray}>TOTAL</td>
-                  <td style={TOTGray}></td>
-                  <td style={TOT}><V>{`{{modulos_quantidade}}`}</V></td>
-                  <td style={TOT}>{potenciaKwp ?? ''}</td>
-                  <td style={TOT}><V>{`{{modulos_area_m2}}`}</V></td>
-                  <td style={TOTGray}></td><td style={TOTGray}></td>
+                  <td style={TOTGray2}>TOTAL</td>
+                  <td style={TOTGray2}></td>
+                  <td style={TOT2}><V>{`{{modulos_quantidade}}`}</V></td>
+                  <td style={TOT2}>{potenciaKwp ?? ''}</td>
+                  <td style={TOT2}><V>{`{{modulos_area_m2}}`}</V></td>
+                  <td style={TOTGray2}></td><td style={TOTGray2}></td>
                 </tr>
               </tbody>
             </table>
@@ -688,51 +698,51 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           {/* 2. Dados dos Inversores */}
           <div style={{ marginBottom: '6px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '8px', marginBottom: '2px' }}>2. Dados dos Inversores</div>
-            <table style={T}>
+            <table style={T2}>
               <thead>
                 <tr>
-                  <th style={{ ...CHBlue, width: '4%' }}>Item</th>
-                  <th style={{ ...CHBlue, width: '14%' }}>Fabricante*</th>
-                  <th style={{ ...CHBlue, width: '16%' }}>Modelo*</th>
-                  <th style={{ ...CHBlue, width: '12%' }}>Potência Nominal (kW)</th>
-                  <th style={{ ...CHBlue, width: '13%' }}>Faixa de tensão de operação (V)</th>
-                  <th style={{ ...CHBlue, width: '10%' }}>Corrente Nominal (A)</th>
-                  <th style={{ ...CHBlue, width: '11%' }}>Fator de Potência</th>
-                  <th style={{ ...CHBlue, width: '10%' }}>Rendimento (%)</th>
-                  <th style={{ ...CHBlue, width: '10%' }}>DHT de Corrente (%)</th>
+                  <th style={{ ...CHBlue2, width: '4%' }}>Item</th>
+                  <th style={{ ...CHBlue2, width: '14%' }}>Fabricante*</th>
+                  <th style={{ ...CHBlue2, width: '16%' }}>Modelo*</th>
+                  <th style={{ ...CHBlue2, width: '12%' }}>Potência Nominal (kW)</th>
+                  <th style={{ ...CHBlue2, width: '13%' }}>Faixa de tensão de operação (V)</th>
+                  <th style={{ ...CHBlue2, width: '10%' }}>Corrente Nominal (A)</th>
+                  <th style={{ ...CHBlue2, width: '11%' }}>Fator de Potência</th>
+                  <th style={{ ...CHBlue2, width: '10%' }}>Rendimento (%)</th>
+                  <th style={{ ...CHBlue2, width: '10%' }}>DHT de Corrente (%)</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Linhas preenchidas */}
                 {Array.from({ length: inversoresQtd }).map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...D, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
-                    <td style={D}><V>{`{{inversores_fabricante}}`}</V></td>
-                    <td style={D}><V>{`{{inversores_modelo}}`}</V></td>
-                    <td style={{ ...D, textAlign: 'center' }}><V>{`{{inversores_potencia}}`}</V></td>
-                    <td style={{ ...D, textAlign: 'center' }}><V>{`{{inversores_faixa_tensao}}`}</V></td>
-                    <td style={{ ...D, textAlign: 'center' }}><V>{`{{inversores_corrente_nominal}}`}</V></td>
-                    <td style={{ ...D, textAlign: 'center' }}><V>{`{{inversores_fator_potencia}}`}</V></td>
-                    <td style={{ ...D, textAlign: 'center' }}><V>{`{{inversores_rendimento}}`}</V></td>
-                    <td style={{ ...D, textAlign: 'center' }}><V>{`{{inversores_dht_corrente}}`}</V></td>
+                    <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
+                    <td style={D2}><V>{`{{inversores_fabricante}}`}</V></td>
+                    <td style={D2}><V>{`{{inversores_modelo}}`}</V></td>
+                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_potencia}}`}</V></td>
+                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_faixa_tensao}}`}</V></td>
+                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_corrente_nominal}}`}</V></td>
+                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_fator_potencia}}`}</V></td>
+                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_rendimento}}`}</V></td>
+                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_dht_corrente}}`}</V></td>
                   </tr>
                 ))}
                 {/* Linhas vazias */}
                 {emptyInversorRows.map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...DPeach, textAlign: 'center' }}>{inversoresQtd + i + 1}</td>
-                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
-                    <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
-                    <td style={DPeach}></td><td style={DPeach}></td>
+                    <td style={{ ...DPeach2, textAlign: 'center' }}>{inversoresQtd + i + 1}</td>
+                    <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
+                    <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
+                    <td style={DPeach2}></td><td style={DPeach2}></td>
                   </tr>
                 ))}
                 {/* Total */}
                 <tr>
-                  <td style={TOTGray}>TOTAL</td>
-                  <td style={TOTGray}></td><td style={TOTGray}></td>
-                  <td style={TOT}>{totalInvPotencia}</td>
-                  <td style={TOTGray}></td><td style={TOTGray}></td><td style={TOTGray}></td>
-                  <td style={TOTGray}></td><td style={TOTGray}></td>
+                  <td style={TOTGray2}>TOTAL</td>
+                  <td style={TOTGray2}></td><td style={TOTGray2}></td>
+                  <td style={TOT2}>{totalInvPotencia}</td>
+                  <td style={TOTGray2}></td><td style={TOTGray2}></td><td style={TOTGray2}></td>
+                  <td style={TOTGray2}></td><td style={TOTGray2}></td>
                 </tr>
               </tbody>
             </table>
@@ -744,34 +754,34 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           {/* 3. Eólica */}
           <div style={{ marginBottom: '6px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '8px', marginBottom: '2px' }}>3. Eólica</div>
-            <table style={T}>
+            <table style={T2}>
               <thead>
                 <tr>
-                  <th style={{ ...CHBlue, width: '4%' }}>Item</th>
-                  <th style={{ ...CHBlue, width: '16%' }}>Fabricante/Modelo</th>
-                  <th style={{ ...CHBlue, width: '9%' }}>Eixo do rotor (horiz./vert.)*</th>
-                  <th style={{ ...CHBlue, width: '8%' }}>Altura Máxima da Pá (m)*</th>
-                  <th style={{ ...CHBlue, width: '8%' }}>Diâmetro do rotor (m)</th>
-                  <th style={{ ...CHBlue, width: '9%' }}>Controle de Potência</th>
-                  <th style={{ ...CHBlue, width: '8%' }}>Vel. rotação nom./Sobrevel. máx. (rpm)</th>
-                  <th style={{ ...CHBlue, width: '9%' }}>Vel. vento Entrada serv. (m/s)</th>
-                  <th style={{ ...CHBlue, width: '9%' }}>Vel. vento Saída serv. (m/s)</th>
-                  <th style={{ ...CHBlue, width: '9%' }}>Pot. Gerada Entrada (kW)</th>
-                  <th style={{ ...CHBlue, width: '9%' }}>Pot. Gerada Saída (kW)</th>
-                  <th style={{ ...CHBlue, width: '6%' }}>MD²/4 (kg.m²)</th>
-                  <th style={{ ...CHBlue, width: '6%' }}>Cert. turbina</th>
+                  <th style={{ ...CHBlue2, width: '4%' }}>Item</th>
+                  <th style={{ ...CHBlue2, width: '16%' }}>Fabricante/Modelo</th>
+                  <th style={{ ...CHBlue2, width: '9%' }}>Eixo do rotor (horiz./vert.)*</th>
+                  <th style={{ ...CHBlue2, width: '8%' }}>Altura Máxima da Pá (m)*</th>
+                  <th style={{ ...CHBlue2, width: '8%' }}>Diâmetro do rotor (m)</th>
+                  <th style={{ ...CHBlue2, width: '9%' }}>Controle de Potência</th>
+                  <th style={{ ...CHBlue2, width: '8%' }}>Vel. rotação nom./Sobrevel. máx. (rpm)</th>
+                  <th style={{ ...CHBlue2, width: '9%' }}>Vel. vento Entrada serv. (m/s)</th>
+                  <th style={{ ...CHBlue2, width: '9%' }}>Vel. vento Saída serv. (m/s)</th>
+                  <th style={{ ...CHBlue2, width: '9%' }}>Pot. Gerada Entrada (kW)</th>
+                  <th style={{ ...CHBlue2, width: '9%' }}>Pot. Gerada Saída (kW)</th>
+                  <th style={{ ...CHBlue2, width: '6%' }}>MD²/4 (kg.m²)</th>
+                  <th style={{ ...CHBlue2, width: '6%' }}>Cert. turbina</th>
                 </tr>
               </thead>
               <tbody>
                 {Array.from({ length: 10 }).map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...DPeach, textAlign: 'center' }}>{i + 1}</td>
-                    {Array.from({ length: 12 }).map((__, j) => <td key={j} style={DPeach}></td>)}
+                    <td style={{ ...DPeach2, textAlign: 'center' }}>{i + 1}</td>
+                    {Array.from({ length: 12 }).map((__, j) => <td key={j} style={DPeach2}></td>)}
                   </tr>
                 ))}
                 <tr>
-                  <td style={TOTGray}>TOTAL</td>
-                  {Array.from({ length: 12 }).map((_, j) => <td key={j} style={TOTGray}></td>)}
+                  <td style={TOTGray2}>TOTAL</td>
+                  {Array.from({ length: 12 }).map((_, j) => <td key={j} style={TOTGray2}></td>)}
                 </tr>
               </tbody>
             </table>
@@ -784,31 +794,31 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           {/* 4. Hidráulica */}
           <div style={{ marginBottom: '6px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '8px', marginBottom: '2px' }}>4. Hidráulica</div>
-            <table style={T}>
+            <table style={T2}>
               <thead>
                 <tr>
-                  <th style={{ ...CHBlue, width: '4%' }}>Item</th>
-                  <th style={CHBlue}>Rio</th>
-                  <th style={CHBlue}>Bacia / SubBacia</th>
-                  <th style={CHBlue}>Tipo turbina</th>
-                  <th style={CHBlue}>Fabricante Turbina</th>
-                  <th style={CHBlue}>Potência Turbina (kVA)</th>
-                  <th style={CHBlue}>Fabricante Gerador</th>
-                  <th style={CHBlue}>Potência do Gerador (kVA)</th>
-                  <th style={CHBlue}>Fator de Potência do Gerador</th>
-                  <th style={CHBlue}>Potência do Gerador (kW)</th>
+                  <th style={{ ...CHBlue2, width: '4%' }}>Item</th>
+                  <th style={CHBlue2}>Rio</th>
+                  <th style={CHBlue2}>Bacia / SubBacia</th>
+                  <th style={CHBlue2}>Tipo turbina</th>
+                  <th style={CHBlue2}>Fabricante Turbina</th>
+                  <th style={CHBlue2}>Potência Turbina (kVA)</th>
+                  <th style={CHBlue2}>Fabricante Gerador</th>
+                  <th style={CHBlue2}>Potência do Gerador (kVA)</th>
+                  <th style={CHBlue2}>Fator de Potência do Gerador</th>
+                  <th style={CHBlue2}>Potência do Gerador (kW)</th>
                 </tr>
               </thead>
               <tbody>
                 {[1, 2, 3].map(i => (
                   <tr key={i}>
-                    <td style={{ ...DPeach, textAlign: 'center' }}>{i}</td>
-                    {Array.from({ length: 9 }).map((_, j) => <td key={j} style={DPeach}></td>)}
+                    <td style={{ ...DPeach2, textAlign: 'center' }}>{i}</td>
+                    {Array.from({ length: 9 }).map((_, j) => <td key={j} style={DPeach2}></td>)}
                   </tr>
                 ))}
                 <tr>
-                  <td style={TOTGray}>TOTAL</td>
-                  {Array.from({ length: 9 }).map((_, j) => <td key={j} style={TOTGray}></td>)}
+                  <td style={TOTGray2}>TOTAL</td>
+                  {Array.from({ length: 9 }).map((_, j) => <td key={j} style={TOTGray2}></td>)}
                 </tr>
               </tbody>
             </table>
@@ -817,68 +827,68 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           {/* 5. Térmica */}
           <div style={{ marginBottom: '6px' }}>
             <div style={{ fontWeight: 'bold', fontSize: '8px', marginBottom: '2px' }}>5. Térmica (Biomassa/Solar Térmica/Cogeração)</div>
-            <table style={T}>
+            <table style={T2}>
               <thead>
                 <tr>
-                  <th style={CHBlue}>Informação</th>
-                  <th style={CHBlue}>Especificação</th>
-                  <th style={CHBlue}>Unidade</th>
-                  <th style={CHBlue}>Periodicidade</th>
-                  <th style={CHBlue}>Observação</th>
+                  <th style={CHBlue2}>Informação</th>
+                  <th style={CHBlue2}>Especificação</th>
+                  <th style={CHBlue2}>Unidade</th>
+                  <th style={CHBlue2}>Periodicidade</th>
+                  <th style={CHBlue2}>Observação</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Fabricante das Turbinas*</td>
-                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Fabricante das Turbinas*</td>
+                  <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Tipo de Turbina* <sup>(1)</sup></td>
-                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Tipo de Turbina* <sup>(1)</sup></td>
+                  <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Fabricante/Modelo do Gerador</td>
-                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Fabricante/Modelo do Gerador</td>
+                  <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Potência Nominal de Placa</td>
-                  <td style={DPeach}></td><td style={D}>kVA</td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Potência Nominal de Placa</td>
+                  <td style={DPeach2}></td><td style={D2}>kVA</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Potência Máxima em Regime Contínuo</td>
-                  <td style={DPeach}></td><td style={D}>kW</td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Potência Máxima em Regime Contínuo</td>
+                  <td style={DPeach2}></td><td style={D2}>kW</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Corrente Nominal</td>
-                  <td style={DPeach}></td><td style={D}>A</td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Corrente Nominal</td>
+                  <td style={DPeach2}></td><td style={D2}>A</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Tensão Nominal</td>
-                  <td style={DPeach}></td><td style={D}>kV</td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Tensão Nominal</td>
+                  <td style={DPeach2}></td><td style={D2}>kV</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Frequência Nominal</td>
-                  <td style={DPeach}></td><td style={D}>Hz</td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Frequência Nominal</td>
+                  <td style={DPeach2}></td><td style={D2}>Hz</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Velocidade Nominal</td>
-                  <td style={DPeach}></td><td style={D}>rpm</td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Velocidade Nominal</td>
+                  <td style={DPeach2}></td><td style={D2}>rpm</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Número de fases</td>
-                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Número de fases</td>
+                  <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Tipo e Ligação <sup>(2)</sup></td>
-                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Tipo e Ligação <sup>(2)</sup></td>
+                  <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Número de pólos</td>
-                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Número de pólos</td>
+                  <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
-                  <td style={{ ...L, whiteSpace: 'normal' }}>Fator de Potência Máximo* <sup>(3)</sup></td>
-                  <td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td><td style={DPeach}></td>
+                  <td style={{ ...L2, whiteSpace: 'normal' }}>Fator de Potência Máximo* <sup>(3)</sup></td>
+                  <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
               </tbody>
             </table>
