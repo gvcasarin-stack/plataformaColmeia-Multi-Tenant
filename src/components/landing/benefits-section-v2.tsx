@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { FileStack, MousePointerClick, Bell } from "lucide-react"
+import { FileStack, MousePointerClick, Bell, Kanban, Receipt, UserCircle } from "lucide-react"
 
-const benefits = [
+const benefitsRow1 = [
   {
     icon: <FileStack className="h-10 w-10 text-white" />,
     title: "Gestão de Documentos",
@@ -30,6 +30,36 @@ const benefits = [
     delay: 300,
     iconBg: "bg-gradient-to-br from-green-500 to-emerald-600",
     borderColor: "border-green-200 hover:border-green-500",
+  },
+]
+
+const benefitsRow2 = [
+  {
+    icon: <Kanban className="h-10 w-10 text-white" />,
+    title: "Kanban Customizado",
+    description:
+      "Visão clara de todas as etapas do processo de homologação e tempo máximo em cada etapa. Garanta todos os prazos com facilidade.",
+    delay: 0,
+    iconBg: "bg-gradient-to-br from-purple-500 to-purple-600",
+    borderColor: "border-purple-200 hover:border-purple-500",
+  },
+  {
+    icon: <Receipt className="h-10 w-10 text-white" />,
+    title: "Financeiro Integrado",
+    description:
+      "Controle de faturas, despesas, receitas e lucro líquido do escritório a um clique de distância. Organização financeira levada a sério.",
+    delay: 150,
+    iconBg: "bg-gradient-to-br from-orange-500 to-orange-600",
+    borderColor: "border-orange-200 hover:border-orange-500",
+  },
+  {
+    icon: <UserCircle className="h-10 w-10 text-white" />,
+    title: "Portal do Integrador",
+    description:
+      "Uma interface exclusiva para seus parceiros acompanharem os projetos, status, baixarem documentos e se comunicarem com você, sem precisar te ligar.",
+    delay: 300,
+    iconBg: "bg-gradient-to-br from-indigo-500 to-indigo-600",
+    borderColor: "border-indigo-200 hover:border-indigo-500",
   },
 ]
 
@@ -71,29 +101,31 @@ export default function BenefitsSectionV2() {
           </p>
         </div>
 
-        <div className="grid gap-8 sm:grid-cols-3 max-w-5xl mx-auto">
-          {benefits.map((benefit, index) => (
-            <div
-              key={index}
-              className={`group relative p-8 rounded-xl bg-white border-2 ${benefit.borderColor} shadow-sm hover:shadow-xl transition-all duration-300 transform ${
-                isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
-              }`}
-              style={{
-                transitionDelay: isVisible ? `${benefit.delay}ms` : "0ms",
-              }}
-            >
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div
-                  className={`p-4 rounded-xl ${benefit.iconBg} shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}
-                >
-                  {benefit.icon}
+        {[benefitsRow1, benefitsRow2].map((row, rowIndex) => (
+          <div key={rowIndex} className={`grid gap-8 sm:grid-cols-3 max-w-5xl mx-auto ${rowIndex > 0 ? "mt-8" : ""}`}>
+            {row.map((benefit, index) => (
+              <div
+                key={index}
+                className={`group relative p-8 rounded-xl bg-white border-2 ${benefit.borderColor} shadow-sm hover:shadow-xl transition-all duration-300 transform ${
+                  isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+                }`}
+                style={{
+                  transitionDelay: isVisible ? `${benefit.delay + rowIndex * 450}ms` : "0ms",
+                }}
+              >
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div
+                    className={`p-4 rounded-xl ${benefit.iconBg} shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}
+                  >
+                    {benefit.icon}
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">{benefit.title}</h3>
+                  <p className="text-gray-600 text-base leading-relaxed">{benefit.description}</p>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">{benefit.title}</h3>
-                <p className="text-gray-600 text-base leading-relaxed">{benefit.description}</p>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ))}
       </div>
     </section>
   )
