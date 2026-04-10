@@ -728,45 +728,41 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
         </View>
 
-        {/* ===== SEÇÃO 8 + RODAPÉ (3 colunas: 35,35,30) ===== */}
+        {/* ===== SEÇÃO 8 (cabeçalho + 2 colunas 40/60) ===== */}
         <View style={s.tbl}>
           <View style={s.row}>
-            <View style={[s.d, { width: '35%', fontSize: 6, lineHeight: 1.4 }]}>
-              <Text style={s.bold}>8. Este formulário deve ser preenchido e encaminhado aos canais de atendimento Corporativo da Concessionária{'\n'}</Text>
-              <Text>
-                <Text style={s.bold}>ALAGOAS</Text>{' - Sede de regionais (Maceió, Arapiraca, Matriz de Camaragibe e Santana do Ipanema)\n'}
-                <Text style={s.bold}>AMAPÁ</Text>{' - Sede de regionais (Macapá)\n'}
-                <Text style={s.bold}>GOIÁS</Text>{' - Sede de regionais (Goiânia, Luziânia, Anápolis, Rio Verde e Iporá)\n'}
-                <Text style={s.bold}>MARANHÃO</Text>{' - Sede de regionais (São Luís, Imperatriz, Timon, Balsas e Bacabal)\n'}
-                <Text style={s.bold}>PARÁ</Text>{' - Sede de regionais (Belém, Castanhal, Marabá, Santarém e Altamira)\n'}
-                <Text style={s.bold}>PIAUÍ</Text>{' - Sede de regionais (Teresina, Parnaíba, Picos, Bom Jesus e Floriano)\n'}
-                <Text style={s.bold}>RIO GRANDE DO SUL</Text>{' - Sede de regionais (Porto Alegre, Osório e Pelotas)\n\n'}
-                {'Em caso de dúvidas entrar em contato com os canais de atendimento disponibilizados na norma NT.00020.EQTL.Normas e Qualidade.'}
-              </Text>
-            </View>
-            <View style={[s.d, { width: '35%', fontSize: 6, lineHeight: 1.4 }]}>
-              <Text>Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.</Text>
-            </View>
-            <View style={[s.d, { width: '30%', fontSize: 6 }]}>
-              <View style={{ borderWidth: 0.5, borderColor: BC, padding: 3 }}>
-                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 6 }}>{v('responsavel_nome', pd)}</Text>
-                <Text style={{ fontSize: 6, marginTop: 2 }}>
-                  {v('responsavel_profissao', pd)}{'\n'}Reg.: {v('responsavel_registro', pd)}
-                </Text>
-              </View>
+            <View style={[s.sh, { width: '100%' }]}>
+              <Text>8. Este formulário deve ser preenchido e encaminhado aos canais de atendimento Corporativo da Concessionária</Text>
             </View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '35%', fontSize: 6 }]}>
-              <Text>{v('cidade', pd)}-{v('estado', pd)}</Text>
-              <Text style={{ borderTopWidth: 0.5, borderColor: BC, marginTop: 14, paddingTop: 2, fontSize: 5, color: '#595959' }}>Local</Text>
+            {/* Esquerda 40% — lista de estados */}
+            <View style={[s.d, { width: '40%', fontSize: 6, lineHeight: 1.5 }]}>
+              <Text><Text style={s.bold}>{'ALAGOAS'}</Text>{' - Sede de regionais (Maceió, Arapiraca, Matriz de Camaragibe e Santana do Ipanema)'}</Text>
+              <Text><Text style={s.bold}>{'AMAPÁ'}</Text>{' - Sede de regionais (Macapá)'}</Text>
+              <Text><Text style={s.bold}>{'GOIÁS'}</Text>{' - Sede de regionais (Goiânia, Luziânia, Anápolis, Rio Verde e Iporá)'}</Text>
+              <Text><Text style={s.bold}>{'MARANHÃO'}</Text>{' - Sede de regionais (São Luís, Imperatriz, Timon, Balsas e Bacabal)'}</Text>
+              <Text><Text style={s.bold}>{'PARÁ'}</Text>{' - Sede de regionais (Belém, Castanhal, Marabá, Santarém e Altamira)'}</Text>
+              <Text><Text style={s.bold}>{'PIAUÍ'}</Text>{' - Sede de regionais (Teresina, Parnaíba, Picos, Bom Jesus e Floriano)'}</Text>
+              <Text><Text style={s.bold}>{'RIO GRANDE DO SUL'}</Text>{' - Sede de regionais (Porto Alegre, Osório e Pelotas)'}</Text>
+              <Text>{' '}</Text>
+              <Text>{'Em caso de dúvidas entrar em contato com os canais de atendimento disponibilizados na norma NT.00020.EQTL.Normas e Qualidade.'}</Text>
             </View>
-            <View style={[s.d, { width: '35%', fontSize: 6 }]}>
-              <Text>{v('data', pd)}</Text>
-              <Text style={{ borderTopWidth: 0.5, borderColor: BC, marginTop: 14, paddingTop: 2, fontSize: 5, color: '#595959' }}>Data</Text>
-            </View>
-            <View style={[s.d, { width: '30%', fontSize: 6, textAlign: 'center' }]}>
-              <Text style={{ borderTopWidth: 0.5, borderColor: BC, marginTop: 28, paddingTop: 2, fontSize: 5, color: '#595959' }}>Assinatura do Responsável</Text>
+            {/* Direita 60% — declaração + assinaturas na base */}
+            <View style={[s.d, { width: '60%', fontSize: 6, flexDirection: 'column', minHeight: 100 }]}>
+              <Text style={{ lineHeight: 1.4 }}>{'Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.'}</Text>
+              <View style={{ flex: 1 }} />
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                <View style={{ flex: 1, borderTopWidth: 0.5, borderColor: BC }}>
+                  <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Local</Text>
+                </View>
+                <View style={{ flex: 1, borderTopWidth: 0.5, borderColor: BC }}>
+                  <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Data</Text>
+                </View>
+                <View style={{ flex: 2, borderTopWidth: 0.5, borderColor: BC }}>
+                  <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Assinatura do Responsável</Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>

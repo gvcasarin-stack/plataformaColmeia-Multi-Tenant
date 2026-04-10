@@ -625,54 +625,42 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           </tbody>
         </table>
 
-        {/* ===== SEÇÃO 8 + RODAPÉ ===== */}
+        {/* ===== SEÇÃO 8 ===== */}
         <table style={T}>
-          <colgroup>
-            <col style={{ width: '35%' }} />
-            <col style={{ width: '35%' }} />
-            <col style={{ width: '30%' }} />
-          </colgroup>
           <tbody>
             <tr>
-              <td style={{ ...D, fontSize: '7px', lineHeight: '1.4', verticalAlign: 'top' }}>
-                <strong>8. Este formulário deve ser preenchido e encaminhado aos canais de atendimento Corporativo da Concessionária</strong>
-                <br /><br />
-                <strong>ALAGOAS</strong> - Sede de regionais (Maceió, Arapiraca, Matriz de Camaragibe e Santana do Ipanema)
-                <br /><strong>AMAPÁ</strong> - Sede de regionais (Macapá)
-                <br /><strong>GOIÁS</strong> - Sede de regionais (Goiânia, Luziânia, Anápolis, Rio Verde e Iporá)
-                <br /><strong>MARANHÃO</strong> - Sede de regionais (São Luís, Imperatriz, Timon, Balsas e Bacabal)
-                <br /><strong>PARÁ</strong> - Sede de regionais (Belém, Castanhal, Marabá, Santarém e Altamira)
-                <br /><strong>PIAUÍ</strong> - Sede de regionais (Teresina, Parnaíba, Picos, Bom Jesus e Floriano)
-                <br /><strong>RIO GRANDE DO SUL</strong> - Sede de regionais (Porto Alegre, Osório e Pelotas)
-                <br /><br />
-                Em caso de dúvidas entrar em contato com os canais de atendimento disponibilizados na norma NT.00020.EQTL.Normas e Qualidade.
-              </td>
-              <td style={{ ...D, fontSize: '7px', lineHeight: '1.4', verticalAlign: 'top' }}>
-                Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.
-              </td>
-              <td style={{ ...D, fontSize: '7px', lineHeight: '1.4', verticalAlign: 'top' }}>
-                <div style={{ border: B, padding: '4px', fontSize: '7px' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '8px' }}>
-                    <V>{`{{responsavel_nome}}`}</V>
-                  </div>
-                  <div style={{ fontSize: '7px', marginTop: '2px' }}>
-                    <V>{`{{responsavel_profissao}}`}</V>
-                    <br />Reg.: <V>{`{{responsavel_registro}}`}</V>
-                  </div>
-                </div>
-              </td>
+              <td style={SH}>8. Este formulário deve ser preenchido e encaminhado aos canais de atendimento Corporativo da Concessionária</td>
             </tr>
             <tr>
-              <td style={{ ...D, fontSize: '7px' }}>
-                <V>{`{{cidade}}`}</V>-<V>{`{{estado}}`}</V>
-                <div style={{ borderTop: B, marginTop: '16px', paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Local</div>
+              {/* Esquerda 40% — lista de estados */}
+              <td style={{ ...D, width: '40%', fontSize: '7px', lineHeight: '1.5', verticalAlign: 'top' }}>
+                <div><strong>ALAGOAS</strong> - Sede de regionais (Maceió, Arapiraca, Matriz de Camaragibe e Santana do Ipanema)</div>
+                <div><strong>AMAPÁ</strong> - Sede de regionais (Macapá)</div>
+                <div><strong>GOIÁS</strong> - Sede de regionais (Goiânia, Luziânia, Anápolis, Rio Verde e Iporá)</div>
+                <div><strong>MARANHÃO</strong> - Sede de regionais (São Luís, Imperatriz, Timon, Balsas e Bacabal)</div>
+                <div><strong>PARÁ</strong> - Sede de regionais (Belém, Castanhal, Marabá, Santarém e Altamira)</div>
+                <div><strong>PIAUÍ</strong> - Sede de regionais (Teresina, Parnaíba, Picos, Bom Jesus e Floriano)</div>
+                <div><strong>RIO GRANDE DO SUL</strong> - Sede de regionais (Porto Alegre, Osório e Pelotas)</div>
+                <br />
+                <div>Em caso de dúvidas entrar em contato com os canais de atendimento disponibilizados na norma NT.00020.EQTL.Normas e Qualidade.</div>
               </td>
-              <td style={{ ...D, fontSize: '7px' }}>
-                <V>{`{{data}}`}</V>
-                <div style={{ borderTop: B, marginTop: '16px', paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Data</div>
-              </td>
-              <td style={{ ...D, fontSize: '7px', textAlign: 'center' }}>
-                <div style={{ borderTop: B, marginTop: '28px', paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Assinatura do Responsável</div>
+              {/* Direita 60% — declaração + assinaturas */}
+              <td style={{ ...D, width: '60%', fontSize: '7px', lineHeight: '1.4', verticalAlign: 'top' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', height: '130px' }}>
+                  <div>Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.</div>
+                  <div style={{ flex: 1 }} />
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ borderTop: B, paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Local</div>
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ borderTop: B, paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Data</div>
+                    </div>
+                    <div style={{ flex: 2, textAlign: 'center' }}>
+                      <div style={{ borderTop: B, paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Assinatura do Responsável</div>
+                    </div>
+                  </div>
+                </div>
               </td>
             </tr>
           </tbody>
