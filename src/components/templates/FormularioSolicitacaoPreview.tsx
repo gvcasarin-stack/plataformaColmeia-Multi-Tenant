@@ -63,7 +63,7 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 };
 
 // Estilo base reutilizável
-const T: React.CSSProperties = { width: '100%', borderCollapse: 'separate', borderSpacing: '0 2px', marginBottom: '4px', fontSize: '8px', lineHeight: '1.3' };
+const T: React.CSSProperties = { width: '100%', borderCollapse: 'separate', borderSpacing: '0 3px', marginBottom: '4px', fontSize: '8px', lineHeight: '1.3' };
 const B = '0.5px solid #000000';
 // Section header — fundo branco, texto preto (igual ao original)
 const SH: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', padding: '3px 5px', fontSize: '8px', border: B };
@@ -235,22 +235,22 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             {/* CEP / Município / UF / E-mail */}
             <tr>
               <td style={{ ...LR, width: '8%' }}>CEP:</td>
-              <td style={{ ...D, width: '12%' }}><V>{`{{cliente_cep}}`}</V></td>
+              <td style={{ ...D, width: '12%', padding: '2px 6px' }}><V>{`{{cliente_cep}}`}</V></td>
               <td style={{ ...LR, width: '8%' }}>Município</td>
-              <td style={{ ...D, width: '12%' }}><V>{`{{cidade}}`}</V></td>
+              <td style={{ ...D, width: '12%', padding: '2px 6px' }}><V>{`{{cidade}}`}</V></td>
               <td style={{ ...LR, width: '7%' }}>UF (selecionar)</td>
-              <td style={{ ...D, width: '8%' }}><V>{`{{estado}}`}</V></td>
+              <td style={{ ...D, width: '8%', padding: '2px 6px' }}><V>{`{{estado}}`}</V></td>
               <td style={{ ...LR, width: '7%' }}>E-mail</td>
-              <td style={{ ...D, width: '38%' }}><V>{`{{cliente_email}}`}</V></td>
+              <td style={{ ...D, width: '38%', padding: '2px 6px' }}><V>{`{{cliente_email}}`}</V></td>
             </tr>
 
-            {/* Tipo de orçamento / Conta Contrato */}
+            {/* Tipo de orçamento / espaço em branco / Conta Contrato */}
             <tr>
-              <td style={L} colSpan={2}>Tipo de orçamento desejado</td>
+              <td style={L} colSpan={1}>Tipo de orçamento desejado</td>
               <td style={{ ...D, fontWeight: 'bold' }} colSpan={1}>Orçamento de Conexão</td>
+              <td style={D} colSpan={1}></td>
               <td style={LR} colSpan={2}>Conta Contrato (Se UC existente)</td>
-              <td style={D}><V>{`{{conta_contrato}}`}</V></td>
-              <td style={L} colSpan={2}>Tipo de orçamento desejado</td>
+              <td style={D} colSpan={3}><V>{`{{conta_contrato}}`}</V></td>
             </tr>
 
             {/* Tipo de Solicitação */}

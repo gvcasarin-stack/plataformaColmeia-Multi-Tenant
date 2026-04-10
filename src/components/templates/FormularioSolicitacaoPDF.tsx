@@ -105,7 +105,7 @@ const s = StyleSheet.create({
     borderTopWidth: B,
     borderColor: BC,
     marginBottom: 4,
-    gap: 2,
+    gap: 3,
   },
   row: { flexDirection: 'row' },
   sh: {
@@ -382,21 +382,23 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           {/* CEP / Município / UF / E-mail */}
           <View style={s.row}>
             <View style={[s.lr, { width: '8%' }]}><Text>CEP:</Text></View>
-            <View style={[s.d, { width: '12%' }]}><Text>{v('cliente_cep', pd)}</Text></View>
+            <View style={[s.d, { width: '12%', paddingTop: 2, paddingBottom: 2 }]}><Text>{v('cliente_cep', pd)}</Text></View>
             <View style={[s.lr, { width: '8%' }]}><Text>Município</Text></View>
-            <View style={[s.d, { width: '12%' }]}><Text>{v('cidade', pd)}</Text></View>
+            <View style={[s.d, { width: '12%', paddingTop: 2, paddingBottom: 2 }]}><Text>{v('cidade', pd)}</Text></View>
             <View style={[s.lr, { width: '5%' }]}><Text>UF</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text>{v('estado', pd)}</Text></View>
+            <View style={[s.d, { width: '8%', paddingTop: 2, paddingBottom: 2 }]}>
+              <Text>{pd?.client_state ? String(pd.client_state).toUpperCase() : '___'}</Text>
+            </View>
             <View style={[s.lr, { width: '7%' }]}><Text>E-mail</Text></View>
-            <View style={[s.d, { width: '40%' }]}><Text>{v('cliente_email', pd)}</Text></View>
+            <View style={[s.d, { width: '40%', paddingTop: 2, paddingBottom: 2 }]}><Text>{v('cliente_email', pd)}</Text></View>
           </View>
-          {/* Tipo de orçamento / Conta Contrato */}
+          {/* Tipo de orçamento / espaço em branco / Conta Contrato */}
           <View style={s.row}>
-            <View style={[s.l, { width: '38%' }]}><Text>Tipo de orçamento desejado</Text></View>
+            <View style={[s.l, { width: '19%' }]}><Text>Tipo de orçamento desejado</Text></View>
             <View style={[s.d, { width: '10%' }]}><Text style={s.bold}>Orçamento de Conexão</Text></View>
+            <View style={[s.d, { width: '19%' }]}><Text></Text></View>
             <View style={[s.lr, { width: '24%' }]}><Text>Conta Contrato (Se UC existente)</Text></View>
-            <View style={[s.d, { width: '14%' }]}><Text>{v('conta_contrato', pd)}</Text></View>
-            <View style={[s.l, { width: '14%' }]}><Text>Tipo de orçamento desejado</Text></View>
+            <View style={[s.d, { width: '28%' }]}><Text>{v('conta_contrato', pd)}</Text></View>
           </View>
           {/* Tipo de Solicitação */}
           <View style={s.row}>
