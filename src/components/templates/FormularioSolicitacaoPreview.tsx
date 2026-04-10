@@ -321,14 +321,15 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
 
             {/* Coordenadas UTM */}
             <tr>
-              <td colSpan={3} style={{ ...L, whiteSpace: 'normal', fontSize: '7px' }}>
+              <td colSpan={2} style={{ ...L, whiteSpace: 'normal', fontSize: '7px' }}>
                 Preencher as coordenadas do ponto de entrega do acessante em UTM Fuso 23 ou Coordenadas Decimais
               </td>
               <td style={{ ...LR, whiteSpace: 'nowrap' }}>Fuso:</td>
               <td style={D}><V>{`{{coord_utm_fuso}}`}</V></td>
               <td style={{ ...LR, whiteSpace: 'nowrap' }}>X =</td>
               <td style={D}><V>{`{{coord_utm_x}}`}</V></td>
-              <td style={D}>Y = <V>{`{{coord_utm_y}}`}</V></td>
+              <td style={{ ...LR, whiteSpace: 'nowrap' }}>Y =</td>
+              <td style={D}><V>{`{{coord_utm_y}}`}</V></td>
             </tr>
 
             {/* Responsável Legal - linha 1 */}
@@ -352,12 +353,12 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             <col style={{ width: '9%' }} />
             <col style={{ width: '15%' }} />
             <col style={{ width: '8%' }} />
+            <col style={{ width: '8%' }} />
             <col style={{ width: '12%' }} />
-            <col style={{ width: '18%' }} />
             <col style={{ width: '10%' }} />
             <col style={{ width: '9%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '11%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '15%' }} />
           </colgroup>
           <tbody>
             <tr><td colSpan={9} style={SH}>2. Dados Cadastrais do Responsável Técnico</td></tr>

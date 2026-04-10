@@ -470,12 +470,13 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {/* Coordenadas UTM */}
           <View style={s.row}>
-            <View style={[s.l, { width: '48%' }]}><Text>Coordenadas do ponto de entrega em UTM Fuso 23 ou Coordenadas Decimais</Text></View>
-            <View style={[s.lr, { width: '7%' }]}><Text>Fuso:</Text></View>
+            <View style={[s.l, { width: '35%' }]}><Text>Coordenadas do ponto de entrega em UTM Fuso 23 ou Coordenadas Decimais</Text></View>
+            <View style={[s.lr, { width: '6%' }]}><Text>Fuso:</Text></View>
             <View style={[s.d, { width: '11%' }]}><Text>{v('coord_utm_fuso', pd)}</Text></View>
-            <View style={[s.lr, { width: '7%' }]}><Text>X =</Text></View>
+            <View style={[s.lr, { width: '6%' }]}><Text>X =</Text></View>
             <View style={[s.d, { width: '13%' }]}><Text>{v('coord_utm_x', pd)}</Text></View>
-            <View style={[s.d, { width: '14%' }]}><Text>Y = {v('coord_utm_y', pd)}</Text></View>
+            <View style={[s.lr, { width: '6%' }]}><Text>Y =</Text></View>
+            <View style={[s.d, { width: '23%' }]}><Text>{v('coord_utm_y', pd)}</Text></View>
           </View>
           {/* Responsável Legal */}
           <View style={s.row}>
@@ -512,12 +513,12 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           <View style={s.row}>
             <View style={[s.lr, { width: '9%' }]}><Text>E-mail</Text></View>
             <View style={[s.d, { width: '20%' }]}><Text>{v('responsavel_email', pd)}</Text></View>
-            <View style={[s.l, { width: '12%' }]}><Text>Telefone Fixo</Text></View>
-            <View style={[s.d, { width: '19%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '8%' }]}><Text>Telefone Fixo</Text></View>
+            <View style={[s.d, { width: '12%' }]}><Text></Text></View>
             <View style={[s.l, { width: '10%' }]}><Text>Telefone Celular</Text></View>
             <View style={[s.d, { width: '12%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
-            <View style={[s.l, { width: '7%' }]}><Text>Empresa (opcional)</Text></View>
-            <View style={[s.d, { width: '11%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '15%' }]}><Text>Empresa (opcional)</Text></View>
+            <View style={[s.d, { width: '14%' }]}><Text></Text></View>
           </View>
         </View>
 
