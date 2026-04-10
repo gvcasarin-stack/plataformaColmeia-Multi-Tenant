@@ -451,11 +451,11 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           </View>
           {/* Carga Declarada / Disjuntor / PD */}
           <View style={s.row}>
-            <View style={[s.lr, { width: '38%' }]}><Text>Carga Declarada da UC</Text></View>
-            <View style={[s.d, { width: '10%' }]}><Text>{fmtKW(pd?.carga_declarada_kw)} kW</Text></View>
+            <View style={[s.lr, { width: '20%' }]}><Text>Carga Declarada da UC</Text></View>
+            <View style={[s.d, { width: '8%' }]}><Text>{fmtKW(pd?.carga_declarada_kw)} kW</Text></View>
             <View style={[s.lr, { width: '24%' }]}><Text>Disjuntor de Entrada da UC (selecionar)</Text></View>
             <View style={[s.d, { width: '14%' }]}><Text>{v('disjuntor_corrente_a', pd)} A</Text></View>
-            <View style={[s.lr, { width: '7%' }]}><Text>Potência Disponibilizada (PD)</Text></View>
+            <View style={[s.lr, { width: '27%' }]}><Text>Potência Disponibilizada (PD) para a UC</Text></View>
             <View style={[s.d, { width: '7%' }]}><Text>{fmtKW(pd?.potencia_disponibilizada_kw)} kW</Text></View>
           </View>
           {/* OK Carga / Ramal / Poste */}
@@ -498,24 +498,24 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.sh, { width: '100%' }]}><Text>2. Dados Cadastrais do Responsável Técnico</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.lr, { width: '14%' }]}><Text>Nome Completo</Text></View>
-            <View style={[s.d, { width: '27%' }]}><Text>{v('responsavel_nome', pd)}</Text></View>
-            <View style={[s.lr, { width: '13%' }]}><Text>Titulo Profissional</Text></View>
-            <View style={[s.d, { width: '11%' }]}><Text>{v('responsavel_profissao', pd)}</Text></View>
+            <View style={[s.lr, { width: '9%' }]}><Text>Nome Completo</Text></View>
+            <View style={[s.d, { width: '20%' }]}><Text>{v('responsavel_nome', pd)}</Text></View>
+            <View style={[s.lr, { width: '12%' }]}><Text>Titulo Profissional</Text></View>
+            <View style={[s.d, { width: '19%' }]}><Text>{v('responsavel_profissao', pd)}</Text></View>
             <View style={[s.lr, { width: '13%' }]}><Text>Registro Profissional</Text></View>
             <View style={[s.d, { width: '12%' }]}><Text>Nº {v('responsavel_registro', pd)}</Text></View>
-            <View style={[s.lr, { width: '5%' }]}><Text>UF</Text></View>
-            <View style={[s.d, { width: '5%' }]}><Text>{v('responsavel_uf', pd)}</Text></View>
+            <View style={[s.lr, { width: '7%' }]}><Text>UF</Text></View>
+            <View style={[s.d, { width: '8%' }]}><Text>{v('responsavel_uf', pd)}</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.lr, { width: '14%' }]}><Text>E-mail</Text></View>
-            <View style={[s.d, { width: '27%' }]}><Text>{v('responsavel_email', pd)}</Text></View>
-            <View style={[s.l, { width: '10%' }]}><Text>Telefone Fixo</Text></View>
-            <View style={[s.d, { width: '12%' }]}><Text></Text></View>
+            <View style={[s.lr, { width: '9%' }]}><Text>E-mail</Text></View>
+            <View style={[s.d, { width: '20%' }]}><Text>{v('responsavel_email', pd)}</Text></View>
+            <View style={[s.l, { width: '12%' }]}><Text>Telefone Fixo</Text></View>
+            <View style={[s.d, { width: '19%' }]}><Text></Text></View>
             <View style={[s.l, { width: '10%' }]}><Text>Telefone Celular</Text></View>
             <View style={[s.d, { width: '12%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
-            <View style={[s.l, { width: '8%' }]}><Text>Empresa (opcional)</Text></View>
-            <View style={[s.d, { width: '7%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '7%' }]}><Text>Empresa (opcional)</Text></View>
+            <View style={[s.d, { width: '11%' }]}><Text></Text></View>
           </View>
         </View>
 

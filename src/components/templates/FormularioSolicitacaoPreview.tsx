@@ -300,12 +300,12 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
 
             {/* Carga Declarada / Disjuntor / Potência Disponibilizada */}
             <tr>
-              <td style={LR} colSpan={2}>Carga Declarada da UC</td>
-              <td style={D}><V>{`{{carga_declarada_kw}}`}</V> kW</td>
+              <td style={LR} colSpan={1}>Carga Declarada da UC</td>
+              <td style={D} colSpan={1}><V>{`{{carga_declarada_kw}}`}</V> kW</td>
               <td style={LR} colSpan={2}>Disjuntor de Entrada da UC (selecionar)</td>
-              <td style={D}><V>{`{{disjuntor_corrente_a}}`}</V> A</td>
-              <td style={{ ...LR, whiteSpace: 'normal' }}>Potência Disponibilizada (PD) para a UC</td>
-              <td style={D}><V>{`{{potencia_disponibilizada_kw}}`}</V> kW</td>
+              <td style={D} colSpan={1}><V>{`{{disjuntor_corrente_a}}`}</V> A</td>
+              <td style={{ ...LR, whiteSpace: 'nowrap' }} colSpan={2}>Potência Disponibilizada (PD) para a UC</td>
+              <td style={D} colSpan={1}><V>{`{{potencia_disponibilizada_kw}}`}</V> kW</td>
             </tr>
 
             {/* OK Carga / Tipo Ramal / Nº Poste */}
@@ -347,15 +347,15 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
         {/* ===== SEÇÃO 2 ===== */}
         <table style={T}>
           <colgroup>
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '19%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '15%' }} />
             <col style={{ width: '8%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '11%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '18%' }} />
             <col style={{ width: '10%' }} />
             <col style={{ width: '9%' }} />
             <col style={{ width: '8%' }} />
-            <col style={{ width: '8%' }} />
+            <col style={{ width: '11%' }} />
           </colgroup>
           <tbody>
             <tr><td colSpan={9} style={SH}>2. Dados Cadastrais do Responsável Técnico</td></tr>
