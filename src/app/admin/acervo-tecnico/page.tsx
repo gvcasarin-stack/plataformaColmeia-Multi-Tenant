@@ -59,9 +59,12 @@ const CATEGORIAS = [
 const TIPOS_DOCUMENTO = [
   { value: 'datasheet', label: 'Datasheet' },
   { value: 'inmetro', label: 'Registro Inmetro' },
-  { value: 'manual', label: 'Manual' },
-  { value: 'outro', label: 'Outro' },
 ];
+
+const TAB_SINGULAR: Record<string, string> = {
+  inversores: 'Inversor',
+  modulos: 'Módulo',
+};
 
 type ActiveTab = 'distribuidoras' | 'inversores' | 'modulos';
 
@@ -375,8 +378,8 @@ export default function AcervoTecnicoPage() {
   };
 
   const handleAddEquip = async () => {
-    if (!equipFabricante.trim() || !equipModelo.trim() || !equipNome.trim()) {
-      toast({ title: 'Preencha os campos', description: 'Fabricante, modelo e nome são obrigatórios.', variant: 'destructive' });
+    if (!equipFabricante.trim() || !equipModelo.trim()) {
+      toast({ title: 'Preencha os campos', description: 'Fabricante e modelo são obrigatórios.', variant: 'destructive' });
       return;
     }
     setSavingEquip(true);
@@ -391,13 +394,14 @@ export default function AcervoTecnicoPage() {
         }
       }
       const tipo = activeTab === 'inversores' ? 'inversor' : 'modulo';
+      const nomeAuto = `${equipFabricante.trim()} ${equipModelo.trim()}`;
       const resp = await fetch('/api/acervo-equipamentos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo, fabricante: equipFabricante.trim(), modelo: equipModelo.trim(),
-          tipo_documento: equipTipoDoc, nome: equipNome.trim(),
-          descricao: equipDescricao.trim() || null, arquivo_url: arquivoUrl, imagem_url: imagemUrl,
+          tipo_documento: equipTipoDoc, nome: nomeAuto,
+          descricao: null, arquivo_url: arquivoUrl, imagem_url: imagemUrl,
         }),
       });
       const result = await resp.json();
@@ -405,7 +409,7 @@ export default function AcervoTecnicoPage() {
         toast({ title: 'Erro ao salvar', description: result.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Item adicionado', description: `"${equipNome}" foi adicionado.` });
+      toast({ title: 'Item adicionado', description: `"${nomeAuto}" foi adicionado.` });
       resetEquipForm();
       fetchEquipamentos();
     } catch {
@@ -427,10 +431,11 @@ export default function AcervoTecnicoPage() {
           else imagemUrl = uploaded.url;
         }
       }
+      const nomeAutoEdit = `${editEquipFabricante.trim()} ${editEquipModelo.trim()}`;
       const body: Record<string, any> = {
         id, fabricante: editEquipFabricante.trim(), modelo: editEquipModelo.trim(),
-        tipo_documento: editEquipTipoDoc, nome: editEquipNome.trim(),
-        descricao: editEquipDescricao.trim() || null,
+        tipo_documento: editEquipTipoDoc, nome: nomeAutoEdit,
+        descricao: null,
       };
       if (arquivoUrl) body.arquivo_url = arquivoUrl;
       if (imagemUrl) body.imagem_url = imagemUrl;
@@ -444,7 +449,7 @@ export default function AcervoTecnicoPage() {
         toast({ title: 'Erro ao atualizar', description: result.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Item atualizado', description: `"${editEquipNome}" foi atualizado.` });
+      toast({ title: 'Item atualizado', description: `"${nomeAutoEdit}" foi atualizado.` });
       setEditingEquipId(null);
       fetchEquipamentos();
     } catch {
@@ -505,6 +510,7 @@ export default function AcervoTecnicoPage() {
   }
 
   const tabLabel = activeTab === 'inversores' ? 'Inversores' : 'Módulos';
+  const tabSingular = TAB_SINGULAR[activeTab] ?? tabLabel;
 
   return (
     <div className="space-y-6">
@@ -813,7 +819,7 @@ export default function AcervoTecnicoPage() {
             <Card className="border-green-200 dark:border-green-800 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Plus className="h-4 w-4 text-green-600" /> Novo {tabLabel.slice(0, -1)}
+                  <Plus className="h-4 w-4 text-green-600" /> Novo {tabSingular}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -827,28 +833,18 @@ export default function AcervoTecnicoPage() {
                     <Input value={equipModelo} onChange={e => setEquipModelo(e.target.value)} placeholder="Ex: Symo 10.0-3-M" className="mt-1" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm">Tipo de Documento</Label>
-                    <Select value={equipTipoDoc} onValueChange={setEquipTipoDoc}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TIPOS_DOCUMENTO.map(t => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-sm">Nome *</Label>
-                    <Input value={equipNome} onChange={e => setEquipNome(e.target.value)} placeholder="Ex: Datasheet Fronius Symo 10kW" className="mt-1" />
-                  </div>
-                </div>
                 <div>
-                  <Label className="text-sm">Descrição</Label>
-                  <Textarea value={equipDescricao} onChange={e => setEquipDescricao(e.target.value)} placeholder="Descrição opcional..." className="mt-1 min-h-[60px]" />
+                  <Label className="text-sm">Tipo de Documento</Label>
+                  <Select value={equipTipoDoc} onValueChange={setEquipTipoDoc}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIPOS_DOCUMENTO.map(t => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label className="text-sm">Arquivo (imagem ou PDF)</Label>
@@ -929,14 +925,6 @@ export default function AcervoTecnicoPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
-                      <div>
-                        <Label className="text-xs">Nome</Label>
-                        <Input value={editEquipNome} onChange={e => setEditEquipNome(e.target.value)} className="mt-1 h-8 text-sm" />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Descrição</Label>
-                        <Textarea value={editEquipDescricao} onChange={e => setEditEquipDescricao(e.target.value)} className="mt-1 min-h-[50px] text-sm" />
                       </div>
                       <div>
                         <input ref={editEquipFileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => handleEquipFileSelect(e, 'edit')} />
