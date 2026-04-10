@@ -388,9 +388,8 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td colSpan={2} style={D}><V>{`{{responsavel_legal_telefone}}`}</V></td>
             </tr>
             <tr>
-              <td colSpan={8} style={D}>
-                <span style={LR as any}>E-mail do Responsável Legal</span>&nbsp;&nbsp;<V>{`{{responsavel_legal_email}}`}</V>
-              </td>
+              <td colSpan={2} style={LR}>E-mail do Responsável Legal</td>
+              <td colSpan={6} style={D}><V>{`{{responsavel_legal_email}}`}</V></td>
             </tr>
           </tbody>
         </table>
@@ -669,6 +668,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                       <div style={{ borderTop: B, paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Data</div>
                     </div>
                     <div style={{ flex: 2, textAlign: 'center' }}>
+                      <div style={{ fontSize: '7px', marginBottom: '2px' }}>&nbsp;</div>
                       <div style={{ borderTop: B, paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Assinatura do Responsável</div>
                     </div>
                   </div>

@@ -532,12 +532,8 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.d, { width: '14%' }]}><Text>{v('responsavel_legal_telefone', pd)}</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '100%' }]}>
-              <Text>
-                <Text style={{ color: '#000000', fontFamily: 'Helvetica-Bold', fontSize: 5 }}>E-mail do Responsável Legal</Text>
-                {'  '}{v('responsavel_legal_email', pd)}
-              </Text>
-            </View>
+            <View style={[s.lr, { width: '38%' }]}><Text>E-mail do Responsável Legal</Text></View>
+            <View style={[s.d, { width: '62%' }]}><Text>{v('responsavel_legal_email', pd)}</Text></View>
           </View>
         </View>
 
@@ -760,7 +756,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             </View>
             {/* Direita 60% — declaração + assinaturas na base */}
             <View style={[s.d, { width: '60%', fontSize: 6, flexDirection: 'column', minHeight: 100 }]}>
-              <Text style={{ lineHeight: 1.2 }}>{'Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.'}</Text>
+              <Text style={{ lineHeight: 1 }}>{'Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.'}</Text>
               <View style={{ flex: 1 }} />
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                 <View style={{ flex: 1, alignItems: 'center' }}>
@@ -775,8 +771,11 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
                     <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Data</Text>
                   </View>
                 </View>
-                <View style={{ flex: 2, borderTopWidth: 0.5, borderColor: BC }}>
-                  <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Assinatura do Responsável</Text>
+                <View style={{ flex: 2, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 6, marginBottom: 2 }}>{' '}</Text>
+                  <View style={{ width: '100%', borderTopWidth: 0.5, borderColor: BC }}>
+                    <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Assinatura do Responsável</Text>
+                  </View>
                 </View>
               </View>
             </View>
