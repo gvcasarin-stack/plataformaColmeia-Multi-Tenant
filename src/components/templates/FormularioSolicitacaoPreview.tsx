@@ -175,6 +175,16 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
     return 'PREENCHER LISTA DE RATEIO DE CLIENTES NA GUIA 2 (OPCIONAL)';
   })();
 
+  const dataInicioOperacao = (() => {
+    const raw = projectData?.data_inicio_operacao;
+    if (raw) return String(raw);
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  })();
+  const dataAssinatura = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const localAssinatura = [projectData?.client_city, projectData?.client_state].filter(Boolean).join(' - ');
+
   const tipoSol = String(projectData?.tipo_solicitacao || '');
   const showPotenciaGD = tipoSol.startsWith('AUMENTO DA POTÊNCIA DE GERAÇÃO');
   const bannerText = (() => {
@@ -493,7 +503,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               </td>
               <td style={L}></td>
               <td style={LR}>Data Início de Operação</td>
-              <td style={okPGT ? OK : D}><V>{`{{data_inicio_operacao}}`}</V>{okPGT ? ' ✓' : ''}</td>
+              <td style={okPGT ? OK : D}>{dataInicioOperacao}{okPGT ? ' ✓' : ''}</td>
             </tr>
           </tbody>
         </table>
@@ -645,15 +655,17 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 <div>Em caso de dúvidas entrar em contato com os canais de atendimento disponibilizados na norma NT.00020.EQTL.Normas e Qualidade.</div>
               </td>
               {/* Direita 60% — declaração + assinaturas */}
-              <td style={{ ...D, width: '60%', fontSize: '7px', lineHeight: '1.4', verticalAlign: 'top' }}>
+              <td style={{ ...D, width: '60%', fontSize: '7px', verticalAlign: 'top' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', height: '130px' }}>
-                  <div>Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.</div>
+                  <div style={{ lineHeight: '1.2' }}>Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.</div>
                   <div style={{ flex: 1 }} />
                   <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
                     <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: '7px', marginBottom: '2px' }}>{localAssinatura}</div>
                       <div style={{ borderTop: B, paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Local</div>
                     </div>
                     <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: '7px', marginBottom: '2px' }}>{dataAssinatura}</div>
                       <div style={{ borderTop: B, paddingTop: '2px', fontSize: '6px', color: '#595959' }}>Data</div>
                     </div>
                     <div style={{ flex: 2, textAlign: 'center' }}>

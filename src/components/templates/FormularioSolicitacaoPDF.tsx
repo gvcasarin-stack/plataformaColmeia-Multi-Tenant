@@ -322,6 +322,16 @@ const s = StyleSheet.create({
 export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoPDFProps) {
   const pd = projectData;
 
+  const dataInicioOperacao = (() => {
+    const raw = pd?.data_inicio_operacao;
+    if (raw) return String(raw);
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  })();
+  const dataAssinatura = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const localAssinatura = [pd?.client_city, pd?.client_state].filter(Boolean).join(' - ');
+
   const modalidadeComp = String(pd?.modalidade_compensacao || '');
   const modalidadeBanner = (() => {
     if (!modalidadeComp) return null;
@@ -608,7 +618,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[okPGT ? s.okCell : s.noOkCell, { width: '58%' }]}><Text>OK: PGT {'<='} PD</Text></View>
             <View style={[s.l, { width: '10%' }]}><Text></Text></View>
             <View style={[s.lr, { width: '24%' }]}><Text>Data Início de Operação</Text></View>
-            <View style={[okPGT ? s.okCell : s.d, { width: '8%' }]}><Text>{v('data_inicio_operacao', pd)}</Text></View>
+            <View style={[okPGT ? s.okCell : s.d, { width: '8%' }]}><Text>{dataInicioOperacao}</Text></View>
           </View>
         </View>
 
@@ -750,14 +760,20 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             </View>
             {/* Direita 60% — declaração + assinaturas na base */}
             <View style={[s.d, { width: '60%', fontSize: 6, flexDirection: 'column', minHeight: 100 }]}>
-              <Text style={{ lineHeight: 1.4 }}>{'Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.'}</Text>
+              <Text style={{ lineHeight: 1.2 }}>{'Eu, acessante identificado neste formulário, venho por meio deste instrumento, solicitar o acesso para microgeração distribuída, fornecendo meus dados cadastrais assim como os documentos necessários, em conformidade com as normas e resoluções aplicáveis.'}</Text>
               <View style={{ flex: 1 }} />
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                <View style={{ flex: 1, borderTopWidth: 0.5, borderColor: BC }}>
-                  <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Local</Text>
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 6, marginBottom: 2 }}>{localAssinatura}</Text>
+                  <View style={{ width: '100%', borderTopWidth: 0.5, borderColor: BC }}>
+                    <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Local</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1, borderTopWidth: 0.5, borderColor: BC }}>
-                  <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Data</Text>
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 6, marginBottom: 2 }}>{dataAssinatura}</Text>
+                  <View style={{ width: '100%', borderTopWidth: 0.5, borderColor: BC }}>
+                    <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Data</Text>
+                  </View>
                 </View>
                 <View style={{ flex: 2, borderTopWidth: 0.5, borderColor: BC }}>
                   <Text style={{ fontSize: 5, color: '#595959', paddingTop: 2, textAlign: 'center' }}>Assinatura do Responsável</Text>
