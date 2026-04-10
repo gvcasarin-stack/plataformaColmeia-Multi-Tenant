@@ -139,8 +139,8 @@ const s = StyleSheet.create({
     color: '#000000',
     fontFamily: 'Helvetica-Bold',
     fontSize: 5.5,
-    paddingTop: 2,
-    paddingBottom: 2,
+    paddingTop: 1,
+    paddingBottom: 1,
     paddingLeft: 4,
     paddingRight: 4,
     borderTopWidth: B,
@@ -151,8 +151,8 @@ const s = StyleSheet.create({
   l: {
     backgroundColor: '#D9D9D9',
     fontSize: 5.5,
-    paddingTop: 2,
-    paddingBottom: 2,
+    paddingTop: 1,
+    paddingBottom: 1,
     paddingLeft: 4,
     paddingRight: 4,
     borderTopWidth: B,
@@ -163,8 +163,8 @@ const s = StyleSheet.create({
   d: {
     backgroundColor: '#FFFFFF',
     fontSize: 6,
-    paddingTop: 2,
-    paddingBottom: 2,
+    paddingTop: 1,
+    paddingBottom: 1,
     paddingLeft: 5,
     paddingRight: 5,
     borderTopWidth: B,
@@ -471,9 +471,11 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           {/* Coordenadas UTM */}
           <View style={s.row}>
             <View style={[s.l, { width: '48%' }]}><Text>Coordenadas do ponto de entrega em UTM Fuso 23 ou Coordenadas Decimais</Text></View>
-            <View style={[s.d, { width: '52%' }]}>
-              <Text>Fuso: {v('coord_utm_fuso', pd)}  X = {v('coord_utm_x', pd)}  Y = {v('coord_utm_y', pd)}</Text>
-            </View>
+            <View style={[s.lr, { width: '7%' }]}><Text>Fuso:</Text></View>
+            <View style={[s.d, { width: '11%' }]}><Text>{v('coord_utm_fuso', pd)}</Text></View>
+            <View style={[s.lr, { width: '7%' }]}><Text>X =</Text></View>
+            <View style={[s.d, { width: '13%' }]}><Text>{v('coord_utm_x', pd)}</Text></View>
+            <View style={[s.d, { width: '14%' }]}><Text>Y = {v('coord_utm_y', pd)}</Text></View>
           </View>
           {/* Responsável Legal */}
           <View style={s.row}>
@@ -525,9 +527,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.sh, { width: '100%' }]}><Text>3. Características da Microgeração Distribuída</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.ssh, { width: '58%' }]}><Text>Dados Gerais da Central Geradora</Text></View>
-            <View style={[s.ssh, { width: '22%' }]}><Text>Descrição</Text></View>
-            <View style={[s.ssh, { width: '20%' }]}><Text>Observações</Text></View>
+            <View style={[s.ssh, { width: '100%' }]}><Text>Dados Gerais da Central Geradora</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.lr, { width: '28%' }]}><Text>Tipo de Fonte Primária (selecionar)</Text></View>
@@ -544,29 +544,29 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           <View style={s.row}>
             <View style={[s.lr, { width: '28%' }]}><Text>Modalidade de Compensação (selecionar)</Text></View>
             <View style={[s.d, { width: '30%' }]}><Text>{v('modalidade_compensacao', pd)}</Text></View>
-            <View style={[s.l, { width: '22%' }]}><Text></Text></View>
-            <View style={[s.lr, { width: '12%' }]}><Text>Potência Geração do Orçamento</Text></View>
+            <View style={[s.l, { width: '10%' }]}><Text></Text></View>
+            <View style={[s.lr, { width: '24%' }]}><Text>Potência Geração do Orçamento</Text></View>
             <View style={[s.d, { width: '8%' }]}><Text>{potenciaKwp} kW</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.d, { width: '58%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
               <Text style={s.bold}>NÃO É NECESSÁRIO PREENCHER A LISTA DE RATEIO</Text>
             </View>
-            <View style={[s.l, { width: '22%' }]}><Text></Text></View>
-            <View style={[s.lr, { width: '12%' }]}><Text>Potência Geração Total da UC (PGT)</Text></View>
+            <View style={[s.l, { width: '10%' }]}><Text></Text></View>
+            <View style={[s.lr, { width: '24%' }]}><Text>Potência Geração Total da UC (PGT)</Text></View>
             <View style={[s.d, { width: '8%' }]}><Text>{potenciaKwp} kW</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.l, { width: '28%' }]}><Text>Armazenamento (se houver)</Text></View>
             <View style={[s.d, { width: '30%' }]}><Text></Text></View>
-            <View style={[s.l, { width: '22%' }]}><Text></Text></View>
-            <View style={[s.l, { width: '12%' }]}><Text>Potência Máxima Injetável (se aplicável)</Text></View>
+            <View style={[s.l, { width: '10%' }]}><Text></Text></View>
+            <View style={[s.l, { width: '24%' }]}><Text>Potência Máxima Injetável (se aplicável)</Text></View>
             <View style={[s.d, { width: '8%' }]}><Text>- kW</Text></View>
           </View>
           <View style={s.row}>
             <View style={[okPGT ? s.okCell : s.noOkCell, { width: '58%' }]}><Text>OK: PGT {'<='} PD</Text></View>
-            <View style={[s.l, { width: '22%' }]}><Text></Text></View>
-            <View style={[s.lr, { width: '12%' }]}><Text>Data Início de Operação</Text></View>
+            <View style={[s.l, { width: '10%' }]}><Text></Text></View>
+            <View style={[s.lr, { width: '24%' }]}><Text>Data Início de Operação</Text></View>
             <View style={[okPGT ? s.okCell : s.d, { width: '8%' }]}><Text>{v('data_inicio_operacao', pd)}</Text></View>
           </View>
         </View>

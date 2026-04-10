@@ -70,11 +70,11 @@ const SH: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', 
 // Sub-header — cinza médio
 const SSH: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontWeight: 'bold', padding: '3px 5px', fontSize: '8px', border: B };
 // Label obrigatório — fundo cinza médio, texto preto
-const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 5px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '1px 5px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Label normal — fundo cinza médio, texto preto
-const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 5px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
+const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '1px 5px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Célula de dado — fundo branco
-const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '2px 6px', border: B, verticalAlign: 'middle', overflow: 'hidden', wordBreak: 'break-word' };
+const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '1px 6px', border: B, verticalAlign: 'middle', overflow: 'hidden', wordBreak: 'break-word' };
 // OK verde forte
 const OK: React.CSSProperties = { backgroundColor: '#70AD47', color: '#FFFFFF', fontSize: '7px', padding: '2px 5px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Cabeçalho de coluna página 1 (cinza)
@@ -324,9 +324,11 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td colSpan={3} style={{ ...L, whiteSpace: 'normal', fontSize: '7px' }}>
                 Preencher as coordenadas do ponto de entrega do acessante em UTM Fuso 23 ou Coordenadas Decimais
               </td>
-              <td colSpan={5} style={D}>
-                <V>{`{{coord_utm_fuso}}`}</V>&nbsp; X =&nbsp;<V>{`{{coord_utm_x}}`}</V>&nbsp;&nbsp; Y =&nbsp;<V>{`{{coord_utm_y}}`}</V>
-              </td>
+              <td style={{ ...LR, whiteSpace: 'nowrap' }}>Fuso:</td>
+              <td style={D}><V>{`{{coord_utm_fuso}}`}</V></td>
+              <td style={{ ...LR, whiteSpace: 'nowrap' }}>X =</td>
+              <td style={D}><V>{`{{coord_utm_x}}`}</V></td>
+              <td style={D}>Y = <V>{`{{coord_utm_y}}`}</V></td>
             </tr>
 
             {/* Responsável Legal - linha 1 */}
@@ -387,16 +389,14 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           <colgroup>
             <col style={{ width: '28%' }} />
             <col style={{ width: '30%' }} />
-            <col style={{ width: '22%' }} />
-            <col style={{ width: '12%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '24%' }} />
             <col style={{ width: '8%' }} />
           </colgroup>
           <tbody>
             <tr><td colSpan={5} style={SH}>3. Características da Microgeração Distribuída</td></tr>
             <tr>
-              <td colSpan={2} style={SSH}>Dados Gerais da Central Geradora</td>
-              <td style={SSH}>Descrição</td>
-              <td colSpan={2} style={SSH}>Observações</td>
+              <td colSpan={5} style={SSH}>Dados Gerais da Central Geradora</td>
             </tr>
 
             {/* Tipo de Fonte */}
