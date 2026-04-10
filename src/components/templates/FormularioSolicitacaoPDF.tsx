@@ -322,6 +322,14 @@ const s = StyleSheet.create({
 export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoPDFProps) {
   const pd = projectData;
 
+  const modalidadeComp = String(pd?.modalidade_compensacao || '');
+  const modalidadeBanner = (() => {
+    if (!modalidadeComp) return null;
+    if (modalidadeComp.toLowerCase().includes('autoconsumo local'))
+      return 'NÃO É NECESSÁRIO PREENCHER A LISTA DE RATEIO';
+    return 'PREENCHER LISTA DE RATEIO DE CLIENTES NA GUIA 2 (OPCIONAL)';
+  })();
+
   const tipoSol = String(pd?.tipo_solicitacao || '');
   const showPotenciaGD = tipoSol.startsWith('AUMENTO DA POTÊNCIA DE GERAÇÃO');
   const bannerText = (() => {
@@ -578,9 +586,13 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.d, { width: '8%' }]}><Text>{potenciaKwp} kW</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '58%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
-              <Text style={s.bold}>NÃO É NECESSÁRIO PREENCHER A LISTA DE RATEIO</Text>
-            </View>
+            {modalidadeBanner ? (
+              <View style={[s.d, { width: '58%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
+                <Text style={s.bold}>{modalidadeBanner}</Text>
+              </View>
+            ) : (
+              <View style={[s.d, { width: '58%' }]}><Text></Text></View>
+            )}
             <View style={[s.l, { width: '10%' }]}><Text></Text></View>
             <View style={[s.lr, { width: '24%' }]}><Text>Potência Geração Total da UC (PGT)</Text></View>
             <View style={[s.d, { width: '8%' }]}><Text>{potenciaKwp} kW</Text></View>

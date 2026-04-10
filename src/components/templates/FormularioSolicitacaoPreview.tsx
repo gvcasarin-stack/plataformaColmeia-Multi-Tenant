@@ -167,6 +167,14 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
   const emptyModuloRows = Array.from({ length: Math.max(0, 10 - 1) });
   const emptyInversorRows = Array.from({ length: Math.max(0, 30 - inversoresQtd) });
 
+  const modalidadeComp = String(projectData?.modalidade_compensacao || '');
+  const modalidadeBanner = (() => {
+    if (!modalidadeComp) return null;
+    if (modalidadeComp.toLowerCase().includes('autoconsumo local'))
+      return 'NÃO É NECESSÁRIO PREENCHER A LISTA DE RATEIO';
+    return 'PREENCHER LISTA DE RATEIO DE CLIENTES NA GUIA 2 (OPCIONAL)';
+  })();
+
   const tipoSol = String(projectData?.tipo_solicitacao || '');
   const showPotenciaGD = tipoSol.startsWith('AUMENTO DA POTÊNCIA DE GERAÇÃO');
   const bannerText = (() => {
@@ -455,11 +463,15 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td style={D}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>} kW</td>
             </tr>
 
-            {/* NÃO É NECESSÁRIO PREENCHER... */}
+            {/* NÃO É NECESSÁRIO / PREENCHER LISTA DE RATEIO */}
             <tr>
-              <td colSpan={2} style={{ ...D, backgroundColor: '#FFFF99', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>
-                NÃO É NECESSÁRIO PREENCHER A LISTA DE RATEIO
-              </td>
+              {modalidadeBanner ? (
+                <td colSpan={2} style={{ ...D, backgroundColor: '#FFFF99', textAlign: 'center', fontWeight: 'bold', fontSize: '7px' }}>
+                  {modalidadeBanner}
+                </td>
+              ) : (
+                <td colSpan={2} style={D}></td>
+              )}
               <td style={L}></td>
               <td style={LR}>Potência Geração Total da UC (PGT)</td>
               <td style={D}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>} kW</td>
