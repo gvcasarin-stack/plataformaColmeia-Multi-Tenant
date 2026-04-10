@@ -102,7 +102,6 @@ const s = StyleSheet.create({
   },
   tbl: {
     borderLeftWidth: B,
-    borderTopWidth: B,
     borderColor: BC,
     marginBottom: 4,
     gap: 3,
@@ -117,6 +116,7 @@ const s = StyleSheet.create({
     paddingBottom: 3,
     paddingLeft: 5,
     paddingRight: 5,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -129,6 +129,7 @@ const s = StyleSheet.create({
     paddingBottom: 3,
     paddingLeft: 5,
     paddingRight: 5,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -142,6 +143,7 @@ const s = StyleSheet.create({
     paddingBottom: 2,
     paddingLeft: 4,
     paddingRight: 4,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -153,6 +155,7 @@ const s = StyleSheet.create({
     paddingBottom: 2,
     paddingLeft: 4,
     paddingRight: 4,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -160,10 +163,11 @@ const s = StyleSheet.create({
   d: {
     backgroundColor: '#FFFFFF',
     fontSize: 6,
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingTop: 2,
+    paddingBottom: 2,
     paddingLeft: 5,
     paddingRight: 5,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -173,10 +177,11 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
     fontSize: 5,
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingTop: 2,
+    paddingBottom: 2,
     paddingLeft: 3,
     paddingRight: 3,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -187,6 +192,7 @@ const s = StyleSheet.create({
     color: '#C00000',
     fontSize: 5,
     padding: 2,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -197,6 +203,7 @@ const s = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     fontSize: 5,
     padding: 2,
+    borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
@@ -382,22 +389,22 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           {/* CEP / Município / UF / E-mail */}
           <View style={s.row}>
             <View style={[s.lr, { width: '8%' }]}><Text>CEP:</Text></View>
-            <View style={[s.d, { width: '12%', paddingTop: 2, paddingBottom: 2 }]}><Text>{v('cliente_cep', pd)}</Text></View>
+            <View style={[s.d, { width: '12%' }]}><Text>{v('cliente_cep', pd)}</Text></View>
             <View style={[s.lr, { width: '8%' }]}><Text>Município</Text></View>
-            <View style={[s.d, { width: '12%', paddingTop: 2, paddingBottom: 2 }]}><Text>{v('cidade', pd)}</Text></View>
+            <View style={[s.d, { width: '12%' }]}><Text>{v('cidade', pd)}</Text></View>
             <View style={[s.lr, { width: '5%' }]}><Text>UF</Text></View>
-            <View style={[s.d, { width: '8%', paddingTop: 2, paddingBottom: 2 }]}>
+            <View style={[s.d, { width: '8%' }]}>
               <Text>{pd?.client_state ? String(pd.client_state).toUpperCase() : '___'}</Text>
             </View>
             <View style={[s.lr, { width: '7%' }]}><Text>E-mail</Text></View>
-            <View style={[s.d, { width: '40%', paddingTop: 2, paddingBottom: 2 }]}><Text>{v('cliente_email', pd)}</Text></View>
+            <View style={[s.d, { width: '40%' }]}><Text>{v('cliente_email', pd)}</Text></View>
           </View>
           {/* Tipo de orçamento / espaço em branco / Conta Contrato */}
           <View style={s.row}>
-            <View style={[s.l, { width: '19%' }]}><Text>Tipo de orçamento desejado</Text></View>
-            <View style={[s.d, { width: '10%' }]}><Text style={s.bold}>Orçamento de Conexão</Text></View>
-            <View style={[s.d, { width: '19%' }]}><Text></Text></View>
-            <View style={[s.lr, { width: '24%' }]}><Text>Conta Contrato (Se UC existente)</Text></View>
+            <View style={[s.l, { width: '15%' }]}><Text>Tipo de orçamento desejado</Text></View>
+            <View style={[s.d, { width: '20%' }]}><Text style={s.bold}>Orçamento de Conexão</Text></View>
+            <View style={[s.d, { width: '15%' }]}><Text></Text></View>
+            <View style={[s.lr, { width: '22%' }]}><Text>Conta Contrato (Se UC existente)</Text></View>
             <View style={[s.d, { width: '28%' }]}><Text>{v('conta_contrato', pd)}</Text></View>
           </View>
           {/* Tipo de Solicitação */}

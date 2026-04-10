@@ -74,9 +74,9 @@ const LR: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', 
 // Label normal — fundo cinza médio, texto preto
 const L: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 5px', border: B, fontWeight: '500', verticalAlign: 'top', whiteSpace: 'nowrap', overflow: 'hidden' };
 // Célula de dado — fundo branco
-const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '4px 6px', border: B, verticalAlign: 'middle', overflow: 'hidden', wordBreak: 'break-word' };
+const D: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '8px', padding: '2px 6px', border: B, verticalAlign: 'middle', overflow: 'hidden', wordBreak: 'break-word' };
 // OK verde forte
-const OK: React.CSSProperties = { backgroundColor: '#70AD47', color: '#FFFFFF', fontSize: '7px', padding: '4px 5px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
+const OK: React.CSSProperties = { backgroundColor: '#70AD47', color: '#FFFFFF', fontSize: '7px', padding: '2px 5px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Cabeçalho de coluna página 1 (cinza)
 const CH: React.CSSProperties = { backgroundColor: '#D9D9D9', fontSize: '7px', padding: '3px 4px', border: B, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 // Cabeçalho de coluna página 2 (cinza escuro)
@@ -235,19 +235,19 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             {/* CEP / Município / UF / E-mail */}
             <tr>
               <td style={{ ...LR, width: '8%' }}>CEP:</td>
-              <td style={{ ...D, width: '12%', padding: '2px 6px' }}><V>{`{{cliente_cep}}`}</V></td>
+              <td style={{ ...D, width: '12%' }}><V>{`{{cliente_cep}}`}</V></td>
               <td style={{ ...LR, width: '8%' }}>Município</td>
-              <td style={{ ...D, width: '12%', padding: '2px 6px' }}><V>{`{{cidade}}`}</V></td>
+              <td style={{ ...D, width: '12%' }}><V>{`{{cidade}}`}</V></td>
               <td style={{ ...LR, width: '7%' }}>UF (selecionar)</td>
-              <td style={{ ...D, width: '8%', padding: '2px 6px' }}><V>{`{{estado}}`}</V></td>
+              <td style={{ ...D, width: '8%' }}><V>{`{{estado}}`}</V></td>
               <td style={{ ...LR, width: '7%' }}>E-mail</td>
-              <td style={{ ...D, width: '38%', padding: '2px 6px' }}><V>{`{{cliente_email}}`}</V></td>
+              <td style={{ ...D, width: '38%' }}><V>{`{{cliente_email}}`}</V></td>
             </tr>
 
             {/* Tipo de orçamento / espaço em branco / Conta Contrato */}
             <tr>
               <td style={L} colSpan={1}>Tipo de orçamento desejado</td>
-              <td style={{ ...D, fontWeight: 'bold' }} colSpan={1}>Orçamento de Conexão</td>
+              <td style={{ ...D, fontWeight: 'bold', whiteSpace: 'nowrap' }} colSpan={1}>Orçamento de Conexão</td>
               <td style={D} colSpan={1}></td>
               <td style={LR} colSpan={2}>Conta Contrato (Se UC existente)</td>
               <td style={D} colSpan={3}><V>{`{{conta_contrato}}`}</V></td>
