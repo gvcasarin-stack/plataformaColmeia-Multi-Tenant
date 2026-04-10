@@ -215,9 +215,9 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td style={{ ...D, width: '180px', textAlign: 'center', padding: '6px 4px', borderRight: B }}>
                 <img src="/images/logo.equatorial.png" style={{ width: '110px', objectFit: 'contain' }} alt="Grupo Equatorial" />
               </td>
-              <td style={{ ...D, textAlign: 'center', padding: '4px' }}>
-                <div style={{ fontWeight: 'bold', fontSize: '9px' }}>NT.00020.EQTL.Normas e Qualidade</div>
-                <div style={{ fontWeight: 'bold', fontSize: '10px', marginTop: '4px' }}>
+              <td style={{ ...D, textAlign: 'center', verticalAlign: 'middle', padding: '6px' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '11px' }}>NT.00020.EQTL.Normas e Qualidade</div>
+                <div style={{ fontWeight: 'bold', fontSize: '12px', marginTop: '5px' }}>
                   ANEXO I - Formulário de Solicitação de Orçamento de Microgeração Distribuída Grupo B
                 </div>
               </td>
@@ -264,7 +264,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td colSpan={5} style={D}><V>{`{{endereco}}`}</V></td>
               <td style={L}>Celular</td>
               <td style={D}><V>{`{{cliente_celular}}`}</V></td>
-              <td style={D}>Fixo:&nbsp;&nbsp;<V>{`{{cliente_telefone_fixo}}`}</V></td>
+              <td style={{ ...D, textAlign: 'center' }}>Fixo: -</td>
             </tr>
 
             {/* CEP / Município / UF / E-mail */}

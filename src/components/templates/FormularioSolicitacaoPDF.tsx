@@ -384,9 +384,9 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.d, { width: '25%', justifyContent: 'center', alignItems: 'center' }]}>
               <Image src={logoUrl} style={{ width: 90, height: 40, objectFit: 'contain' }} cache={false} />
             </View>
-            <View style={[s.d, { flex: 1 }]}>
-              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 6, textAlign: 'center' }}>NT.00020.EQTL.Normas e Qualidade</Text>
-              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center', marginTop: 3 }}>
+            <View style={[s.d, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 8, textAlign: 'center' }}>NT.00020.EQTL.Normas e Qualidade</Text>
+              <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center', marginTop: 4 }}>
                 ANEXO I - Formulário de Solicitação de Orçamento de Microgeração Distribuída Grupo B
               </Text>
             </View>
@@ -420,7 +420,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.d, { width: '52%' }]}><Text>{v('endereco', pd)}</Text></View>
             <View style={[s.l, { width: '14%' }]}><Text>Celular</Text></View>
             <View style={[s.d, { width: '17%' }]}><Text>{v('cliente_celular', pd)}</Text></View>
-            <View style={[s.d, { width: '17%' }]}><Text>Fixo: {v('cliente_telefone_fixo', pd)}</Text></View>
+            <View style={[s.d, { width: '17%' }]}><Text style={{ textAlign: 'center' }}>Fixo: -</Text></View>
           </View>
           {/* CEP / Município / UF / E-mail */}
           <View style={s.row}>
