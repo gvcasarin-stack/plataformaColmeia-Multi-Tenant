@@ -1,8 +1,9 @@
 import { headers } from 'next/headers';
 import { RegistrationForm } from '@/components/multi-tenant/RegistrationForm';
+import LandingHeader from "@/components/landing/landing-header"
 import HeroSection from "@/components/landing/hero-section"
-import BenefitsSection from "@/components/landing/benefits-section"
-import FeaturesSection from "@/components/landing/features-section"
+import BenefitsSectionV2 from "@/components/landing/benefits-section-v2"
+import FeaturesSectionV2 from "@/components/landing/features-section-v2"
 import TestimonialsSection from "@/components/landing/testimonials-section"
 import PricingSection from "@/components/landing/pricing-section"
 import CtaSection from "@/components/landing/cta-section"
@@ -46,13 +47,13 @@ export default function HomePage() {
   // Landing Page de Marketing Completa
   return (
     <>
-      {/* SEO: Structured Data (JSON-LD) para melhor indexação */}
       <JsonLd data={getAllHomeSchemas()} />
+      <LandingHeader />
       
-      <main className="flex min-h-screen flex-col">
+      <main className="flex min-h-screen flex-col pt-16">
         <HeroSection />
-        <BenefitsSection />
-        <FeaturesSection />
+        <BenefitsSectionV2 />
+        <FeaturesSectionV2 />
         <TestimonialsSection />
         <PricingSection />
         <CtaSection />
