@@ -789,12 +789,12 @@ export default function AcervoTecnicoPage() {
             </div>
             <div className="w-56">
               <Label className="text-sm font-medium mb-1 block">Tipo de Documento</Label>
-              <Select value={selectedTipoDocumento} onValueChange={setSelectedTipoDocumento}>
+              <Select value={selectedTipoDocumento || 'all'} onValueChange={v => setSelectedTipoDocumento(v === 'all' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos os tipos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os tipos</SelectItem>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
                   {TIPOS_DOCUMENTO.map(t => (
                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
