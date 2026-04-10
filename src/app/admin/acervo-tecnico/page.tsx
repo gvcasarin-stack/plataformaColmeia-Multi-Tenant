@@ -136,6 +136,8 @@ export default function AcervoTecnicoPage() {
   const [equipModelo, setEquipModelo] = useState('');
   const [equipDatasheetFile, setEquipDatasheetFile] = useState<File | null>(null);
   const [equipInmetroFile, setEquipInmetroFile] = useState<File | null>(null);
+  const [dragAddDatasheet, setDragAddDatasheet] = useState(false);
+  const [dragAddInmetro, setDragAddInmetro] = useState(false);
   const equipDatasheetRef = useRef<HTMLInputElement>(null);
   const equipInmetroRef = useRef<HTMLInputElement>(null);
 
@@ -144,6 +146,8 @@ export default function AcervoTecnicoPage() {
   const [editEquipModelo, setEditEquipModelo] = useState('');
   const [editEquipDatasheetFile, setEditEquipDatasheetFile] = useState<File | null>(null);
   const [editEquipInmetroFile, setEditEquipInmetroFile] = useState<File | null>(null);
+  const [dragEditDatasheet, setDragEditDatasheet] = useState(false);
+  const [dragEditInmetro, setDragEditInmetro] = useState(false);
   const editEquipDatasheetRef = useRef<HTMLInputElement>(null);
   const editEquipInmetroRef = useRef<HTMLInputElement>(null);
 
@@ -334,6 +338,20 @@ export default function AcervoTecnicoPage() {
   };
 
   // ── Equipamentos handlers ──
+  const isValidEquipFile = (file: File) =>
+    file.type.startsWith('image/') || file.type === 'application/pdf';
+
+  const handleEquipDrop = (
+    e: React.DragEvent,
+    setter: (f: File | null) => void,
+    setDrag: (v: boolean) => void,
+  ) => {
+    e.preventDefault();
+    setDrag(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && isValidEquipFile(file)) setter(file);
+  };
+
   const uploadEquipFile = async (file: File, subpasta: string): Promise<string | null> => {
     const tipo = activeTab === 'inversores' ? 'inversor' : 'modulo';
     const formData = new FormData();
@@ -783,13 +801,25 @@ export default function AcervoTecnicoPage() {
                     <Label className="text-sm">Datasheet</Label>
                     <input ref={equipDatasheetRef} type="file" accept="image/*,application/pdf" className="hidden"
                       onChange={e => setEquipDatasheetFile(e.target.files?.[0] ?? null)} />
-                    <div className="mt-1 flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => equipDatasheetRef.current?.click()}>
-                        <Upload className="h-4 w-4 mr-1" /> Selecionar
-                      </Button>
-                      {equipDatasheetFile && (
-                        <span className="text-xs text-gray-500 flex items-center gap-1 truncate max-w-[140px]">
-                          <FileText className="h-3 w-3 shrink-0" /> {equipDatasheetFile.name}
+                    <div
+                      onClick={() => equipDatasheetRef.current?.click()}
+                      onDragOver={e => { e.preventDefault(); setDragAddDatasheet(true); }}
+                      onDragLeave={() => setDragAddDatasheet(false)}
+                      onDrop={e => handleEquipDrop(e, setEquipDatasheetFile, setDragAddDatasheet)}
+                      className={`mt-1 border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
+                        dragAddDatasheet
+                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                      }`}
+                    >
+                      {equipDatasheetFile ? (
+                        <span className="text-xs text-green-600 flex items-center justify-center gap-1">
+                          <FileText className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate max-w-[150px]">{equipDatasheetFile.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 flex items-center justify-center gap-1">
+                          <Upload className="h-3.5 w-3.5" /> Arraste ou clique para selecionar
                         </span>
                       )}
                     </div>
@@ -798,13 +828,25 @@ export default function AcervoTecnicoPage() {
                     <Label className="text-sm">Registro Inmetro</Label>
                     <input ref={equipInmetroRef} type="file" accept="image/*,application/pdf" className="hidden"
                       onChange={e => setEquipInmetroFile(e.target.files?.[0] ?? null)} />
-                    <div className="mt-1 flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => equipInmetroRef.current?.click()}>
-                        <Upload className="h-4 w-4 mr-1" /> Selecionar
-                      </Button>
-                      {equipInmetroFile && (
-                        <span className="text-xs text-gray-500 flex items-center gap-1 truncate max-w-[140px]">
-                          <FileText className="h-3 w-3 shrink-0" /> {equipInmetroFile.name}
+                    <div
+                      onClick={() => equipInmetroRef.current?.click()}
+                      onDragOver={e => { e.preventDefault(); setDragAddInmetro(true); }}
+                      onDragLeave={() => setDragAddInmetro(false)}
+                      onDrop={e => handleEquipDrop(e, setEquipInmetroFile, setDragAddInmetro)}
+                      className={`mt-1 border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
+                        dragAddInmetro
+                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                      }`}
+                    >
+                      {equipInmetroFile ? (
+                        <span className="text-xs text-green-600 flex items-center justify-center gap-1">
+                          <FileText className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate max-w-[150px]">{equipInmetroFile.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 flex items-center justify-center gap-1">
+                          <Upload className="h-3.5 w-3.5" /> Arraste ou clique para selecionar
                         </span>
                       )}
                     </div>
@@ -861,24 +903,62 @@ export default function AcervoTecnicoPage() {
                           <Label className="text-xs">Datasheet</Label>
                           <input ref={editEquipDatasheetRef} type="file" accept="image/*,application/pdf" className="hidden"
                             onChange={e => setEditEquipDatasheetFile(e.target.files?.[0] ?? null)} />
-                          <div className="mt-1 flex items-center gap-1.5">
-                            <Button variant="outline" size="sm" onClick={() => editEquipDatasheetRef.current?.click()} className="text-xs">
-                              <Upload className="h-3 w-3 mr-1" /> Alterar
-                            </Button>
-                            {editEquipDatasheetFile && <span className="text-[10px] text-gray-500 truncate max-w-[80px]">{editEquipDatasheetFile.name}</span>}
-                            {!editEquipDatasheetFile && item.datasheet_url && <span className="text-[10px] text-green-600">Arquivo atual</span>}
+                          <div
+                            onClick={() => editEquipDatasheetRef.current?.click()}
+                            onDragOver={e => { e.preventDefault(); setDragEditDatasheet(true); }}
+                            onDragLeave={() => setDragEditDatasheet(false)}
+                            onDrop={e => handleEquipDrop(e, setEditEquipDatasheetFile, setDragEditDatasheet)}
+                            className={`mt-1 border-2 border-dashed rounded-lg p-2 text-center cursor-pointer transition-colors ${
+                              dragEditDatasheet
+                                ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                            }`}
+                          >
+                            {editEquipDatasheetFile ? (
+                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
+                                <FileText className="h-3 w-3 shrink-0" />
+                                <span className="truncate max-w-[90px]">{editEquipDatasheetFile.name}</span>
+                              </span>
+                            ) : item.datasheet_url ? (
+                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
+                                <FileText className="h-3 w-3" /> Arquivo atual
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
+                                <Upload className="h-3 w-3" /> Arraste ou clique
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div>
                           <Label className="text-xs">Registro Inmetro</Label>
                           <input ref={editEquipInmetroRef} type="file" accept="image/*,application/pdf" className="hidden"
                             onChange={e => setEditEquipInmetroFile(e.target.files?.[0] ?? null)} />
-                          <div className="mt-1 flex items-center gap-1.5">
-                            <Button variant="outline" size="sm" onClick={() => editEquipInmetroRef.current?.click()} className="text-xs">
-                              <Upload className="h-3 w-3 mr-1" /> Alterar
-                            </Button>
-                            {editEquipInmetroFile && <span className="text-[10px] text-gray-500 truncate max-w-[80px]">{editEquipInmetroFile.name}</span>}
-                            {!editEquipInmetroFile && item.inmetro_url && <span className="text-[10px] text-green-600">Arquivo atual</span>}
+                          <div
+                            onClick={() => editEquipInmetroRef.current?.click()}
+                            onDragOver={e => { e.preventDefault(); setDragEditInmetro(true); }}
+                            onDragLeave={() => setDragEditInmetro(false)}
+                            onDrop={e => handleEquipDrop(e, setEditEquipInmetroFile, setDragEditInmetro)}
+                            className={`mt-1 border-2 border-dashed rounded-lg p-2 text-center cursor-pointer transition-colors ${
+                              dragEditInmetro
+                                ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                            }`}
+                          >
+                            {editEquipInmetroFile ? (
+                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
+                                <FileText className="h-3 w-3 shrink-0" />
+                                <span className="truncate max-w-[90px]">{editEquipInmetroFile.name}</span>
+                              </span>
+                            ) : item.inmetro_url ? (
+                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
+                                <FileText className="h-3 w-3" /> Arquivo atual
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
+                                <Upload className="h-3 w-3" /> Arraste ou clique
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
