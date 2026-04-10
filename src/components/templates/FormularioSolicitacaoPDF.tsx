@@ -321,6 +321,24 @@ const s = StyleSheet.create({
 
 export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoPDFProps) {
   const pd = projectData;
+
+  const tipoSol = String(pd?.tipo_solicitacao || '');
+  const showPotenciaGD = tipoSol.startsWith('AUMENTO DA POTÊNCIA DE GERAÇÃO');
+  const bannerText = (() => {
+    switch (tipoSol) {
+      case 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA': return null;
+      case 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR O NÚMERO DA CONTA CONTRATO';
+      case 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR O NÚMERO DA CONTA CONTRATO E PREENCHER O FORMULÁRIO DE TROCA DE PADRÃO NO ANEXO IV';
+      case 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR O NÚMERO DA CONTA CONTRATO E POTÊNCIA DA GD EXISTENTE';
+      case 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR NÚMERO DA CONTA CONTRATO, POTÊNCIA DA GD EXISTENTE E PREENCHER ANEXO IV';
+      default: return null;
+    }
+  })();
+
   const logoUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/images/logo.equatorial.png`
     : '/images/logo.equatorial.png';
@@ -413,14 +431,24 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.d, { width: '62%' }]}><Text>{v('tipo_solicitacao', pd)}</Text></View>
           </View>
           {/* INFORMAR CONTA CONTRATO */}
-          <View style={s.row}>
-            <View style={[s.d, { width: '55%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
-              <Text style={s.bold}>INFORMAR O NÚMERO DA CONTA CONTRATO E POTÊNCIA DA GD EXISTENTE</Text>
+          {bannerText && (
+            <View style={s.row}>
+              {showPotenciaGD ? (
+                <>
+                  <View style={[s.d, { width: '55%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
+                    <Text style={s.bold}>{bannerText}</Text>
+                  </View>
+                  <View style={[s.l, { width: '25%' }]}><Text>Potência de Geração Existente</Text></View>
+                  <View style={[s.d, { width: '12%' }]}><Text></Text></View>
+                  <View style={[s.l, { width: '8%', textAlign: 'center' }]}><Text>kW</Text></View>
+                </>
+              ) : (
+                <View style={[s.d, { width: '100%', backgroundColor: '#FFFF99', textAlign: 'center' }]}>
+                  <Text style={s.bold}>{bannerText}</Text>
+                </View>
+              )}
             </View>
-            <View style={[s.l, { width: '25%' }]}><Text>Potência de Geração Existente</Text></View>
-            <View style={[s.d, { width: '12%' }]}><Text></Text></View>
-            <View style={[s.l, { width: '8%', textAlign: 'center' }]}><Text>kW</Text></View>
-          </View>
+          )}
           {/* Tarifa Branca */}
           <View style={s.row}>
             <View style={[s.lr, { width: '16%' }]}><Text>Tarifa Branca?</Text></View>

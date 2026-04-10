@@ -167,6 +167,23 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
   const emptyModuloRows = Array.from({ length: Math.max(0, 10 - 1) });
   const emptyInversorRows = Array.from({ length: Math.max(0, 30 - inversoresQtd) });
 
+  const tipoSol = String(projectData?.tipo_solicitacao || '');
+  const showPotenciaGD = tipoSol.startsWith('AUMENTO DA POTÊNCIA DE GERAÇÃO');
+  const bannerText = (() => {
+    switch (tipoSol) {
+      case 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA': return null;
+      case 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR O NÚMERO DA CONTA CONTRATO';
+      case 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR O NÚMERO DA CONTA CONTRATO E PREENCHER O FORMULÁRIO DE TROCA DE PADRÃO NO ANEXO IV';
+      case 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR O NÚMERO DA CONTA CONTRATO E POTÊNCIA DA GD EXISTENTE';
+      case 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA':
+        return 'INFORMAR NÚMERO DA CONTA CONTRATO, POTÊNCIA DA GD EXISTENTE E PREENCHER ANEXO IV';
+      default: return null;
+    }
+  })();
+
   return (
     <>
       <div
@@ -260,11 +277,24 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             </tr>
 
             {/* INFORMAR CONTA CONTRATO */}
-            <tr>
-              <td colSpan={8} style={{ ...D, textAlign: 'center', fontWeight: 'bold', fontSize: '8px', backgroundColor: '#FFFF99', padding: '2px' }}>
-                INFORMAR O NÚMERO DA CONTA CONTRATO
-              </td>
-            </tr>
+            {bannerText && (
+              <tr>
+                {showPotenciaGD ? (
+                  <>
+                    <td colSpan={5} style={{ ...D, textAlign: 'center', fontWeight: 'bold', fontSize: '8px', backgroundColor: '#FFFF99', padding: '2px' }}>
+                      {bannerText}
+                    </td>
+                    <td style={L}>Potência de Geração Existente</td>
+                    <td style={D}></td>
+                    <td style={{ ...L, textAlign: 'center' }}>kW</td>
+                  </>
+                ) : (
+                  <td colSpan={8} style={{ ...D, textAlign: 'center', fontWeight: 'bold', fontSize: '8px', backgroundColor: '#FFFF99', padding: '2px' }}>
+                    {bannerText}
+                  </td>
+                )}
+              </tr>
+            )}
 
             {/* Tarifa Branca / Terá adição de módulos */}
             <tr>
