@@ -1,3 +1,4 @@
+import LandingHeader from "@/components/landing/landing-header"
 import HeroSection from "@/components/landing/hero-section"
 import BenefitsSection from "@/components/landing/benefits-section"
 import FeaturesSection from "@/components/landing/features-section"
@@ -13,6 +14,7 @@ export default function LandingTestePage() {
   return (
     <>
       <JsonLd data={getAllHomeSchemas()} />
+      <LandingHeader />
       
       <main className="flex min-h-screen flex-col">
         <HeroSection />

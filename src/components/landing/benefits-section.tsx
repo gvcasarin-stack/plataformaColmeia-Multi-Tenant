@@ -94,7 +94,7 @@ export default function BenefitsSection() {
   }
 
   return (
-    <section ref={sectionRef} className="w-full py-12 md:py-16 lg:py-20 bg-white relative">
+    <section id="beneficios" ref={sectionRef} className="w-full py-12 md:py-16 lg:py-20 bg-white relative">
       <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-7xl">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-gray-900 mb-4">
