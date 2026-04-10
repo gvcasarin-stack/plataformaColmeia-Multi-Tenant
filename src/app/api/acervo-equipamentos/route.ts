@@ -36,11 +36,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tipo, fabricante, modelo, nome, datasheet_url, inmetro_url } = body;
+    const { tipo, fabricante, modelo, modelos, nome, potencia, datasheet_url, inmetro_url } = body;
 
-    if (!tipo || !fabricante || !modelo || !nome) {
+    if (!tipo || !fabricante || !nome) {
       return NextResponse.json(
-        { error: 'Campos obrigatórios: tipo, fabricante, modelo, nome' },
+        { error: 'Campos obrigatórios: tipo, fabricante, nome' },
         { status: 400 }
       );
     }
@@ -52,8 +52,10 @@ export async function POST(request: NextRequest) {
       .insert({
         tipo,
         fabricante,
-        modelo,
+        modelo: modelo || '',
+        modelos: modelos || [],
         nome,
+        potencia: potencia || null,
         datasheet_url: datasheet_url || null,
         inmetro_url: inmetro_url || null,
       })
@@ -84,7 +86,9 @@ export async function PUT(request: NextRequest) {
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
     if (fields.fabricante !== undefined) updateData.fabricante = fields.fabricante;
     if (fields.modelo !== undefined) updateData.modelo = fields.modelo;
+    if (fields.modelos !== undefined) updateData.modelos = fields.modelos;
     if (fields.nome !== undefined) updateData.nome = fields.nome;
+    if (fields.potencia !== undefined) updateData.potencia = fields.potencia;
     if (fields.datasheet_url !== undefined) updateData.datasheet_url = fields.datasheet_url;
     if (fields.inmetro_url !== undefined) updateData.inmetro_url = fields.inmetro_url;
 

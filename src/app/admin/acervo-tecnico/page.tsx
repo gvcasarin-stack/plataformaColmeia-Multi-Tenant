@@ -40,6 +40,8 @@ import {
   FileText,
   Zap,
   LayoutGrid,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 
 const DISTRIBUIDORAS = [
@@ -82,7 +84,9 @@ interface EquipamentoItem {
   tipo: string;
   fabricante: string;
   modelo: string;
+  modelos: string[];
   nome: string;
+  potencia: number | null;
   datasheet_url: string | null;
   inmetro_url: string | null;
   created_at: string;
@@ -91,7 +95,6 @@ interface EquipamentoItem {
 export default function AcervoTecnicoPage() {
   const { user } = useAuth();
 
-  // Tab state
   const [activeTab, setActiveTab] = useState<ActiveTab>('distribuidoras');
 
   // ── Distribuidoras state (existing, unchanged) ──
@@ -133,7 +136,9 @@ export default function AcervoTecnicoPage() {
 
   // Add form
   const [equipFabricante, setEquipFabricante] = useState('');
-  const [equipModelo, setEquipModelo] = useState('');
+  const [equipModelos, setEquipModelos] = useState<string[]>([]);
+  const [equipModeloInput, setEquipModeloInput] = useState('');
+  const [equipPotencia, setEquipPotencia] = useState('');
   const [equipDatasheetFile, setEquipDatasheetFile] = useState<File | null>(null);
   const [equipInmetroFile, setEquipInmetroFile] = useState<File | null>(null);
   const [dragAddDatasheet, setDragAddDatasheet] = useState(false);
@@ -143,7 +148,9 @@ export default function AcervoTecnicoPage() {
 
   // Edit form
   const [editEquipFabricante, setEditEquipFabricante] = useState('');
-  const [editEquipModelo, setEditEquipModelo] = useState('');
+  const [editEquipModelos, setEditEquipModelos] = useState<string[]>([]);
+  const [editEquipModeloInput, setEditEquipModeloInput] = useState('');
+  const [editEquipPotencia, setEditEquipPotencia] = useState('');
   const [editEquipDatasheetFile, setEditEquipDatasheetFile] = useState<File | null>(null);
   const [editEquipInmetroFile, setEditEquipInmetroFile] = useState<File | null>(null);
   const [dragEditDatasheet, setDragEditDatasheet] = useState(false);
@@ -352,6 +359,17 @@ export default function AcervoTecnicoPage() {
     if (file && isValidEquipFile(file)) setter(file);
   };
 
+  const addModeloTag = (
+    input: string,
+    modelos: string[],
+    setModelos: (m: string[]) => void,
+    setInput: (s: string) => void,
+  ) => {
+    const tag = input.replace(/,+$/, '').trim();
+    if (tag && !modelos.includes(tag)) setModelos([...modelos, tag]);
+    setInput('');
+  };
+
   const uploadEquipFile = async (file: File, subpasta: string): Promise<string | null> => {
     const tipo = activeTab === 'inversores' ? 'inversor' : 'modulo';
     const formData = new FormData();
@@ -368,14 +386,14 @@ export default function AcervoTecnicoPage() {
   };
 
   const handleAddEquip = async () => {
-    if (!equipFabricante.trim() || !equipModelo.trim()) {
-      toast({ title: 'Preencha os campos', description: 'Fabricante e modelo são obrigatórios.', variant: 'destructive' });
+    if (!equipFabricante.trim() || equipModelos.length === 0) {
+      toast({ title: 'Preencha os campos', description: 'Fabricante e pelo menos um modelo são obrigatórios.', variant: 'destructive' });
       return;
     }
     setSavingEquip(true);
     try {
       const tipo = activeTab === 'inversores' ? 'inversor' : 'modulo';
-      const nomeAuto = `${equipFabricante.trim()} ${equipModelo.trim()}`;
+      const nomeAuto = `${equipFabricante.trim()} — ${equipModelos.join(' / ')}`;
 
       let datasheetUrl: string | null = null;
       let inmetroUrl: string | null = null;
@@ -386,8 +404,14 @@ export default function AcervoTecnicoPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo, fabricante: equipFabricante.trim(), modelo: equipModelo.trim(),
-          nome: nomeAuto, datasheet_url: datasheetUrl, inmetro_url: inmetroUrl,
+          tipo,
+          fabricante: equipFabricante.trim(),
+          modelo: equipModelos[0],
+          modelos: equipModelos,
+          nome: nomeAuto,
+          potencia: equipPotencia ? parseFloat(equipPotencia) : null,
+          datasheet_url: datasheetUrl,
+          inmetro_url: inmetroUrl,
         }),
       });
       const result = await resp.json();
@@ -395,7 +419,7 @@ export default function AcervoTecnicoPage() {
         toast({ title: 'Erro ao salvar', description: result.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Item adicionado', description: `"${nomeAuto}" foi adicionado.` });
+      toast({ title: 'Item adicionado', description: `"${equipFabricante.trim()}" foi adicionado.` });
       resetEquipForm();
       fetchEquipamentos();
     } catch {
@@ -408,9 +432,14 @@ export default function AcervoTecnicoPage() {
   const handleUpdateEquip = async (id: string) => {
     setSavingEquip(true);
     try {
-      const nomeAutoEdit = `${editEquipFabricante.trim()} ${editEquipModelo.trim()}`;
+      const nomeAuto = `${editEquipFabricante.trim()} — ${editEquipModelos.join(' / ')}`;
       const body: Record<string, any> = {
-        id, fabricante: editEquipFabricante.trim(), modelo: editEquipModelo.trim(), nome: nomeAutoEdit,
+        id,
+        fabricante: editEquipFabricante.trim(),
+        modelo: editEquipModelos[0] || '',
+        modelos: editEquipModelos,
+        nome: nomeAuto,
+        potencia: editEquipPotencia ? parseFloat(editEquipPotencia) : null,
       };
       if (editEquipDatasheetFile) {
         const url = await uploadEquipFile(editEquipDatasheetFile, 'datasheet');
@@ -430,7 +459,7 @@ export default function AcervoTecnicoPage() {
         toast({ title: 'Erro ao atualizar', description: result.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Item atualizado', description: `"${nomeAutoEdit}" foi atualizado.` });
+      toast({ title: 'Item atualizado', description: `"${editEquipFabricante.trim()}" foi atualizado.` });
       setEditingEquipId(null);
       fetchEquipamentos();
     } catch {
@@ -449,7 +478,7 @@ export default function AcervoTecnicoPage() {
         toast({ title: 'Erro ao excluir', description: result.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Item excluído', description: `"${deleteEquipTarget.nome}" foi removido.` });
+      toast({ title: 'Item excluído', description: `"${deleteEquipTarget.fabricante}" foi removido.` });
       setDeleteEquipTarget(null);
       fetchEquipamentos();
     } catch {
@@ -460,15 +489,21 @@ export default function AcervoTecnicoPage() {
   const startEditEquip = (item: EquipamentoItem) => {
     setEditingEquipId(item.id);
     setEditEquipFabricante(item.fabricante);
-    setEditEquipModelo(item.modelo);
+    setEditEquipModelos(item.modelos?.length ? item.modelos : item.modelo ? [item.modelo] : []);
+    setEditEquipModeloInput('');
+    setEditEquipPotencia(item.potencia?.toString() || '');
     setEditEquipDatasheetFile(null);
     setEditEquipInmetroFile(null);
   };
 
   const resetEquipForm = () => {
     setShowAddEquipForm(false);
-    setEquipFabricante(''); setEquipModelo('');
-    setEquipDatasheetFile(null); setEquipInmetroFile(null);
+    setEquipFabricante('');
+    setEquipModelos([]);
+    setEquipModeloInput('');
+    setEquipPotencia('');
+    setEquipDatasheetFile(null);
+    setEquipInmetroFile(null);
   };
 
   const categoriaLabel = (cat: string) => CATEGORIAS.find(c => c.value === cat)?.label || cat;
@@ -487,6 +522,109 @@ export default function AcervoTecnicoPage() {
 
   const tabLabel = activeTab === 'inversores' ? 'Inversores' : 'Módulos';
   const tabSingular = TAB_SINGULAR[activeTab] ?? tabLabel;
+  const unidade = activeTab === 'inversores' ? 'kW' : 'Wp';
+
+  // Reutilizável: zona de drop para arquivos
+  const DropZone = ({
+    file, dragOver, onDrop, onDragOver, onDragLeave, onClick, label,
+  }: {
+    file: File | null;
+    dragOver: boolean;
+    onDrop: (e: React.DragEvent) => void;
+    onDragOver: (e: React.DragEvent) => void;
+    onDragLeave: () => void;
+    onClick: () => void;
+    label?: string;
+  }) => (
+    <div
+      onClick={onClick}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
+        dragOver
+          ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+      }`}
+    >
+      {file ? (
+        <span className="text-xs text-green-600 flex items-center justify-center gap-1">
+          <FileText className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate max-w-[150px]">{file.name}</span>
+        </span>
+      ) : (
+        <span className="text-xs text-gray-400 flex items-center justify-center gap-1">
+          <Upload className="h-3.5 w-3.5" /> {label ?? 'Arraste ou clique para selecionar'}
+        </span>
+      )}
+    </div>
+  );
+
+  // Reutilizável: linha de documento no card
+  const DocRow = ({ url, label }: { url: string | null; label: string }) =>
+    url ? (
+      <div className="flex items-center gap-2">
+        <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+        <span className="text-xs text-gray-600 dark:text-gray-400 flex-1">{label}</span>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-0.5 text-xs text-blue-600 hover:underline">
+          <ExternalLink className="h-3 w-3" /> Ver
+        </a>
+        <a href={url} download
+          className="flex items-center gap-0.5 text-xs text-gray-500 hover:text-gray-700 hover:underline ml-1">
+          <Download className="h-3 w-3" /> Baixar
+        </a>
+      </div>
+    ) : (
+      <div className="flex items-center gap-2 opacity-40">
+        <FileText className="h-4 w-4 shrink-0" />
+        <span className="text-xs">{label} não anexado</span>
+      </div>
+    );
+
+  // Reutilizável: input de tags para modelos
+  const ModeloTagInput = ({
+    modelos, input, setInput, setModelos, size = 'normal',
+  }: {
+    modelos: string[];
+    input: string;
+    setInput: (s: string) => void;
+    setModelos: (m: string[]) => void;
+    size?: 'normal' | 'small';
+  }) => (
+    <div>
+      {modelos.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-1.5">
+          {modelos.map(m => (
+            <span key={m} className={`flex items-center gap-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded px-2 py-0.5 ${size === 'small' ? 'text-[10px]' : 'text-xs'}`}>
+              {m}
+              <button type="button" onClick={() => setModelos(modelos.filter(x => x !== m))} className="hover:text-red-500">
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <Input
+        value={input}
+        onChange={e => {
+          if (e.target.value.endsWith(',')) {
+            addModeloTag(e.target.value, modelos, setModelos, setInput);
+          } else {
+            setInput(e.target.value);
+          }
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addModeloTag(input, modelos, setModelos, setInput);
+          }
+        }}
+        placeholder="Digite e pressione Enter para adicionar"
+        className={size === 'small' ? 'h-8 text-sm' : ''}
+      />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -791,65 +929,55 @@ export default function AcervoTecnicoPage() {
                     <Input value={equipFabricante} onChange={e => setEquipFabricante(e.target.value)} placeholder="Ex: Fronius" className="mt-1" />
                   </div>
                   <div>
-                    <Label className="text-sm">Modelo *</Label>
-                    <Input value={equipModelo} onChange={e => setEquipModelo(e.target.value)} placeholder="Ex: Symo 10.0-3-M" className="mt-1" />
+                    <Label className="text-sm">Potência ({unidade})</Label>
+                    <Input
+                      type="number"
+                      value={equipPotencia}
+                      onChange={e => setEquipPotencia(e.target.value)}
+                      placeholder={activeTab === 'inversores' ? 'Ex: 10' : 'Ex: 550'}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm">Modelos * <span className="text-gray-400 font-normal">(Enter ou vírgula para adicionar)</span></Label>
+                  <div className="mt-1">
+                    <ModeloTagInput
+                      modelos={equipModelos}
+                      input={equipModeloInput}
+                      setInput={setEquipModeloInput}
+                      setModelos={setEquipModelos}
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm">Datasheet</Label>
+                    <Label className="text-sm mb-1 block">Datasheet</Label>
                     <input ref={equipDatasheetRef} type="file" accept="image/*,application/pdf" className="hidden"
                       onChange={e => setEquipDatasheetFile(e.target.files?.[0] ?? null)} />
-                    <div
+                    <DropZone
+                      file={equipDatasheetFile}
+                      dragOver={dragAddDatasheet}
                       onClick={() => equipDatasheetRef.current?.click()}
                       onDragOver={e => { e.preventDefault(); setDragAddDatasheet(true); }}
                       onDragLeave={() => setDragAddDatasheet(false)}
                       onDrop={e => handleEquipDrop(e, setEquipDatasheetFile, setDragAddDatasheet)}
-                      className={`mt-1 border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
-                        dragAddDatasheet
-                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
-                      }`}
-                    >
-                      {equipDatasheetFile ? (
-                        <span className="text-xs text-green-600 flex items-center justify-center gap-1">
-                          <FileText className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate max-w-[150px]">{equipDatasheetFile.name}</span>
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-400 flex items-center justify-center gap-1">
-                          <Upload className="h-3.5 w-3.5" /> Arraste ou clique para selecionar
-                        </span>
-                      )}
-                    </div>
+                    />
                   </div>
                   <div>
-                    <Label className="text-sm">Registro Inmetro</Label>
+                    <Label className="text-sm mb-1 block">Registro Inmetro</Label>
                     <input ref={equipInmetroRef} type="file" accept="image/*,application/pdf" className="hidden"
                       onChange={e => setEquipInmetroFile(e.target.files?.[0] ?? null)} />
-                    <div
+                    <DropZone
+                      file={equipInmetroFile}
+                      dragOver={dragAddInmetro}
                       onClick={() => equipInmetroRef.current?.click()}
                       onDragOver={e => { e.preventDefault(); setDragAddInmetro(true); }}
                       onDragLeave={() => setDragAddInmetro(false)}
                       onDrop={e => handleEquipDrop(e, setEquipInmetroFile, setDragAddInmetro)}
-                      className={`mt-1 border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
-                        dragAddInmetro
-                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
-                      }`}
-                    >
-                      {equipInmetroFile ? (
-                        <span className="text-xs text-green-600 flex items-center justify-center gap-1">
-                          <FileText className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate max-w-[150px]">{equipInmetroFile.name}</span>
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-400 flex items-center justify-center gap-1">
-                          <Upload className="h-3.5 w-3.5" /> Arraste ou clique para selecionar
-                        </span>
-                      )}
-                    </div>
+                    />
                   </div>
                 </div>
 
@@ -884,135 +1012,131 @@ export default function AcervoTecnicoPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {equipamentos.map(item => (
-                <Card key={item.id} className="group hover:shadow-md transition-shadow">
-                  {editingEquipId === item.id ? (
-                    <CardContent className="p-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Fabricante</Label>
-                          <Input value={editEquipFabricante} onChange={e => setEditEquipFabricante(e.target.value)} className="mt-1 h-8 text-sm" />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Modelo</Label>
-                          <Input value={editEquipModelo} onChange={e => setEditEquipModelo(e.target.value)} className="mt-1 h-8 text-sm" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Datasheet</Label>
-                          <input ref={editEquipDatasheetRef} type="file" accept="image/*,application/pdf" className="hidden"
-                            onChange={e => setEditEquipDatasheetFile(e.target.files?.[0] ?? null)} />
-                          <div
-                            onClick={() => editEquipDatasheetRef.current?.click()}
-                            onDragOver={e => { e.preventDefault(); setDragEditDatasheet(true); }}
-                            onDragLeave={() => setDragEditDatasheet(false)}
-                            onDrop={e => handleEquipDrop(e, setEditEquipDatasheetFile, setDragEditDatasheet)}
-                            className={`mt-1 border-2 border-dashed rounded-lg p-2 text-center cursor-pointer transition-colors ${
-                              dragEditDatasheet
-                                ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
-                            }`}
-                          >
-                            {editEquipDatasheetFile ? (
-                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
-                                <FileText className="h-3 w-3 shrink-0" />
-                                <span className="truncate max-w-[90px]">{editEquipDatasheetFile.name}</span>
-                              </span>
-                            ) : item.datasheet_url ? (
-                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
-                                <FileText className="h-3 w-3" /> Arquivo atual
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
-                                <Upload className="h-3 w-3" /> Arraste ou clique
-                              </span>
-                            )}
+              {equipamentos.map(item => {
+                const modelosList = item.modelos?.length ? item.modelos : item.modelo ? [item.modelo] : [];
+                return (
+                  <Card key={item.id} className="group hover:shadow-md transition-shadow">
+                    {editingEquipId === item.id ? (
+                      <CardContent className="p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Fabricante</Label>
+                            <Input value={editEquipFabricante} onChange={e => setEditEquipFabricante(e.target.value)} className="mt-1 h-8 text-sm" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Potência ({unidade})</Label>
+                            <Input type="number" value={editEquipPotencia} onChange={e => setEditEquipPotencia(e.target.value)} className="mt-1 h-8 text-sm" />
                           </div>
                         </div>
                         <div>
-                          <Label className="text-xs">Registro Inmetro</Label>
-                          <input ref={editEquipInmetroRef} type="file" accept="image/*,application/pdf" className="hidden"
-                            onChange={e => setEditEquipInmetroFile(e.target.files?.[0] ?? null)} />
-                          <div
-                            onClick={() => editEquipInmetroRef.current?.click()}
-                            onDragOver={e => { e.preventDefault(); setDragEditInmetro(true); }}
-                            onDragLeave={() => setDragEditInmetro(false)}
-                            onDrop={e => handleEquipDrop(e, setEditEquipInmetroFile, setDragEditInmetro)}
-                            className={`mt-1 border-2 border-dashed rounded-lg p-2 text-center cursor-pointer transition-colors ${
-                              dragEditInmetro
-                                ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
-                            }`}
-                          >
-                            {editEquipInmetroFile ? (
-                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
-                                <FileText className="h-3 w-3 shrink-0" />
-                                <span className="truncate max-w-[90px]">{editEquipInmetroFile.name}</span>
-                              </span>
-                            ) : item.inmetro_url ? (
-                              <span className="text-[10px] text-green-600 flex items-center justify-center gap-1">
-                                <FileText className="h-3 w-3" /> Arquivo atual
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
-                                <Upload className="h-3 w-3" /> Arraste ou clique
-                              </span>
-                            )}
+                          <Label className="text-xs">Modelos <span className="text-gray-400 font-normal">(Enter ou vírgula)</span></Label>
+                          <div className="mt-1">
+                            <ModeloTagInput
+                              modelos={editEquipModelos}
+                              input={editEquipModeloInput}
+                              setInput={setEditEquipModeloInput}
+                              setModelos={setEditEquipModelos}
+                              size="small"
+                            />
                           </div>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleUpdateEquip(item.id)} disabled={savingEquip} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
-                          {savingEquip ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Salvar
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingEquipId(null)} className="text-xs">
-                          <X className="h-3 w-3 mr-1" /> Cancelar
-                        </Button>
-                      </div>
-                    </CardContent>
-                  ) : (
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200">{item.fabricante}</h3>
-                          <p className="text-xs text-gray-500 mt-0.5">{item.modelo}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs mb-1 block">
+                              Datasheet
+                              {item.datasheet_url && !editEquipDatasheetFile && (
+                                <a href={item.datasheet_url} target="_blank" rel="noopener noreferrer"
+                                  className="ml-2 text-blue-500 hover:underline font-normal">ver atual</a>
+                              )}
+                            </Label>
+                            <input ref={editEquipDatasheetRef} type="file" accept="image/*,application/pdf" className="hidden"
+                              onChange={e => setEditEquipDatasheetFile(e.target.files?.[0] ?? null)} />
+                            <DropZone
+                              file={editEquipDatasheetFile}
+                              dragOver={dragEditDatasheet}
+                              onClick={() => editEquipDatasheetRef.current?.click()}
+                              onDragOver={e => { e.preventDefault(); setDragEditDatasheet(true); }}
+                              onDragLeave={() => setDragEditDatasheet(false)}
+                              onDrop={e => handleEquipDrop(e, setEditEquipDatasheetFile, setDragEditDatasheet)}
+                              label={item.datasheet_url ? 'Substituir arquivo' : 'Arraste ou clique'}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs mb-1 block">
+                              Reg. Inmetro
+                              {item.inmetro_url && !editEquipInmetroFile && (
+                                <a href={item.inmetro_url} target="_blank" rel="noopener noreferrer"
+                                  className="ml-2 text-blue-500 hover:underline font-normal">ver atual</a>
+                              )}
+                            </Label>
+                            <input ref={editEquipInmetroRef} type="file" accept="image/*,application/pdf" className="hidden"
+                              onChange={e => setEditEquipInmetroFile(e.target.files?.[0] ?? null)} />
+                            <DropZone
+                              file={editEquipInmetroFile}
+                              dragOver={dragEditInmetro}
+                              onClick={() => editEquipInmetroRef.current?.click()}
+                              onDragOver={e => { e.preventDefault(); setDragEditInmetro(true); }}
+                              onDragLeave={() => setDragEditInmetro(false)}
+                              onDrop={e => handleEquipDrop(e, setEditEquipInmetroFile, setDragEditInmetro)}
+                              label={item.inmetro_url ? 'Substituir arquivo' : 'Arraste ou clique'}
+                            />
+                          </div>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="sm" onClick={() => startEditEquip(item)} className="h-7 w-7 p-0">
-                            <Edit className="h-3.5 w-3.5 text-blue-500" />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => handleUpdateEquip(item.id)} disabled={savingEquip} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+                            {savingEquip ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Salvar
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteEquipTarget(item)} className="h-7 w-7 p-0">
-                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          <Button variant="ghost" size="sm" onClick={() => setEditingEquipId(null)} className="text-xs">
+                            <X className="h-3 w-3 mr-1" /> Cancelar
                           </Button>
                         </div>
-                      </div>
-                      <div className="mt-3 flex flex-col gap-2">
-                        {item.datasheet_url ? (
-                          <a href={item.datasheet_url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-xs text-blue-600 hover:text-blue-700 hover:underline">
-                            <FileText className="h-4 w-4 shrink-0" /> Datasheet
-                          </a>
-                        ) : (
-                          <span className="flex items-center gap-2 text-xs text-gray-300">
-                            <FileText className="h-4 w-4 shrink-0" /> Datasheet não anexado
-                          </span>
+                      </CardContent>
+                    ) : (
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <Badge
+                            className={`text-xs ${item.tipo === 'inversor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'}`}
+                            variant="secondary"
+                          >
+                            {item.tipo === 'inversor' ? 'Inversor' : 'Módulo'}
+                          </Badge>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="sm" onClick={() => startEditEquip(item)} className="h-7 w-7 p-0">
+                              <Edit className="h-3.5 w-3.5 text-blue-500" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteEquipTarget(item)} className="h-7 w-7 p-0">
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Fabricante</p>
+                        <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{item.fabricante}</p>
+
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide mt-2 mb-1">
+                          {modelosList.length > 1 ? 'Modelos' : 'Modelo'}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {modelosList.map(m => (
+                            <Badge key={m} variant="outline" className="text-xs">{m}</Badge>
+                          ))}
+                        </div>
+
+                        {item.potencia && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            Potência: <span className="font-medium text-gray-700 dark:text-gray-300">{item.potencia} {unidade}</span>
+                          </p>
                         )}
-                        {item.inmetro_url ? (
-                          <a href={item.inmetro_url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-xs text-blue-600 hover:text-blue-700 hover:underline">
-                            <FileText className="h-4 w-4 shrink-0" /> Registro Inmetro
-                          </a>
-                        ) : (
-                          <span className="flex items-center gap-2 text-xs text-gray-300">
-                            <FileText className="h-4 w-4 shrink-0" /> Registro Inmetro não anexado
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
+
+                        <div className="mt-3 flex flex-col gap-1.5 pt-3 border-t border-gray-100 dark:border-gray-800">
+                          <DocRow url={item.datasheet_url} label="Datasheet" />
+                          <DocRow url={item.inmetro_url} label="Registro Inmetro" />
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </>
@@ -1040,7 +1164,7 @@ export default function AcervoTecnicoPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir &quot;{deleteEquipTarget?.nome}&quot;? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir &quot;{deleteEquipTarget?.fabricante}&quot;? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
