@@ -547,8 +547,16 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
             <tr>
               <td style={{ ...D, fontSize: '7px', lineHeight: '1.4' }}>
                 Para solicitar orçamento estimado é necessário preencher apenas os dados básicos da unidade consumidora, a tensão de atendimento e indicação da potência de geração no campo que surgirá ao lado do tipo de orçamento.
-                <br />Devem ser enviados também documentos de identificação do consumidor e, caso existam, procurações e documentações dos representantes legais, conforme Tabela 3 da norma NT.00020.EQTL.
-                <br />Caso o orçamento estimado seja solicitado para uma localização onde ainda não exista unidade consumidora, é necessário anexar à solicitação planta de situação conforme modelo da norma NT.00020.EQTL.
+              </td>
+            </tr>
+            <tr>
+              <td style={{ ...D, fontSize: '7px', lineHeight: '1.4' }}>
+                Caso o orçamento estimado seja solicitado para uma localização onde ainda não exista unidade consumidora, é necessário anexar à solicitação planta de situação conforme modelo da norma NT.00020.EQTL.
+              </td>
+            </tr>
+            <tr>
+              <td style={{ ...D, fontSize: '7px', lineHeight: '1.4' }}>
+                Devem ser enviados também documentos de identificação do consumidor e, caso existam, procurações e documentações dos representantes legais, conforme Tabela 3 da norma NT.00020.EQTL.
               </td>
             </tr>
           </tbody>
@@ -585,7 +593,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               ['Modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 7 ("Fast Track")', 'NÃO'],
             ].map(([text, val]) => (
               <tr key={text}>
-                <td style={{ ...D, fontSize: '7px', paddingLeft: '12px' }}>▪ {text}</td>
+                <td style={{ ...D, fontSize: '7px', paddingLeft: '12px' }}>• {text}</td>
                 <td style={{ ...D, fontWeight: 'bold', textAlign: 'center' }}>{val}</td>
               </tr>
             ))}
@@ -601,18 +609,17 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
           <tbody>
             <tr><td style={SH}>7. Termo de Aceite das condições para afastamento da análise de inversão de fluxo (Opcional)</td></tr>
             <tr>
-              <td style={{ ...D, fontSize: '7px', lineHeight: '1.4' }}>
-                Solicito o afastamento da análise de inversão de fluxo, nos termos do inciso III do caput do art. 73-A da Resolução Normativa nº 1.000/2021, e declaro estar ciente de que:
-                <br />1) a unidade consumidora será enquadrada na modalidade autoconsumo local;
-                <br />2) fica vedada, em qualquer hipótese, a alocação ou realocação de excedentes ou de créditos de energia em unidade consumidora distinta de onde ocorreu a geração de energia elétrica, afastando-se as disposições de que trata o art. 655-M da Resolução Normativa nº 1.000/2021; e
-                <br />3) para alteração de enquadramento da modalidade da microgeração deverá ser encerrado o contrato e solicitado novo orçamento de conexão, vedada a aplicação do art. 655-M.
-                <br />Declaro também reconhecer que essa opção é irrevogável e irretratável, implicando no meu dever de observar o que estabelece o art. 73-A da referida Resolução.
-              </td>
-            </tr>
-            <tr>
-              <td style={{ ...D, fontSize: '7px' }}>
-                Local e Data: _______________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                Assinatura: _______________________________
+              <td style={{ ...D, fontSize: '7px', lineHeight: '1.6' }}>
+                <div>Solicito o afastamento da análise de inversão de fluxo, nos termos do inciso III do caput do art. 73-A da Resolução Normativa nº 1.000/2021, e declaro estar ciente de que:</div>
+                <div>1) a unidade consumidora será enquadrada na modalidade autoconsumo local;</div>
+                <div>2) fica vedada, em qualquer hipótese, a alocação ou realocação de excedentes ou de créditos de energia em unidade consumidora distinta de onde ocorreu a geração de energia elétrica, afastando-se as disposições de que trata o art. 655-M da Resolução Normativa nº 1.000/2021; e</div>
+                <div>3) para alteração de enquadramento da modalidade da microgeração deverá ser encerrado o contrato e solicitado novo orçamento de conexão, vedada a aplicação do art. 655-M.</div>
+                <div>Declaro também reconhecer que essa opção é irrevogável e irretratável, implicando no meu dever de observar o que estabelece o art. 73-A da referida Resolução.</div>
+                <br /><br />
+                <div>Local e Data: _______________________________</div>
+                <br /><br />
+                <div>Assinatura: _______________________________</div>
+                <br /><br />
               </td>
             </tr>
           </tbody>
