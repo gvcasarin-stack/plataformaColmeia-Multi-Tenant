@@ -216,6 +216,70 @@ const s = StyleSheet.create({
   center: { textAlign: 'center' },
   small: { fontSize: 4, color: '#595959', fontFamily: 'Helvetica-Oblique' },
   sectionLabel: { fontFamily: 'Helvetica-Bold', fontSize: 6, marginBottom: 2 },
+  // ── Página 2 — estilos compactos sem gap entre linhas ──
+  tbl2: {
+    borderLeftWidth: B,
+    borderTopWidth: B,
+    borderColor: BC,
+    marginBottom: 4,
+  },
+  chBlue2: {
+    backgroundColor: '#595959',
+    color: '#FFFFFF',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 5,
+    padding: 2,
+    borderRightWidth: B,
+    borderBottomWidth: B,
+    borderColor: BC,
+    textAlign: 'center',
+  },
+  d2: {
+    backgroundColor: '#FFFFFF',
+    fontSize: 5,
+    padding: 2,
+    borderRightWidth: B,
+    borderBottomWidth: B,
+    borderColor: BC,
+  },
+  dPeach2: {
+    backgroundColor: '#FCE4D6',
+    fontSize: 5,
+    padding: 2,
+    borderRightWidth: B,
+    borderBottomWidth: B,
+    borderColor: BC,
+    textAlign: 'center',
+  },
+  tot2: {
+    backgroundColor: '#FFFFFF',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 5,
+    padding: 2,
+    borderRightWidth: B,
+    borderBottomWidth: B,
+    borderColor: BC,
+    textAlign: 'center',
+  },
+  totGray2: {
+    backgroundColor: '#808080',
+    color: '#FFFFFF',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 5,
+    padding: 2,
+    borderRightWidth: B,
+    borderBottomWidth: B,
+    borderColor: BC,
+    textAlign: 'center',
+  },
+  l2: {
+    backgroundColor: '#D9D9D9',
+    fontSize: 5,
+    padding: 2,
+    borderRightWidth: B,
+    borderBottomWidth: B,
+    borderColor: BC,
+  },
   chBlue: {
     backgroundColor: '#595959',
     color: '#FFFFFF',
@@ -650,7 +714,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
 
       {/* ===== PÁGINA 2 — UNIDADES GERADORAS ===== */}
       <Page size="A4" style={s.page}>
-        <View style={[s.tbl, { marginBottom: 6 }]}>
+        <View style={[s.tbl2, { marginBottom: 6 }]}>
           <View style={s.row}>
             <View style={[s.sh, { width: '100%' }]}>
               <Text>{'Informações das Unidades Geradoras (UG): '}
@@ -662,132 +726,132 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
 
         {/* 1. Solar Fotovoltaica */}
         <Text style={s.sectionLabel}>1. Solar Fotovoltaica</Text>
-        <View style={s.tbl}>
+        <View style={s.tbl2}>
           <View style={s.row}>
-            <View style={[s.chBlue, { width: '5%' }]}><Text>Item</Text></View>
-            <View style={[s.chBlue, { width: '16%' }]}><Text>Potência do Módulo (W)</Text></View>
-            <View style={[s.chBlue, { width: '12%' }]}><Text>Quantidade</Text></View>
-            <View style={[s.chBlue, { width: '18%' }]}><Text>Potência de Pico (kWp):</Text></View>
-            <View style={[s.chBlue, { width: '16%' }]}><Text>Área do arranjo (m²):</Text></View>
-            <View style={[s.chBlue, { width: '20%' }]}><Text>Fabricante(s) dos Módulos</Text></View>
-            <View style={[s.chBlue, { width: '13%' }]}><Text>Modelo</Text></View>
+            <View style={[s.chBlue2, { width: '5%' }]}><Text>Item</Text></View>
+            <View style={[s.chBlue2, { width: '16%' }]}><Text>Potência do Módulo (W)</Text></View>
+            <View style={[s.chBlue2, { width: '12%' }]}><Text>Quantidade</Text></View>
+            <View style={[s.chBlue2, { width: '18%' }]}><Text>Potência de Pico (kWp):</Text></View>
+            <View style={[s.chBlue2, { width: '16%' }]}><Text>Área do arranjo (m²):</Text></View>
+            <View style={[s.chBlue2, { width: '20%' }]}><Text>Fabricante(s) dos Módulos</Text></View>
+            <View style={[s.chBlue2, { width: '13%' }]}><Text>Modelo</Text></View>
           </View>
           <View style={s.row}>
-            <View style={[s.d, { width: '5%', textAlign: 'center' }]}><Text>1</Text></View>
-            <View style={[s.d, { width: '16%', textAlign: 'center' }]}><Text>{v('modulos_potencia_wp', pd)}</Text></View>
-            <View style={[s.d, { width: '12%', textAlign: 'center' }]}><Text>{v('modulos_quantidade', pd)}</Text></View>
-            <View style={[s.d, { width: '18%', textAlign: 'center' }]}><Text>{potenciaKwp}</Text></View>
-            <View style={[s.d, { width: '16%', textAlign: 'center' }]}><Text>{v('modulos_area_m2', pd)}</Text></View>
-            <View style={[s.d, { width: '20%' }]}><Text>{v('modulos_fabricante', pd)}</Text></View>
-            <View style={[s.d, { width: '13%' }]}><Text>{v('modulos_modelo', pd)}</Text></View>
+            <View style={[s.d2, { width: '5%', textAlign: 'center' }]}><Text>1</Text></View>
+            <View style={[s.d2, { width: '16%', textAlign: 'center' }]}><Text>{v('modulos_potencia_wp', pd)}</Text></View>
+            <View style={[s.d2, { width: '12%', textAlign: 'center' }]}><Text>{v('modulos_quantidade', pd)}</Text></View>
+            <View style={[s.d2, { width: '18%', textAlign: 'center' }]}><Text>{potenciaKwp}</Text></View>
+            <View style={[s.d2, { width: '16%', textAlign: 'center' }]}><Text>{v('modulos_area_m2', pd)}</Text></View>
+            <View style={[s.d2, { width: '20%' }]}><Text>{v('modulos_fabricante', pd)}</Text></View>
+            <View style={[s.d2, { width: '13%' }]}><Text>{v('modulos_modelo', pd)}</Text></View>
           </View>
           {Array.from({ length: 9 }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '5%', textAlign: 'center' }]}><Text>{i + 2}</Text></View>
-              <View style={[s.dPeach, { width: '16%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '12%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '18%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '16%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '13%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '5%', textAlign: 'center' }]}><Text>{i + 2}</Text></View>
+              <View style={[s.dPeach2, { width: '16%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '12%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '18%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '16%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '20%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '13%' }]}><Text></Text></View>
             </View>
           ))}
           <View style={s.row}>
-            <View style={[s.totGray, { width: '5%' }]}><Text>TOTAL</Text></View>
-            <View style={[s.totGray, { width: '16%' }]}><Text></Text></View>
-            <View style={[s.tot, { width: '12%' }]}><Text>{v('modulos_quantidade', pd)}</Text></View>
-            <View style={[s.tot, { width: '18%' }]}><Text>{potenciaKwp}</Text></View>
-            <View style={[s.tot, { width: '16%' }]}><Text>{v('modulos_area_m2', pd)}</Text></View>
-            <View style={[s.totGray, { width: '20%' }]}><Text></Text></View>
-            <View style={[s.totGray, { width: '13%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '5%' }]}><Text>TOTAL</Text></View>
+            <View style={[s.totGray2, { width: '16%' }]}><Text></Text></View>
+            <View style={[s.tot2, { width: '12%' }]}><Text>{v('modulos_quantidade', pd)}</Text></View>
+            <View style={[s.tot2, { width: '18%' }]}><Text>{potenciaKwp}</Text></View>
+            <View style={[s.tot2, { width: '16%' }]}><Text>{v('modulos_area_m2', pd)}</Text></View>
+            <View style={[s.totGray2, { width: '20%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '13%' }]}><Text></Text></View>
           </View>
         </View>
         <Text style={[s.small, { marginBottom: 4 }]}>Obs: Célula fotovoltaica é a unidade básica, módulo é o conjunto de células e arranjo é o agrupamento de módulos, o gerador fotovoltaico é o conjunto de arranjos.</Text>
 
         {/* 2. Dados dos Inversores */}
         <Text style={s.sectionLabel}>2. Dados dos Inversores</Text>
-        <View style={s.tbl}>
+        <View style={s.tbl2}>
           <View style={s.row}>
-            <View style={[s.chBlue, { width: '4%' }]}><Text>Item</Text></View>
-            <View style={[s.chBlue, { width: '14%' }]}><Text>Fabricante*</Text></View>
-            <View style={[s.chBlue, { width: '16%' }]}><Text>Modelo*</Text></View>
-            <View style={[s.chBlue, { width: '12%' }]}><Text>Potência Nominal (kW)</Text></View>
-            <View style={[s.chBlue, { width: '13%' }]}><Text>Faixa de tensão de operação (V)</Text></View>
-            <View style={[s.chBlue, { width: '10%' }]}><Text>Corrente Nominal (A)</Text></View>
-            <View style={[s.chBlue, { width: '11%' }]}><Text>Fator de Potência</Text></View>
-            <View style={[s.chBlue, { width: '10%' }]}><Text>Rendimento (%)</Text></View>
-            <View style={[s.chBlue, { width: '10%' }]}><Text>DHT de Corrente (%)</Text></View>
+            <View style={[s.chBlue2, { width: '4%' }]}><Text>Item</Text></View>
+            <View style={[s.chBlue2, { width: '14%' }]}><Text>Fabricante*</Text></View>
+            <View style={[s.chBlue2, { width: '16%' }]}><Text>Modelo*</Text></View>
+            <View style={[s.chBlue2, { width: '12%' }]}><Text>Potência Nominal (kW)</Text></View>
+            <View style={[s.chBlue2, { width: '13%' }]}><Text>Faixa de tensão de operação (V)</Text></View>
+            <View style={[s.chBlue2, { width: '10%' }]}><Text>Corrente Nominal (A)</Text></View>
+            <View style={[s.chBlue2, { width: '11%' }]}><Text>Fator de Potência</Text></View>
+            <View style={[s.chBlue2, { width: '10%' }]}><Text>Rendimento (%)</Text></View>
+            <View style={[s.chBlue2, { width: '10%' }]}><Text>DHT de Corrente (%)</Text></View>
           </View>
           {Array.from({ length: inversoresQtd }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.d, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
-              <View style={[s.d, { width: '14%' }]}><Text>{v('inversores_fabricante', pd)}</Text></View>
-              <View style={[s.d, { width: '16%' }]}><Text>{v('inversores_modelo', pd)}</Text></View>
-              <View style={[s.d, { width: '12%', textAlign: 'center' }]}><Text>{v('inversores_potencia', pd)}</Text></View>
-              <View style={[s.d, { width: '13%', textAlign: 'center' }]}><Text>{v('inversores_faixa_tensao', pd)}</Text></View>
-              <View style={[s.d, { width: '10%', textAlign: 'center' }]}><Text>{v('inversores_corrente_nominal', pd)}</Text></View>
-              <View style={[s.d, { width: '11%', textAlign: 'center' }]}><Text>{v('inversores_fator_potencia', pd)}</Text></View>
-              <View style={[s.d, { width: '10%', textAlign: 'center' }]}><Text>{v('inversores_rendimento', pd)}</Text></View>
-              <View style={[s.d, { width: '10%', textAlign: 'center' }]}><Text>{v('inversores_dht_corrente', pd)}</Text></View>
+              <View style={[s.d2, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
+              <View style={[s.d2, { width: '14%' }]}><Text>{v('inversores_fabricante', pd)}</Text></View>
+              <View style={[s.d2, { width: '16%' }]}><Text>{v('inversores_modelo', pd)}</Text></View>
+              <View style={[s.d2, { width: '12%', textAlign: 'center' }]}><Text>{v('inversores_potencia', pd)}</Text></View>
+              <View style={[s.d2, { width: '13%', textAlign: 'center' }]}><Text>{v('inversores_faixa_tensao', pd)}</Text></View>
+              <View style={[s.d2, { width: '10%', textAlign: 'center' }]}><Text>{v('inversores_corrente_nominal', pd)}</Text></View>
+              <View style={[s.d2, { width: '11%', textAlign: 'center' }]}><Text>{v('inversores_fator_potencia', pd)}</Text></View>
+              <View style={[s.d2, { width: '10%', textAlign: 'center' }]}><Text>{v('inversores_rendimento', pd)}</Text></View>
+              <View style={[s.d2, { width: '10%', textAlign: 'center' }]}><Text>{v('inversores_dht_corrente', pd)}</Text></View>
             </View>
           ))}
           {Array.from({ length: Math.max(0, 30 - inversoresQtd) }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '4%', textAlign: 'center' }]}><Text>{inversoresQtd + i + 1}</Text></View>
-              <View style={[s.dPeach, { width: '14%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '16%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '12%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '13%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '10%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '11%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '10%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '10%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '4%', textAlign: 'center' }]}><Text>{inversoresQtd + i + 1}</Text></View>
+              <View style={[s.dPeach2, { width: '14%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '16%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '12%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '13%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '10%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '11%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '10%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '10%' }]}><Text></Text></View>
             </View>
           ))}
           <View style={s.row}>
-            <View style={[s.totGray, { width: '4%' }]}><Text>TOTAL</Text></View>
-            <View style={[s.totGray, { width: '14%' }]}><Text></Text></View>
-            <View style={[s.totGray, { width: '16%' }]}><Text></Text></View>
-            <View style={[s.tot, { width: '12%' }]}><Text>{totalInvPotencia}</Text></View>
-            <View style={[s.totGray, { width: '13%' }]}><Text></Text></View>
-            <View style={[s.totGray, { width: '10%' }]}><Text></Text></View>
-            <View style={[s.totGray, { width: '11%' }]}><Text></Text></View>
-            <View style={[s.totGray, { width: '10%' }]}><Text></Text></View>
-            <View style={[s.totGray, { width: '10%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '4%' }]}><Text>TOTAL</Text></View>
+            <View style={[s.totGray2, { width: '14%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '16%' }]}><Text></Text></View>
+            <View style={[s.tot2, { width: '12%' }]}><Text>{totalInvPotencia}</Text></View>
+            <View style={[s.totGray2, { width: '13%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '10%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '11%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '10%' }]}><Text></Text></View>
+            <View style={[s.totGray2, { width: '10%' }]}><Text></Text></View>
           </View>
         </View>
         <Text style={[s.small, { marginBottom: 4 }]}>Obs: Unidades Geradoras Fotovoltaicas e Eólicas</Text>
 
         {/* 3. Eólica */}
         <Text style={s.sectionLabel}>3. Eólica</Text>
-        <View style={s.tbl}>
+        <View style={s.tbl2}>
           <View style={s.row}>
-            <View style={[s.chBlue, { width: '4%' }]}><Text>Item</Text></View>
-            <View style={[s.chBlue, { width: '16%' }]}><Text>Fabricante/Modelo</Text></View>
-            <View style={[s.chBlue, { width: '9%' }]}><Text>Eixo do rotor (horiz./vert.)*</Text></View>
-            <View style={[s.chBlue, { width: '8%' }]}><Text>Altura Máxima da Pá (m)*</Text></View>
-            <View style={[s.chBlue, { width: '8%' }]}><Text>Diâmetro do rotor (m)</Text></View>
-            <View style={[s.chBlue, { width: '9%' }]}><Text>Controle de Potência</Text></View>
-            <View style={[s.chBlue, { width: '8%' }]}><Text>Vel. rotação nom./Sobrevel. máx. (rpm)</Text></View>
-            <View style={[s.chBlue, { width: '9%' }]}><Text>Vel. vento Entrada (m/s)</Text></View>
-            <View style={[s.chBlue, { width: '9%' }]}><Text>Vel. vento Saída (m/s)</Text></View>
-            <View style={[s.chBlue, { width: '9%' }]}><Text>Pot. Entrada (kW)</Text></View>
-            <View style={[s.chBlue, { width: '9%' }]}><Text>Pot. Saída (kW)</Text></View>
-            <View style={[s.chBlue, { width: '6%' }]}><Text>MD²/4 (kg.m²)</Text></View>
-            <View style={[s.chBlue, { width: '6%' }]}><Text>Cert.</Text></View>
+            <View style={[s.chBlue2, { width: '4%' }]}><Text>Item</Text></View>
+            <View style={[s.chBlue2, { width: '16%' }]}><Text>Fabricante/Modelo</Text></View>
+            <View style={[s.chBlue2, { width: '9%' }]}><Text>Eixo do rotor (horiz./vert.)*</Text></View>
+            <View style={[s.chBlue2, { width: '8%' }]}><Text>Altura Máxima da Pá (m)*</Text></View>
+            <View style={[s.chBlue2, { width: '8%' }]}><Text>Diâmetro do rotor (m)</Text></View>
+            <View style={[s.chBlue2, { width: '9%' }]}><Text>Controle de Potência</Text></View>
+            <View style={[s.chBlue2, { width: '8%' }]}><Text>Vel. rotação nom./Sobrevel. máx. (rpm)</Text></View>
+            <View style={[s.chBlue2, { width: '9%' }]}><Text>Vel. vento Entrada (m/s)</Text></View>
+            <View style={[s.chBlue2, { width: '9%' }]}><Text>Vel. vento Saída (m/s)</Text></View>
+            <View style={[s.chBlue2, { width: '9%' }]}><Text>Pot. Entrada (kW)</Text></View>
+            <View style={[s.chBlue2, { width: '9%' }]}><Text>Pot. Saída (kW)</Text></View>
+            <View style={[s.chBlue2, { width: '6%' }]}><Text>MD²/4 (kg.m²)</Text></View>
+            <View style={[s.chBlue2, { width: '6%' }]}><Text>Cert.</Text></View>
           </View>
           {Array.from({ length: 10 }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
+              <View style={[s.dPeach2, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
               {([16, 9, 8, 8, 9, 8, 9, 9, 9, 9, 6, 6] as number[]).map((w, j) => (
-                <View key={j} style={[s.dPeach, { width: `${w}%` }]}><Text></Text></View>
+                <View key={j} style={[s.dPeach2, { width: `${w}%` }]}><Text></Text></View>
               ))}
             </View>
           ))}
           <View style={s.row}>
-            <View style={[s.tot, { width: '4%' }]}><Text>TOTAL</Text></View>
+            <View style={[s.tot2, { width: '4%' }]}><Text>TOTAL</Text></View>
             {([16, 9, 8, 8, 9, 8, 9, 9, 9, 9, 6, 6] as number[]).map((w, j) => (
-              <View key={j} style={[s.dPeach, { width: `${w}%` }]}><Text></Text></View>
+              <View key={j} style={[s.dPeach2, { width: `${w}%` }]}><Text></Text></View>
             ))}
           </View>
         </View>
@@ -795,34 +859,34 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
 
         {/* 4. Hidráulica */}
         <Text style={s.sectionLabel}>4. Hidráulica</Text>
-        <View style={s.tbl}>
+        <View style={s.tbl2}>
           <View style={s.row}>
-            <View style={[s.chBlue, { width: '4%' }]}><Text>Item</Text></View>
+            <View style={[s.chBlue2, { width: '4%' }]}><Text>Item</Text></View>
             {(['Rio', 'Bacia / SubBacia', 'Tipo turbina', 'Fabricante Turbina', 'Potência Turbina (kVA)', 'Fabricante Gerador', 'Potência Gerador (kVA)', 'Fator de Potência', 'Potência Gerador (kW)'] as string[]).map(h => (
-              <View key={h} style={[s.chBlue, { flex: 1 }]}><Text>{h}</Text></View>
+              <View key={h} style={[s.chBlue2, { flex: 1 }]}><Text>{h}</Text></View>
             ))}
           </View>
           {[1, 2, 3].map(i => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach, { width: '4%', textAlign: 'center' }]}><Text>{i}</Text></View>
-              {Array.from({ length: 9 }).map((_, j) => <View key={j} style={[s.dPeach, { flex: 1 }]}><Text></Text></View>)}
+              <View style={[s.dPeach2, { width: '4%', textAlign: 'center' }]}><Text>{i}</Text></View>
+              {Array.from({ length: 9 }).map((_, j) => <View key={j} style={[s.dPeach2, { flex: 1 }]}><Text></Text></View>)}
             </View>
           ))}
           <View style={s.row}>
-            <View style={[s.totGray, { width: '4%' }]}><Text>TOTAL</Text></View>
-            {Array.from({ length: 9 }).map((_, j) => <View key={j} style={[s.totGray, { flex: 1 }]}><Text></Text></View>)}
+            <View style={[s.totGray2, { width: '4%' }]}><Text>TOTAL</Text></View>
+            {Array.from({ length: 9 }).map((_, j) => <View key={j} style={[s.totGray2, { flex: 1 }]}><Text></Text></View>)}
           </View>
         </View>
 
         {/* 5. Térmica */}
         <Text style={s.sectionLabel}>5. Térmica (Biomassa/Solar Térmica/Cogeração)</Text>
-        <View style={s.tbl}>
+        <View style={s.tbl2}>
           <View style={s.row}>
-            <View style={[s.chBlue, { width: '20%' }]}><Text>Informação</Text></View>
-            <View style={[s.chBlue, { width: '20%' }]}><Text>Especificação</Text></View>
-            <View style={[s.chBlue, { width: '20%' }]}><Text>Unidade</Text></View>
-            <View style={[s.chBlue, { width: '20%' }]}><Text>Periodicidade</Text></View>
-            <View style={[s.chBlue, { width: '20%' }]}><Text>Observação</Text></View>
+            <View style={[s.chBlue2, { width: '20%' }]}><Text>Informação</Text></View>
+            <View style={[s.chBlue2, { width: '20%' }]}><Text>Especificação</Text></View>
+            <View style={[s.chBlue2, { width: '20%' }]}><Text>Unidade</Text></View>
+            <View style={[s.chBlue2, { width: '20%' }]}><Text>Periodicidade</Text></View>
+            <View style={[s.chBlue2, { width: '20%' }]}><Text>Observação</Text></View>
           </View>
           {([
             ['Fabricante das Turbinas*', ''],
@@ -840,11 +904,11 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             ['Fator de Potência Máximo* (3)', ''],
           ] as [string, string][]).map(([label, unit]) => (
             <View key={label} style={s.row}>
-              <View style={[s.l, { width: '20%' }]}><Text>{label}</Text></View>
-              <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
-              <View style={unit ? [s.d, { width: '20%' }] : [s.dPeach, { width: '20%' }]}><Text>{unit}</Text></View>
-              <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
-              <View style={[s.dPeach, { width: '20%' }]}><Text></Text></View>
+              <View style={[s.l2, { width: '20%' }]}><Text>{label}</Text></View>
+              <View style={[s.dPeach2, { width: '20%' }]}><Text></Text></View>
+              <View style={unit ? [s.d2, { width: '20%' }] : [s.dPeach2, { width: '20%' }]}><Text>{unit}</Text></View>
+              <View style={[s.dPeach2, { width: '20%' }]}><Text></Text></View>
+              <View style={[s.dPeach2, { width: '20%' }]}><Text></Text></View>
             </View>
           ))}
         </View>
