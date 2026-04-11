@@ -3007,7 +3007,7 @@ export const ExpandedProjectView = ({
                                 </Card>
                               )}
 
-                              <Card
+                              {!selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && <Card
                                 onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'formulario' ? null : 'formulario')}
                                 className={`border cursor-pointer group transition-all duration-200 ${
                                   activeTemplatePreview === 'formulario'
@@ -3033,7 +3033,7 @@ export const ExpandedProjectView = ({
                                     </div>
                                   </div>
                                 </CardContent>
-                              </Card>
+                              </Card>}
 
                               <Card
                                 onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'diagrama' ? null : 'diagrama')}
