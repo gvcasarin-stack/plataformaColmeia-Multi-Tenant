@@ -374,34 +374,19 @@ export default function ProjetosPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Header with Gradient */}
-      {!headerExpanded ? (
-        <div className="flex items-center justify-between">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+        <div className={cn("relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center", headerExpanded ? "p-8" : "px-8 py-5")}>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Projetos</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Gerencie todos os projetos do sistema</p>
-          </div>
-          <button
-            onClick={toggleHeader}
-            className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title="Expandir header"
-          >
-            <ChevronDown className="h-5 w-5" />
-          </button>
-        </div>
-      ) : (
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white shadow-lg">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
-          <div>
-            <h1 className="text-3xl font-bold">
+            <h1 className={cn("font-bold", headerExpanded ? "text-3xl" : "text-2xl")}>
               Projetos
             </h1>
-            <p className="mt-2 text-blue-100">
+            <p className={cn("text-blue-100", headerExpanded ? "mt-2" : "mt-0.5 text-sm")}>
               Gerencie todos os projetos do sistema
             </p>
           </div>
-          
+
           <div className="flex flex-col items-end gap-3 mt-4 md:mt-0">
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-lg p-1 shadow-sm">
                 <Button
                   variant="ghost"
@@ -426,8 +411,15 @@ export default function ProjetosPage() {
                   Tabela
                 </Button>
               </div>
+              <button
+                onClick={toggleHeader}
+                className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                title={headerExpanded ? 'Minimizar header' : 'Expandir header'}
+              >
+                {headerExpanded ? <Menu className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
             </div>
-            <div className="mt-2 flex items-center gap-3">
+            {headerExpanded && <div className="mt-2 flex items-center gap-3">
               <AddColumnDialog
                 onColumnAdded={async (columnId, columnName) => {
                   // Mostrar toast de sucesso
@@ -456,12 +448,12 @@ export default function ProjetosPage() {
                   Novo Projeto
                 </Button>
               )}
-            </div>
+            </div>}
           </div>
         </div>
-        
-        {/* Search bar in header */}
-        <div className="relative max-w-md mt-6 z-10">
+
+        {/* Search bar + filters — visíveis apenas quando expandido */}
+        {headerExpanded && <><div className="relative max-w-md mt-6 z-10">
           <Input
             placeholder="Buscar projetos, comentários, materiais..."
             value={searchQuery}
@@ -693,22 +685,12 @@ export default function ProjetosPage() {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </div></>}
 
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-blue-400 opacity-20 rounded-full"></div>
         <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-60 h-60 bg-indigo-500 opacity-20 rounded-full"></div>
-
-        {/* Toggle button */}
-        <button
-          onClick={toggleHeader}
-          className="absolute top-3 left-3 z-20 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-          title="Minimizar header"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
       </div>
-      )}
       
       {/* Project View Wrapper */}
       <div className="min-h-[400px]">
