@@ -621,14 +621,13 @@ export default function AcervoTecnicoPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-2">
-        <FolderArchive className="h-7 w-7 text-blue-600" />
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Acervo Técnico</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Gerencie imagens e recursos técnicos por distribuidora.
-          </p>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 p-8 text-white shadow-lg">
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold">Acervo Técnico</h1>
+          <p className="mt-2 text-blue-100">Gerencie datasheets, registros Inmetro e recursos técnicos por distribuidora.</p>
         </div>
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/30"></div>
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-cyan-500/30"></div>
       </div>
 
       {/* Tabs */}
