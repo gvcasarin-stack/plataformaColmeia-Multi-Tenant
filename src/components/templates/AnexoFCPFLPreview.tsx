@@ -54,15 +54,6 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '800px', margin: '0 auto', padding: '8px' }}>
-      {/* Botão de download */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-        <Button size="sm" variant="outline" disabled={downloading} onClick={() => {}}>
-          {downloading
-            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            : <FileDown className="h-4 w-4 mr-2" />}
-          Baixar PDF
-        </Button>
-      </div>
 
       {/* Título */}
       <div style={{ textAlign: 'center', marginBottom: '14px' }}>
@@ -365,6 +356,162 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
           </tr>
         </tbody>
       </table>
+
+      <div style={SP} />
+
+      {/* ── Seção 4: EOL ── */}
+      <table style={T}>
+        <colgroup>
+          <col style={{ width: '42%' }} />
+          <col style={{ width: '19.33%' }} />
+          <col style={{ width: '19.33%' }} />
+          <col style={{ width: '19.33%' }} />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td style={SH}>4) Dados das Unidades Geradoras Eólicas (EOL):</td>
+            <td style={SHC}>Existente</td>
+            <td style={SHC}>Acréscimo</td>
+            <td style={SHC}>Total</td>
+          </tr>
+          {([
+            '4.1) Quantidade total de aerogeradores: *',
+            '4.2) Listar fabricantes dos aerogeradores:',
+            '4.3) Listar modelos dos aerogeradores:',
+            '4.4) Potência nominal dos aerogeradores (kW): *',
+            '4.5) Potência Nominal dos inversores (kW): *',
+            '4.6) Data pretendida para entrada em operação (dd/mm/aaaa):',
+          ]).map((label, i) => (
+            <tr key={i}>
+              <td style={L}>{label}</td>
+              <td style={VC}>&nbsp;</td>
+              <td style={VC}>&nbsp;</td>
+              <td style={VC}>&nbsp;</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={SP} />
+
+      {/* ── Seção 5: Hidráulica ── */}
+      <table style={T}>
+        <colgroup>
+          <col style={{ width: '42%' }} />
+          <col style={{ width: '19.33%' }} />
+          <col style={{ width: '19.33%' }} />
+          <col style={{ width: '19.33%' }} />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td style={SH}>5) Dados das Unidades Geradoras Hidráulicas (CGH/PCH):</td>
+            <td style={SHC}>Existente</td>
+            <td style={SHC}>Acréscimo</td>
+            <td style={SHC}>Total</td>
+          </tr>
+          {([
+            '5.1) Quantidade total de turbinas: *',
+            '5.2) Listar fabricantes das turbinas:',
+            '5.3) Listar modelos das turbinas:',
+            '5.4) Potência nominal das turbinas (kW): *',
+            '5.5) Potência Nominal dos geradores (kVA): *',
+            '5.6) Data pretendida para entrada em operação (dd/mm/aaaa):',
+          ]).map((label, i) => (
+            <tr key={i}>
+              <td style={L}>{label}</td>
+              <td style={VC}>&nbsp;</td>
+              <td style={VC}>&nbsp;</td>
+              <td style={VC}>&nbsp;</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={SP} />
+
+      {/* ── Seção 6: Biomassa / Solar Térmica / Cogeração ── */}
+      <table style={T}>
+        <colgroup>
+          <col style={{ width: '42%' }} />
+          <col style={{ width: '19.33%' }} />
+          <col style={{ width: '19.33%' }} />
+          <col style={{ width: '19.33%' }} />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td style={SH}>6) Dados das Unidades Geradoras de Biomassa / Solar Térmica / Cogeração:</td>
+            <td style={SHC}>Existente</td>
+            <td style={SHC}>Acréscimo</td>
+            <td style={SHC}>Total</td>
+          </tr>
+          {([
+            '6.1) Quantidade total de grupos geradores: *',
+            '6.2) Listar fabricantes dos grupos geradores:',
+            '6.3) Listar modelos dos grupos geradores:',
+            '6.4) Potência nominal dos grupos geradores (kVA): *',
+            '6.5) Potência exportada de geração (kW): *',
+            '6.6) Data pretendida para entrada em operação (dd/mm/aaaa):',
+          ]).map((label, i) => (
+            <tr key={i}>
+              <td style={L}>{label}</td>
+              <td style={VC}>&nbsp;</td>
+              <td style={VC}>&nbsp;</td>
+              <td style={VC}>&nbsp;</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={SP} />
+
+      {/* ── Seção 7: Fontes Primárias ── */}
+      <table style={T}>
+        <colgroup>
+          <col style={{ width: '42%' }} />
+          <col style={{ width: '58%' }} />
+        </colgroup>
+        <tbody>
+          <tr><td colSpan={2} style={SH}>7) Fontes Primárias de Energia (marque as que se aplicam):</td></tr>
+          <tr>
+            <td colSpan={2} style={V}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                <span>☐ Solar fotovoltaica</span>
+                <span>☐ Solar térmica</span>
+                <span>☐ Eólica</span>
+                <span>☐ Hidráulica</span>
+                <span>☐ Biomassa sólida</span>
+                <span>☐ Biogás</span>
+                <span>☐ Biogás de aterro sanitário</span>
+                <span>☐ Cogeração a gás natural</span>
+                <span>☐ Cogeração a óleo diesel</span>
+                <span>☐ Cogeração a GLP</span>
+                <span>☐ Outras fontes</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="mt-6 flex justify-center">
+        <Button
+          onClick={() => {}}
+          disabled={downloading}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Gerando PDF...
+            </>
+          ) : (
+            <>
+              <FileDown className="mr-2 h-5 w-5" />
+              Gerar PDF do Anexo F
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
