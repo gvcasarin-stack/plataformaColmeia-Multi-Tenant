@@ -294,7 +294,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
                 passHref
                 legacyBehavior={false}
                 className={cn(
-                  "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
+                  "flex items-center px-3 py-2 rounded-lg transition-all duration-200 group relative",
                   "hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
                   isActive
                     ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm"
@@ -352,7 +352,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
 
         <div className="p-2 border-t dark:border-gray-700 mt-auto space-y-2 bg-orange-50/30 dark:bg-orange-900/10">
           <div className={cn(
-            "px-3 py-2.5 rounded-lg group transition-colors hover:bg-white dark:hover:bg-gray-700/50",
+            "px-3 py-2 rounded-lg group transition-colors hover:bg-white dark:hover:bg-gray-700/50",
             collapsed ? "text-center" : "text-left"
           )}>
             <div className="flex items-center gap-2.5">
@@ -393,7 +393,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
             className={cn(
               "w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-sm",
               "transition-all duration-200 rounded-lg",
-              "flex items-center justify-center py-2.5 px-3 text-sm",
+              "flex items-center justify-center py-2 px-3 text-sm",
               !collapsed && "px-2"
             )}>
             <LucideIcons.LogOut className="h-4 w-4" />
