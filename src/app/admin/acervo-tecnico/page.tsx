@@ -1069,10 +1069,13 @@ export default function AcervoTecnicoPage() {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <Badge
-                            className={`text-xs ${item.tipo === 'inversor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'}`}
+                            className={`text-xs flex items-center gap-1 ${item.tipo === 'inversor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'}`}
                             variant="secondary"
                           >
-                            {item.tipo === 'inversor' ? 'Inversor' : 'Módulo'}
+                            {item.tipo === 'inversor'
+                              ? <><Zap className="h-3 w-3" /> Inversor</>
+                              : <><LayoutGrid className="h-3 w-3" /> Módulo</>
+                            }
                           </Badge>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button variant="ghost" size="sm" onClick={() => startEditEquip(item)} className="h-7 w-7 p-0">
