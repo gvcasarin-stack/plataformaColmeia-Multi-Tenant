@@ -41,7 +41,7 @@ import {
   Zap,
   LayoutGrid,
   Download,
-  ExternalLink,
+  Eye,
 } from 'lucide-react';
 
 const DISTRIBUIDORAS = [
@@ -86,7 +86,6 @@ interface EquipamentoItem {
   modelo: string;
   modelos: string[];
   nome: string;
-  potencia: number | null;
   datasheet_url: string | null;
   inmetro_url: string | null;
   created_at: string;
@@ -138,7 +137,6 @@ export default function AcervoTecnicoPage() {
   const [equipFabricante, setEquipFabricante] = useState('');
   const [equipModelos, setEquipModelos] = useState<string[]>([]);
   const [equipModeloInput, setEquipModeloInput] = useState('');
-  const [equipPotencia, setEquipPotencia] = useState('');
   const [equipDatasheetFile, setEquipDatasheetFile] = useState<File | null>(null);
   const [equipInmetroFile, setEquipInmetroFile] = useState<File | null>(null);
   const [dragAddDatasheet, setDragAddDatasheet] = useState(false);
@@ -150,7 +148,6 @@ export default function AcervoTecnicoPage() {
   const [editEquipFabricante, setEditEquipFabricante] = useState('');
   const [editEquipModelos, setEditEquipModelos] = useState<string[]>([]);
   const [editEquipModeloInput, setEditEquipModeloInput] = useState('');
-  const [editEquipPotencia, setEditEquipPotencia] = useState('');
   const [editEquipDatasheetFile, setEditEquipDatasheetFile] = useState<File | null>(null);
   const [editEquipInmetroFile, setEditEquipInmetroFile] = useState<File | null>(null);
   const [dragEditDatasheet, setDragEditDatasheet] = useState(false);
@@ -409,7 +406,6 @@ export default function AcervoTecnicoPage() {
           modelo: equipModelos[0],
           modelos: equipModelos,
           nome: nomeAuto,
-          potencia: equipPotencia ? parseFloat(equipPotencia) : null,
           datasheet_url: datasheetUrl,
           inmetro_url: inmetroUrl,
         }),
@@ -439,7 +435,6 @@ export default function AcervoTecnicoPage() {
         modelo: editEquipModelos[0] || '',
         modelos: editEquipModelos,
         nome: nomeAuto,
-        potencia: editEquipPotencia ? parseFloat(editEquipPotencia) : null,
       };
       if (editEquipDatasheetFile) {
         const url = await uploadEquipFile(editEquipDatasheetFile, 'datasheet');
@@ -491,7 +486,6 @@ export default function AcervoTecnicoPage() {
     setEditEquipFabricante(item.fabricante);
     setEditEquipModelos(item.modelos?.length ? item.modelos : item.modelo ? [item.modelo] : []);
     setEditEquipModeloInput('');
-    setEditEquipPotencia(item.potencia?.toString() || '');
     setEditEquipDatasheetFile(null);
     setEditEquipInmetroFile(null);
   };
@@ -501,7 +495,6 @@ export default function AcervoTecnicoPage() {
     setEquipFabricante('');
     setEquipModelos([]);
     setEquipModeloInput('');
-    setEquipPotencia('');
     setEquipDatasheetFile(null);
     setEquipInmetroFile(null);
   };
@@ -522,7 +515,6 @@ export default function AcervoTecnicoPage() {
 
   const tabLabel = activeTab === 'inversores' ? 'Inversores' : 'Módulos';
   const tabSingular = TAB_SINGULAR[activeTab] ?? tabLabel;
-  const unidade = activeTab === 'inversores' ? 'kW' : 'Wp';
 
   // Reutilizável: zona de drop para arquivos
   const DropZone = ({
@@ -568,7 +560,7 @@ export default function AcervoTecnicoPage() {
         <span className="text-xs text-gray-600 dark:text-gray-400 flex-1">{label}</span>
         <a href={url} target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-0.5 text-xs text-blue-600 hover:underline">
-          <ExternalLink className="h-3 w-3" /> Ver
+          <Eye className="h-3 w-3" /> Ver
         </a>
         <a href={url} download
           className="flex items-center gap-0.5 text-xs text-gray-500 hover:text-gray-700 hover:underline ml-1">
@@ -923,21 +915,9 @@ export default function AcervoTecnicoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm">Fabricante *</Label>
-                    <Input value={equipFabricante} onChange={e => setEquipFabricante(e.target.value)} placeholder="Ex: Fronius" className="mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Potência ({unidade})</Label>
-                    <Input
-                      type="number"
-                      value={equipPotencia}
-                      onChange={e => setEquipPotencia(e.target.value)}
-                      placeholder={activeTab === 'inversores' ? 'Ex: 10' : 'Ex: 550'}
-                      className="mt-1"
-                    />
-                  </div>
+                <div>
+                  <Label className="text-sm">Fabricante *</Label>
+                  <Input value={equipFabricante} onChange={e => setEquipFabricante(e.target.value)} placeholder="Ex: Fronius" className="mt-1" />
                 </div>
 
                 <div>
@@ -1011,22 +991,16 @@ export default function AcervoTecnicoPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {equipamentos.map(item => {
                 const modelosList = item.modelos?.length ? item.modelos : item.modelo ? [item.modelo] : [];
                 return (
                   <Card key={item.id} className="group hover:shadow-md transition-shadow">
                     {editingEquipId === item.id ? (
                       <CardContent className="p-4 space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs">Fabricante</Label>
-                            <Input value={editEquipFabricante} onChange={e => setEditEquipFabricante(e.target.value)} className="mt-1 h-8 text-sm" />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Potência ({unidade})</Label>
-                            <Input type="number" value={editEquipPotencia} onChange={e => setEditEquipPotencia(e.target.value)} className="mt-1 h-8 text-sm" />
-                          </div>
+                        <div>
+                          <Label className="text-xs">Fabricante</Label>
+                          <Input value={editEquipFabricante} onChange={e => setEditEquipFabricante(e.target.value)} className="mt-1 h-8 text-sm" />
                         </div>
                         <div>
                           <Label className="text-xs">Modelos <span className="text-gray-400 font-normal">(Enter ou vírgula)</span></Label>
@@ -1122,13 +1096,7 @@ export default function AcervoTecnicoPage() {
                           ))}
                         </div>
 
-                        {item.potencia && (
-                          <p className="text-xs text-gray-500 mt-2">
-                            Potência: <span className="font-medium text-gray-700 dark:text-gray-300">{item.potencia} {unidade}</span>
-                          </p>
-                        )}
-
-                        <div className="mt-3 flex flex-col gap-1.5 pt-3 border-t border-gray-100 dark:border-gray-800">
+                        <div className="mt-3 flex flex-col gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                           <DocRow url={item.datasheet_url} label="Datasheet" />
                           <DocRow url={item.inmetro_url} label="Registro Inmetro" />
                         </div>
