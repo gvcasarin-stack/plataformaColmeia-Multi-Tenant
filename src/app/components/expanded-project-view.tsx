@@ -62,6 +62,7 @@ import { ProjectResponsibleAdmin } from './project-view/project-responsible-admi
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
 import { MemorialDescritivoPreview, type CargaRow } from '@/components/templates/MemorialDescritivoPreview'
+import { AnexoFCPFLPreview } from '@/components/templates/AnexoFCPFLPreview'
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
@@ -2917,6 +2918,35 @@ export const ExpandedProjectView = ({
                               Templates — {selectedDistribuidoraGerarProjeto}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && (
+                                <Card
+                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'anexo-f' ? null : 'anexo-f')}
+                                  className={`border cursor-pointer group transition-all duration-200 ${
+                                    activeTemplatePreview === 'anexo-f'
+                                      ? 'border-orange-500 dark:border-orange-400 shadow-md ring-2 ring-orange-200 dark:ring-orange-800'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`p-2 rounded-lg transition-colors ${
+                                        activeTemplatePreview === 'anexo-f'
+                                          ? 'bg-orange-100 dark:bg-orange-900/50'
+                                          : 'bg-orange-50 dark:bg-orange-900/30 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50'
+                                      }`}>
+                                        <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Anexo F — Formulário de Registro</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Dados para registro de micro e minigeradores distribuídos (CPFL/ANEEL).
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
                               {selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && (
                                 <Card
                                   onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'memorial' ? null : 'memorial')}
@@ -3059,6 +3089,20 @@ export const ExpandedProjectView = ({
                               </Card>
                             </div>
                           </div>
+
+                          {activeTemplatePreview === 'anexo-f' && selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-orange-500" />
+                                Pré-visualização — Anexo F — Formulário de Registro (CPFL)
+                              </h3>
+                              <div className="rounded-md border border-orange-200 dark:border-orange-700 p-4 max-h-[700px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <AnexoFCPFLPreview projectData={gerarProjetoFields} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {activeTemplatePreview === 'memorial' && selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && (
                             <div className="mt-6">
