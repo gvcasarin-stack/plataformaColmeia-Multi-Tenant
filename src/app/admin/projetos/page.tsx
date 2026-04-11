@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { User, AlertCircle, Users, CheckCircle2, PlusCircle, RotateCcw } from 'lucide-react'
+import { User, AlertCircle, Users, CheckCircle2, PlusCircle, RotateCcw, Menu, ChevronDown } from 'lucide-react'
 
 import { ProjectTable } from "@/features/projects"
 import { useProjects } from '@/lib/hooks/useProjects'
@@ -71,6 +71,22 @@ export default function ProjetosPage() {
 
   // 🆕 Estado para modal de criação de projeto
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false)
+
+  // Estado de expansão do header (persiste no localStorage)
+  const [headerExpanded, setHeaderExpanded] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('projetos-header-expanded') !== 'false'
+    }
+    return true
+  })
+
+  const toggleHeader = () => {
+    setHeaderExpanded(prev => {
+      const next = !prev
+      localStorage.setItem('projetos-header-expanded', String(next))
+      return next
+    })
+  }
 
   const viewKanbanRef = React.useRef<{ reloadColumnTitles: () => Promise<boolean> }>(null)
 
@@ -358,6 +374,21 @@ export default function ProjetosPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Header with Gradient */}
+      {!headerExpanded ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Projetos</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Gerencie todos os projetos do sistema</p>
+          </div>
+          <button
+            onClick={toggleHeader}
+            className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Expandir header"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
+        </div>
+      ) : (
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white shadow-lg">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
           <div>
@@ -667,7 +698,17 @@ export default function ProjetosPage() {
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-blue-400 opacity-20 rounded-full"></div>
         <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-60 h-60 bg-indigo-500 opacity-20 rounded-full"></div>
+
+        {/* Toggle button */}
+        <button
+          onClick={toggleHeader}
+          className="absolute top-3 left-3 z-20 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          title="Minimizar header"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
       </div>
+      )}
       
       {/* Project View Wrapper */}
       <div className="min-h-[400px]">
