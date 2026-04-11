@@ -453,7 +453,7 @@ export default function ProjetosPage() {
         </div>
 
         {/* Search bar + filters — visíveis apenas quando expandido */}
-        {headerExpanded && <><div className="relative max-w-md mt-6 z-10">
+        {headerExpanded && <div className="px-8 pb-8 z-10 relative"><div className="relative max-w-md">
           <Input
             placeholder="Buscar projetos, comentários, materiais..."
             value={searchQuery}
@@ -463,19 +463,19 @@ export default function ProjetosPage() {
         </div>
 
         {/* ✅ Filtros de Responsável */}
-        <div className="mt-6 space-y-4 z-10 relative">
+        <div className="mt-6 space-y-4">
           {/* Chips de filtro rápido */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3 mb-2">
               <p className="text-sm text-blue-100">Filtrar por:</p>
               {/* 🆕 Botão Resetar Filtros */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleResetFilters}
-                className="text-blue-100 hover:text-white hover:bg-white/10 transition-all duration-200"
+                className="text-blue-100 hover:text-white hover:bg-white/10 transition-all duration-200 h-7 px-2 py-1 text-xs"
               >
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                <RotateCcw className="h-3 w-3 mr-1" />
                 Resetar Filtros
               </Button>
             </div>
@@ -685,7 +685,7 @@ export default function ProjetosPage() {
               </SelectContent>
             </Select>
           </div>
-        </div></>}
+        </div></div>}
 
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-blue-400 opacity-20 rounded-full"></div>
