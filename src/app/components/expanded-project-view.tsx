@@ -64,6 +64,7 @@ import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoM
 import { MemorialDescritivoPreview, type CargaRow } from '@/components/templates/MemorialDescritivoPreview'
 import { AnexoFCPFLPreview } from '@/components/templates/AnexoFCPFLPreview'
 import { AnexoECPFLPreview } from '@/components/templates/AnexoECPFLPreview'
+import { FormularioRegistroANEELPreview } from '@/components/templates/FormularioRegistroANEELPreview'
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
@@ -3007,6 +3008,35 @@ export const ExpandedProjectView = ({
                                 </Card>
                               )}
 
+                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') && (
+                                <Card
+                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'aneel-registro' ? null : 'aneel-registro')}
+                                  className={`border cursor-pointer group transition-all duration-200 ${
+                                    activeTemplatePreview === 'aneel-registro'
+                                      ? 'border-emerald-500 dark:border-emerald-400 shadow-md ring-2 ring-emerald-200 dark:ring-emerald-800'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`p-2 rounded-lg transition-colors ${
+                                        activeTemplatePreview === 'aneel-registro'
+                                          ? 'bg-emerald-100 dark:bg-emerald-900/50'
+                                          : 'bg-emerald-50 dark:bg-emerald-900/30 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50'
+                                      }`}>
+                                        <FileText className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Formulário de Registro — ANEEL</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Dados para registro da UC no sistema de compensação de energia (REN 482).
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
                               {!selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && <Card
                                 onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'formulario' ? null : 'formulario')}
                                 className={`border cursor-pointer group transition-all duration-200 ${
@@ -3143,6 +3173,20 @@ export const ExpandedProjectView = ({
                               <div className="rounded-md border border-blue-200 dark:border-blue-700 p-4 max-h-[700px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                                   <AnexoECPFLPreview projectData={gerarProjetoFields} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTemplatePreview === 'aneel-registro' && selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-emerald-500" />
+                                Pré-visualização — Formulário de Registro — ANEEL (Energisa)
+                              </h3>
+                              <div className="rounded-md border border-emerald-200 dark:border-emerald-700 p-4 max-h-[700px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <FormularioRegistroANEELPreview projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>
