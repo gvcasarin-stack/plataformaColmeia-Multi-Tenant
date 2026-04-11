@@ -68,8 +68,8 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
 
   const SP: React.CSSProperties = { height: '10px' };
 
-  const ☑ = '☒';
-  const ☐ = '☐';
+  const CHECKED = '☒';
+  const UNCHECKED = '☐';
 
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
   const hasInverter = !!get('inversores_modelo') || !!get('inversores_fabricante');
@@ -179,12 +179,12 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
             <td style={L}>2.1 Tipo de fonte primária:</td>
             <td style={V}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', lineHeight: '1.6' }}>
-                <span>{☑} Solar fotovoltaica</span>
-                <span>{☐} Hidráulica</span>
-                <span>{☐} Eólica</span>
-                <span>{☐} Biomassa</span>
-                <span>{☐} Cogeração qualificada</span>
-                <span>{☐} Outra (especificar): </span>
+                <span>{CHECKED} Solar fotovoltaica</span>
+                <span>{UNCHECKED} Hidráulica</span>
+                <span>{UNCHECKED} Eólica</span>
+                <span>{UNCHECKED} Biomassa</span>
+                <span>{UNCHECKED} Cogeração qualificada</span>
+                <span>{UNCHECKED} Outra (especificar): </span>
               </div>
             </td>
           </tr>
@@ -202,10 +202,10 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
             <td style={L}>2.3 Tipo de geração:</td>
             <td style={V}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', lineHeight: '1.6' }}>
-                <span>{☐} Empregando máquina síncrona sem conversor</span>
-                <span>{hasInverter ? ☑ : ☐} Empregando conversor eletrônico/inversor</span>
-                <span>{☐} Mista</span>
-                <span>{☐} Outra (especificar): </span>
+                <span>{UNCHECKED} Empregando máquina síncrona sem conversor</span>
+                <span>{hasInverter ? CHECKED : UNCHECKED} Empregando conversor eletrônico/inversor</span>
+                <span>{UNCHECKED} Mista</span>
+                <span>{UNCHECKED} Outra (especificar): </span>
               </div>
             </td>
           </tr>
@@ -232,10 +232,10 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
             <td style={L}>2.5 Modalidade de Compensação de Excedentes</td>
             <td style={V}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', lineHeight: '1.6' }}>
-                <span>{☑} Autoconsumo local</span>
-                <span>{☐} Autoconsumo remoto</span>
-                <span>{☐} Múltiplas Unidades Consumidoras</span>
-                <span>{☐} Geração compartilhada</span>
+                <span>{CHECKED} Autoconsumo local</span>
+                <span>{UNCHECKED} Autoconsumo remoto</span>
+                <span>{UNCHECKED} Múltiplas Unidades Consumidoras</span>
+                <span>{UNCHECKED} Geração compartilhada</span>
               </div>
             </td>
           </tr>
@@ -283,10 +283,10 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
         <tbody>
           <tr><td colSpan={2} style={SH}>4. Solicitações e Declarações</td></tr>
           {[
-            [☑, 'Solicito que a contagem do prazo para realização da vistoria pela distribuidora, conforme art. 91 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação. (Opcional)'],
-            [☑, 'Renuncio ao direito de desistir do orçamento de conexão nos termos dos §§ 7º e 8º do art. 89 da Resolução Normativa nº 1.000/2021. (Opcional)'],
-            [☑, 'Autorizo a distribuidora a entregar junto com o orçamento de conexão os contratos e o documento ou meio para pagamento de custos de minha responsabilidade. (Opcional)'],
-            [☑, 'Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnicas - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável. (Obrigatório)'],
+            [CHECKED, 'Solicito que a contagem do prazo para realização da vistoria pela distribuidora, conforme art. 91 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação. (Opcional)'],
+            [CHECKED, 'Renuncio ao direito de desistir do orçamento de conexão nos termos dos §§ 7º e 8º do art. 89 da Resolução Normativa nº 1.000/2021. (Opcional)'],
+            [CHECKED, 'Autorizo a distribuidora a entregar junto com o orçamento de conexão os contratos e o documento ou meio para pagamento de custos de minha responsabilidade. (Opcional)'],
+            [CHECKED, 'Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnicas - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável. (Obrigatório)'],
           ].map(([check, text], i) => (
             <tr key={i}>
               <td style={{ ...FULL, textAlign: 'center', verticalAlign: 'middle', width: '5%' }}>{check}</td>
@@ -296,19 +296,19 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
 
           {/* Linha do "Solicito dispensa" com sub-checkboxes */}
           <tr>
-            <td style={{ ...FULL, textAlign: 'center', verticalAlign: 'top', width: '5%' }}>{☐}</td>
+            <td style={{ ...FULL, textAlign: 'center', verticalAlign: 'top', width: '5%' }}>{UNCHECKED}</td>
             <td style={FULL}>
               <div>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A, na seguinte regra: (Opcional)</div>
               <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: '10px' }}>
-                <span>{☐} não injeção na rede de distribuição de energia elétrica ("Grid Zero").</span>
-                <span>{☐} enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração.</span>
-                <span>{☐} modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6.</span>
+                <span>{UNCHECKED} não injeção na rede de distribuição de energia elétrica ("Grid Zero").</span>
+                <span>{UNCHECKED} enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração.</span>
+                <span>{UNCHECKED} modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6.</span>
               </div>
             </td>
           </tr>
 
           <tr>
-            <td style={{ ...FULL, textAlign: 'center', verticalAlign: 'middle', width: '5%' }}>{☑}</td>
+            <td style={{ ...FULL, textAlign: 'center', verticalAlign: 'middle', width: '5%' }}>{CHECKED}</td>
             <td style={FULL}>Declaro, para todos os fins, que todas as informações prestadas neste documento são verdadeiras. (Obrigatório)</td>
           </tr>
         </tbody>
