@@ -63,6 +63,7 @@ import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
 import { MemorialDescritivoPreview, type CargaRow } from '@/components/templates/MemorialDescritivoPreview'
 import { AnexoFCPFLPreview } from '@/components/templates/AnexoFCPFLPreview'
+import { AnexoECPFLPreview } from '@/components/templates/AnexoECPFLPreview'
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
@@ -2947,6 +2948,35 @@ export const ExpandedProjectView = ({
                                 </Card>
                               )}
 
+                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && (
+                                <Card
+                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'anexo-e' ? null : 'anexo-e')}
+                                  className={`border cursor-pointer group transition-all duration-200 ${
+                                    activeTemplatePreview === 'anexo-e'
+                                      ? 'border-blue-500 dark:border-blue-400 shadow-md ring-2 ring-blue-200 dark:ring-blue-800'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`p-2 rounded-lg transition-colors ${
+                                        activeTemplatePreview === 'anexo-e'
+                                          ? 'bg-blue-100 dark:bg-blue-900/50'
+                                          : 'bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50'
+                                      }`}>
+                                        <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Anexo E — Formulário de Solicitação de Acesso</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Formulário de solicitação de orçamento de conexão de microgeração e minigeração (CPFL).
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
                               {selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && (
                                 <Card
                                   onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'memorial' ? null : 'memorial')}
@@ -3099,6 +3129,20 @@ export const ExpandedProjectView = ({
                               <div className="rounded-md border border-orange-200 dark:border-orange-700 p-4 max-h-[700px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                                   <AnexoFCPFLPreview projectData={gerarProjetoFields} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTemplatePreview === 'anexo-e' && selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-blue-500" />
+                                Pré-visualização — Anexo E — Formulário de Solicitação de Acesso (CPFL)
+                              </h3>
+                              <div className="rounded-md border border-blue-200 dark:border-blue-700 p-4 max-h-[700px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <AnexoECPFLPreview projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>
