@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Check } from "lucide-react"
+import { trackLead } from "@/lib/utils/metaEvents"
 
 export default function PricingSection() {
   const plans = [
@@ -83,7 +84,7 @@ export default function PricingSection() {
               </ul>
 
               <Button asChild className="w-full hover:scale-105 transition-all duration-300">
-                <a href="https://registro.gerenciamentofotovoltaico.com.br">Começar teste grátis</a>
+                <a href="https://registro.gerenciamentofotovoltaico.com.br" onClick={trackLead}>Começar teste grátis</a>
               </Button>
 
               <p className="text-center text-xs text-gray-500 mt-4">

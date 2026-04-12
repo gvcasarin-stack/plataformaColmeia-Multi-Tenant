@@ -1,3 +1,7 @@
+"use client"
+
+import { trackContact } from "@/lib/utils/metaEvents"
+
 export default function Footer() {
   return (
     <footer className="w-full py-16 bg-slate-900 text-white">
@@ -30,6 +34,7 @@ export default function Footer() {
               href="https://wa.me/554899000387"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={trackContact}
               className="inline-flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">

@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button"
 import { ChevronRight, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
+import { trackLead, trackContact } from "@/lib/utils/metaEvents"
 
 // Declaração de tipo para o Web Component VTURB
 declare global {
@@ -94,7 +95,7 @@ export default function HeroSection() {
               className="bg-blue-600 hover:bg-blue-700 hover:scale-105 shadow-lg px-8 py-6 text-lg transition-all duration-300"
               asChild
             >
-              <a href="#precos">
+              <a href="#precos" onClick={trackLead}>
                 Começar agora
                 <ChevronRight className="ml-2 h-5 w-5" />
               </a>
@@ -105,7 +106,7 @@ export default function HeroSection() {
               className="border-2 border-slate-300 hover:border-blue-300 text-slate-700 hover:text-blue-700 hover:scale-105 bg-white px-8 py-6 text-lg transition-all duration-300"
               asChild
             >
-              <a href="https://wa.me/554899000387" target="_blank" rel="noopener noreferrer">
+              <a href="https://wa.me/554899000387" target="_blank" rel="noopener noreferrer" onClick={trackContact}>
                 <span className="relative">Agendar demonstração</span>
               </a>
             </Button>

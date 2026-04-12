@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronRight } from "lucide-react"
 import { GlassCard } from "./glass-card"
+import { trackLead, trackContact } from "@/lib/utils/metaEvents"
 
 export default function CtaSection() {
   const [isVisible, setIsVisible] = useState(false)
@@ -63,7 +64,7 @@ export default function CtaSection() {
                   className="bg-white text-blue-600 hover:bg-gray-100 hover:scale-105 relative overflow-hidden group shadow-xl transition-all duration-300"
                   asChild
                 >
-                  <a href="#precos">
+                  <a href="#precos" onClick={trackLead}>
                     <span className="absolute top-0 left-0 w-full h-full bg-blue-50/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                     Começar agora
                     <ChevronRight className="ml-2 h-4 w-4 animate-pulse" />
@@ -74,7 +75,7 @@ export default function CtaSection() {
                   className="bg-transparent text-white border-2 border-white hover:bg-white hover:text-blue-700 hover:scale-105 transition-all duration-300 shadow-xl"
                   asChild
                 >
-                  <a href="https://wa.me/554899000387" target="_blank" rel="noopener noreferrer">
+                  <a href="https://wa.me/554899000387" target="_blank" rel="noopener noreferrer" onClick={trackContact}>
                     Agendar demonstração
                   </a>
                 </Button>
