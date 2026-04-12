@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast'
 import { registerOrganization, type RegistrationData } from '@/lib/actions/registration-actions'
 import { devLog } from '@/lib/utils/productionLogger'
 import { registrationLogger } from '@/lib/utils/registrationLogger'
+import { trackPurchase } from '@/lib/utils/metaEvents'
 import { Check, X, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 interface FormErrors {
@@ -375,7 +376,10 @@ export function RegistrationForm() {
       if (result.success) {
         devLog.log('✅ REGISTRO CONCLUÍDO COM SUCESSO!', result)
         registrationLogger.log('FORM_SUCCESS', 'Registro concluído com sucesso', result)
-        
+
+        // Disparar evento de Purchase no Meta Pixel + CAPI
+        trackPurchase()
+
         toast({
           title: "Sucesso!",
           description: result.message,

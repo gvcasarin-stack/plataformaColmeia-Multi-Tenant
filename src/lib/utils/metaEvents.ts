@@ -62,3 +62,17 @@ export function trackContact(): void {
 
   sendCAPI('Contact', eventId);
 }
+
+/**
+ * Dispara evento Purchase (pixel + CAPI).
+ * Usar após conclusão bem-sucedida do cadastro de trial.
+ */
+export function trackPurchase(): void {
+  const eventId = generateEventId();
+
+  if (typeof window !== 'undefined' && window.fbq) {
+    window.fbq('track', 'Purchase', { value: 0.00, currency: 'USD' }, { eventID: eventId });
+  }
+
+  sendCAPI('Purchase', eventId);
+}

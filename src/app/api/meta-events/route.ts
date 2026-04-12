@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const allowedEvents = ['Lead', 'Contact', 'PageView'];
+  const allowedEvents = ['Lead', 'Contact', 'PageView', 'Purchase'];
   if (!allowedEvents.includes(event_name)) {
     return NextResponse.json({ error: 'Event not allowed' }, { status: 400 });
   }
