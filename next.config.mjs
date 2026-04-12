@@ -35,6 +35,7 @@ const nextConfig = {
     esmExternals: 'loose',
     // Disable CSS optimization during build as it's causing issues
     optimizeCss: false,
+    serverBodySizeLimit: '20mb',
   },
   // Ensure pages are built
   pageExtensions: ['js', 'jsx', 'ts', 'tsx'],

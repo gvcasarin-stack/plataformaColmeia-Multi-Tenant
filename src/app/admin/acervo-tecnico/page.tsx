@@ -741,7 +741,10 @@ export default function AcervoTecnicoPage() {
             <>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5 text-blue-500" />
+                  {selectedCategoria === 'normas_tecnicas'
+                    ? <FileText className="h-5 w-5 text-blue-500" />
+                    : <ImageIcon className="h-5 w-5 text-blue-500" />
+                  }
                   {categoriaLabel(selectedCategoria)} — {selectedDistribuidora}
                   <Badge variant="secondary" className="ml-2">{filteredItems.length} itens</Badge>
                 </h2>
