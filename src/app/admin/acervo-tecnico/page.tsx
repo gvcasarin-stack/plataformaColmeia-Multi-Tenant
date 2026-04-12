@@ -52,7 +52,7 @@ const DISTRIBUIDORAS = [
 
 const CATEGORIAS = [
   { value: 'caixa_medicao', label: 'Modelo da Caixa de Medição' },
-  { value: 'padrao_entrada', label: 'Padrão de Entrada' },
+  { value: 'normas_tecnicas', label: 'Normas Técnicas' },
   { value: 'diagrama_unifilar', label: 'Diagrama Unifilar' },
   { value: 'placa_advertencia', label: 'Placa de Advertência' },
   { value: 'outro', label: 'Outro' },
