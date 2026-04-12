@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       return NextResponse.json(
-        { error: 'Apenas imagens são permitidas' },
+        { error: 'Apenas imagens ou PDFs são permitidos' },
         { status: 400 }
       );
     }

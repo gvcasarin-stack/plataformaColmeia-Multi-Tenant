@@ -173,6 +173,7 @@ export default function AcervoTecnicoPage() {
   const [newAltura, setNewAltura] = useState('');
   const [newLargura, setNewLargura] = useState('');
   const [saving, setSaving] = useState(false);
+  const [dragNew, setDragNew] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [editNome, setEditNome] = useState('');
@@ -182,6 +183,7 @@ export default function AcervoTecnicoPage() {
   const [editComprimento, setEditComprimento] = useState('');
   const [editAltura, setEditAltura] = useState('');
   const [editLargura, setEditLargura] = useState('');
+  const [dragEdit, setDragEdit] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Equipamentos state ──
@@ -278,12 +280,26 @@ export default function AcervoTecnicoPage() {
   }, [activeTab, searchQuery, fetchEquipamentos]);
 
   // ── Distribuidoras handlers (existing, unchanged) ──
+  const isValidAcervoFile = (file: File) =>
+    file.type.startsWith('image/') || file.type === 'application/pdf';
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: 'new' | 'edit') => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    const url = URL.createObjectURL(file);
-    if (mode === 'new') { setNewFile(file); setNewPreview(url); }
-    else { setEditFile(file); setEditPreview(url); }
+    if (!file || !isValidAcervoFile(file)) return;
+    const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    if (mode === 'new') { setNewFile(file); setNewPreview(preview); }
+    else { setEditFile(file); setEditPreview(preview); }
+  };
+
+  const handleAcervoDrop = (e: React.DragEvent, mode: 'new' | 'edit') => {
+    e.preventDefault();
+    if (mode === 'new') setDragNew(false);
+    else setDragEdit(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !isValidAcervoFile(file)) return;
+    const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    if (mode === 'new') { setNewFile(file); setNewPreview(preview); }
+    else { setEditFile(file); setEditPreview(preview); }
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
@@ -772,15 +788,44 @@ export default function AcervoTecnicoPage() {
                       </div>
                     )}
                     <div>
-                      <Label className="text-sm">Imagem</Label>
-                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileSelect(e, 'new')} />
-                      <div className="mt-1 flex items-center gap-3">
-                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                          <Upload className="h-4 w-4 mr-1" /> Selecionar imagem
-                        </Button>
-                        {newFile && <span className="text-xs text-gray-500">{newFile.name}</span>}
-                      </div>
-                      {newPreview && <img src={newPreview} alt="Preview" className="mt-3 max-h-40 rounded-md border border-gray-200 dark:border-gray-700 object-contain" />}
+                      <Label className="text-sm">{selectedCategoria === 'normas_tecnicas' ? 'Arquivo PDF' : 'Imagem'}</Label>
+                      <input ref={fileInputRef} type="file"
+                        accept={selectedCategoria === 'normas_tecnicas' ? 'application/pdf' : 'image/*'}
+                        className="hidden" onChange={e => handleFileSelect(e, 'new')} />
+                      {selectedCategoria === 'normas_tecnicas' ? (
+                        <div
+                          className={`mt-1 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                            dragNew
+                              ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                          }`}
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragOver={e => { e.preventDefault(); setDragNew(true); }}
+                          onDragLeave={() => setDragNew(false)}
+                          onDrop={e => handleAcervoDrop(e, 'new')}
+                        >
+                          {newFile ? (
+                            <span className="text-sm text-green-600 flex items-center justify-center gap-2">
+                              <FileText className="h-4 w-4 shrink-0" /> {newFile.name}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400 flex flex-col items-center gap-1">
+                              <Upload className="h-5 w-5" />
+                              Arraste o PDF aqui ou clique para selecionar
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="mt-1 flex items-center gap-3">
+                            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                              <Upload className="h-4 w-4 mr-1" /> Selecionar imagem
+                            </Button>
+                            {newFile && <span className="text-xs text-gray-500">{newFile.name}</span>}
+                          </div>
+                          {newPreview && <img src={newPreview} alt="Preview" className="mt-3 max-h-40 rounded-md border border-gray-200 dark:border-gray-700 object-contain" />}
+                        </>
+                      )}
                     </div>
                     <div className="flex gap-2 pt-2">
                       <Button onClick={handleAdd} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white" size="sm">
@@ -841,10 +886,37 @@ export default function AcervoTecnicoPage() {
                             </div>
                           )}
                           <div>
-                            <input ref={editFileInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileSelect(e, 'edit')} />
-                            <Button variant="outline" size="sm" onClick={() => editFileInputRef.current?.click()} className="text-xs">
-                              <Upload className="h-3 w-3 mr-1" /> Alterar imagem
-                            </Button>
+                            <input ref={editFileInputRef} type="file"
+                              accept={item.categoria === 'normas_tecnicas' ? 'application/pdf' : 'image/*'}
+                              className="hidden" onChange={e => handleFileSelect(e, 'edit')} />
+                            {item.categoria === 'normas_tecnicas' ? (
+                              <div
+                                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                                  dragEdit
+                                    ? 'border-blue-400 bg-blue-50 dark:bg-blue-950'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                                }`}
+                                onClick={() => editFileInputRef.current?.click()}
+                                onDragOver={e => { e.preventDefault(); setDragEdit(true); }}
+                                onDragLeave={() => setDragEdit(false)}
+                                onDrop={e => handleAcervoDrop(e, 'edit')}
+                              >
+                                {editFile ? (
+                                  <span className="text-xs text-green-600 flex items-center justify-center gap-1">
+                                    <FileText className="h-3.5 w-3.5 shrink-0" /> {editFile.name}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-400 flex items-center justify-center gap-1">
+                                    <Upload className="h-3.5 w-3.5" />
+                                    {item.imagem_url ? 'Substituir PDF' : 'Arraste ou clique para selecionar'}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <Button variant="outline" size="sm" onClick={() => editFileInputRef.current?.click()} className="text-xs">
+                                <Upload className="h-3 w-3 mr-1" /> Alterar imagem
+                              </Button>
+                            )}
                           </div>
                           {editPreview && <img src={editPreview} alt="Preview" className="max-h-32 rounded border object-contain" />}
                           <div className="flex gap-2">
@@ -858,14 +930,32 @@ export default function AcervoTecnicoPage() {
                         </CardContent>
                       ) : (
                         <>
-                          <div className="aspect-video bg-gray-50 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
-                            {item.imagem_url ? (
-                              <img src={item.imagem_url} alt={item.nome} className="w-full h-full object-contain p-2" />
-                            ) : (
-                              <ImageIcon className="h-12 w-12 text-gray-300" />
-                            )}
-                          </div>
+                          {item.categoria !== 'normas_tecnicas' && (
+                            <div className="aspect-video bg-gray-50 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                              {item.imagem_url ? (
+                                <img src={item.imagem_url} alt={item.nome} className="w-full h-full object-contain p-2" />
+                              ) : (
+                                <ImageIcon className="h-12 w-12 text-gray-300" />
+                              )}
+                            </div>
+                          )}
                           <CardContent className="p-4">
+                            {item.categoria === 'normas_tecnicas' && (
+                              <div className="mb-3 flex items-center justify-center h-20 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                {item.imagem_url ? (
+                                  <a href={item.imagem_url} target="_blank" rel="noopener noreferrer"
+                                    className="flex flex-col items-center gap-1 text-blue-600 hover:text-blue-700">
+                                    <FileText className="h-8 w-8" />
+                                    <span className="text-xs font-medium">Ver PDF</span>
+                                  </a>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-1 text-gray-300">
+                                    <FileText className="h-8 w-8" />
+                                    <span className="text-xs">Nenhum PDF anexado</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200">{item.nome}</h3>
                             {item.descricao && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.descricao}</p>}
                             {(item.comprimento_mm || item.altura_mm || item.largura_mm) && (
