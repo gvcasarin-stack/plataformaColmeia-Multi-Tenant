@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tipo, fabricante, modelo, modelos, nome, potencia, datasheet_url, inmetro_url } = body;
+    const { tipo, fabricante, modelo, modelos, nome, potencia, datasheet_url, inmetro_url, datasheet_modelos, inmetro_modelos } = body;
 
     if (!tipo || !fabricante || !nome) {
       return NextResponse.json(
@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
         potencia: potencia || null,
         datasheet_url: datasheet_url || null,
         inmetro_url: inmetro_url || null,
+        datasheet_modelos: datasheet_modelos || [],
+        inmetro_modelos: inmetro_modelos || [],
       })
       .select()
       .single();
@@ -91,6 +93,8 @@ export async function PUT(request: NextRequest) {
     if (fields.potencia !== undefined) updateData.potencia = fields.potencia;
     if (fields.datasheet_url !== undefined) updateData.datasheet_url = fields.datasheet_url;
     if (fields.inmetro_url !== undefined) updateData.inmetro_url = fields.inmetro_url;
+    if (fields.datasheet_modelos !== undefined) updateData.datasheet_modelos = fields.datasheet_modelos;
+    if (fields.inmetro_modelos !== undefined) updateData.inmetro_modelos = fields.inmetro_modelos;
 
     const { data, error } = await supabase
       .from('acervo_equipamentos')

@@ -63,6 +63,64 @@ const TAB_SINGULAR: Record<string, string> = {
   modulos: 'Módulo',
 };
 
+// ── Helpers fora do componente para evitar remount a cada render ──────────────
+function addModeloTag(
+  input: string,
+  modelos: string[],
+  setModelos: (m: string[]) => void,
+  setInput: (s: string) => void,
+) {
+  const tag = input.replace(/,+$/, '').trim();
+  if (tag && !modelos.includes(tag)) setModelos([...modelos, tag]);
+  setInput('');
+}
+
+function ModeloTagInput({
+  modelos, input, setInput, setModelos, size = 'normal',
+}: {
+  modelos: string[];
+  input: string;
+  setInput: (s: string) => void;
+  setModelos: (m: string[]) => void;
+  size?: 'normal' | 'small';
+}) {
+  return (
+    <div>
+      {modelos.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-1.5">
+          {modelos.map(m => (
+            <span key={m} className={`flex items-center gap-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded px-2 py-0.5 ${size === 'small' ? 'text-[10px]' : 'text-xs'}`}>
+              {m}
+              <button type="button" onClick={() => setModelos(modelos.filter(x => x !== m))} className="hover:text-red-500">
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <Input
+        value={input}
+        onChange={e => {
+          const val = e.target.value;
+          if (val.endsWith(',')) {
+            addModeloTag(val, modelos, setModelos, setInput);
+          } else {
+            setInput(val);
+          }
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addModeloTag(input, modelos, setModelos, setInput);
+          }
+        }}
+        placeholder="Digite e pressione Enter para adicionar"
+        className={size === 'small' ? 'h-8 text-sm' : ''}
+      />
+    </div>
+  );
+}
+
 type ActiveTab = 'distribuidoras' | 'inversores' | 'modulos';
 
 interface AcervoItem {
@@ -88,6 +146,8 @@ interface EquipamentoItem {
   nome: string;
   datasheet_url: string | null;
   inmetro_url: string | null;
+  datasheet_modelos: string[];
+  inmetro_modelos: string[];
   created_at: string;
 }
 
@@ -139,6 +199,10 @@ export default function AcervoTecnicoPage() {
   const [equipModeloInput, setEquipModeloInput] = useState('');
   const [equipDatasheetFile, setEquipDatasheetFile] = useState<File | null>(null);
   const [equipInmetroFile, setEquipInmetroFile] = useState<File | null>(null);
+  const [equipDatasheetModelos, setEquipDatasheetModelos] = useState<string[]>([]);
+  const [equipDatasheetModeloInput, setEquipDatasheetModeloInput] = useState('');
+  const [equipInmetroModelos, setEquipInmetroModelos] = useState<string[]>([]);
+  const [equipInmetroModeloInput, setEquipInmetroModeloInput] = useState('');
   const [dragAddDatasheet, setDragAddDatasheet] = useState(false);
   const [dragAddInmetro, setDragAddInmetro] = useState(false);
   const equipDatasheetRef = useRef<HTMLInputElement>(null);
@@ -150,6 +214,10 @@ export default function AcervoTecnicoPage() {
   const [editEquipModeloInput, setEditEquipModeloInput] = useState('');
   const [editEquipDatasheetFile, setEditEquipDatasheetFile] = useState<File | null>(null);
   const [editEquipInmetroFile, setEditEquipInmetroFile] = useState<File | null>(null);
+  const [editEquipDatasheetModelos, setEditEquipDatasheetModelos] = useState<string[]>([]);
+  const [editEquipDatasheetModeloInput, setEditEquipDatasheetModeloInput] = useState('');
+  const [editEquipInmetroModelos, setEditEquipInmetroModelos] = useState<string[]>([]);
+  const [editEquipInmetroModeloInput, setEditEquipInmetroModeloInput] = useState('');
   const [dragEditDatasheet, setDragEditDatasheet] = useState(false);
   const [dragEditInmetro, setDragEditInmetro] = useState(false);
   const editEquipDatasheetRef = useRef<HTMLInputElement>(null);
@@ -356,17 +424,6 @@ export default function AcervoTecnicoPage() {
     if (file && isValidEquipFile(file)) setter(file);
   };
 
-  const addModeloTag = (
-    input: string,
-    modelos: string[],
-    setModelos: (m: string[]) => void,
-    setInput: (s: string) => void,
-  ) => {
-    const tag = input.replace(/,+$/, '').trim();
-    if (tag && !modelos.includes(tag)) setModelos([...modelos, tag]);
-    setInput('');
-  };
-
   const uploadEquipFile = async (file: File, subpasta: string): Promise<string | null> => {
     const tipo = activeTab === 'inversores' ? 'inversor' : 'modulo';
     const formData = new FormData();
@@ -408,6 +465,8 @@ export default function AcervoTecnicoPage() {
           nome: nomeAuto,
           datasheet_url: datasheetUrl,
           inmetro_url: inmetroUrl,
+          datasheet_modelos: equipDatasheetModelos,
+          inmetro_modelos: equipInmetroModelos,
         }),
       });
       const result = await resp.json();
@@ -435,6 +494,8 @@ export default function AcervoTecnicoPage() {
         modelo: editEquipModelos[0] || '',
         modelos: editEquipModelos,
         nome: nomeAuto,
+        datasheet_modelos: editEquipDatasheetModelos,
+        inmetro_modelos: editEquipInmetroModelos,
       };
       if (editEquipDatasheetFile) {
         const url = await uploadEquipFile(editEquipDatasheetFile, 'datasheet');
@@ -488,6 +549,10 @@ export default function AcervoTecnicoPage() {
     setEditEquipModeloInput('');
     setEditEquipDatasheetFile(null);
     setEditEquipInmetroFile(null);
+    setEditEquipDatasheetModelos(item.datasheet_modelos || []);
+    setEditEquipDatasheetModeloInput('');
+    setEditEquipInmetroModelos(item.inmetro_modelos || []);
+    setEditEquipInmetroModeloInput('');
   };
 
   const resetEquipForm = () => {
@@ -497,6 +562,10 @@ export default function AcervoTecnicoPage() {
     setEquipModeloInput('');
     setEquipDatasheetFile(null);
     setEquipInmetroFile(null);
+    setEquipDatasheetModelos([]);
+    setEquipDatasheetModeloInput('');
+    setEquipInmetroModelos([]);
+    setEquipInmetroModeloInput('');
   };
 
   const categoriaLabel = (cat: string) => CATEGORIAS.find(c => c.value === cat)?.label || cat;
@@ -553,19 +622,28 @@ export default function AcervoTecnicoPage() {
   );
 
   // Reutilizável: linha de documento no card
-  const DocRow = ({ url, label }: { url: string | null; label: string }) =>
+  const DocRow = ({ url, label, modelos }: { url: string | null; label: string; modelos?: string[] }) =>
     url ? (
-      <div className="flex items-center gap-2">
-        <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-        <span className="text-xs text-gray-600 dark:text-gray-400 flex-1">{label}</span>
-        <a href={url} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-0.5 text-xs text-blue-600 hover:underline">
-          <Eye className="h-3 w-3" /> Ver
-        </a>
-        <a href={url} download
-          className="flex items-center gap-0.5 text-xs text-gray-500 hover:text-gray-700 hover:underline ml-1">
-          <Download className="h-3 w-3" /> Baixar
-        </a>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+          <span className="text-xs text-gray-600 dark:text-gray-400 flex-1">{label}</span>
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-0.5 text-xs text-blue-600 hover:underline">
+            <Eye className="h-3 w-3" /> Ver
+          </a>
+          <a href={url} download
+            className="flex items-center gap-0.5 text-xs text-gray-500 hover:text-gray-700 hover:underline ml-1">
+            <Download className="h-3 w-3" /> Baixar
+          </a>
+        </div>
+        {modelos && modelos.length > 0 && (
+          <div className="flex flex-wrap gap-1 pl-6">
+            {modelos.map(m => (
+              <Badge key={m} variant="outline" className="text-[10px] py-0 h-4">{m}</Badge>
+            ))}
+          </div>
+        )}
       </div>
     ) : (
       <div className="flex items-center gap-2 opacity-40">
@@ -573,50 +651,6 @@ export default function AcervoTecnicoPage() {
         <span className="text-xs">{label} não anexado</span>
       </div>
     );
-
-  // Reutilizável: input de tags para modelos
-  const ModeloTagInput = ({
-    modelos, input, setInput, setModelos, size = 'normal',
-  }: {
-    modelos: string[];
-    input: string;
-    setInput: (s: string) => void;
-    setModelos: (m: string[]) => void;
-    size?: 'normal' | 'small';
-  }) => (
-    <div>
-      {modelos.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-1.5">
-          {modelos.map(m => (
-            <span key={m} className={`flex items-center gap-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded px-2 py-0.5 ${size === 'small' ? 'text-[10px]' : 'text-xs'}`}>
-              {m}
-              <button type="button" onClick={() => setModelos(modelos.filter(x => x !== m))} className="hover:text-red-500">
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-      <Input
-        value={input}
-        onChange={e => {
-          if (e.target.value.endsWith(',')) {
-            addModeloTag(e.target.value, modelos, setModelos, setInput);
-          } else {
-            setInput(e.target.value);
-          }
-        }}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            addModeloTag(input, modelos, setModelos, setInput);
-          }
-        }}
-        placeholder="Digite e pressione Enter para adicionar"
-        className={size === 'small' ? 'h-8 text-sm' : ''}
-      />
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -944,6 +978,16 @@ export default function AcervoTecnicoPage() {
                       onDragLeave={() => setDragAddDatasheet(false)}
                       onDrop={e => handleEquipDrop(e, setEquipDatasheetFile, setDragAddDatasheet)}
                     />
+                    <div className="mt-1.5">
+                      <Label className="text-xs text-gray-400 mb-1 block">Modelos aplicáveis neste datasheet</Label>
+                      <ModeloTagInput
+                        modelos={equipDatasheetModelos}
+                        input={equipDatasheetModeloInput}
+                        setInput={setEquipDatasheetModeloInput}
+                        setModelos={setEquipDatasheetModelos}
+                        size="small"
+                      />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-sm mb-1 block">Registro Inmetro</Label>
@@ -957,6 +1001,16 @@ export default function AcervoTecnicoPage() {
                       onDragLeave={() => setDragAddInmetro(false)}
                       onDrop={e => handleEquipDrop(e, setEquipInmetroFile, setDragAddInmetro)}
                     />
+                    <div className="mt-1.5">
+                      <Label className="text-xs text-gray-400 mb-1 block">Modelos aplicáveis neste Inmetro</Label>
+                      <ModeloTagInput
+                        modelos={equipInmetroModelos}
+                        input={equipInmetroModeloInput}
+                        setInput={setEquipInmetroModeloInput}
+                        setModelos={setEquipInmetroModelos}
+                        size="small"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1033,6 +1087,16 @@ export default function AcervoTecnicoPage() {
                               onDrop={e => handleEquipDrop(e, setEditEquipDatasheetFile, setDragEditDatasheet)}
                               label={item.datasheet_url ? 'Substituir arquivo' : 'Arraste ou clique'}
                             />
+                            <div className="mt-1.5">
+                              <Label className="text-[10px] text-gray-400 mb-1 block">Modelos aplicáveis</Label>
+                              <ModeloTagInput
+                                modelos={editEquipDatasheetModelos}
+                                input={editEquipDatasheetModeloInput}
+                                setInput={setEditEquipDatasheetModeloInput}
+                                setModelos={setEditEquipDatasheetModelos}
+                                size="small"
+                              />
+                            </div>
                           </div>
                           <div>
                             <Label className="text-xs mb-1 block">
@@ -1053,6 +1117,16 @@ export default function AcervoTecnicoPage() {
                               onDrop={e => handleEquipDrop(e, setEditEquipInmetroFile, setDragEditInmetro)}
                               label={item.inmetro_url ? 'Substituir arquivo' : 'Arraste ou clique'}
                             />
+                            <div className="mt-1.5">
+                              <Label className="text-[10px] text-gray-400 mb-1 block">Modelos aplicáveis</Label>
+                              <ModeloTagInput
+                                modelos={editEquipInmetroModelos}
+                                input={editEquipInmetroModeloInput}
+                                setInput={setEditEquipInmetroModeloInput}
+                                setModelos={setEditEquipInmetroModelos}
+                                size="small"
+                              />
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -1099,8 +1173,8 @@ export default function AcervoTecnicoPage() {
                         </div>
 
                         <div className="mt-3 flex flex-col gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                          <DocRow url={item.datasheet_url} label="Datasheet" />
-                          <DocRow url={item.inmetro_url} label="Registro Inmetro" />
+                          <DocRow url={item.datasheet_url} label="Datasheet" modelos={item.datasheet_modelos} />
+                          <DocRow url={item.inmetro_url} label="Registro Inmetro" modelos={item.inmetro_modelos} />
                         </div>
                       </CardContent>
                     )}
