@@ -36,6 +36,8 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{disjuntor_corrente_a}}': 'disjuntor_corrente_a',
   '{{secao_fase_mm2}}': 'secao_fase_mm2',
   '{{secao_neutro_mm2}}': 'secao_neutro_mm2',
+  '{{secao_fase_rl_mm2}}': 'secao_fase_rl_mm2',
+  '{{secao_neutro_rl_mm2}}': 'secao_neutro_rl_mm2',
   '{{modulos_fabricante}}': 'modulos_fabricante',
   '{{modulos_modelo}}': 'modulos_modelo',
   '{{modulos_potencia_wp}}': 'modulos_potencia_wp',
@@ -335,6 +337,16 @@ export function MemorialDescritivoPDF({
   const canCalc = vn > 0 && corrente > 0;
   const pdKva = canCalc ? (vn * corrente * nf) / 1000 : 0;
   const pdKw = pdKva * 0.92;
+
+  const condutorMap: Record<string, { total: string; nFase: string; nFaseNum: number }> = {
+    'Monofásico': { total: 'dois', nFase: 'um', nFaseNum: 1 },
+    'Bifásico':   { total: 'três', nFase: 'dois', nFaseNum: 2 },
+    'Trifásico':  { total: 'quatro', nFase: 'três', nFaseNum: 3 },
+  };
+  const cond = tipoConexao ? condutorMap[tipoConexao] : null;
+  const secaoFaseRL = projectData?.secao_fase_rl_mm2;
+  const secaoNeutroRL = projectData?.secao_neutro_rl_mm2;
+  const hasRL = secaoFaseRL && secaoNeutroRL;
 
   const caboCCCapacidade = parseFloat(String(projectData?.cabo_cc_capacidade_corrente_a || '0')) || 0;
   const caboCCFatorTemp = parseFloat(String(projectData?.cabo_cc_fator_temperatura || '1')) || 1;
@@ -765,11 +777,10 @@ export function MemorialDescritivoPDF({
 
           <SH3>6.1. Tipo de Ligação e Tensão de Atendimento</SH3>
           <Text style={styles.para}>
-            A unidade consumidora está ligada em ramal de ligação em baixa tensão, através de um
-            circuito {v('tipo_conexao', projectData)}, com tensão de atendimento
-            em {v('tensao_atendimento', projectData)} V, derivado de uma
-            rede {v('tipo_ramal', projectData)} de distribuição secundária
-            da {distribuidora} no estado do {estado}.
+            {cond && hasRL
+              ? `A unidade consumidora está ligada em ramal de ligação em baixa tensão, através de um circuito ${v('tipo_conexao', projectData)} a ${cond.total} condutores, sendo ${cond.nFase} condutor${cond.nFaseNum > 1 ? 'es' : ''} FASE de seção transversal de ${String(secaoFaseRL).toUpperCase()} mm² e um condutor NEUTRO de seção transversal de ${String(secaoNeutroRL).toUpperCase()} mm², com tensão de atendimento em ${v('tensao_atendimento', projectData)} V, derivado de uma rede ${v('tipo_ramal', projectData)} de distribuição secundária da ${distribuidora} no estado do ${estado}.`
+              : `A unidade consumidora está ligada em ramal de ligação em baixa tensão, através de um circuito ${v('tipo_conexao', projectData)}, com tensão de atendimento em ${v('tensao_atendimento', projectData)} V, derivado de uma rede ${v('tipo_ramal', projectData)} de distribuição secundária da ${distribuidora} no estado do ${estado}.`
+            }
           </Text>
 
           <SH3>6.2. Disjuntor de Entrada</SH3>
