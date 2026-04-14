@@ -260,8 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   figureImage: {
-    maxWidth: '100%',
-    maxHeight: 297,
+    width: '100%',
     objectFit: 'contain',
   },
   placaImage: {
