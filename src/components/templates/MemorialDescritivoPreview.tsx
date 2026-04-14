@@ -812,13 +812,36 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
         </div>
 
         <h3 className={h3Class}>6.5. Ramal de Entrada</h3>
-        <p className={pClass}>
-          O ramal de entrada da unidade consumidora é através de um
-          circuito <V>{`{{tipo_conexao}}`}</V>, sendo condutor(es) FASE de seção transversal
-          de <V>{`{{secao_fase_mm2}}`}</V> mm² e condutor NEUTRO de seção transversal
-          de <V>{`{{secao_neutro_mm2}}`}</V> mm² com isolação em HEPR/XLPE 90ºC e tensão de atendimento
-          de <V>{`{{tensao_atendimento}}`}</V> V.
-        </p>
+        {(() => {
+          const tipoConexaoRE = projectData?.tipo_conexao;
+          const secaoFaseRE = projectData?.secao_fase_mm2;
+          const secaoNeutroRE = projectData?.secao_neutro_mm2;
+          const condutorMapRE: Record<string, { total: string; nFase: string; nFaseNum: number }> = {
+            'Monofásico': { total: 'dois', nFase: 'um', nFaseNum: 1 },
+            'Bifásico':   { total: 'três', nFase: 'dois', nFaseNum: 2 },
+            'Trifásico':  { total: 'quatro', nFase: 'três', nFaseNum: 3 },
+          };
+          const condRE = tipoConexaoRE ? condutorMapRE[tipoConexaoRE] : null;
+          const hasRE = secaoFaseRE && secaoNeutroRE;
+
+          return (
+            <p className={pClass}>
+              O ramal de entrada da unidade consumidora é através de um
+              circuito <strong><V>{`{{tipo_conexao}}`}</V></strong>
+              {condRE && hasRE ? (
+                <> a <strong>{condRE.total} condutores</strong>, sendo <strong>{condRE.nFase} condutor{condRE.nFaseNum > 1 ? 'es' : ''} FASE</strong> de seção transversal
+                de <strong>{secaoFaseRE} mm²</strong> e <strong>um condutor NEUTRO</strong> de seção transversal
+                de <strong>{secaoNeutroRE} mm²</strong></>
+              ) : (
+                <>, sendo condutor(es) FASE de seção transversal
+                de <V>{`{{secao_fase_mm2}}`}</V> mm² e condutor NEUTRO de seção transversal
+                de <V>{`{{secao_neutro_mm2}}`}</V> mm²</>
+              )}
+              {' '}com isolação em HEPR/XLPE 90ºC e tensão de atendimento
+              de <strong><V>{`{{tensao_atendimento}}`}</V></strong> V.
+            </p>
+          );
+        })()}
       </div>
 
       <PageBreakIndicator id="dim-gerador" spacing={spacings['dim-gerador'] || 0} onSpacingChange={handleSpacingChange} />

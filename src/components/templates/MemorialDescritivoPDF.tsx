@@ -857,11 +857,21 @@ export function MemorialDescritivoPDF({
 
           <SH3>6.5. Ramal de Entrada</SH3>
           <Text style={styles.para}>
-            O ramal de entrada da unidade consumidora é através de um
-            circuito {v('tipo_conexao', projectData)}, sendo condutor(es) FASE de seção transversal
-            de {v('secao_fase_mm2', projectData)} mm² e condutor NEUTRO de seção transversal
-            de {v('secao_neutro_mm2', projectData)} mm² com isolação em HEPR/XLPE 90ºC e tensão de atendimento
-            de {v('tensao_atendimento', projectData)} V.
+            {(() => {
+              const condutorMapRE: Record<string, { total: string; nFase: string; nFaseNum: number }> = {
+                'Monofásico': { total: 'dois', nFase: 'um', nFaseNum: 1 },
+                'Bifásico':   { total: 'três', nFase: 'dois', nFaseNum: 2 },
+                'Trifásico':  { total: 'quatro', nFase: 'três', nFaseNum: 3 },
+              };
+              const condRE = tipoConexao ? condutorMapRE[tipoConexao] : null;
+              const secaoFaseRE = projectData?.secao_fase_mm2;
+              const secaoNeutroRE = projectData?.secao_neutro_mm2;
+              const hasRE = secaoFaseRE && secaoNeutroRE;
+              if (condRE && hasRE) {
+                return `O ramal de entrada da unidade consumidora é através de um circuito ${v('tipo_conexao', projectData)} a ${condRE.total} condutores, sendo ${condRE.nFase} condutor${condRE.nFaseNum > 1 ? 'es' : ''} FASE de seção transversal de ${String(secaoFaseRE).toUpperCase()} mm² e um condutor NEUTRO de seção transversal de ${String(secaoNeutroRE).toUpperCase()} mm² com isolação em HEPR/XLPE 90ºC e tensão de atendimento de ${v('tensao_atendimento', projectData)} V.`;
+              }
+              return `O ramal de entrada da unidade consumidora é através de um circuito ${v('tipo_conexao', projectData)}, sendo condutor(es) FASE de seção transversal de ${v('secao_fase_mm2', projectData)} mm² e condutor NEUTRO de seção transversal de ${v('secao_neutro_mm2', projectData)} mm² com isolação em HEPR/XLPE 90ºC e tensão de atendimento de ${v('tensao_atendimento', projectData)} V.`;
+            })()}
           </Text>
         </View>
 
