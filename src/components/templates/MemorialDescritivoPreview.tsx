@@ -557,7 +557,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
                 <img
                   src={projectData.planta_situacao_url}
                   alt="Planta de Situação"
-                  className="max-h-64 mx-auto rounded-md border border-gray-200 dark:border-gray-700 object-contain"
+                  className="max-h-96 mx-auto rounded-md border border-gray-200 dark:border-gray-700 object-contain"
                 />
               ) : (
                 <>
