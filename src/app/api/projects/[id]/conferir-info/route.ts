@@ -28,6 +28,7 @@ const CONFERIR_FIELDS = [
   'carga_declarada_kw', 'potencia_disponibilizada_kw', 'data_inicio_operacao',
   'modulos_area_m2',
   'modulos_eficiencia', 'modulos_comprimento_m', 'modulos_largura_m', 'modulos_area_unitaria_m2', 'modulos_peso_kg',
+  'disjuntor_ca_corrente_a',
   'inversores_faixa_tensao', 'inversores_corrente_nominal', 'inversores_fator_potencia',
   'inversores_rendimento', 'inversores_dht_corrente',
   'inversores_entradas_por_mppt', 'inversores_quantidade_mppt',

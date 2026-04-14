@@ -225,6 +225,7 @@ export interface Project {
   numero_condutores_fase?: number;
   secao_fase_rl_mm2?: string;
   secao_neutro_rl_mm2?: string;
+  disjuntor_ca_corrente_a?: string;
   secao_fase_mm2?: string;
   secao_neutro_mm2?: string;
   disjuntor_polos?: number;

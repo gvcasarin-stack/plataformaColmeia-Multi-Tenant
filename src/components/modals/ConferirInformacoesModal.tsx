@@ -175,6 +175,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_quantidade_mppt', label: 'Quantidade de MPPTs', type: 'text', required: true, placeholder: 'Ex: 1', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_entradas_por_mppt', label: 'Quantidade de entradas por MPPT', type: 'text', required: true, placeholder: 'Ex: 2', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_tipo_conexao_saida', label: 'Tipo de conexão (fases + neutro + terra)', type: 'text', required: true, placeholder: 'Ex: 1F+N+T', group: 'Inversores Fotovoltaicos' },
+  { key: 'disjuntor_ca_corrente_a', label: 'Disjuntor CA de Proteção — Corrente (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: (fields) => { const i = parseFloat(String(fields.inversores_corrente_nominal || '0')); return i > 0 ? String(Math.floor(i * 1.25)) : ''; }, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_fator_potencia', label: 'Fator de Potência', type: 'default_with_custom', required: true, defaultValue: '1 (Ajustável)', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_rendimento', label: 'Eficiência máxima (%)', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '97,60', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_dht_corrente', label: 'THD de corrente (%)', type: 'default_with_custom', required: true, defaultValue: '< 3', group: 'Inversores Fotovoltaicos' },
@@ -368,7 +369,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia]);
+  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia, localFields.inversores_corrente_nominal]);
 
   useEffect(() => {
     if (!open) return;

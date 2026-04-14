@@ -34,6 +34,7 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{disjuntor_polos}}': 'disjuntor_polos',
   '{{disjuntor_tensao_v}}': 'disjuntor_tensao_v',
   '{{disjuntor_corrente_a}}': 'disjuntor_corrente_a',
+  '{{disjuntor_ca_corrente_a}}': 'disjuntor_ca_corrente_a',
   '{{secao_fase_mm2}}': 'secao_fase_mm2',
   '{{secao_neutro_mm2}}': 'secao_neutro_mm2',
   '{{secao_fase_rl_mm2}}': 'secao_fase_rl_mm2',
@@ -948,7 +949,7 @@ export function MemorialDescritivoPDF({
           <Text style={[styles.bold, { marginBottom: 4, marginTop: 6 }]}>Disjuntor CA:</Text>
           <Li>{`Número de polos: ${v('disjuntor_polos', projectData)}`}</Li>
           <Li>{`Tensão nominal CA [V]: ${v('tensao_atendimento', projectData)}`}</Li>
-          <Li>Corrente Nominal [A]: A preencher</Li>
+          <Li>{`Corrente Nominal [A]: ${v('disjuntor_ca_corrente_a', projectData)}`}</Li>
           <Li>Frequência [Hz]: 60</Li>
           <Li>Capacidade máxima de interrupção [kA]: 3,0</Li>
           <Li>Curva de atuação: C</Li>
