@@ -280,15 +280,30 @@ export default function AcervoTecnicoPage() {
   }, [activeTab, searchQuery, fetchEquipamentos]);
 
   // ── Distribuidoras handlers (existing, unchanged) ──
+  const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20 MB
+
   const isValidAcervoFile = (file: File) =>
     file.type.startsWith('image/') || file.type === 'application/pdf';
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: 'new' | 'edit') => {
-    const file = e.target.files?.[0];
-    if (!file || !isValidAcervoFile(file)) return;
+  const validateAndSetFile = (file: File, mode: 'new' | 'edit') => {
+    if (!isValidAcervoFile(file)) return;
+    if (file.type === 'application/pdf' && file.size > MAX_PDF_SIZE) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: `O PDF não pode ultrapassar 20 MB. Tamanho atual: ${(file.size / 1024 / 1024).toFixed(1)} MB.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
     if (mode === 'new') { setNewFile(file); setNewPreview(preview); }
     else { setEditFile(file); setEditPreview(preview); }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: 'new' | 'edit') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    validateAndSetFile(file, mode);
   };
 
   const handleAcervoDrop = (e: React.DragEvent, mode: 'new' | 'edit') => {
@@ -296,10 +311,8 @@ export default function AcervoTecnicoPage() {
     if (mode === 'new') setDragNew(false);
     else setDragEdit(false);
     const file = e.dataTransfer.files?.[0];
-    if (!file || !isValidAcervoFile(file)) return;
-    const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
-    if (mode === 'new') { setNewFile(file); setNewPreview(preview); }
-    else { setEditFile(file); setEditPreview(preview); }
+    if (!file) return;
+    validateAndSetFile(file, mode);
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
@@ -850,7 +863,10 @@ export default function AcervoTecnicoPage() {
               ) : filteredItems.length === 0 ? (
                 <Card className="border-dashed">
                   <CardContent className="py-12 text-center">
-                    <ImageIcon className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+                    {selectedCategoria === 'normas_tecnicas'
+                      ? <FileText className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+                      : <ImageIcon className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+                    }
                     <p className="text-gray-500">Nenhum item cadastrado nesta categoria.</p>
                     <p className="text-sm text-gray-400 mt-1">Clique em &quot;Adicionar&quot; para começar.</p>
                   </CardContent>

@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  serverBodySizeLimit: '20mb',
   // Using default output value for serverless deployment
   output: 'standalone',
   images: {
