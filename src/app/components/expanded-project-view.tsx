@@ -490,6 +490,8 @@ export const ExpandedProjectView = ({
     classe_uc: (project as any).classe_uc || '',
     numero_poste_transformador: (project as any).numero_poste_transformador || '',
     numero_condutores_fase: (project as any).numero_condutores_fase || 0,
+    secao_fase_rl_mm2: (project as any).secao_fase_rl_mm2 || '',
+    secao_neutro_rl_mm2: (project as any).secao_neutro_rl_mm2 || '',
     secao_fase_mm2: (project as any).secao_fase_mm2 || '',
     secao_neutro_mm2: (project as any).secao_neutro_mm2 || '',
     disjuntor_polos: (project as any).disjuntor_polos || 0,
