@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   figureImage: {
     maxWidth: '100%',
-    maxHeight: 270,
+    maxHeight: 297,
     objectFit: 'contain',
   },
   placaImage: {
