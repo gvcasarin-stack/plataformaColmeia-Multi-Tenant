@@ -329,6 +329,43 @@ export default function AcervoTecnicoPage() {
     return result.url;
   };
 
+  // Upload direto para Supabase via URL assinada — bypassa o limite de 4.5MB do Vercel
+  const uploadViaSigned = async (file: File): Promise<string | null> => {
+    // 1. Solicita URL assinada ao servidor (request pequeno)
+    const signResp = await fetch('/api/acervo-tecnico/signed-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        distribuidora: selectedDistribuidora,
+        categoria: selectedCategoria || 'geral',
+        filename: file.name,
+      }),
+    });
+    const signResult = await signResp.json();
+    if (signResult.error) {
+      toast({ title: 'Erro ao gerar URL de upload', description: signResult.error, variant: 'destructive' });
+      return null;
+    }
+
+    // 2. Faz upload direto do browser para o Supabase (sem passar pelo Vercel)
+    const uploadResp = await fetch(signResult.signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!uploadResp.ok) {
+      toast({ title: 'Erro no upload', description: `Status: ${uploadResp.status}`, variant: 'destructive' });
+      return null;
+    }
+
+    return signResult.publicUrl;
+  };
+
+  const uploadAcervoFile = async (file: File): Promise<string | null> => {
+    if (selectedCategoria === 'normas_tecnicas') return uploadViaSigned(file);
+    return uploadImage(file);
+  };
+
   const handleAdd = async () => {
     if (!newNome.trim() || !selectedDistribuidora || !selectedCategoria) {
       toast({ title: 'Preencha os campos', description: 'Nome, distribuidora e categoria são obrigatórios.', variant: 'destructive' });
@@ -337,7 +374,7 @@ export default function AcervoTecnicoPage() {
     setSaving(true);
     try {
       let imageUrl: string | null = null;
-      if (newFile) imageUrl = await uploadImage(newFile);
+      if (newFile) imageUrl = await uploadAcervoFile(newFile);
       const resp = await fetch('/api/acervo-tecnico', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -372,7 +409,7 @@ export default function AcervoTecnicoPage() {
     try {
       let imageUrl: string | undefined;
       if (editFile) {
-        const url = await uploadImage(editFile);
+        const url = await uploadAcervoFile(editFile);
         if (url) imageUrl = url;
       }
       const body: Record<string, any> = {
