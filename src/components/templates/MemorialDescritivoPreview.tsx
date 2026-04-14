@@ -683,13 +683,36 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
         <h2 className={h2Class}>6. PADRÃO DE ENTRADA</h2>
 
         <h3 className={h3Class}>6.1. Tipo de Ligação e Tensão de Atendimento</h3>
-        <p className={pClass}>
-          A unidade consumidora está ligada em ramal de ligação em baixa tensão, através de um
-          circuito <strong><V>{`{{tipo_conexao}}`}</V></strong>, com tensão de atendimento
-          em <strong><V>{`{{tensao_atendimento}}`}</V></strong> V, derivado de uma
-          rede <strong><V>{`{{tipo_ramal}}`}</V></strong> de distribuição secundária
-          da <V>{`{{distribuidora}}`}</V> no estado do <V>{`{{estado}}`}</V>.
-        </p>
+        {(() => {
+          const tipoConexao = projectData?.tipo_conexao;
+          const secaoFaseRL = projectData?.secao_fase_rl_mm2;
+          const secaoNeutroRL = projectData?.secao_neutro_rl_mm2;
+          const condutorMap: Record<string, { total: string; nFase: string; nFaseNum: number }> = {
+            'Monofásico': { total: 'dois', nFase: 'um', nFaseNum: 1 },
+            'Bifásico':   { total: 'três', nFase: 'dois', nFaseNum: 2 },
+            'Trifásico':  { total: 'quatro', nFase: 'três', nFaseNum: 3 },
+          };
+          const cond = tipoConexao ? condutorMap[tipoConexao] : null;
+          const hasRL = secaoFaseRL && secaoNeutroRL;
+
+          return (
+            <p className={pClass}>
+              A unidade consumidora está ligada em ramal de ligação em baixa tensão, através de um
+              circuito <strong><V>{`{{tipo_conexao}}`}</V></strong>
+              {cond && hasRL ? (
+                <> a <strong>{cond.total} condutores</strong>, sendo <strong>{cond.nFase} condutor{cond.nFaseNum > 1 ? 'es' : ''} FASE</strong> de seção transversal
+                de <strong>{secaoFaseRL} mm²</strong> e <strong>um condutor NEUTRO</strong> de seção transversal
+                de <strong>{secaoNeutroRL} mm²</strong>,</>
+              ) : (
+                <> <V>{`{{secao_fase_rl_mm2}}`}</V></>
+              )}
+              {' '}com tensão de atendimento
+              em <strong><V>{`{{tensao_atendimento}}`}</V></strong> V, derivado de uma
+              rede <strong><V>{`{{tipo_ramal}}`}</V></strong> de distribuição secundária
+              da <V>{`{{distribuidora}}`}</V> no estado do <V>{`{{estado}}`}</V>.
+            </p>
+          );
+        })()}
 
         <h3 className={h3Class}>6.2. Disjuntor de Entrada</h3>
         <p className={pClass}>

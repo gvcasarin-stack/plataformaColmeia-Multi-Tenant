@@ -223,6 +223,8 @@ export interface Project {
   classe_uc?: string;
   numero_poste_transformador?: string;
   numero_condutores_fase?: number;
+  secao_fase_rl_mm2?: string;
+  secao_neutro_rl_mm2?: string;
   secao_fase_mm2?: string;
   secao_neutro_mm2?: string;
   disjuntor_polos?: number;

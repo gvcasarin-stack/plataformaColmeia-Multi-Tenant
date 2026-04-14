@@ -13,7 +13,7 @@ const CONFERIR_FIELDS = [
   'inversores_potencia', 'inversores_tensao',
   'inversores_vcc_max', 'inversores_icc_max', 'inversores_vpmp_max', 'inversores_vpmp_min', 'inversores_vcc_partida',
   'conta_contrato', 'classe_uc', 'numero_poste_transformador',
-  'numero_condutores_fase', 'secao_fase_mm2', 'secao_neutro_mm2',
+  'numero_condutores_fase', 'secao_fase_rl_mm2', 'secao_neutro_rl_mm2', 'secao_fase_mm2', 'secao_neutro_mm2',
   'disjuntor_polos', 'disjuntor_corrente_a', 'disjuntor_tensao_v',
   'tipo_fornecimento', 'modalidade_compensacao', 'planta_situacao_url',
   'caixa_medicao_id', 'caixa_medicao_imagem_url', 'caixa_medicao_nome',
