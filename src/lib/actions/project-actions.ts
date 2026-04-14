@@ -2493,6 +2493,8 @@ export async function getProjectAction(projectId: string): Promise<{
       classe_uc: data.classe_uc || undefined,
       numero_poste_transformador: data.numero_poste_transformador || undefined,
       numero_condutores_fase: data.numero_condutores_fase || undefined,
+      secao_fase_rl_mm2: data.secao_fase_rl_mm2 || undefined,
+      secao_neutro_rl_mm2: data.secao_neutro_rl_mm2 || undefined,
       secao_fase_mm2: data.secao_fase_mm2 || undefined,
       secao_neutro_mm2: data.secao_neutro_mm2 || undefined,
       disjuntor_polos: data.disjuntor_polos || undefined,
