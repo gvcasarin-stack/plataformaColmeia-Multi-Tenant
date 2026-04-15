@@ -110,7 +110,13 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const djPolos    = parseInt(fv(pd.disjuntor_polos, '1')) || 1;
   const djCorr     = fv(pd.disjuntor_corrente_a, '40');
   const djTensao   = fv(pd.disjuntor_tensao_v, '415');
-  const djTipo     = djPolos <= 1 ? 'Monopolar' : 'Bipolar';
+
+  const tipoConexao = fv(pd.tipo_conexao, '');
+  const isTri      = /trif/i.test(tipoConexao);
+  const isBi       = /bif/i.test(tipoConexao);
+  const djTipo     = isTri ? 'Tripolar' : isBi ? 'Bipolar' : 'Monopolar';
+  const ramalTipo  = isTri ? 'Quadripolar' : isBi ? 'Multiplexado' : 'Concentrico';
+  const nFaseRL    = isTri ? 3 : isBi ? 2 : 1;
   const djLabel    = `${djTipo} - ${djCorr} A / ${djTensao} Vca`;
 
   const owner      = fv(pd.nomeClienteFinal,    'NOME DO PROPRIETARIO');
@@ -164,8 +170,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* Ramal de Ligação — drawn AFTER rects so visible over white fills */}
           <Text x={244} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
-          <Text x={244} y={87}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Aluminio Concentrico - 1,0 kV</Text>
-          <Text x={244} y={96}  fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (F)`}</Text>
+          <Text x={244} y={87}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">{`Aluminio ${ramalTipo} - 1,0 kV`}</Text>
+          <Text x={244} y={96}  fontSize={5.8} fill="#000">{`${nFaseRL} #${secaoFase}mm² (F)`}</Text>
           <Text x={244} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (N)`}</Text>
 
           {/* D1 on main vertical line */}

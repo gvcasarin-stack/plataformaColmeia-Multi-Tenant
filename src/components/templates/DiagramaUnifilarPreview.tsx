@@ -104,7 +104,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const djPolos    = parseInt(fv(pd.disjuntor_polos, '1')) || 1;
   const djCorr     = fv(pd.disjuntor_corrente_a, '40');
   const djTensao   = fv(pd.disjuntor_tensao_v, '415');
-  const djTipo     = djPolos <= 1 ? 'Monopolar' : 'Bipolar';
+
+  const tipoConexao = fv(pd.tipo_conexao, '');
+  const isTri      = /trif/i.test(tipoConexao);
+  const isBi       = /bif/i.test(tipoConexao);
+  const djTipo     = isTri ? 'Tripolar' : isBi ? 'Bipolar' : 'Monopolar';
+  const ramalTipo  = isTri ? 'Quadripolar' : isBi ? 'Multiplexado' : 'Concêntrico';
+  const nFaseRL    = isTri ? 3 : isBi ? 2 : 1;
   const djLabel    = `${djTipo} - ${djCorr} A / ${djTensao} Vca`;
 
   const owner      = fv(pd.nomeClienteFinal,  'NOME DO PROPRIETÁRIO');
@@ -186,8 +192,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* Ramal de Ligação — drawn AFTER rects so it's visible over white fills */}
           <text x="244" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
-          <text x="244" y="87"  fontSize="5.8" fontWeight="bold">Alumínio Concêntrico - 1,0 kV</text>
-          <text x="244" y="96"  fontSize="5.8">{`1 #${secaoFase}mm² (F)`}</text>
+          <text x="244" y="87"  fontSize="5.8" fontWeight="bold">{`Alumínio ${ramalTipo} - 1,0 kV`}</text>
+          <text x="244" y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
           <text x="244" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
           {/* D1 on main vertical line */}
