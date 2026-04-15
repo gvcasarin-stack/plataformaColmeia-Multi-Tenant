@@ -676,7 +676,7 @@ export function MemorialDescritivoPDF({
         </View>
 
         {/* ==================== 5. LEVANTAMENTO DE CARGA ==================== */}
-        <View style={{ marginBottom: 20 }}>
+        <View style={{ marginBottom: 20, break: 'page' }}>
           <SH2>5. LEVANTAMENTO DE CARGA E CONSUMO</SH2>
           <SH3>5.1. Levantamento de Carga</SH3>
           <Text style={[styles.italic, { marginBottom: 8 }]}>Tabela 2 – Levantamento de carga</Text>

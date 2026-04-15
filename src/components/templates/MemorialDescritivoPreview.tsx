@@ -572,7 +572,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
       </div>
 
       {/* ==================== 5. LEVANTAMENTO DE CARGA ==================== */}
-      <div className={sectionClass}>
+      <div className={`${sectionClass} ${PAGE_BREAK}`}>
         <h2 className={h2Class}>5. LEVANTAMENTO DE CARGA E CONSUMO</h2>
 
         <h3 className={h3Class}>5.1. Levantamento de Carga</h3>
