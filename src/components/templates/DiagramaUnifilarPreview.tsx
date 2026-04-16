@@ -113,6 +113,15 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const nFaseRL    = isTri ? 3 : isBi ? 2 : 1;
   const djLabel    = `${djTipo} - ${djCorr} A / ${djTensao} Vca`;
 
+  const tipoConexaoRede  = fv(pd.tipo_conexao_rede_ca, '');
+  const isRedeMono       = !/trif/i.test(tipoConexaoRede);
+  const is127_220        = fv(pd.tensao_atendimento, '').includes('127');
+  const caboCaFCount     = isRedeMono ? 1 : 3;
+  const caboCaMidLabel   = (is127_220 && isRedeMono) ? '(F)' : '(N)';
+  const djCaPolos        = fv(pd.disjuntor_ca_polos, '2');
+  const d2Tipo           = djCaPolos === '3' ? 'Tripolar' : djCaPolos === '1' ? 'Monopolar' : 'Bipolar';
+  const dpsLabel         = isRedeMono ? '2x DPS CA' : '4x DPS CA';
+
   const owner      = fv(pd.nomeClienteFinal,  'NOME DO PROPRIETÁRIO');
   const endereco   = fv(pd.endereco_local,    'ENDEREÇO DA OBRA');
   const cidade     = fv(pd.client_city,       'Cidade');
@@ -235,8 +244,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* CA cables annotation — centered on main line */}
           <line x1={CX} y1="330" x2={CX + 12} y2="330" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
           <text x={CX + 15} y="323" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-          <text x={CX + 15} y="331" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
-          <text x={CX + 15} y="339" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
+          <text x={CX + 15} y="331" fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+          <text x={CX + 15} y="339" fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
           <text x={CX + 15} y="347" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
           {/* ═══════════════ QUADRO DE PROTEÇÃO CA ═══════════════ */}
@@ -245,7 +254,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={BR - 8} y="382" fontSize="8" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
 
           {/* DPS CA label (left inside box) */}
-          <text x="228" y="396" fontSize="5.5" fontWeight="bold">2x DPS CA</text>
+          <text x="228" y="396" fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
           <text x="228" y="405" fontSize="5.5">275 Vca, 20-40 kA</text>
           <text x="228" y="414" fontSize="5.5">Classe II</text>
 
@@ -262,7 +271,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* D2 — moved slightly lower to center in box */}
           <Disjuntor x={CX} y={415} />
           <text x={CX + 15} y="413" fontSize="6.5">D2</text>
-          <text x={CX + 15} y="423" fontSize="5.5">Bipolar - {djCorr} A / {djTensao} Vca</text>
+          <text x={CX + 15} y="423" fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
           <line x1={CX} y1="422" x2={CX} y2="480" stroke="#000" strokeWidth="1" />
 
           {/* Wire → INVERSOR */}
@@ -271,8 +280,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
           <line x1={CX} y1="502" x2={CX + 12} y2="502" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
           <text x={CX + 15} y="495" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-          <text x={CX + 15} y="503" fontSize="5.5">{`1 #${caboCA}mm² (F)`}</text>
-          <text x={CX + 15} y="511" fontSize="5.5">{`1 #${caboCA}mm² (N)`}</text>
+          <text x={CX + 15} y="503" fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+          <text x={CX + 15} y="511" fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
           <text x={CX + 15} y="519" fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
           {/* ═══════════════ INVERSOR ═══════════════ */}

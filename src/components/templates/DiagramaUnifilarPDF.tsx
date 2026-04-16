@@ -119,6 +119,15 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const nFaseRL    = isTri ? 3 : isBi ? 2 : 1;
   const djLabel    = `${djTipo} - ${djCorr} A / ${djTensao} Vca`;
 
+  const tipoConexaoRede  = fv(pd.tipo_conexao_rede_ca, '');
+  const isRedeMono       = !/trif/i.test(tipoConexaoRede);
+  const is127_220        = fv(pd.tensao_atendimento, '').includes('127');
+  const caboCaFCount     = isRedeMono ? 1 : 3;
+  const caboCaMidLabel   = (is127_220 && isRedeMono) ? '(F)' : '(N)';
+  const djCaPolos        = fv(pd.disjuntor_ca_polos, '2');
+  const d2Tipo           = djCaPolos === '3' ? 'Tripolar' : djCaPolos === '1' ? 'Monopolar' : 'Bipolar';
+  const dpsLabel         = isRedeMono ? '2x DPS CA' : '4x DPS CA';
+
   const owner      = fv(pd.nomeClienteFinal,    'NOME DO PROPRIETARIO');
   const endereco   = fv(pd.endereco_local,       'ENDERECO DA OBRA');
   const cidade     = fv(pd.client_city,          'Cidade');
@@ -212,15 +221,15 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* CA cables annotation — centered on main line */}
           <Line x1={CX} y1={330} x2={CX + 12} y2={330} stroke="#000" strokeWidth={0.6} />
           <Text x={CX + 15} y={323} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
-          <Text x={CX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (F)`}</Text>
-          <Text x={CX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (N)`}</Text>
+          <Text x={CX + 15} y={331} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
+          <Text x={CX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
           <Text x={CX + 15} y={347} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
 
           {/* ═══ QUADRO DE PROTEÇÃO CA ═══ */}
           <Rect x={BX} y={358} width={BW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={BR - 8} y={370} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
           <Text x={BR - 8} y={382} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
-          <Text x={228} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">2x DPS CA</Text>
+          <Text x={228} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{dpsLabel}</Text>
           <Text x={228} y={405} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
           <Text x={228} y={414} fontSize={5.5} fill="#000">Classe II</Text>
 
@@ -237,14 +246,14 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* D2 — moved slightly lower to center in box */}
           <PDFDisjuntor x={CX} y={415} />
           <Text x={CX + 15} y={413} fontSize={6.5} fill="#000">D2</Text>
-          <Text x={CX + 15} y={423} fontSize={5.5} fill="#000">Bipolar - {djCorr} A / {djTensao} Vca</Text>
+          <Text x={CX + 15} y={423} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
           <Line x1={CX} y1={422} x2={CX} y2={554} stroke="#000" strokeWidth={1} />
 
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
           <Line x1={CX} y1={502} x2={CX + 12} y2={502} stroke="#000" strokeWidth={0.6} />
           <Text x={CX + 15} y={495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
-          <Text x={CX + 15} y={503} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (F)`}</Text>
-          <Text x={CX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (N)`}</Text>
+          <Text x={CX + 15} y={503} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
+          <Text x={CX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
           <Text x={CX + 15} y={519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
 
           {/* ═══ INVERSOR ═══ */}
