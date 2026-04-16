@@ -196,6 +196,8 @@ export interface Project {
   inversores_tensao_max_ca?: string;
   inversores_tensao_min_ca?: string;
   inversores_tipo_conexao_saida?: string;
+  tipo_conexao_rede_ca?: string;
+  disjuntor_ca_polos?: string;
 
   // Levantamento de Carga (JSON serializado)
   carga_levantamento?: string;

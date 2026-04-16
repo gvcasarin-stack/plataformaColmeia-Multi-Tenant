@@ -174,8 +174,10 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_corrente_nominal', label: 'Corrente Nominal CA (A)', type: 'number', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_quantidade_mppt', label: 'Quantidade de MPPTs', type: 'text', required: true, placeholder: 'Ex: 1', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_entradas_por_mppt', label: 'Quantidade de entradas por MPPT', type: 'text', required: true, placeholder: 'Ex: 2', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_tipo_conexao_saida', label: 'Tipo de conexão (fases + neutro + terra)', type: 'text', required: true, placeholder: 'Ex: 1F+N+T', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_tipo_conexao_saida', label: 'Tipo de conexão (fases + neutro + terra)', type: 'select', required: true, options: [{ value: 'F+F+T', label: 'F+F+T' }, { value: 'F+N+T', label: 'F+N+T' }, { value: '3F+N+T', label: '3F+N+T' }], group: 'Inversores Fotovoltaicos' },
+  { key: 'tipo_conexao_rede_ca', label: 'Tipo de Conexão de Rede CA', type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Inversores Fotovoltaicos' },
   { key: 'disjuntor_ca_corrente_a', label: 'Disjuntor CA de Proteção — Corrente (A)', type: 'default_with_custom', required: true, suffix: 'A', options: [{ value: '10', label: '10 A' }, { value: '16', label: '16 A' }, { value: '20', label: '20 A' }, { value: '25', label: '25 A' }, { value: '30', label: '30 A' }, { value: '32', label: '32 A' }, { value: '40', label: '40 A' }, { value: '50', label: '50 A' }, { value: '60', label: '60 A' }, { value: '63', label: '63 A' }, { value: '70', label: '70 A' }, { value: '80', label: '80 A' }, { value: '100', label: '100 A' }, { value: '125', label: '125 A' }, { value: '150', label: '150 A' }, { value: '175', label: '175 A' }, { value: '200', label: '200 A' }, { value: '250', label: '250 A' }], defaultValue: (fields) => { const i = parseFloat(String(fields.inversores_corrente_nominal || '0')); if (i <= 0) return ''; const calc = i * 1.25; const values = [10, 16, 20, 25, 30, 32, 40, 50, 60, 63, 70, 80, 100, 125, 150, 175, 200, 250]; const nearest = [...values].reverse().find(v => v <= calc); return nearest !== undefined ? String(nearest) : String(values[0]); }, group: 'Inversores Fotovoltaicos' },
+  { key: 'disjuntor_ca_polos', label: 'Disjuntor CA de Proteção — Nº de Polos', type: 'select', required: true, options: [{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }], group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_fator_potencia', label: 'Fator de Potência', type: 'default_with_custom', required: true, defaultValue: '1 (Ajustável)', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_rendimento', label: 'Eficiência máxima (%)', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '97,60', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_dht_corrente', label: 'THD de corrente (%)', type: 'default_with_custom', required: true, defaultValue: '< 3', group: 'Inversores Fotovoltaicos' },
@@ -422,6 +424,15 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Auto-preenche Disjuntor — Nº de Polos baseado no Tipo de Conexão
+  useEffect(() => {
+    const tipoConexao = localFields.tipo_conexao;
+    if (!tipoConexao) return;
+    const polos = tipoConexao === 'Trifásico' ? 3 : tipoConexao === 'Bifásico' ? 2 : 1;
+    setLocalFields(prev => ({ ...prev, disjuntor_polos: polos }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localFields.tipo_conexao]);
 
   // Auto-calcula Potência Disponibilizada (PD) quando tipo_conexao, tensao_atendimento e disjuntor_corrente_a são preenchidos
   useEffect(() => {

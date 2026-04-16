@@ -539,6 +539,8 @@ export const ExpandedProjectView = ({
     inversores_tensao_max_ca: (project as any).inversores_tensao_max_ca || '',
     inversores_tensao_min_ca: (project as any).inversores_tensao_min_ca || '',
     inversores_tipo_conexao_saida: (project as any).inversores_tipo_conexao_saida || '',
+    tipo_conexao_rede_ca: (project as any).tipo_conexao_rede_ca || '',
+    disjuntor_ca_polos: (project as any).disjuntor_ca_polos || '',
     carga_levantamento: (project as any).carga_levantamento || '',
     responsavel_email: (project as any).responsavel_email || '',
     responsavel_uf: (project as any).responsavel_uf || '',

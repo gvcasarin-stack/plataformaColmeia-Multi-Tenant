@@ -2546,6 +2546,8 @@ export async function getProjectAction(projectId: string): Promise<{
       inversores_tensao_max_ca: data.inversores_tensao_max_ca || undefined,
       inversores_tensao_min_ca: data.inversores_tensao_min_ca || undefined,
       inversores_tipo_conexao_saida: data.inversores_tipo_conexao_saida || undefined,
+      tipo_conexao_rede_ca: data.tipo_conexao_rede_ca || undefined,
+      disjuntor_ca_polos: data.disjuntor_ca_polos || undefined,
       carga_levantamento: data.carga_levantamento || undefined,
 
       // Parâmetros elétricos dos módulos
