@@ -536,6 +536,10 @@ export default function AcervoTecnicoPage() {
         }),
       });
       const result = await resp.json();
+      if (resp.status === 409) {
+        toast({ title: 'Equipamento duplicado', description: result.message || 'Já existe um equipamento cadastrado com esse fabricante e modelo. Edite o registro existente para atualizá-lo.', variant: 'destructive' });
+        return;
+      }
       if (result.error) {
         toast({ title: 'Erro ao salvar', description: result.error, variant: 'destructive' });
         return;

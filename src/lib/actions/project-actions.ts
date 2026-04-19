@@ -2715,7 +2715,7 @@ export async function getProjectsForUserAction(options: { userId: string, isAdmi
 
           // Filtrar apenas projetos onde o colaborador é responsável
           projectList = projectList.filter(project =>
-            project.admin_responsible_id === userId || project.adminResponsibleId === userId
+            (project as any).admin_responsible_id === userId || project.adminResponsibleId === userId
           );
 
           logger.info('[getProjectsForUserAction] Filtro "Visualizar todos os projetos" aplicado:', {

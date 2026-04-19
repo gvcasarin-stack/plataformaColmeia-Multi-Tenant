@@ -47,6 +47,22 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
+    // Verificar duplicidade: mesmo tipo + fabricante + modelo já cadastrado
+    const { data: existing } = await supabase
+      .from('acervo_equipamentos')
+      .select('id')
+      .eq('tipo', tipo)
+      .ilike('fabricante', fabricante.trim())
+      .ilike('modelo', (modelo || '').trim())
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'duplicate', message: 'Já existe um equipamento cadastrado com esse fabricante e modelo. Edite o registro existente para atualizá-lo.' },
+        { status: 409 }
+      );
+    }
+
     const { data, error } = await supabase
       .from('acervo_equipamentos')
       .insert({
