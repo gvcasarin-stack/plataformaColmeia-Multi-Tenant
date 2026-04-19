@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tipo, fabricante, modelo, modelos, nome, potencia, datasheet_url, inmetro_url, datasheet_modelos, inmetro_modelos } = body;
+    const { tipo, fabricante, modelo, modelos, nome, potencia, datasheet_url, inmetro_url, datasheet_modelos, inmetro_modelos, created_by_user_id } = body;
 
     if (!tipo || !fabricante || !nome) {
       return NextResponse.json(
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         inmetro_url: inmetro_url || null,
         datasheet_modelos: datasheet_modelos || [],
         inmetro_modelos: inmetro_modelos || [],
+        created_by_user_id: created_by_user_id || null,
       })
       .select()
       .single();
@@ -99,7 +100,30 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
 
+    const { requesting_user_id } = body;
     const supabase = createSupabaseServiceRoleClient();
+
+    // Verificar permissão: superadmin ou dono do registro
+    if (requesting_user_id) {
+      const { data: record } = await supabase
+        .from('acervo_equipamentos')
+        .select('created_by_user_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      const { data: userRecord } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', requesting_user_id)
+        .maybeSingle();
+
+      const isSuperAdmin = userRecord?.role === 'superadmin';
+      const isOwner = record?.created_by_user_id === requesting_user_id;
+
+      if (!isSuperAdmin && !isOwner) {
+        return NextResponse.json({ error: 'Sem permissão para editar este item.' }, { status: 403 });
+      }
+    }
 
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
     if (fields.fabricante !== undefined) updateData.fabricante = fields.fabricante;
@@ -138,7 +162,30 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
     }
 
+    const requesting_user_id = searchParams.get('requesting_user_id');
     const supabase = createSupabaseServiceRoleClient();
+
+    // Verificar permissão: superadmin ou dono do registro
+    if (requesting_user_id) {
+      const { data: record } = await supabase
+        .from('acervo_equipamentos')
+        .select('created_by_user_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      const { data: userRecord } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', requesting_user_id)
+        .maybeSingle();
+
+      const isSuperAdmin = userRecord?.role === 'superadmin';
+      const isOwner = record?.created_by_user_id === requesting_user_id;
+
+      if (!isSuperAdmin && !isOwner) {
+        return NextResponse.json({ error: 'Sem permissão para excluir este item.' }, { status: 403 });
+      }
+    }
 
     const { error } = await supabase
       .from('acervo_equipamentos')

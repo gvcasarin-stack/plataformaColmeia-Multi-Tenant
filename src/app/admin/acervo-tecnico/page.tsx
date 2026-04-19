@@ -149,6 +149,7 @@ interface EquipamentoItem {
   datasheet_modelos: string[];
   inmetro_modelos: string[];
   created_at: string;
+  created_by_user_id?: string | null;
 }
 
 export default function AcervoTecnicoPage() {
@@ -226,6 +227,15 @@ export default function AcervoTecnicoPage() {
   const editEquipInmetroRef = useRef<HTMLInputElement>(null);
 
   const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
+  const isAdmin = isSuperAdmin || user?.role === 'admin' || user?.profile?.role === 'admin';
+  const currentUserId = (user as any)?.id || (user as any)?.profile?.id;
+
+  // Se não é superadmin, redireciona tab distribuidoras → inversores
+  useEffect(() => {
+    if (!isSuperAdmin && activeTab === 'distribuidoras') {
+      setActiveTab('inversores');
+    }
+  }, [isSuperAdmin, activeTab]);
 
   // ── Distribuidoras fetch (existing, unchanged) ──
   const fetchItems = useCallback(async () => {
@@ -533,6 +543,7 @@ export default function AcervoTecnicoPage() {
           inmetro_url: inmetroUrl,
           datasheet_modelos: equipDatasheetModelos,
           inmetro_modelos: equipInmetroModelos,
+          created_by_user_id: currentUserId || null,
         }),
       });
       const result = await resp.json();
@@ -566,6 +577,7 @@ export default function AcervoTecnicoPage() {
         nome: nomeAuto,
         datasheet_modelos: editEquipDatasheetModelos,
         inmetro_modelos: editEquipInmetroModelos,
+        requesting_user_id: currentUserId || null,
       };
       if (editEquipDatasheetFile) {
         const url = await uploadEquipFile(editEquipDatasheetFile, 'datasheet');
@@ -598,7 +610,7 @@ export default function AcervoTecnicoPage() {
   const handleDeleteEquip = async () => {
     if (!deleteEquipTarget) return;
     try {
-      const resp = await fetch(`/api/acervo-equipamentos?id=${deleteEquipTarget.id}`, { method: 'DELETE' });
+      const resp = await fetch(`/api/acervo-equipamentos?id=${deleteEquipTarget.id}&requesting_user_id=${currentUserId || ''}`, { method: 'DELETE' });
       const result = await resp.json();
       if (result.error) {
         toast({ title: 'Erro ao excluir', description: result.error, variant: 'destructive' });
@@ -644,10 +656,10 @@ export default function AcervoTecnicoPage() {
     ? items.filter(i => i.categoria === selectedCategoria)
     : items;
 
-  if (!isSuperAdmin) {
+  if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-gray-500 text-lg">Acesso restrito a superadmins.</p>
+        <p className="text-gray-500 text-lg">Acesso restrito a administradores.</p>
       </div>
     );
   }
@@ -737,7 +749,7 @@ export default function AcervoTecnicoPage() {
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
         {([
-          { key: 'distribuidoras' as const, label: 'Distribuidoras', icon: FolderArchive },
+          ...(isSuperAdmin ? [{ key: 'distribuidoras' as const, label: 'Distribuidoras', icon: FolderArchive }] : []),
           { key: 'inversores' as const, label: 'Inversores', icon: Zap },
           { key: 'modulos' as const, label: 'Módulos', icon: LayoutGrid },
         ]).map(({ key, label, icon: Icon }) => (
@@ -1300,14 +1312,16 @@ export default function AcervoTecnicoPage() {
                               : <><LayoutGrid className="h-3 w-3" /> Módulo</>
                             }
                           </Badge>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="sm" onClick={() => startEditEquip(item)} className="h-7 w-7 p-0">
-                              <Edit className="h-3.5 w-3.5 text-blue-500" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setDeleteEquipTarget(item)} className="h-7 w-7 p-0">
-                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                            </Button>
-                          </div>
+                          {(isSuperAdmin || item.created_by_user_id === currentUserId) && (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="sm" onClick={() => startEditEquip(item)} className="h-7 w-7 p-0">
+                                <Edit className="h-3.5 w-3.5 text-blue-500" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setDeleteEquipTarget(item)} className="h-7 w-7 p-0">
+                                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
 
                         <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Fabricante</p>

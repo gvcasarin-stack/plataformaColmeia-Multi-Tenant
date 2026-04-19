@@ -218,7 +218,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         label: "Acervo Técnico",
         icon: LucideIcons.FolderArchive,
         color: "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50",
-        visible: isSuperAdmin
+        visible: isFullAdmin
       },
     ];
 
