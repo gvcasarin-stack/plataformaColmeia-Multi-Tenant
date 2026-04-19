@@ -35,6 +35,7 @@ const CONFERIR_FIELDS = [
   'inversores_potencia_max_saida', 'inversores_tensao_max_ca', 'inversores_tensao_min_ca',
   'inversores_tipo_conexao_saida',
   'tipo_conexao_rede_ca', 'disjuntor_ca_polos',
+  'modulos_total_strings', 'modulos_microinversor', 'modulos_strings_modulos',
   'carga_levantamento',
   'responsavel_email', 'responsavel_uf',
   // Dimensionamento dos Cabos

@@ -155,6 +155,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_area_unitaria_m2', label: 'Área unitária do módulo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: '2,50', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_peso_kg', label: 'Peso [kg]', type: 'default_with_custom', required: true, suffix: 'kg', defaultValue: '22,2', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: (fields) => { const qty = parseFloat(String(fields.modulos_quantidade || '0')); return qty > 0 ? (qty * 2.5).toFixed(2).replace('.', ',') : ''; }, group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_total_strings', label: 'Total de Strings', type: 'strings_config', required: false, group: 'Módulos Fotovoltaicos' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
@@ -870,6 +871,81 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                 Usar data diferente
               </Label>
             </div>
+          )}
+        </div>
+      );
+    }
+
+    if (field.type === 'strings_config') {
+      const isMicro = localFields.modulos_microinversor === 'true';
+      const totalStrings = parseInt(String(localFields.modulos_total_strings || '0')) || 0;
+      let stringsModulos: string[] = [];
+      try {
+        const parsed = JSON.parse(localFields.modulos_strings_modulos || '[]');
+        stringsModulos = Array.isArray(parsed) ? parsed : [];
+      } catch { stringsModulos = []; }
+
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min="1"
+              value={isMicro ? '' : (localFields.modulos_total_strings || '')}
+              disabled={isMicro || isSkipped}
+              onChange={(e) => {
+                handleFieldChange('modulos_total_strings', e.target.value);
+                const n = parseInt(e.target.value) || 0;
+                const arr = Array.from({ length: n }, (_, i) => stringsModulos[i] || '');
+                handleFieldChange('modulos_strings_modulos', JSON.stringify(arr));
+              }}
+              placeholder="Nº de strings"
+              className="h-8 text-sm flex-1"
+            />
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <Checkbox
+                id="modulos-microinversor"
+                checked={isMicro}
+                onCheckedChange={(checked) => {
+                  const nowMicro = !!checked;
+                  handleFieldChange('modulos_microinversor', nowMicro ? 'true' : 'false');
+                  if (nowMicro) {
+                    handleFieldChange('modulos_total_strings', '');
+                    handleFieldChange('modulos_strings_modulos', '[]');
+                  }
+                }}
+                disabled={isSkipped}
+              />
+              <Label htmlFor="modulos-microinversor" className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap cursor-pointer">
+                Microinversor
+              </Label>
+            </div>
+          </div>
+          {!isMicro && totalStrings > 0 && (
+            <div className="space-y-1.5 pl-2 border-l-2 border-blue-200 dark:border-blue-800 mt-1">
+              {Array.from({ length: totalStrings }, (_, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Label className="text-xs text-gray-500 whitespace-nowrap w-40">Nº Módulos — String {i + 1}</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={stringsModulos[i] || ''}
+                    onChange={(e) => {
+                      const arr = [...stringsModulos];
+                      while (arr.length < totalStrings) arr.push('');
+                      arr[i] = e.target.value;
+                      handleFieldChange('modulos_strings_modulos', JSON.stringify(arr));
+                    }}
+                    placeholder="Qtd."
+                    className="h-7 text-sm"
+                    disabled={isSkipped}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          {isMicro && (
+            <p className="text-xs text-blue-500 italic">Microinversor — strings não se aplicam.</p>
           )}
         </div>
       );

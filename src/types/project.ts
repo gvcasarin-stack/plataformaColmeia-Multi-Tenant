@@ -198,6 +198,9 @@ export interface Project {
   inversores_tipo_conexao_saida?: string;
   tipo_conexao_rede_ca?: string;
   disjuntor_ca_polos?: string;
+  modulos_total_strings?: string;
+  modulos_microinversor?: string;
+  modulos_strings_modulos?: string;
 
   // Levantamento de Carga (JSON serializado)
   carga_levantamento?: string;
