@@ -41,19 +41,41 @@ export async function POST(request: NextRequest) {
     const { data: urlData } = supabase.storage.from('project-files').getPublicUrl(path);
     const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-    // Salvar URL na tabela configs
-    const { error: configError } = await supabase
+    // Verificar se já existe registro para update ou insert
+    const { data: existing } = await supabase
       .from('configs')
-      .upsert({
-        tenant_id: tenantId,
-        key: 'logo_empresa_url',
-        value: logoUrl,
-        description: 'URL da logo da empresa para uso nas pranchas (Diagrama Unifilar e Diagrama de Blocos)',
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'tenant_id,key' });
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('key', 'logo_empresa_url')
+      .maybeSingle();
 
-    if (configError) {
-      return NextResponse.json({ error: `Erro ao salvar configuração: ${configError.message}` }, { status: 400 });
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from('configs')
+        .update({ value: logoUrl, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (updateError) {
+        return NextResponse.json({ error: `Erro ao salvar configuração: ${updateError.message}` }, { status: 400 });
+      }
+    } else {
+      // Buscar category válida de outro registro do tenant
+      const { data: exampleConfig } = await supabase
+        .from('configs').select('category').eq('tenant_id', tenantId).limit(1).maybeSingle();
+
+      const { error: insertError } = await supabase
+        .from('configs')
+        .insert([{
+          key: 'logo_empresa_url',
+          value: logoUrl,
+          description: 'URL da logo da empresa para uso nas pranchas (Diagrama Unifilar e Diagrama de Blocos)',
+          tenant_id: tenantId,
+          category: exampleConfig?.category || 'general',
+          is_system: false,
+          is_encrypted: false,
+        }]);
+      if (insertError) {
+        return NextResponse.json({ error: `Erro ao salvar configuração: ${insertError.message}` }, { status: 400 });
+      }
     }
 
     return NextResponse.json({ success: true, url: logoUrl });
