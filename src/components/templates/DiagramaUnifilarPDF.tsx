@@ -503,12 +503,23 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={MID_CTR} y={1161} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
           <Text x={MID_CTR} y={1169} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
 
-          {/* === RIGHT COLUMN — Logo === */}
-          {pd.logo_empresa_url
-            ? <Image src={pd.logo_empresa_url} x={704} y={1062} width={182} height={112} />
-            : null}
-
         </Svg>
+
+        {/* Logo fora do SVG com posição absoluta sobre a coluna direita do selo */}
+        {/* Cálculo: page padding=15, SVG width=812/viewBox=900, height=991/viewBox=1203 (+25 offset y) */}
+        {pd.logo_empresa_url && (
+          <Image
+            src={pd.logo_empresa_url}
+            style={{
+              position: 'absolute',
+              left: 651,
+              top: 911,
+              width: 168,
+              height: 91,
+              objectFit: 'contain',
+            }}
+          />
+        )}
       </Page>
     </Document>
   );
