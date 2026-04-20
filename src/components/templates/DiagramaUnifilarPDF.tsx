@@ -10,6 +10,7 @@ import {
   Path,
   Text,
   Image,
+  View,
 } from '@react-pdf/renderer';
 
 interface DiagramaUnifilarPDFProps {
@@ -507,18 +508,26 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
         {/* Logo fora do SVG com posição absoluta sobre a coluna direita do selo */}
         {/* Cálculo: page padding=15, SVG width=812/viewBox=900, height=991/viewBox=1203 (+25 offset y) */}
+        {/* Logo da empresa: View com overflow hidden garante que não extrapola o espaço do selo */}
+        {/* Coluna direita do selo em coords SVG: x=700–890, y=1058–1178 */}
+        {/* Em coords página (padding=15, scale x=812/900, scale y=991/1203+25offset): left=647, top=907, w=171, h=99 */}
         {pd.logo_empresa_url && (
-          <Image
-            src={pd.logo_empresa_url}
-            style={{
-              position: 'absolute',
-              left: 653,
-              top: 913,
-              width: 158,
-              height: 87,
-              objectFit: 'contain',
-            }}
-          />
+          <View style={{
+            position: 'absolute',
+            left: 648,
+            top: 908,
+            width: 169,
+            height: 97,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Image
+              src={pd.logo_empresa_url}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          </View>
         )}
       </Page>
     </Document>
