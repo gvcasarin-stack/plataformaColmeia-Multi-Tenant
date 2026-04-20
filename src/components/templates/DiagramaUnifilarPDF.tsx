@@ -512,10 +512,10 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
             src={pd.logo_empresa_url}
             style={{
               position: 'absolute',
-              left: 651,
-              top: 911,
-              width: 168,
-              height: 91,
+              left: 653,
+              top: 913,
+              width: 158,
+              height: 87,
               objectFit: 'contain',
             }}
           />
