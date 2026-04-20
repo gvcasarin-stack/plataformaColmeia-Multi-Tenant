@@ -575,7 +575,6 @@ export const ExpandedProjectView = ({
     cabo_ca_capacidade_corrente_a: (project as any).cabo_ca_capacidade_corrente_a || '',
     cabo_ca_fator_temperatura: (project as any).cabo_ca_fator_temperatura || '',
     cabo_ca_fator_agrupamento: (project as any).cabo_ca_fator_agrupamento || '',
-    logo_empresa_url: '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
@@ -609,12 +608,11 @@ export const ExpandedProjectView = ({
     devLog.log('[ExpandedProjectView] Owner ID inicializado:', currentOwnerId);
   }, [project.owner_id, project.userId]);
 
-  // Carregar logo da empresa para os diagramas
+  // Logo da empresa — estado separado para não contaminar os campos do projeto
+  const [logoEmpresaUrl, setLogoEmpresaUrl] = useState('');
   useEffect(() => {
     getConfiguracaoGeral().then((config) => {
-      if (config?.logoEmpresaUrl) {
-        setGerarProjetoFields(prev => ({ ...prev, logo_empresa_url: config.logoEmpresaUrl! }));
-      }
+      if (config?.logoEmpresaUrl) setLogoEmpresaUrl(config.logoEmpresaUrl);
     }).catch(() => {});
   }, []);
 
@@ -3243,7 +3241,7 @@ export const ExpandedProjectView = ({
                               </h3>
                               <div className="rounded-md border border-purple-200 dark:border-purple-700 p-4 max-h-[700px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                                  <DiagramaBlocosPreview projectData={gerarProjetoFields} />
+                                  <DiagramaBlocosPreview projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }} />
                                 </div>
                               </div>
                             </div>
@@ -3257,7 +3255,7 @@ export const ExpandedProjectView = ({
                               </h3>
                               <div className="rounded-md border border-indigo-200 dark:border-indigo-700 p-4 max-h-[900px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                                  <DiagramaUnifilarPreview projectData={gerarProjetoFields} />
+                                  <DiagramaUnifilarPreview projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }} />
                                 </div>
                               </div>
                             </div>
