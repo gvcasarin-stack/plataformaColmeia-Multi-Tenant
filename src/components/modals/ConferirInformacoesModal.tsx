@@ -144,6 +144,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_quantidade', label: 'Quantidade de Módulos', icon: <Package className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_fabricante', label: 'Fabricante dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_modelo', label: 'Modelo dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_total_strings', label: 'Total de Strings', type: 'strings_config', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_potencia_wp', label: 'Potência dos Módulos (Wp)', type: 'text', required: true, suffix: 'Wp', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_voc', label: 'Tensão de circuito aberto – Voc [V]', type: 'text', required: true, suffix: 'V', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_isc', label: 'Corrente de curto-circuito – Isc [A]', type: 'text', required: true, suffix: 'A', group: 'Módulos Fotovoltaicos' },
@@ -155,7 +156,6 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_area_unitaria_m2', label: 'Área unitária do módulo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: '2,50', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_peso_kg', label: 'Peso [kg]', type: 'default_with_custom', required: true, suffix: 'kg', defaultValue: '22,2', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: (fields) => { const qty = parseFloat(String(fields.modulos_quantidade || '0')); return qty > 0 ? (qty * 2.5).toFixed(2).replace('.', ',') : ''; }, group: 'Módulos Fotovoltaicos' },
-  { key: 'modulos_total_strings', label: 'Total de Strings', type: 'strings_config', required: false, group: 'Módulos Fotovoltaicos' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },

@@ -62,6 +62,14 @@ export async function POST(request: NextRequest) {
       const { data: exampleConfig } = await supabase
         .from('configs').select('category').eq('tenant_id', tenantId).limit(1).maybeSingle();
 
+      // Buscar um user_id válido do tenant para created_by (campo NOT NULL)
+      const { data: anyUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .limit(1)
+        .maybeSingle();
+
       const { error: insertError } = await supabase
         .from('configs')
         .insert([{
@@ -72,6 +80,8 @@ export async function POST(request: NextRequest) {
           category: exampleConfig?.category || 'general',
           is_system: false,
           is_encrypted: false,
+          created_by: anyUser?.id ?? null,
+          updated_by: anyUser?.id ?? null,
         }]);
       if (insertError) {
         return NextResponse.json({ error: `Erro ao salvar configuração: ${insertError.message}` }, { status: 400 });
