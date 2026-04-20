@@ -69,6 +69,7 @@ import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioS
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
+import { getConfiguracaoGeral } from '@/lib/services/configService.supabase'
 
 // Import custom icon components
 import ClockIcon from '@/components/icons/clock';
@@ -574,6 +575,7 @@ export const ExpandedProjectView = ({
     cabo_ca_capacidade_corrente_a: (project as any).cabo_ca_capacidade_corrente_a || '',
     cabo_ca_fator_temperatura: (project as any).cabo_ca_fator_temperatura || '',
     cabo_ca_fator_agrupamento: (project as any).cabo_ca_fator_agrupamento || '',
+    logo_empresa_url: '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
@@ -606,6 +608,15 @@ export const ExpandedProjectView = ({
     setSelectedOwnerId(currentOwnerId);
     devLog.log('[ExpandedProjectView] Owner ID inicializado:', currentOwnerId);
   }, [project.owner_id, project.userId]);
+
+  // Carregar logo da empresa para os diagramas
+  useEffect(() => {
+    getConfiguracaoGeral().then((config) => {
+      if (config?.logoEmpresaUrl) {
+        setGerarProjetoFields(prev => ({ ...prev, logo_empresa_url: config.logoEmpresaUrl! }));
+      }
+    }).catch(() => {});
+  }, []);
 
   // 🆕 Função para obter o nome do proprietário atual
   const getCurrentOwnerName = (): string => {

@@ -231,6 +231,11 @@ export default function PreferenciasPage() {
   const [editandoProcuracao, setEditandoProcuracao] = useState(false);
   const [textoProcuracaoOriginal, setTextoProcuracaoOriginal] = useState('');
 
+  // Estados para Logo da Empresa
+  const [logoEmpresaUrl, setLogoEmpresaUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [removingLogo, setRemovingLogo] = useState(false);
+
   // Estado para Precificação Manual
   const [precificacaoManual, setPrecificacaoManual] = useState(false);
   const [salvandoPrecificacao, setSalvandoPrecificacao] = useState(false);
@@ -356,6 +361,11 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
           // Carregar modo de precificação manual
           if (data.precificacaoManual !== undefined) {
             setPrecificacaoManual(data.precificacaoManual);
+          }
+
+          // Carregar logo da empresa
+          if (data.logoEmpresaUrl) {
+            setLogoEmpresaUrl(data.logoEmpresaUrl);
           }
         } else {
           setMensagemChecklist(defaultChecklist);
@@ -566,6 +576,38 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
       });
     } finally {
       setSavingEmailPrefs(false);
+    }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/admin/config/logo-empresa', { method: 'POST', body: form });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Erro ao enviar logo');
+      setLogoEmpresaUrl(json.url);
+      toast({ title: 'Logo atualizada com sucesso!' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao enviar logo', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleLogoRemove = async () => {
+    setRemovingLogo(true);
+    try {
+      const res = await fetch('/api/admin/config/logo-empresa', { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Erro ao remover logo');
+      setLogoEmpresaUrl(null);
+      toast({ title: 'Logo removida.' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao remover logo', description: err.message, variant: 'destructive' });
+    } finally {
+      setRemovingLogo(false);
     }
   };
 
@@ -1634,6 +1676,71 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
           {/* ABA DOCUMENTOS */}
           {activeTab === 'documentos' && (
             <div className="space-y-6">
+
+              {/* Logo da Empresa */}
+              <CollapsibleSection
+                title="Logo da Empresa nas Pranchas"
+                description="Faça upload da logo para ser exibida no selo do Diagrama Unifilar e Diagrama de Blocos."
+                defaultOpen={false}
+                borderColor="purple-500"
+                icon={<FileUp className="h-5 w-5" />}
+              >
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Tamanho recomendado: <strong>400 × 250 px</strong> (proporção 16:10, horizontal). Formatos aceitos: PNG, JPG, WebP ou SVG. Máx. 2 MB.
+                  </p>
+
+                  {logoEmpresaUrl ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="border rounded-lg p-4 flex items-center justify-center bg-gray-50 dark:bg-gray-800" style={{ minHeight: 100 }}>
+                        <img src={logoEmpresaUrl} alt="Logo da empresa" className="max-h-24 max-w-xs object-contain" />
+                      </div>
+                      <div className="flex gap-2">
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                            className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ''; }}
+                            disabled={uploadingLogo}
+                          />
+                          <span className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 cursor-pointer">
+                            {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+                            Substituir logo
+                          </span>
+                        </label>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleLogoRemove}
+                          disabled={removingLogo}
+                        >
+                          {removingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          <span className="ml-1">Remover</span>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ''; }}
+                        disabled={uploadingLogo}
+                      />
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 flex flex-col items-center justify-center gap-2 hover:border-purple-400 transition-colors">
+                        {uploadingLogo
+                          ? <Loader2 className="h-8 w-8 text-purple-500 animate-spin" />
+                          : <FileUp className="h-8 w-8 text-gray-400" />}
+                        <p className="text-sm text-gray-500">{uploadingLogo ? 'Enviando...' : 'Clique para selecionar a logo'}</p>
+                        <p className="text-xs text-gray-400">PNG, JPG, WebP ou SVG — máx. 2 MB</p>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </CollapsibleSection>
+
               {/* Dados do Responsável Técnico */}
               <CollapsibleSection
                 title="Dados do Responsável Técnico"

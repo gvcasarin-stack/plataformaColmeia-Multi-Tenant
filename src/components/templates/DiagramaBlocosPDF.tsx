@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 interface DiagramaBlocosPDFProps {
   projectData?: Record<string, any>;
@@ -281,7 +281,9 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
 
           {/* RIGHT COLUMN */}
           <View style={s.sealRight}>
-            <Text style={s.sealLogoText}>[Logo]</Text>
+            {pd?.logo_empresa_url
+              ? <Image src={pd.logo_empresa_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              : null}
           </View>
 
         </View>

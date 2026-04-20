@@ -73,15 +73,46 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const potTotal  = potRaw > 0 ? potRaw : (modQtd > 0 && modWp > 0 ? (modQtd * modWp) / 1000 : 0);
   const potKwp    = fn(potTotal);
 
-  const strQtd    = parseInt(fv(pd.inversores_quantidade_mppt, '0')) || 0;
-  const modPerStr = strQtd > 0 && modQtd > 0 ? Math.round(modQtd / strQtd) : modQtd;
-  const strDescr  = strQtd > 1
-    ? `${strQtd} (${strQtd}x${String(modPerStr).padStart(2, '0')} módulos)`
-    : `${modQtd} módulos`;
+  // Strings data from new fields
+  const totalStrings = parseInt(fv(pd.modulos_total_strings, '0')) || 0;
+  let stringsModulos: number[] = [];
+  try {
+    const parsed = JSON.parse(fv(pd.modulos_strings_modulos, '[]'));
+    stringsModulos = Array.isArray(parsed) ? parsed.map((v: any) => parseInt(String(v)) || 0).filter((n: number) => n > 0) : [];
+  } catch { stringsModulos = []; }
 
-  const vpmp       = parseFloat(fv(pd.modulos_vpmp, '0')) || 0;
-  const tensaoStr  = vpmp > 0 && modPerStr > 0 ? fn(vpmp * modPerStr) : fv(pd.inversores_tensao);
-  const corrStr    = fv(pd.modulos_ipmp);
+  // Label "1 e 2" or "1, 2 e 3"
+  const strNums = totalStrings > 0 ? Array.from({ length: totalStrings }, (_, i) => String(i + 1)) : [];
+  const strLabelStr = strNums.length === 0 ? ''
+    : strNums.length === 1 ? strNums[0]
+    : strNums.slice(0, -1).join(', ') + ' e ' + strNums[strNums.length - 1];
+
+  // Quantity description: "12 (2x06 módulos)" or fallback
+  let qtdDescr = modQtd > 0 ? `${modQtd} módulos` : '___';
+  if (modQtd > 0 && totalStrings > 0 && stringsModulos.length > 0) {
+    const allSameQ = stringsModulos.every(m => m === stringsModulos[0]);
+    qtdDescr = allSameQ
+      ? `${modQtd} (${totalStrings}x${String(stringsModulos[0]).padStart(2, '0')} módulos)`
+      : `${modQtd} (${stringsModulos.map((m, i) => `S${i + 1}: ${m}`).join(' / ')} módulos)`;
+  }
+
+  const vpmp = parseFloat(fv(pd.modulos_vpmp, '0')) || 0;
+  const corrStr = fv(pd.modulos_ipmp);
+
+  // Tensão label and value per string
+  let tensaoLabel = 'Tensão de operação das strings';
+  let tensaoStr = vpmp > 0 && modQtd > 0 ? fn(vpmp * modQtd) : fv(pd.inversores_tensao);
+  if (totalStrings > 0 && stringsModulos.length > 0 && vpmp > 0) {
+    tensaoLabel = `Tensão de operação das Strings ${strLabelStr}`;
+    const tensoes = stringsModulos.map(m => vpmp * m);
+    const allSameT = tensoes.every(t => Math.abs(t - tensoes[0]) < 0.01);
+    tensaoStr = allSameT ? fn(tensoes[0]) : tensoes.map((t, i) => `S${i + 1}: ${fn(t)}`).join(' / ');
+  }
+
+  // Corrente label
+  const corrLabel = totalStrings > 0 && strLabelStr
+    ? `Corrente de saída das Strings ${strLabelStr}`
+    : 'Corrente de saída das strings';
 
   const tensaoNom  = fv(pd.tensao_atendimento, '220');
   const tensaoNomN = parseFloat(tensaoNom.replace(',', '.')) || 220;
@@ -415,10 +446,10 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 55} y="966" fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
           <text x={CX + 55} y="975" fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
           <text x={CX + 55} y="984" fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
-          <text x={CX + 55} y="993" fontSize="5.5">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</text>
+          <text x={CX + 55} y="993" fontSize="5.5">Quantidade: {qtdDescr}</text>
           <text x={CX + 55} y="1002" fontSize="5.5">Potência total: {potKwp} kWp</text>
-          <text x={CX + 55} y="1011" fontSize="5.5">Tensão de operação strings: {tensaoStr} V</text>
-          <text x={CX + 55} y="1020" fontSize="5.5">Corrente de saída das strings: {corrStr} A</text>
+          <text x={CX + 55} y="1011" fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
+          <text x={CX + 55} y="1020" fontSize="5.5">{corrLabel}: {corrStr} A</text>
 
           {/* ═══════════════ LEGENDA (top right) ═══════════════ */}
           <rect x="655" y="22" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
@@ -509,8 +540,10 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="439" y="1161" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
           <text x="439" y="1169" fontSize="5.5" textAnchor="middle">CFT: {respCft}</text>
 
-          {/* === RIGHT COLUMN — Logo placeholder === */}
-          <text x="792" y="1114" fontSize="6" textAnchor="middle" fill="#999">[Logo]</text>
+          {/* === RIGHT COLUMN — Logo === */}
+          {pd.logo_empresa_url
+            ? <image href={pd.logo_empresa_url} x="704" y="1062" width="182" height="112" preserveAspectRatio="xMidYMid meet" />
+            : null}
 
         </svg>
       </div>

@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
         'dados_bancarios',
         'responsavel_tecnico',
         'texto_procuracao',
-        'precificacao_manual'
+        'precificacao_manual',
+        'logo_empresa_url'
       ])
       .eq('tenant_id', tenantId);  // ✅ CRÍTICO: Filtrar por tenant
 

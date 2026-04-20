@@ -51,6 +51,7 @@ export interface ConfiguracaoSistema {
   responsavelTecnico?: ResponsavelTecnico;
   textoProcuracao?: string;
   precificacaoManual?: boolean;
+  logoEmpresaUrl?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -84,6 +85,7 @@ export async function getConfiguracaoGeral(): Promise<ConfiguracaoSistema | null
     if (apiData.responsavel_tecnico !== undefined) config.responsavelTecnico = apiData.responsavel_tecnico;
     if (apiData.texto_procuracao !== undefined) config.textoProcuracao = apiData.texto_procuracao;
     if (apiData.precificacao_manual !== undefined) config.precificacaoManual = apiData.precificacao_manual;
+    if (apiData.logo_empresa_url !== undefined) config.logoEmpresaUrl = apiData.logo_empresa_url;
 
     logger.info('[ConfigService] Configurações obtidas via API com sucesso');
     return config;

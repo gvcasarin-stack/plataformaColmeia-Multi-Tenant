@@ -221,7 +221,9 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
 
           {/* RIGHT COLUMN — Logo */}
           <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', height: '120px', boxSizing: 'border-box' }}>
-            <span style={{ fontSize: '6px', color: '#999' }}>[Logo]</span>
+            {pd?.logo_empresa_url
+              ? <img src={pd.logo_empresa_url} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              : null}
           </div>
 
         </div>

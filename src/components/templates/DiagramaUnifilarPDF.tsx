@@ -1,3 +1,4 @@
+// @ts-nocheck — react-pdf SVG props (x, y, fontSize, fill, etc.) não são reconhecidos pelo TS language server mas funcionam corretamente em runtime e na build
 import {
   Document,
   Page,
@@ -8,6 +9,7 @@ import {
   Circle,
   Path,
   Text,
+  Image,
 } from '@react-pdf/renderer';
 
 interface DiagramaUnifilarPDFProps {
@@ -79,15 +81,46 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const potTotal  = potRaw > 0 ? potRaw : (modQtd > 0 && modWp > 0 ? (modQtd * modWp) / 1000 : 0);
   const potKwp    = fn(potTotal);
 
-  const strQtd    = parseInt(fv(pd.inversores_quantidade_mppt, '0')) || 0;
-  const modPerStr = strQtd > 0 && modQtd > 0 ? Math.round(modQtd / strQtd) : modQtd;
-  const strDescr  = strQtd > 1
-    ? `${strQtd} (${strQtd}x${String(modPerStr).padStart(2, '0')} modulos)`
-    : `${modQtd} modulos`;
+  // Strings data from new fields
+  const totalStrings = parseInt(fv(pd.modulos_total_strings, '0')) || 0;
+  let stringsModulos: number[] = [];
+  try {
+    const parsed = JSON.parse(fv(pd.modulos_strings_modulos, '[]'));
+    stringsModulos = Array.isArray(parsed) ? parsed.map((v: any) => parseInt(String(v)) || 0).filter((n: number) => n > 0) : [];
+  } catch { stringsModulos = []; }
 
-  const vpmp       = parseFloat(fv(pd.modulos_vpmp, '0')) || 0;
-  const tensaoStr  = vpmp > 0 && modPerStr > 0 ? fn(vpmp * modPerStr) : fv(pd.inversores_tensao);
-  const corrStr    = fv(pd.modulos_ipmp);
+  // Label "1 e 2" or "1, 2 e 3"
+  const strNums = totalStrings > 0 ? Array.from({ length: totalStrings }, (_, i) => String(i + 1)) : [];
+  const strLabelStr = strNums.length === 0 ? ''
+    : strNums.length === 1 ? strNums[0]
+    : strNums.slice(0, -1).join(', ') + ' e ' + strNums[strNums.length - 1];
+
+  // Quantity description: "12 (2x06 modulos)" or fallback
+  let qtdDescr = modQtd > 0 ? `${modQtd} modulos` : '___';
+  if (modQtd > 0 && totalStrings > 0 && stringsModulos.length > 0) {
+    const allSameQ = stringsModulos.every(m => m === stringsModulos[0]);
+    qtdDescr = allSameQ
+      ? `${modQtd} (${totalStrings}x${String(stringsModulos[0]).padStart(2, '0')} modulos)`
+      : `${modQtd} (${stringsModulos.map((m, i) => `S${i + 1}: ${m}`).join(' / ')} modulos)`;
+  }
+
+  const vpmp = parseFloat(fv(pd.modulos_vpmp, '0')) || 0;
+  const corrStr = fv(pd.modulos_ipmp);
+
+  // Tensao label and value per string (sem acentos para PDF)
+  let tensaoLabel = 'Tensao de operacao das strings';
+  let tensaoStr = vpmp > 0 && modQtd > 0 ? fn(vpmp * modQtd) : fv(pd.inversores_tensao);
+  if (totalStrings > 0 && stringsModulos.length > 0 && vpmp > 0) {
+    tensaoLabel = `Tensao de operacao das Strings ${strLabelStr}`;
+    const tensoes = stringsModulos.map(m => vpmp * m);
+    const allSameT = tensoes.every(t => Math.abs(t - tensoes[0]) < 0.01);
+    tensaoStr = allSameT ? fn(tensoes[0]) : tensoes.map((t, i) => `S${i + 1}: ${fn(t)}`).join(' / ');
+  }
+
+  // Corrente label (sem acentos para PDF)
+  const corrLabel = totalStrings > 0 && strLabelStr
+    ? `Corrente de saida das Strings ${strLabelStr}`
+    : 'Corrente de saida das strings';
 
   const tensaoNom  = fv(pd.tensao_atendimento, '220');
   const tensaoNomN = parseFloat(tensaoNom.replace(',', '.')) || 220;
@@ -370,10 +403,10 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 55} y={966} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
           <Text x={CX + 55} y={975} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
           <Text x={CX + 55} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-          <Text x={CX + 55} y={993} fontSize={5.5} fill="#000">Quantidade: {modQtd > 0 ? `${modQtd} (${strDescr})` : '___'}</Text>
+          <Text x={CX + 55} y={993} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
           <Text x={CX + 55} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
-          <Text x={CX + 55} y={1011} fontSize={5.5} fill="#000">Tensao de operacao strings: {tensaoStr} V</Text>
-          <Text x={CX + 55} y={1020} fontSize={5.5} fill="#000">Corrente de saida das strings: {corrStr} A</Text>
+          <Text x={CX + 55} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
+          <Text x={CX + 55} y={1020} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
 
           {/* ═══ LEGENDA ═══ */}
           <Rect x={655} y={22} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
@@ -470,8 +503,10 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={MID_CTR} y={1161} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
           <Text x={MID_CTR} y={1169} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
 
-          {/* === RIGHT COLUMN — Logo placeholder === */}
-          {/* Empty — space reserved for company logo */}
+          {/* === RIGHT COLUMN — Logo === */}
+          {pd.logo_empresa_url
+            ? <Image src={pd.logo_empresa_url} x={704} y={1062} width={182} height={112} />
+            : null}
 
         </Svg>
       </Page>
