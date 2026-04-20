@@ -50,7 +50,7 @@ const ESTADOS_BR = [
   { value: 'TO', label: 'Tocantins (TO)' },
 ];
 
-type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom' | 'temp_fator_select';
+type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom' | 'temp_fator_select' | 'strings_config';
 
 interface FieldDef {
   key: string;
