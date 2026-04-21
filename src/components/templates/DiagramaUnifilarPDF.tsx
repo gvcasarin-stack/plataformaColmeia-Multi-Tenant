@@ -507,17 +507,17 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
         </Svg>
 
         {/* Logo fora do SVG com posição absoluta sobre a coluna direita do selo */}
-        {/* Cálculo: page padding=15, SVG width=812/viewBox=900, height=991/viewBox=1203 (+25 offset y) */}
+        {/* Cálculo: position:absolute é relativo ao content-box (sem o padding de 15) */}
         {/* Logo da empresa: View com overflow hidden garante que não extrapola o espaço do selo */}
         {/* Coluna direita do selo em coords SVG: x=700–890, y=1058–1178 */}
-        {/* Em coords página (padding=15, scale x=812/900, scale y=991/1203+25offset): left=647, top=907, w=171, h=99 */}
+        {/* Content-box coords: left=632, top=892, w=171, h=99 (scale x=812/900, scale y=991/1203, yOffset=+25) */}
         {pd.logo_empresa_url && (
           <View style={{
             position: 'absolute',
-            left: 648,
-            top: 908,
-            width: 169,
-            height: 97,
+            left: 632,
+            top: 892,
+            width: 171,
+            height: 99,
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
