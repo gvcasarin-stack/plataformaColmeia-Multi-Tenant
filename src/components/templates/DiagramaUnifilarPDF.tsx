@@ -510,14 +510,14 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
         {/* Cálculo: position:absolute é relativo ao content-box (sem o padding de 15) */}
         {/* Logo da empresa: View com overflow hidden garante que não extrapola o espaço do selo */}
         {/* Coluna direita do selo em coords SVG: x=700–890, y=1058–1178 */}
-        {/* Content-box coords: left=610, top=910, w=171, h=99 (ajuste empírico) */}
+        {/* Content-box coords: left=627, top=910, w=154, h=89 (-10% escala, +10% direita) */}
         {pd.logo_empresa_url && (
           <View style={{
             position: 'absolute',
-            left: 610,
+            left: 627,
             top: 910,
-            width: 171,
-            height: 99,
+            width: 154,
+            height: 89,
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
