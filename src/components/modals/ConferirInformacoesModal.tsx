@@ -999,6 +999,15 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           <DialogDescription>
             Preencha as informações necessárias para a geração dos documentos.
           </DialogDescription>
+
+          <div className="mt-2 rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/70 dark:bg-blue-950/30 px-4 py-3">
+            <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+              <strong>Todos os campos obrigatórios devem ser preenchidos</strong> — caso algum esteja vazio, a documentação não será gerada corretamente.
+              Após preencher, clique em <strong>Salvar Progresso</strong> e depois selecione o documento desejado na tela anterior.
+              O botão para gerar cada documento estará ao final da pré-visualização (Memorial Descritivo, Diagrama Unifilar, Diagrama de Blocos, etc.).
+            </p>
+          </div>
+
           <div className="mt-3">
             <div className="flex items-center justify-between text-sm mb-1">
               <span className="text-gray-600 dark:text-gray-400">
@@ -1024,9 +1033,12 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
         <div className="flex-1 overflow-y-auto pr-1 space-y-6 mt-2">
           {Array.from(groups.entries()).map(([groupName, groupFields]) => (
             <div key={groupName}>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2 sticky top-0 bg-background py-1 z-10">
-                <Badge variant="outline" className="text-xs">{groupName}</Badge>
-                <span className="text-xs text-gray-400">
+              <h3 className="flex items-center justify-between mb-3 sticky top-0 bg-background py-2 z-10 border-b border-gray-100 dark:border-gray-800">
+                <span className="flex items-center gap-2">
+                  <span className="w-1 h-4 rounded-full bg-blue-500 dark:bg-blue-400 inline-block flex-shrink-0" />
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-tight">{groupName}</span>
+                </span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
                   {groupFields.filter(f => isFieldFilled(f.key)).length}/{groupFields.length}
                 </span>
               </h3>
