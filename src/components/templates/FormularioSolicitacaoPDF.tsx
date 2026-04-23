@@ -467,12 +467,18 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
               )}
             </View>
           )}
-          {/* Tarifa Branca */}
+          {/* Tarifa Branca / Terá adição de módulos (condicional) */}
           <View style={s.row}>
             <View style={[s.lr, { width: '16%' }]}><Text>Tarifa Branca?</Text></View>
             <View style={[s.d, { width: '22%' }]}><Text>{v('tarifa_branca', pd)}</Text></View>
-            <View style={[s.l, { width: '34%' }]}><Text>Terá adição de módulos em inversor existente?</Text></View>
-            <View style={[s.d, { width: '28%' }]}><Text></Text></View>
+            {showPotenciaGD ? (
+              <>
+                <View style={[s.l, { width: '34%' }]}><Text>Terá adição de módulos em inversor existente?</Text></View>
+                <View style={[s.d, { width: '28%' }]}><Text></Text></View>
+              </>
+            ) : (
+              <View style={[s.d, { width: '62%' }]}><Text></Text></View>
+            )}
           </View>
           {/* Cargas Especiais */}
           <View style={s.row}>

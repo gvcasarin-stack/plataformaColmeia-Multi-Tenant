@@ -3133,6 +3133,25 @@ export const ExpandedProjectView = ({
                                 </CardContent>
                               </Card>
 
+                              {(['Autoconsumo Remoto', 'Geração Compartilhada'].includes(gerarProjetoFields.modalidade_compensacao)) && (
+                                <Card className="border border-gray-200 dark:border-gray-700 opacity-70 cursor-not-allowed">
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-900/30">
+                                        <FileText className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Formulário de Compensação</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Formulário para modalidade {gerarProjetoFields.modalidade_compensacao}.
+                                        </p>
+                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
                             </div>
                           </div>
 

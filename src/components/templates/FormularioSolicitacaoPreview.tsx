@@ -314,12 +314,18 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               </tr>
             )}
 
-            {/* Tarifa Branca / Terá adição de módulos */}
+            {/* Tarifa Branca / Terá adição de módulos (condicional) */}
             <tr>
               <td style={LR} colSpan={1}>Tarifa Branca?</td>
               <td style={D}><V>{`{{tarifa_branca}}`}</V></td>
-              <td style={L} colSpan={3}>Terá adição de módulos em inversor existente?</td>
-              <td style={D} colSpan={3}></td>
+              {showPotenciaGD ? (
+                <>
+                  <td style={L} colSpan={3}>Terá adição de módulos em inversor existente?</td>
+                  <td style={D} colSpan={3}></td>
+                </>
+              ) : (
+                <td style={D} colSpan={6}></td>
+              )}
             </tr>
 
             {/* Possui Cargas Especiais */}
