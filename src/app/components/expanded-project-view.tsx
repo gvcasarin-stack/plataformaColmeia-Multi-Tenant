@@ -2903,11 +2903,10 @@ export const ExpandedProjectView = ({
                             <SelectValue placeholder="Selecione a distribuidora" />
                           </SelectTrigger>
                           <SelectContent>
-                            {DISTRIBUIDORAS.map((distribuidora) => (
-                              <SelectItem key={distribuidora} value={distribuidora}>
-                                {distribuidora}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="Equatorial">Equatorial</SelectItem>
+                            <SelectItem value="CPFL" disabled>CPFL (Em breve)</SelectItem>
+                            <SelectItem value="RGE" disabled>RGE (Em breve)</SelectItem>
+                            <SelectItem value="Energisa" disabled>Energisa (Em breve)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -3018,7 +3017,6 @@ export const ExpandedProjectView = ({
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                           Documento técnico com descrição detalhada do sistema fotovoltaico.
                                         </p>
-                                        <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
                                       </div>
                                     </div>
                                   </CardContent>
@@ -3076,7 +3074,6 @@ export const ExpandedProjectView = ({
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                         Formulário para solicitação de acesso junto à distribuidora {selectedDistribuidoraGerarProjeto}.
                                       </p>
-                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
                                     </div>
                                   </div>
                                 </CardContent>
@@ -3104,7 +3101,6 @@ export const ExpandedProjectView = ({
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                         Diagrama unifilar de blocos do sistema fotovoltaico.
                                       </p>
-                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
                                     </div>
                                   </div>
                                 </CardContent>
@@ -3137,33 +3133,6 @@ export const ExpandedProjectView = ({
                                 </CardContent>
                               </Card>
 
-                              <Card
-                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'procuracao' ? null : 'procuracao')}
-                                className={`border cursor-pointer group transition-all duration-200 ${
-                                  activeTemplatePreview === 'procuracao'
-                                    ? 'border-amber-500 dark:border-amber-400 shadow-md ring-2 ring-amber-200 dark:ring-amber-800'
-                                    : 'border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-md'
-                                }`}
-                              >
-                                <CardContent className="p-5">
-                                  <div className="flex items-start gap-3">
-                                    <div className={`p-2 rounded-lg transition-colors ${
-                                      activeTemplatePreview === 'procuracao'
-                                        ? 'bg-amber-100 dark:bg-amber-900/50'
-                                        : 'bg-amber-50 dark:bg-amber-900/30 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50'
-                                    }`}>
-                                      <FileText className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                                    </div>
-                                    <div className="flex-1">
-                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Procuração</h4>
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Procuração para representação junto à distribuidora {selectedDistribuidoraGerarProjeto}.
-                                      </p>
-                                      <Badge variant="secondary" className="mt-2 text-xs">Em breve</Badge>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
                             </div>
                           </div>
 
