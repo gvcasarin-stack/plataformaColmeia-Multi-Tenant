@@ -18,6 +18,7 @@ const DISTRIBUIDORAS = [
   "Copel",
   "Cemig",
   "CPFL",
+  "Neoenergia Brasília",
   "Neoenergia Cosern",
   "Neoenergia Elektro",
   "Neoenergia Coelba",
