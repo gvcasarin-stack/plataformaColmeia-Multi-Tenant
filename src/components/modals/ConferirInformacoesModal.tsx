@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   CheckCircle2, AlertCircle, MinusCircle, Save, X,
   User, CreditCard, MapPin, Factory, Zap, Plug, Info,
-  Package, Settings, Building, Upload, ImageIcon, FolderArchive, Calendar
+  Package, Settings, Building, Upload, ImageIcon, FolderArchive, Calendar,
+  ClipboardList
 } from 'lucide-react';
 
 const DISTRIBUIDORAS = [
@@ -993,7 +994,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <ClipboardList className="h-5 w-5 text-blue-600" />
             Conferir Informações do Projeto
           </DialogTitle>
           <DialogDescription>
@@ -1003,27 +1004,28 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           <div className="mt-2 rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/70 dark:bg-blue-950/30 px-4 py-3">
             <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
               <strong>Todos os campos obrigatórios devem ser preenchidos</strong> — caso algum esteja vazio, a documentação não será gerada corretamente.
-              Após preencher, clique em <strong>Salvar Progresso</strong> e depois selecione o documento desejado na tela anterior.
-              O botão para gerar cada documento estará ao final da pré-visualização (Memorial Descritivo, Diagrama Unifilar, Diagrama de Blocos, etc.).
+              Após preencher, clique em <strong>Salvar Progresso</strong> e depois selecione o documento que deseja gerar.
+              O botão para gerar cada documento estará ao final da pré-visualização (Memorial Descritivo, Diagrama Unifilar, Diagrama de Blocos...).
             </p>
           </div>
 
-          <div className="mt-3">
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span className="text-gray-600 dark:text-gray-400">
-                Campos obrigatórios: <strong className="text-green-600">{totalFilledRequired}</strong>/{requiredCount}
-              </span>
-              <span className="font-medium text-green-600">{progressPercent}%</span>
+          <div className="mt-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Campos obrigatórios</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">{totalFilledRequired}/{requiredCount}</span>
+                <span className={`text-sm font-bold tabular-nums ${progressPercent === 100 ? 'text-green-600' : 'text-blue-600'}`}>{progressPercent}%</span>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                className={`h-2 rounded-full transition-all duration-500 ease-out ${progressPercent === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-blue-400 to-blue-600'}`}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
               <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-500" /> Preenchido</span>
-              <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-red-500" /> Obrigatório</span>
+              <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-red-400" /> Obrigatório</span>
               <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-amber-400" /> Opcional</span>
               <span className="flex items-center gap-1"><MinusCircle className="h-3 w-3 text-gray-400" /> Ignorado</span>
             </div>

@@ -255,6 +255,10 @@ export const ExpandedProjectView = ({
 
   const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
 
+  const canGerarProjeto = isFullAdmin ||
+    user?.role === 'colaborador' ||
+    user?.profile?.role === 'colaborador';
+
   const isColaboradorWithEditPermission = (
     user?.role === 'colaborador' ||
     user?.profile?.role === 'colaborador'
@@ -1615,7 +1619,7 @@ export const ExpandedProjectView = ({
             >
               Linha do Tempo
             </button>
-            {isSuperAdmin && (
+            {canGerarProjeto && (
               <button
                 onClick={() => setActiveTab('gerar-projeto')}
                 className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 ${
@@ -2881,7 +2885,7 @@ export const ExpandedProjectView = ({
             </Card>
           </TabsContent>
 
-          {isSuperAdmin && (
+          {canGerarProjeto && (
             <TabsContent value="gerar-projeto" className="mt-6">
               <div className="space-y-6">
                 <Card className="shadow-lg rounded-lg">
