@@ -3126,7 +3126,7 @@ export const ExpandedProjectView = ({
                                     <div className="flex-1">
                                       <h4 className="font-medium text-gray-800 dark:text-gray-200">Diagrama Unifilar</h4>
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Diagrama unifilar monofásico do sistema fotovoltaico.
+                                        Diagrama unifilar do sistema fotovoltaico.
                                       </p>
                                     </div>
                                   </div>
