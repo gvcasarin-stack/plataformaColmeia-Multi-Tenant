@@ -158,9 +158,20 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
   const inversoresQtd = Math.min(30, Math.max(1, parseInt(String(projectData?.inversores_quantidade || '1')) || 1));
 
   const totalInvPotencia = (() => {
-    const p = parseFloat(String(projectData?.inversores_potencia || '0'));
+    const p = parseFloat(String(projectData?.inversores_potencia || '0').replace(',', '.'));
     if (isNaN(p) || p === 0) return '';
     return (p * inversoresQtd).toFixed(2).replace('.', ',');
+  })();
+
+  const totalInvPotenciaNum = (() => {
+    const p = parseFloat(String(projectData?.inversores_potencia || '0').replace(',', '.'));
+    if (isNaN(p) || p === 0) return 0;
+    return p * inversoresQtd;
+  })();
+  const potenciaGeracao = (() => {
+    if (potenciaNum === 0) return null;
+    const n = totalInvPotenciaNum > 0 ? Math.min(potenciaNum, totalInvPotenciaNum) : potenciaNum;
+    return n.toFixed(2).replace('.', ',');
   })();
 
   // Linhas vazias para as tabelas de geradores (fixa 10 para módulos, 30 para inversores)
@@ -475,7 +486,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td style={D}><V upper>{`{{modalidade_compensacao}}`}</V></td>
               <td style={L}></td>
               <td style={LR}>Potência Geração do Orçamento</td>
-              <td style={D}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>} kW</td>
+              <td style={D}>{potenciaGeracao ?? <V>{`{{potencia}}`}</V>} kW</td>
             </tr>
 
             {/* NÃO É NECESSÁRIO / PREENCHER LISTA DE RATEIO */}
@@ -489,7 +500,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               )}
               <td style={L}></td>
               <td style={LR}>Potência Geração Total da UC (PGT)</td>
-              <td style={D}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>} kW</td>
+              <td style={D}>{potenciaGeracao ?? <V>{`{{potencia}}`}</V>} kW</td>
             </tr>
 
             {/* Armazenamento / Potência Máxima Injetável */}

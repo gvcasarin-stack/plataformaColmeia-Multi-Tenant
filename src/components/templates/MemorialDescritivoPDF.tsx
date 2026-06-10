@@ -118,7 +118,7 @@ function v(placeholder: string, projectData?: Record<string, any>): string {
   const raw = fieldKey && projectData ? projectData[fieldKey] : undefined;
   if (raw !== undefined && raw !== null && raw !== '' && raw !== 0) {
     if (fieldKey && DECIMAL_FIELDS.has(fieldKey)) {
-      const num = parseFloat(String(raw));
+      const num = parseFloat(String(raw).replace(',', '.'));
       if (!isNaN(num)) return num.toFixed(2).replace('.', ',');
     }
     if (fieldKey === 'client_state') {

@@ -296,7 +296,10 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
       const clientName = projectData?.nomeClienteFinal || 'projeto';
       const filename = `Memorial Descritivo - ${clientName}.pdf`;
       const blob = await pdf(
-        React.createElement(MemorialDescritivoPDF, { projectData, placaAdvertencia })
+        React.createElement(MemorialDescritivoPDF, {
+          projectData: { ...projectData, carga_levantamento: JSON.stringify(cargaRows) },
+          placaAdvertencia,
+        })
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -322,7 +325,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
     if (hasValue) {
       let displayValue = String(value).toUpperCase();
       if (fieldKey && DECIMAL_FIELDS.includes(fieldKey)) {
-        const num = parseFloat(String(value));
+        const num = parseFloat(String(value).replace(',', '.'));
         if (!isNaN(num)) displayValue = num.toFixed(2).replace('.', ',');
       }
       if (fieldKey === 'client_state') {

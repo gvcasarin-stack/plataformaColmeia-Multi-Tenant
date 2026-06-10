@@ -45,12 +45,37 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
     return '___';
   })();
 
-  const stringsQtd = parseInt(String(pd?.inversores_quantidade_mppt || pd?.strings_quantidade || '0')) || 0;
-  const modulosPorString = stringsQtd > 0 && modulosQtd > 0 ? Math.round(modulosQtd / stringsQtd) : 0;
-  const stringsLine =
-    stringsQtd > 0 && modulosPorString > 0
-      ? `${stringsQtd} ${stringsQtd === 1 ? 'String' : 'Strings'} de ${String(modulosPorString).padStart(2, '0')} módulos`
-      : null;
+  const stringsLine = (() => {
+    const totalStrings = parseInt(String(pd?.modulos_total_strings || '0')) || 0;
+    let stringsModulos: string[] = [];
+    try {
+      const parsed = JSON.parse(String(pd?.modulos_strings_modulos || '[]'));
+      stringsModulos = Array.isArray(parsed) ? parsed.filter((v: any) => v !== '' && v !== null && v !== undefined) : [];
+    } catch { stringsModulos = []; }
+
+    if (totalStrings > 0 && stringsModulos.length > 0) {
+      const counts: Record<number, number> = {};
+      for (const v of stringsModulos) {
+        const n = parseInt(String(v)) || 0;
+        if (n > 0) counts[n] = (counts[n] || 0) + 1;
+      }
+      const parts = Object.entries(counts).map(([mods, qty]) => {
+        const m = parseInt(mods);
+        return `${qty} ${qty === 1 ? 'String' : 'Strings'} de ${String(m).padStart(2, '0')} módulos`;
+      });
+      if (parts.length > 0) return parts.join(' + ');
+    }
+
+    if (totalStrings > 0 && modulosQtd > 0) {
+      const perString = Math.round(modulosQtd / totalStrings);
+      if (perString > 0) return `${totalStrings} ${totalStrings === 1 ? 'String' : 'Strings'} de ${String(perString).padStart(2, '0')} módulos`;
+    }
+
+    const qtd = parseInt(String(pd?.inversores_quantidade_mppt || pd?.strings_quantidade || '0')) || 0;
+    const perStr = qtd > 0 && modulosQtd > 0 ? Math.round(modulosQtd / qtd) : 0;
+    if (qtd > 0 && perStr > 0) return `${qtd} ${qtd === 1 ? 'String' : 'Strings'} de ${String(perStr).padStart(2, '0')} módulos`;
+    return null;
+  })();
 
   const fabricante = pd?.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
   const invPotencia = fmt2(pd?.inversores_potencia);

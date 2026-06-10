@@ -369,9 +369,20 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
   const okPGT = potenciaNum > 0 && potenciaDisp > 0 && potenciaNum <= potenciaDisp;
   const inversoresQtd = Math.min(30, Math.max(1, parseInt(String(pd?.inversores_quantidade || '1')) || 1));
   const totalInvPotencia = (() => {
-    const p = parseFloat(String(pd?.inversores_potencia || '0'));
+    const p = parseFloat(String(pd?.inversores_potencia || '0').replace(',', '.'));
     if (isNaN(p) || p === 0) return '___';
     return (p * inversoresQtd).toFixed(2).replace('.', ',');
+  })();
+
+  const totalInvPotenciaNum = (() => {
+    const p = parseFloat(String(pd?.inversores_potencia || '0').replace(',', '.'));
+    if (isNaN(p) || p === 0) return 0;
+    return p * inversoresQtd;
+  })();
+  const potenciaGeracao = (() => {
+    if (potenciaNum === 0) return '___';
+    const n = totalInvPotenciaNum > 0 ? Math.min(potenciaNum, totalInvPotenciaNum) : potenciaNum;
+    return n.toFixed(2).replace('.', ',');
   })();
 
   return (
@@ -595,7 +606,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.d, { width: '30%' }]}><Text>{v('modalidade_compensacao', pd)}</Text></View>
             <View style={[s.l, { width: '10%' }]}><Text></Text></View>
             <View style={[s.lr, { width: '24%' }]}><Text>Potência Geração do Orçamento</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text>{potenciaKwp} kW</Text></View>
+            <View style={[s.d, { width: '8%' }]}><Text>{potenciaGeracao} kW</Text></View>
           </View>
           <View style={s.row}>
             {modalidadeBanner ? (
@@ -607,7 +618,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             )}
             <View style={[s.l, { width: '10%' }]}><Text></Text></View>
             <View style={[s.lr, { width: '24%' }]}><Text>Potência Geração Total da UC (PGT)</Text></View>
-            <View style={[s.d, { width: '8%' }]}><Text>{potenciaKwp} kW</Text></View>
+            <View style={[s.d, { width: '8%' }]}><Text>{potenciaGeracao} kW</Text></View>
           </View>
           <View style={s.row}>
             <View style={[s.l, { width: '28%' }]}><Text>Armazenamento (se houver)</Text></View>
