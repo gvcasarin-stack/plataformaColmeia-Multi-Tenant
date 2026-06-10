@@ -24,7 +24,7 @@ function parseBR(val: string): number {
   return parseFloat(String(val).replace(',', '.')) || 0;
 }
 
-function fmtBR(val: number, decimals = 1): string {
+function fmtBR(val: number, decimals = 2): string {
   return val.toFixed(decimals).replace('.', ',');
 }
 

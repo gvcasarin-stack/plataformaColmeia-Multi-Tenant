@@ -708,7 +708,7 @@ export function MemorialDescritivoPDF({
                 return parseFloat(String(val).replace(',', '.')) || 0;
               }
               function fmtBR(val: number): string {
-                return val.toFixed(1).replace('.', ',');
+                return val.toFixed(2).replace('.', ',');
               }
 
               if (rows.length === 0) {
