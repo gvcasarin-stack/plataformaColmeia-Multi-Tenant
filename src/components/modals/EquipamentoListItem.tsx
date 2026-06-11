@@ -520,7 +520,19 @@ export function EquipamentoListItem(props: Props) {
           {tipo === 'inversor' && (
             <>
               <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Potência / Tensão CA</p>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Entrada CC</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Vcc máx. (V)" value={inv.vcc_max || ''} onChange={v => updateField('vcc_max', v)} suffix="V" placeholder="600" />
+                  <Field label="Icc máx. (A)" value={inv.icc_max || ''} onChange={v => updateField('icc_max', v)} suffix="A" placeholder="18" />
+                  <Field label="Vpmp máx. (V)" value={inv.vpmp_max || ''} onChange={v => updateField('vpmp_max', v)} suffix="V" placeholder="500" />
+                  <Field label="Vpmp mín. (V)" value={inv.vpmp_min || ''} onChange={v => updateField('vpmp_min', v)} suffix="V" placeholder="200" />
+                  <Field label="Vcc partida (V)" value={inv.vcc_partida || ''} onChange={v => updateField('vcc_partida', v)} suffix="V" placeholder="150" />
+                  <Field label="Qtd. MPPT" value={inv.quantidade_mppt || ''} onChange={v => updateField('quantidade_mppt', v)} placeholder="2" />
+                  <Field label="Entradas/MPPT" value={inv.entradas_por_mppt || ''} onChange={v => updateField('entradas_por_mppt', v)} placeholder="2" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Saída CA</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="Pot. máx. saída (kW)" value={inv.potencia_max_saida || ''} onChange={v => updateField('potencia_max_saida', v)} suffix="kW" />
                   <SelectField
@@ -532,6 +544,7 @@ export function EquipamentoListItem(props: Props) {
                   />
                   <Field label="Tensão máx. CA (V)" value={inv.tensao_max_ca || ''} onChange={v => updateField('tensao_max_ca', v)} suffix="V" placeholder="253" />
                   <Field label="Tensão mín. CA (V)" value={inv.tensao_min_ca || ''} onChange={v => updateField('tensao_min_ca', v)} suffix="V" placeholder="180" />
+                  <Field label="Faixa de tensão" value={inv.faixa_tensao || ''} onChange={v => updateField('faixa_tensao', v)} placeholder="200-500" />
                   <Field label="Corrente nom. (A)" value={inv.corrente_nominal || ''} onChange={v => updateField('corrente_nominal', v)} suffix="A" placeholder="22,8" />
                   <SelectField
                     label="Tipo de conexão *"
@@ -540,19 +553,13 @@ export function EquipamentoListItem(props: Props) {
                     options={TIPO_CONEXAO_OPTIONS}
                     placeholder="Selecione"
                   />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Tensão CC / MPPT</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Vcc máx. (V)" value={inv.vcc_max || ''} onChange={v => updateField('vcc_max', v)} suffix="V" placeholder="600" />
-                  <Field label="Icc máx. (A)" value={inv.icc_max || ''} onChange={v => updateField('icc_max', v)} suffix="A" placeholder="18" />
-                  <Field label="Vpmp máx. (V)" value={inv.vpmp_max || ''} onChange={v => updateField('vpmp_max', v)} suffix="V" placeholder="500" />
-                  <Field label="Vpmp mín. (V)" value={inv.vpmp_min || ''} onChange={v => updateField('vpmp_min', v)} suffix="V" placeholder="200" />
-                  <Field label="Vcc partida (V)" value={inv.vcc_partida || ''} onChange={v => updateField('vcc_partida', v)} suffix="V" placeholder="150" />
-                  <Field label="Faixa de tensão" value={inv.faixa_tensao || ''} onChange={v => updateField('faixa_tensao', v)} placeholder="200-500" />
-                  <Field label="Qtd. MPPT" value={inv.quantidade_mppt || ''} onChange={v => updateField('quantidade_mppt', v)} placeholder="2" />
-                  <Field label="Entradas/MPPT" value={inv.entradas_por_mppt || ''} onChange={v => updateField('entradas_por_mppt', v)} placeholder="2" />
+                  <SelectField
+                    label="Conexão de rede CA *"
+                    value={inv.tipo_conexao_rede_ca || ''}
+                    onChange={v => updateField('tipo_conexao_rede_ca', v)}
+                    options={[{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Trifásico', label: 'Trifásico' }]}
+                    placeholder="Selecione"
+                  />
                 </div>
               </div>
               <div>

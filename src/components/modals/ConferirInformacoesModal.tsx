@@ -321,7 +321,7 @@ const INVERSORES_MANAGED_FIELDS = new Set([
   'inversores_fator_potencia', 'inversores_rendimento', 'inversores_dht_corrente',
   'inversores_quantidade', 'inversores_tensao', 'inversores_tensao_max_ca',
   'inversores_tensao_min_ca', 'inversores_faixa_tensao', 'inversores_tipo_conexao_saida',
-  'disjuntor_ca_corrente_a', 'disjuntor_ca_polos',
+  'disjuntor_ca_corrente_a', 'disjuntor_ca_polos', 'tipo_conexao_rede_ca',
 ]);
 
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
@@ -639,6 +639,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       inversores_tipo_conexao_saida: first.tipo_conexao_saida || '',
       disjuntor_ca_corrente_a: first.disjuntor_ca_corrente_a || '',
       disjuntor_ca_polos: first.disjuntor_ca_polos || '',
+      tipo_conexao_rede_ca: first.tipo_conexao_rede_ca || '',
     };
   }
 

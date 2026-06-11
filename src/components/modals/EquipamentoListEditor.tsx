@@ -37,6 +37,7 @@ const EMPTY_INVERSOR: InversorItem = {
   vcc_partida: '', corrente_nominal: '', quantidade_mppt: '', entradas_por_mppt: '',
   tipo_conexao_saida: '', fator_potencia: '', rendimento: '', dht_corrente: '',
   disjuntor_ca_corrente_a: '', disjuntor_ca_polos: '',
+  tipo_conexao_rede_ca: '',
 };
 
 export function EquipamentoListEditor(props: Props) {

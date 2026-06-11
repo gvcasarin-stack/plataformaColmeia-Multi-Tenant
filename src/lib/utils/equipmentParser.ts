@@ -45,6 +45,7 @@ export interface InversorItem {
   dht_corrente?: string;
   disjuntor_ca_corrente_a?: string;
   disjuntor_ca_polos?: string;
+  tipo_conexao_rede_ca?: string;
 }
 
 function parseNum(val: string | number | undefined): number {
@@ -130,6 +131,7 @@ export function getAllInversores(pd: Record<string, any> | undefined): InversorI
     dht_corrente: String(pd.inversores_dht_corrente || ''),
     disjuntor_ca_corrente_a: String(pd.disjuntor_ca_corrente_a || ''),
     disjuntor_ca_polos: String(pd.disjuntor_ca_polos || ''),
+    tipo_conexao_rede_ca: String(pd.tipo_conexao_rede_ca || ''),
   }];
 }
 

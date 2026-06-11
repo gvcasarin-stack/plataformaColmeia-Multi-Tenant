@@ -1721,7 +1721,19 @@ export default function AcervoTecnicoPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tensão CA</p>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Entrada CC</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <CatalogFieldNum label="Vcc máx. (V)" value={catalogNumFields.vcc_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vcc_max: v }))} placeholder="600" />
+                        <CatalogFieldNum label="Icc máx. (A)" value={catalogNumFields.icc_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, icc_max: v }))} placeholder="18" />
+                        <CatalogFieldNum label="Vpmp máx. (V)" value={catalogNumFields.vpmp_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vpmp_max: v }))} placeholder="500" />
+                        <CatalogFieldNum label="Vpmp mín. (V)" value={catalogNumFields.vpmp_min || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vpmp_min: v }))} placeholder="200" />
+                        <CatalogFieldNum label="Vcc partida (V)" value={catalogNumFields.vcc_partida || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vcc_partida: v }))} placeholder="150" />
+                        <CatalogFieldNum label="Qtd. MPPT" value={catalogNumFields.quantidade_mppt || ''} onChange={v => setCatalogNumFields(p => ({ ...p, quantidade_mppt: v }))} placeholder="2" />
+                        <CatalogFieldNum label="Entradas/MPPT" value={catalogNumFields.entradas_por_mppt || ''} onChange={v => setCatalogNumFields(p => ({ ...p, entradas_por_mppt: v }))} placeholder="2" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Saída CA</p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div>
                           <Label className="text-xs text-gray-500">Tensão (V)</Label>
@@ -1729,23 +1741,11 @@ export default function AcervoTecnicoPage() {
                         </div>
                         <CatalogFieldNum label="Tensão máx. CA (V)" value={catalogNumFields.tensao_max_ca || ''} onChange={v => setCatalogNumFields(p => ({ ...p, tensao_max_ca: v }))} placeholder="253" />
                         <CatalogFieldNum label="Tensão mín. CA (V)" value={catalogNumFields.tensao_min_ca || ''} onChange={v => setCatalogNumFields(p => ({ ...p, tensao_min_ca: v }))} placeholder="180" />
-                        <CatalogFieldNum label="Corrente nom. (A)" value={catalogNumFields.corrente_nominal || ''} onChange={v => setCatalogNumFields(p => ({ ...p, corrente_nominal: v }))} placeholder="22.8" />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tensão CC / MPPT</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <CatalogFieldNum label="Vcc máx. (V)" value={catalogNumFields.vcc_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vcc_max: v }))} placeholder="600" />
-                        <CatalogFieldNum label="Icc máx. (A)" value={catalogNumFields.icc_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, icc_max: v }))} placeholder="18" />
-                        <CatalogFieldNum label="Vpmp máx. (V)" value={catalogNumFields.vpmp_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vpmp_max: v }))} placeholder="500" />
-                        <CatalogFieldNum label="Vpmp mín. (V)" value={catalogNumFields.vpmp_min || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vpmp_min: v }))} placeholder="200" />
-                        <CatalogFieldNum label="Vcc partida (V)" value={catalogNumFields.vcc_partida || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vcc_partida: v }))} placeholder="150" />
                         <div>
                           <Label className="text-xs text-gray-500">Faixa de tensão</Label>
                           <Input value={catalogForm.faixa_tensao || ''} onChange={e => setCatalogForm(p => ({ ...p, faixa_tensao: e.target.value }))} placeholder="200-500" className="mt-1 h-8 text-sm" />
                         </div>
-                        <CatalogFieldNum label="Qtd. MPPT" value={catalogNumFields.quantidade_mppt || ''} onChange={v => setCatalogNumFields(p => ({ ...p, quantidade_mppt: v }))} placeholder="2" />
-                        <CatalogFieldNum label="Entradas/MPPT" value={catalogNumFields.entradas_por_mppt || ''} onChange={v => setCatalogNumFields(p => ({ ...p, entradas_por_mppt: v }))} placeholder="2" />
+                        <CatalogFieldNum label="Corrente nom. (A)" value={catalogNumFields.corrente_nominal || ''} onChange={v => setCatalogNumFields(p => ({ ...p, corrente_nominal: v }))} placeholder="22.8" />
                       </div>
                     </div>
                     <div>
