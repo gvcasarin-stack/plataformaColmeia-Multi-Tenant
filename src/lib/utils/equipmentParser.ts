@@ -14,6 +14,10 @@ export interface ModuloItem {
   largura_m?: string;
   area_unitaria_m2?: string;
   peso_kg?: string;
+  total_strings?: string;
+  strings_modulos?: string;
+  area_m2?: string;
+  is_microinversor?: string;
 }
 
 export interface InversorItem {
@@ -39,6 +43,8 @@ export interface InversorItem {
   fator_potencia?: string;
   rendimento?: string;
   dht_corrente?: string;
+  disjuntor_ca_corrente_a?: string;
+  disjuntor_ca_polos?: string;
 }
 
 function parseNum(val: string | number | undefined): number {
@@ -81,6 +87,10 @@ export function getAllModulos(pd: Record<string, any> | undefined): ModuloItem[]
     largura_m: String(pd.modulos_largura_m || ''),
     area_unitaria_m2: String(pd.modulos_area_unitaria_m2 || ''),
     peso_kg: String(pd.modulos_peso_kg || ''),
+    total_strings: String(pd.modulos_total_strings || ''),
+    strings_modulos: String(pd.modulos_strings_modulos || '[]'),
+    area_m2: String(pd.modulos_area_m2 || ''),
+    is_microinversor: String(pd.modulos_microinversor || 'false'),
   }];
 }
 
@@ -118,6 +128,8 @@ export function getAllInversores(pd: Record<string, any> | undefined): InversorI
     fator_potencia: String(pd.inversores_fator_potencia || ''),
     rendimento: String(pd.inversores_rendimento || ''),
     dht_corrente: String(pd.inversores_dht_corrente || ''),
+    disjuntor_ca_corrente_a: String(pd.disjuntor_ca_corrente_a || ''),
+    disjuntor_ca_polos: String(pd.disjuntor_ca_polos || ''),
   }];
 }
 

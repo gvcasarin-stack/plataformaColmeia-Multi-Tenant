@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   ChevronDown, ChevronRight, Trash2, Loader2, CheckCircle2,
 } from 'lucide-react';
 import type { ModuloItem, InversorItem } from '@/lib/utils/equipmentParser';
@@ -24,6 +27,7 @@ function s2s(v: string | null | undefined): string {
   return v || '';
 }
 
+// Campo texto com sufixo opcional — corrige borda quando não há sufixo
 function Field({
   label, value, onChange, suffix, placeholder,
 }: {
@@ -38,7 +42,7 @@ function Field({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-7 text-xs rounded-r-none border-r-0"
+          className={`h-7 text-xs${suffix ? ' rounded-r-none border-r-0' : ''}`}
         />
         {suffix && (
           <span className="h-7 px-2 flex items-center text-xs bg-gray-50 dark:bg-gray-800 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r text-gray-500">
@@ -49,6 +53,53 @@ function Field({
     </div>
   );
 }
+
+// Campo select compacto
+function SelectField({
+  label, value, onChange, options, placeholder,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  options: { value: string; label: string }[]; placeholder?: string;
+}) {
+  return (
+    <div>
+      <Label className="text-[11px] text-gray-500">{label}</Label>
+      <Select value={value || ''} onValueChange={onChange}>
+        <SelectTrigger className="h-7 text-xs mt-0.5">
+          <SelectValue placeholder={placeholder ?? 'Selecione'} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(o => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+const TENSAO_OPTIONS = [
+  { value: '127', label: '127 V' },
+  { value: '220', label: '220 V' },
+  { value: '380', label: '380 V' },
+  { value: '800', label: '800 V' },
+];
+
+const TIPO_CONEXAO_OPTIONS = [
+  { value: 'F+F+T', label: 'F+F+T' },
+  { value: 'F+N+T', label: 'F+N+T' },
+  { value: '3F+N+T', label: '3F+N+T' },
+];
+
+const DISJUNTOR_CORRENTE_OPTIONS = [
+  10, 16, 20, 25, 30, 32, 40, 50, 60, 63, 70, 80, 100, 125, 150, 175, 200, 250,
+].map(v => ({ value: String(v), label: `${v} A` }));
+
+const DISJUNTOR_POLOS_OPTIONS = [
+  { value: '1', label: '1' },
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+];
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +136,6 @@ export function EquipamentoListItem(props: Props) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize inputs from item
   useEffect(() => {
     setFabricanteInput(props.item.fabricante || '');
     setModeloInput(props.item.modelo || '');
@@ -145,6 +195,11 @@ export function EquipamentoListItem(props: Props) {
         largura_m: n2s(cat.largura_m),
         area_unitaria_m2: n2s(cat.area_unitaria_m2),
         peso_kg: n2s(cat.peso_kg),
+        // Mantém campos de arranjo do item atual
+        total_strings: (props.item as ModuloItem).total_strings || '',
+        strings_modulos: (props.item as ModuloItem).strings_modulos || '[]',
+        area_m2: '',
+        is_microinversor: (props.item as ModuloItem).is_microinversor || 'false',
       };
       (props as EquipamentoListItemModuloProps).onUpdate(updated);
     } else {
@@ -171,6 +226,9 @@ export function EquipamentoListItem(props: Props) {
         fator_potencia: s2s(cat.fator_potencia),
         rendimento: n2s(cat.rendimento),
         dht_corrente: n2s(cat.dht_corrente),
+        // Mantém campos de proteção do item atual
+        disjuntor_ca_corrente_a: (props.item as InversorItem).disjuntor_ca_corrente_a || '',
+        disjuntor_ca_polos: (props.item as InversorItem).disjuntor_ca_polos || '',
       };
       (props as EquipamentoListItemInversorProps).onUpdate(updated);
     }
@@ -190,7 +248,39 @@ export function EquipamentoListItem(props: Props) {
     }
   }
 
-  // Close suggestions when clicking outside
+  // Auto-calcula area_m2 do módulo quando area_unitaria ou quantidade mudam e area_m2 está vazia
+  const modAreaUnitaria = tipo === 'modulo' ? (props.item as ModuloItem).area_unitaria_m2 : undefined;
+  const modQtd = tipo === 'modulo' ? (props.item as ModuloItem).quantidade : undefined;
+  const modAreaM2 = tipo === 'modulo' ? (props.item as ModuloItem).area_m2 : undefined;
+
+  useEffect(() => {
+    if (tipo !== 'modulo') return;
+    const m = props.item as ModuloItem;
+    if (m.area_m2 && parseFloat(String(m.area_m2).replace(',', '.')) > 0) return;
+    const unitArea = parseFloat(String(m.area_unitaria_m2 || '').replace(',', '.'));
+    const qty = parseInt(String(m.quantidade || '1')) || 1;
+    if (isNaN(unitArea) || unitArea <= 0) return;
+    const calc = (unitArea * qty).toFixed(2).replace('.', ',');
+    updateField('area_m2', calc);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modAreaUnitaria, modQtd]);
+
+  // Auto-calcula disjuntor_ca_corrente_a a partir de corrente_nominal quando vazio
+  const invCorrNominal = tipo === 'inversor' ? (props.item as InversorItem).corrente_nominal : undefined;
+
+  useEffect(() => {
+    if (tipo !== 'inversor') return;
+    const inv = props.item as InversorItem;
+    if (inv.disjuntor_ca_corrente_a) return;
+    const corr = parseFloat(String(inv.corrente_nominal || '').replace(',', '.'));
+    if (isNaN(corr) || corr <= 0) return;
+    const calc = corr * 1.25;
+    const vals = [10, 16, 20, 25, 30, 32, 40, 50, 60, 63, 70, 80, 100, 125, 150, 175, 200, 250];
+    const nearest = [...vals].reverse().find(v => v <= calc);
+    if (nearest !== undefined) updateField('disjuntor_ca_corrente_a', String(nearest));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invCorrNominal]);
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -214,6 +304,11 @@ export function EquipamentoListItem(props: Props) {
   const isFilled = tipo === 'modulo'
     ? !!(m.fabricante && m.modelo && m.potencia_wp)
     : !!(inv.fabricante && inv.modelo && inv.potencia);
+
+  // Strings por módulo (módulo)
+  const totalStrings = parseInt(String(m.total_strings || '0')) || 0;
+  let stringsModulos: string[] = [];
+  try { stringsModulos = JSON.parse(m.strings_modulos || '[]'); } catch { stringsModulos = []; }
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -291,20 +386,25 @@ export function EquipamentoListItem(props: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Field
-                label={tipo === 'modulo' ? 'Potência (Wp) *' : 'Potência nominal (kW) *'}
-                value={tipo === 'modulo' ? (m.potencia_wp || '') : (inv.potencia || '')}
-                onChange={v => updateField(tipo === 'modulo' ? 'potencia_wp' : 'potencia', v)}
-                suffix={tipo === 'modulo' ? 'Wp' : 'kW'}
-                placeholder={tipo === 'modulo' ? '650' : '5,0'}
-              />
-              <Field
-                label="Quantidade"
-                value={props.item.quantidade || '1'}
-                onChange={v => updateField('quantidade', v)}
-                placeholder="1"
-              />
+            {/* Potência + Quantidade compacta */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Field
+                  label={tipo === 'modulo' ? 'Potência (Wp) *' : 'Potência nominal (kW) *'}
+                  value={tipo === 'modulo' ? (m.potencia_wp || '') : (inv.potencia || '')}
+                  onChange={v => updateField(tipo === 'modulo' ? 'potencia_wp' : 'potencia', v)}
+                  suffix={tipo === 'modulo' ? 'Wp' : 'kW'}
+                  placeholder={tipo === 'modulo' ? '650' : '5,0'}
+                />
+              </div>
+              <div className="w-24">
+                <Field
+                  label="Quantidade"
+                  value={props.item.quantidade || '1'}
+                  onChange={v => updateField('quantidade', v)}
+                  placeholder="1"
+                />
+              </div>
             </div>
           </div>
 
@@ -330,6 +430,89 @@ export function EquipamentoListItem(props: Props) {
                   <Field label="Peso (kg)" value={m.peso_kg || ''} onChange={v => updateField('peso_kg', v)} suffix="kg" placeholder="32,0" />
                 </div>
               </div>
+
+              {/* Arranjo / Strings */}
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Arranjo / Strings</p>
+                <div className="space-y-2">
+                  {/* Microinversor */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`micro-${index}`}
+                      checked={m.is_microinversor === 'true'}
+                      onChange={e => {
+                        const isMicro = e.target.checked;
+                        updateField('is_microinversor', isMicro ? 'true' : 'false');
+                        if (isMicro) {
+                          updateField('total_strings', '');
+                          updateField('strings_modulos', '[]');
+                        }
+                      }}
+                      className="h-3 w-3 cursor-pointer"
+                    />
+                    <label htmlFor={`micro-${index}`} className="text-[11px] text-gray-500 cursor-pointer">
+                      Microinversor (sem strings)
+                    </label>
+                  </div>
+
+                  {m.is_microinversor !== 'true' && (
+                    <>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Field
+                            label="Total de Strings"
+                            value={m.total_strings || ''}
+                            onChange={v => {
+                              updateField('total_strings', v);
+                              const n = parseInt(v) || 0;
+                              const arr = Array.from({ length: n }, (_, i) => stringsModulos[i] || '');
+                              updateField('strings_modulos', JSON.stringify(arr));
+                            }}
+                            placeholder="Nº de strings"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <Field
+                            label="Área do Arranjo (m²)"
+                            value={m.area_m2 || ''}
+                            onChange={v => updateField('area_m2', v)}
+                            suffix="m²"
+                            placeholder="auto"
+                          />
+                        </div>
+                      </div>
+
+                      {totalStrings > 0 && (
+                        <div className="space-y-1 pl-2 border-l-2 border-blue-200 dark:border-blue-800">
+                          {Array.from({ length: totalStrings }, (_, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <Label className="text-[10px] text-gray-500 whitespace-nowrap w-32">String {i + 1} — Módulos</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={stringsModulos[i] || ''}
+                                onChange={e => {
+                                  const arr = [...stringsModulos];
+                                  while (arr.length < totalStrings) arr.push('');
+                                  arr[i] = e.target.value;
+                                  updateField('strings_modulos', JSON.stringify(arr));
+                                }}
+                                placeholder="Qtd."
+                                className="h-7 text-xs"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {m.is_microinversor === 'true' && (
+                    <p className="text-[11px] text-blue-500 italic">Microinversor — strings não se aplicam.</p>
+                  )}
+                </div>
+              </div>
             </>
           )}
 
@@ -340,11 +523,23 @@ export function EquipamentoListItem(props: Props) {
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Potência / Tensão CA</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="Pot. máx. saída (kW)" value={inv.potencia_max_saida || ''} onChange={v => updateField('potencia_max_saida', v)} suffix="kW" />
-                  <Field label="Tensão nom. CA (V)" value={inv.tensao || ''} onChange={v => updateField('tensao', v)} suffix="V" placeholder="220" />
+                  <SelectField
+                    label="Tensão nom. CA (V) *"
+                    value={inv.tensao || ''}
+                    onChange={v => updateField('tensao', v)}
+                    options={TENSAO_OPTIONS}
+                    placeholder="Selecione"
+                  />
                   <Field label="Tensão máx. CA (V)" value={inv.tensao_max_ca || ''} onChange={v => updateField('tensao_max_ca', v)} suffix="V" placeholder="253" />
                   <Field label="Tensão mín. CA (V)" value={inv.tensao_min_ca || ''} onChange={v => updateField('tensao_min_ca', v)} suffix="V" placeholder="180" />
                   <Field label="Corrente nom. (A)" value={inv.corrente_nominal || ''} onChange={v => updateField('corrente_nominal', v)} suffix="A" placeholder="22,8" />
-                  <Field label="Tipo de conexão" value={inv.tipo_conexao_saida || ''} onChange={v => updateField('tipo_conexao_saida', v)} placeholder="Monofásico" />
+                  <SelectField
+                    label="Tipo de conexão *"
+                    value={inv.tipo_conexao_saida || ''}
+                    onChange={v => updateField('tipo_conexao_saida', v)}
+                    options={TIPO_CONEXAO_OPTIONS}
+                    placeholder="Selecione"
+                  />
                 </div>
               </div>
               <div>
@@ -358,6 +553,25 @@ export function EquipamentoListItem(props: Props) {
                   <Field label="Faixa de tensão" value={inv.faixa_tensao || ''} onChange={v => updateField('faixa_tensao', v)} placeholder="200-500" />
                   <Field label="Qtd. MPPT" value={inv.quantidade_mppt || ''} onChange={v => updateField('quantidade_mppt', v)} placeholder="2" />
                   <Field label="Entradas/MPPT" value={inv.entradas_por_mppt || ''} onChange={v => updateField('entradas_por_mppt', v)} placeholder="2" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Proteção CA</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <SelectField
+                    label="Disjuntor CA — Corrente (A) *"
+                    value={inv.disjuntor_ca_corrente_a || ''}
+                    onChange={v => updateField('disjuntor_ca_corrente_a', v)}
+                    options={DISJUNTOR_CORRENTE_OPTIONS}
+                    placeholder="Auto"
+                  />
+                  <SelectField
+                    label="Disjuntor CA — Nº de Polos"
+                    value={inv.disjuntor_ca_polos || ''}
+                    onChange={v => updateField('disjuntor_ca_polos', v)}
+                    options={DISJUNTOR_POLOS_OPTIONS}
+                    placeholder="Polos"
+                  />
                 </div>
               </div>
               <div>

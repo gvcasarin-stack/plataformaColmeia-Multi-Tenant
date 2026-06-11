@@ -27,6 +27,7 @@ const EMPTY_MODULO: ModuloItem = {
   fabricante: '', modelo: '', potencia_wp: '', quantidade: '1',
   voc: '', isc: '', vpmp: '', ipmp: '',
   eficiencia: '', comprimento_m: '', largura_m: '', area_unitaria_m2: '', peso_kg: '',
+  total_strings: '', strings_modulos: '[]', area_m2: '', is_microinversor: 'false',
 };
 
 const EMPTY_INVERSOR: InversorItem = {
@@ -35,6 +36,7 @@ const EMPTY_INVERSOR: InversorItem = {
   faixa_tensao: '', vcc_max: '', icc_max: '', vpmp_max: '', vpmp_min: '',
   vcc_partida: '', corrente_nominal: '', quantidade_mppt: '', entradas_por_mppt: '',
   tipo_conexao_saida: '', fator_potencia: '', rendimento: '', dht_corrente: '',
+  disjuntor_ca_corrente_a: '', disjuntor_ca_polos: '',
 };
 
 export function EquipamentoListEditor(props: Props) {

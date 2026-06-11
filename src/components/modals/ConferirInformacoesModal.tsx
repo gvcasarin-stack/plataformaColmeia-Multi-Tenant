@@ -311,6 +311,7 @@ const MODULOS_MANAGED_FIELDS = new Set([
   'modulos_voc', 'modulos_isc', 'modulos_vpmp', 'modulos_ipmp',
   'modulos_eficiencia', 'modulos_comprimento_m', 'modulos_largura_m',
   'modulos_area_unitaria_m2', 'modulos_peso_kg',
+  'modulos_quantidade', 'modulos_total_strings', 'modulos_area_m2',
 ]);
 const INVERSORES_MANAGED_FIELDS = new Set([
   'inversores_fabricante', 'inversores_modelo', 'inversores_potencia',
@@ -318,6 +319,9 @@ const INVERSORES_MANAGED_FIELDS = new Set([
   'inversores_vpmp_max', 'inversores_vpmp_min', 'inversores_vcc_partida',
   'inversores_corrente_nominal', 'inversores_quantidade_mppt', 'inversores_entradas_por_mppt',
   'inversores_fator_potencia', 'inversores_rendimento', 'inversores_dht_corrente',
+  'inversores_quantidade', 'inversores_tensao', 'inversores_tensao_max_ca',
+  'inversores_tensao_min_ca', 'inversores_faixa_tensao', 'inversores_tipo_conexao_saida',
+  'disjuntor_ca_corrente_a', 'disjuntor_ca_polos',
 ]);
 
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
@@ -599,6 +603,10 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       modulos_largura_m: first.largura_m || '',
       modulos_area_unitaria_m2: first.area_unitaria_m2 || '',
       modulos_peso_kg: first.peso_kg || '',
+      modulos_total_strings: first.total_strings || '',
+      modulos_strings_modulos: first.strings_modulos || '[]',
+      modulos_microinversor: first.is_microinversor || 'false',
+      modulos_area_m2: first.area_m2 || '',
     };
   }
 
@@ -624,8 +632,34 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       inversores_fator_potencia: first.fator_potencia || '',
       inversores_rendimento: first.rendimento || '',
       inversores_dht_corrente: first.dht_corrente || '',
+      inversores_tensao: first.tensao || '',
+      inversores_tensao_max_ca: first.tensao_max_ca || '',
+      inversores_tensao_min_ca: first.tensao_min_ca || '',
+      inversores_faixa_tensao: first.faixa_tensao || '',
+      inversores_tipo_conexao_saida: first.tipo_conexao_saida || '',
+      disjuntor_ca_corrente_a: first.disjuntor_ca_corrente_a || '',
+      disjuntor_ca_polos: first.disjuntor_ca_polos || '',
     };
   }
+
+  // Mantém localFields em sincronia com as listas para o contador de progresso
+  useEffect(() => {
+    if (!open) return;
+    const synced = syncModulosOldFields(modulosList);
+    if (Object.keys(synced).length > 0) {
+      setLocalFields(prev => ({ ...prev, ...synced }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modulosList]);
+
+  useEffect(() => {
+    if (!open) return;
+    const synced = syncInversoresOldFields(inversoresList);
+    if (Object.keys(synced).length > 0) {
+      setLocalFields(prev => ({ ...prev, ...synced }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inversoresList]);
 
   const handleSave = async () => {
     setIsSaving(true);

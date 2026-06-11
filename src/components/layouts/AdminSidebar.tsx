@@ -220,13 +220,6 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         color: "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50",
         visible: isFullAdmin
       },
-      {
-        href: "/admin/catalogo-equipamentos",
-        label: "Catálogo de Equipamentos",
-        icon: LucideIcons.BookOpen,
-        color: "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50",
-        visible: isFullAdmin
-      },
     ];
 
     // ✅ Filtrar apenas links visíveis

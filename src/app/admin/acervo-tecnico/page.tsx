@@ -27,6 +27,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import type { EquipmentCatalogItem } from '@/lib/services/equipmentCatalogService';
+import {
   FolderArchive,
   Plus,
   Trash2,
@@ -121,7 +129,7 @@ function ModeloTagInput({
   );
 }
 
-type ActiveTab = 'distribuidoras' | 'inversores' | 'modulos';
+type ActiveTab = 'distribuidoras' | 'inversores' | 'modulos' | 'catalogo';
 
 interface AcervoItem {
   id: string;
@@ -150,6 +158,58 @@ interface EquipamentoItem {
   inmetro_modelos: string[];
   created_at: string;
   created_by_user_id?: string | null;
+}
+
+// ── Catálogo de Equipamentos helpers ─────────────────────────────────────────
+
+type CatalogFormData = Partial<Omit<EquipmentCatalogItem, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>>;
+
+const CATALOG_EMPTY_FORM: CatalogFormData = {
+  tipo: 'modulo', fabricante: '', modelo: '',
+  potencia_wp: undefined, voc: undefined, isc: undefined, vpmp: undefined, ipmp: undefined,
+  eficiencia: undefined, comprimento_m: undefined, largura_m: undefined,
+  area_unitaria_m2: undefined, peso_kg: undefined,
+  potencia_kw: undefined, tensao: '', vcc_max: undefined, icc_max: undefined,
+  vpmp_max: undefined, vpmp_min: undefined, vcc_partida: undefined, faixa_tensao: '',
+  corrente_nominal: undefined, fator_potencia: '', rendimento: undefined,
+  dht_corrente: undefined, entradas_por_mppt: undefined, quantidade_mppt: undefined,
+  potencia_max_saida: undefined, tensao_max_ca: undefined, tensao_min_ca: undefined,
+  tipo_conexao_saida: '',
+};
+
+const CATALOG_NUM_KEYS_MODULO = [
+  'potencia_wp', 'voc', 'isc', 'vpmp', 'ipmp', 'eficiencia',
+  'comprimento_m', 'largura_m', 'area_unitaria_m2', 'peso_kg',
+] as const;
+
+const CATALOG_NUM_KEYS_INVERSOR = [
+  'potencia_kw', 'vcc_max', 'icc_max', 'vpmp_max', 'vpmp_min', 'vcc_partida',
+  'corrente_nominal', 'rendimento', 'dht_corrente',
+  'entradas_por_mppt', 'quantidade_mppt', 'potencia_max_saida',
+  'tensao_max_ca', 'tensao_min_ca',
+] as const;
+
+function catalogNumField(val: number | null | undefined): string {
+  if (val === null || val === undefined) return '';
+  return String(val);
+}
+
+function parseCatalogNum(val: string): number | null {
+  if (!val) return null;
+  const n = parseFloat(val.replace(',', '.'));
+  return isNaN(n) ? null : n;
+}
+
+function CatalogFieldNum({
+  label, value, onChange, placeholder,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <Label className="text-xs text-gray-500">{label}</Label>
+      <Input value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder ?? ''} className="mt-1 h-8 text-sm" />
+    </div>
+  );
 }
 
 export default function AcervoTecnicoPage() {
@@ -225,6 +285,18 @@ export default function AcervoTecnicoPage() {
   const [dragEditInmetro, setDragEditInmetro] = useState(false);
   const editEquipDatasheetRef = useRef<HTMLInputElement>(null);
   const editEquipInmetroRef = useRef<HTMLInputElement>(null);
+
+  // ── Catálogo state ──
+  const [catalogItems, setCatalogItems] = useState<EquipmentCatalogItem[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogTipo, setCatalogTipo] = useState<'modulo' | 'inversor'>('modulo');
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
+  const [catalogEditingItem, setCatalogEditingItem] = useState<EquipmentCatalogItem | null>(null);
+  const [savingCatalog, setSavingCatalog] = useState(false);
+  const [catalogDeleteTarget, setCatalogDeleteTarget] = useState<EquipmentCatalogItem | null>(null);
+  const [catalogForm, setCatalogForm] = useState<CatalogFormData>({ ...CATALOG_EMPTY_FORM, tipo: 'modulo' });
+  const [catalogNumFields, setCatalogNumFields] = useState<Record<string, string>>({});
 
   const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
   const isAdmin = isSuperAdmin || user?.role === 'admin' || user?.profile?.role === 'admin';
@@ -650,6 +722,119 @@ export default function AcervoTecnicoPage() {
     setEquipInmetroModeloInput('');
   };
 
+  // ── Catálogo fetch ──
+  const fetchCatalogItems = useCallback(async () => {
+    setLoadingCatalog(true);
+    try {
+      const params = new URLSearchParams({ tipo: catalogTipo });
+      if (catalogSearch.trim()) params.set('q', catalogSearch.trim());
+      const resp = await fetch(`/api/admin/equipment-catalog?${params}`);
+      const result = await resp.json();
+      if (!result.success) throw new Error(result.error);
+      setCatalogItems(result.data || []);
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message || 'Falha ao carregar catálogo.', variant: 'destructive' });
+    } finally {
+      setLoadingCatalog(false);
+    }
+  }, [catalogTipo, catalogSearch]);
+
+  useEffect(() => {
+    if (activeTab === 'catalogo') fetchCatalogItems();
+  }, [activeTab, catalogTipo, catalogSearch, fetchCatalogItems]);
+
+  function openCatalogNew() {
+    setCatalogEditingItem(null);
+    setCatalogForm({ ...CATALOG_EMPTY_FORM, tipo: catalogTipo });
+    setCatalogNumFields({});
+    setCatalogModalOpen(true);
+  }
+
+  function openCatalogEdit(item: EquipmentCatalogItem) {
+    setCatalogEditingItem(item);
+    setCatalogForm({
+      tipo: item.tipo,
+      fabricante: item.fabricante,
+      modelo: item.modelo,
+      tensao: item.tensao || '',
+      faixa_tensao: item.faixa_tensao || '',
+      fator_potencia: item.fator_potencia || '',
+      tipo_conexao_saida: item.tipo_conexao_saida || '',
+    });
+    const nums: Record<string, string> = {};
+    for (const key of [...CATALOG_NUM_KEYS_MODULO, ...CATALOG_NUM_KEYS_INVERSOR]) {
+      nums[key] = catalogNumField((item as any)[key]);
+    }
+    setCatalogNumFields(nums);
+    setCatalogModalOpen(true);
+  }
+
+  function buildCatalogPayload() {
+    const payload: any = {
+      tipo: catalogTipo,
+      fabricante: (catalogForm.fabricante || '').trim(),
+      modelo: (catalogForm.modelo || '').trim(),
+    };
+    if (catalogTipo === 'inversor') {
+      payload.tensao = catalogForm.tensao || null;
+      payload.faixa_tensao = catalogForm.faixa_tensao || null;
+      payload.fator_potencia = catalogForm.fator_potencia || null;
+      payload.tipo_conexao_saida = catalogForm.tipo_conexao_saida || null;
+    }
+    const numKeys = catalogTipo === 'modulo' ? CATALOG_NUM_KEYS_MODULO : CATALOG_NUM_KEYS_INVERSOR;
+    for (const key of numKeys) {
+      payload[key] = parseCatalogNum(catalogNumFields[key] || '');
+    }
+    return payload;
+  }
+
+  async function handleSaveCatalog() {
+    const payload = buildCatalogPayload();
+    if (!payload.fabricante || !payload.modelo) {
+      toast({ title: 'Preencha os campos obrigatórios', description: 'Fabricante e modelo são obrigatórios.', variant: 'destructive' });
+      return;
+    }
+    const potKey = catalogTipo === 'modulo' ? 'potencia_wp' : 'potencia_kw';
+    if (!payload[potKey]) {
+      toast({ title: 'Preencha os campos obrigatórios', description: 'Potência é obrigatória.', variant: 'destructive' });
+      return;
+    }
+    setSavingCatalog(true);
+    try {
+      const url = catalogEditingItem
+        ? `/api/admin/equipment-catalog/${catalogEditingItem.id}`
+        : '/api/admin/equipment-catalog';
+      const resp = await fetch(url, {
+        method: catalogEditingItem ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await resp.json();
+      if (!result.success) throw new Error(result.error);
+      toast({ title: catalogEditingItem ? 'Equipamento atualizado' : 'Equipamento cadastrado' });
+      setCatalogModalOpen(false);
+      fetchCatalogItems();
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingCatalog(false);
+    }
+  }
+
+  async function handleDeleteCatalog() {
+    if (!catalogDeleteTarget) return;
+    try {
+      const resp = await fetch(`/api/admin/equipment-catalog/${catalogDeleteTarget.id}`, { method: 'DELETE' });
+      const result = await resp.json();
+      if (!result.success) throw new Error(result.error);
+      toast({ title: 'Equipamento excluído' });
+      setCatalogDeleteTarget(null);
+      fetchCatalogItems();
+    } catch (err: any) {
+      toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' });
+    }
+  }
+
   const categoriaLabel = (cat: string) => CATEGORIAS.find(c => c.value === cat)?.label || cat;
 
   const filteredItems = selectedCategoria
@@ -752,6 +937,7 @@ export default function AcervoTecnicoPage() {
           ...(isSuperAdmin ? [{ key: 'distribuidoras' as const, label: 'Distribuidoras', icon: FolderArchive }] : []),
           { key: 'inversores' as const, label: 'Inversores', icon: Zap },
           { key: 'modulos' as const, label: 'Módulos', icon: LayoutGrid },
+          { key: 'catalogo' as const, label: 'Catálogo', icon: Search },
         ]).map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -1350,6 +1536,255 @@ export default function AcervoTecnicoPage() {
         </>
       )}
 
+      {/* ── Tab: Catálogo de Equipamentos ── */}
+      {activeTab === 'catalogo' && (
+        <>
+          {/* Sub-tabs módulo / inversor */}
+          <div className="flex gap-1 border-b border-gray-100 dark:border-gray-800">
+            {([
+              { key: 'modulo' as const, label: 'Módulos Fotovoltaicos', icon: LayoutGrid },
+              { key: 'inversor' as const, label: 'Inversores', icon: Zap },
+            ]).map(({ key, label, icon: Icon }) => (
+              <button key={key} onClick={() => { setCatalogTipo(key); setCatalogSearch(''); }}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  catalogTipo === key
+                    ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                }`}>
+                <Icon className="h-4 w-4" />{label}
+              </button>
+            ))}
+          </div>
+
+          {/* Busca + botão */}
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px] max-w-sm">
+              <Label className="text-sm font-medium mb-1 block">Buscar por fabricante ou modelo</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input value={catalogSearch} onChange={e => setCatalogSearch(e.target.value)}
+                  placeholder={catalogTipo === 'modulo' ? 'Ex: JA Solar, Canadian, BYD...' : 'Ex: Fronius, Deye, SMA...'}
+                  className="pl-9" />
+              </div>
+            </div>
+            <Button onClick={openCatalogNew} className="bg-emerald-600 hover:bg-emerald-700 text-white" size="sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Novo {catalogTipo === 'modulo' ? 'módulo' : 'inversor'}
+            </Button>
+          </div>
+
+          {/* Tabela */}
+          {loadingCatalog ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+              <span className="ml-2 text-gray-500">Carregando...</span>
+            </div>
+          ) : catalogItems.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-16 text-center">
+                {catalogTipo === 'modulo'
+                  ? <LayoutGrid className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+                  : <Zap className="h-10 w-10 mx-auto text-gray-300 mb-3" />}
+                <p className="text-gray-500">Nenhum {catalogTipo === 'modulo' ? 'módulo' : 'inversor'} cadastrado.</p>
+                <p className="text-sm text-gray-400 mt-1">Clique em &quot;Novo&quot; para adicionar o primeiro.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Fabricante</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Modelo</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">
+                      {catalogTipo === 'modulo' ? 'Potência (Wp)' : 'Potência (kW)'}
+                    </th>
+                    {catalogTipo === 'modulo' && (
+                      <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Eficiência (%)</th>
+                    )}
+                    {catalogTipo === 'inversor' && (
+                      <>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Tensão</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Conexão</th>
+                      </>
+                    )}
+                    <th className="text-right px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {catalogItems.map(item => (
+                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{item.fabricante}</td>
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.modelo}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        {catalogTipo === 'modulo'
+                          ? (item.potencia_wp != null ? item.potencia_wp : '—')
+                          : (item.potencia_kw != null ? item.potencia_kw : '—')}
+                      </td>
+                      {catalogTipo === 'modulo' && (
+                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                          {item.eficiencia != null ? `${item.eficiencia}%` : '—'}
+                        </td>
+                      )}
+                      {catalogTipo === 'inversor' && (
+                        <>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{item.tensao || '—'}</td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                            {item.tipo_conexao_saida
+                              ? <Badge variant="outline" className="text-xs">{item.tipo_conexao_saida}</Badge>
+                              : '—'}
+                          </td>
+                        </>
+                      )}
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button variant="ghost" size="sm" onClick={() => openCatalogEdit(item)} className="h-7 w-7 p-0">
+                            <Edit className="h-3.5 w-3.5 text-blue-500" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setCatalogDeleteTarget(item)} className="h-7 w-7 p-0">
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Modal cadastro/edição */}
+          <Dialog open={catalogModalOpen} onOpenChange={setCatalogModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {catalogTipo === 'modulo'
+                    ? <LayoutGrid className="h-5 w-5 text-emerald-600" />
+                    : <Zap className="h-5 w-5 text-blue-600" />}
+                  {catalogEditingItem
+                    ? `Editar ${catalogTipo === 'modulo' ? 'módulo' : 'inversor'}`
+                    : `Novo ${catalogTipo === 'modulo' ? 'módulo' : 'inversor'}`}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5 py-2">
+                {/* Identificação */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Identificação</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm">Fabricante *</Label>
+                      <Input value={catalogForm.fabricante || ''} onChange={e => setCatalogForm(p => ({ ...p, fabricante: e.target.value }))}
+                        placeholder="Ex: JA Solar" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Modelo *</Label>
+                      <Input value={catalogForm.modelo || ''} onChange={e => setCatalogForm(p => ({ ...p, modelo: e.target.value }))}
+                        placeholder={catalogTipo === 'modulo' ? 'Ex: JAM72S30-545/MR' : 'Ex: Primo 5.0-1'} className="mt-1" />
+                    </div>
+                  </div>
+                </div>
+                {catalogTipo === 'modulo' ? (
+                  <>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Potência</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <CatalogFieldNum label="Potência (Wp) *" value={catalogNumFields.potencia_wp || ''} onChange={v => setCatalogNumFields(p => ({ ...p, potencia_wp: v }))} placeholder="650" />
+                        <CatalogFieldNum label="Eficiência (%)" value={catalogNumFields.eficiencia || ''} onChange={v => setCatalogNumFields(p => ({ ...p, eficiencia: v }))} placeholder="20.1" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Parâmetros Elétricos</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <CatalogFieldNum label="Voc (V)" value={catalogNumFields.voc || ''} onChange={v => setCatalogNumFields(p => ({ ...p, voc: v }))} placeholder="49.2" />
+                        <CatalogFieldNum label="Isc (A)" value={catalogNumFields.isc || ''} onChange={v => setCatalogNumFields(p => ({ ...p, isc: v }))} placeholder="13.97" />
+                        <CatalogFieldNum label="Vpmp (V)" value={catalogNumFields.vpmp || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vpmp: v }))} placeholder="41.4" />
+                        <CatalogFieldNum label="Ipmp (A)" value={catalogNumFields.ipmp || ''} onChange={v => setCatalogNumFields(p => ({ ...p, ipmp: v }))} placeholder="13.38" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Parâmetros Físicos</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <CatalogFieldNum label="Comprimento (m)" value={catalogNumFields.comprimento_m || ''} onChange={v => setCatalogNumFields(p => ({ ...p, comprimento_m: v }))} placeholder="2.278" />
+                        <CatalogFieldNum label="Largura (m)" value={catalogNumFields.largura_m || ''} onChange={v => setCatalogNumFields(p => ({ ...p, largura_m: v }))} placeholder="1.134" />
+                        <CatalogFieldNum label="Área unit. (m²)" value={catalogNumFields.area_unitaria_m2 || ''} onChange={v => setCatalogNumFields(p => ({ ...p, area_unitaria_m2: v }))} placeholder="2.583" />
+                        <CatalogFieldNum label="Peso (kg)" value={catalogNumFields.peso_kg || ''} onChange={v => setCatalogNumFields(p => ({ ...p, peso_kg: v }))} placeholder="32.0" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Potência</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <CatalogFieldNum label="Potência nom. (kW) *" value={catalogNumFields.potencia_kw || ''} onChange={v => setCatalogNumFields(p => ({ ...p, potencia_kw: v }))} placeholder="5.0" />
+                        <CatalogFieldNum label="Potência máx. saída (kW)" value={catalogNumFields.potencia_max_saida || ''} onChange={v => setCatalogNumFields(p => ({ ...p, potencia_max_saida: v }))} placeholder="5.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tensão CA</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                          <Label className="text-xs text-gray-500">Tensão (V)</Label>
+                          <Input value={catalogForm.tensao || ''} onChange={e => setCatalogForm(p => ({ ...p, tensao: e.target.value }))} placeholder="220" className="mt-1 h-8 text-sm" />
+                        </div>
+                        <CatalogFieldNum label="Tensão máx. CA (V)" value={catalogNumFields.tensao_max_ca || ''} onChange={v => setCatalogNumFields(p => ({ ...p, tensao_max_ca: v }))} placeholder="253" />
+                        <CatalogFieldNum label="Tensão mín. CA (V)" value={catalogNumFields.tensao_min_ca || ''} onChange={v => setCatalogNumFields(p => ({ ...p, tensao_min_ca: v }))} placeholder="180" />
+                        <CatalogFieldNum label="Corrente nom. (A)" value={catalogNumFields.corrente_nominal || ''} onChange={v => setCatalogNumFields(p => ({ ...p, corrente_nominal: v }))} placeholder="22.8" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Tensão CC / MPPT</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <CatalogFieldNum label="Vcc máx. (V)" value={catalogNumFields.vcc_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vcc_max: v }))} placeholder="600" />
+                        <CatalogFieldNum label="Icc máx. (A)" value={catalogNumFields.icc_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, icc_max: v }))} placeholder="18" />
+                        <CatalogFieldNum label="Vpmp máx. (V)" value={catalogNumFields.vpmp_max || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vpmp_max: v }))} placeholder="500" />
+                        <CatalogFieldNum label="Vpmp mín. (V)" value={catalogNumFields.vpmp_min || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vpmp_min: v }))} placeholder="200" />
+                        <CatalogFieldNum label="Vcc partida (V)" value={catalogNumFields.vcc_partida || ''} onChange={v => setCatalogNumFields(p => ({ ...p, vcc_partida: v }))} placeholder="150" />
+                        <div>
+                          <Label className="text-xs text-gray-500">Faixa de tensão</Label>
+                          <Input value={catalogForm.faixa_tensao || ''} onChange={e => setCatalogForm(p => ({ ...p, faixa_tensao: e.target.value }))} placeholder="200-500" className="mt-1 h-8 text-sm" />
+                        </div>
+                        <CatalogFieldNum label="Qtd. MPPT" value={catalogNumFields.quantidade_mppt || ''} onChange={v => setCatalogNumFields(p => ({ ...p, quantidade_mppt: v }))} placeholder="2" />
+                        <CatalogFieldNum label="Entradas/MPPT" value={catalogNumFields.entradas_por_mppt || ''} onChange={v => setCatalogNumFields(p => ({ ...p, entradas_por_mppt: v }))} placeholder="2" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Qualidade</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <CatalogFieldNum label="Rendimento (%)" value={catalogNumFields.rendimento || ''} onChange={v => setCatalogNumFields(p => ({ ...p, rendimento: v }))} placeholder="98" />
+                        <CatalogFieldNum label="DHT Corrente (%)" value={catalogNumFields.dht_corrente || ''} onChange={v => setCatalogNumFields(p => ({ ...p, dht_corrente: v }))} placeholder="3" />
+                        <div>
+                          <Label className="text-xs text-gray-500">Fator de potência</Label>
+                          <Input value={catalogForm.fator_potencia || ''} onChange={e => setCatalogForm(p => ({ ...p, fator_potencia: e.target.value }))} placeholder="1" className="mt-1 h-8 text-sm" />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Tipo de conexão</Label>
+                          <Select value={catalogForm.tipo_conexao_saida || ''} onValueChange={v => setCatalogForm(p => ({ ...p, tipo_conexao_saida: v }))}>
+                            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Monofásico">Monofásico</SelectItem>
+                              <SelectItem value="Bifásico">Bifásico</SelectItem>
+                              <SelectItem value="Trifásico">Trifásico</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCatalogModalOpen(false)} disabled={savingCatalog}>Cancelar</Button>
+                <Button onClick={handleSaveCatalog} disabled={savingCatalog} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  {savingCatalog && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {catalogEditingItem ? 'Salvar alterações' : 'Cadastrar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
+
       {/* Delete dialog — Distribuidoras */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
@@ -1378,6 +1813,22 @@ export default function AcervoTecnicoPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteEquip} className="bg-red-600 hover:bg-red-700 text-white">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete dialog — Catálogo */}
+      <AlertDialog open={!!catalogDeleteTarget} onOpenChange={(open) => { if (!open) setCatalogDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir &quot;{catalogDeleteTarget?.fabricante} {catalogDeleteTarget?.modelo}&quot;? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCatalog} className="bg-red-600 hover:bg-red-700 text-white">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
