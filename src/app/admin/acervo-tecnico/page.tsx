@@ -1758,7 +1758,7 @@ export default function AcervoTecnicoPage() {
                           <Input value={catalogForm.fator_potencia || ''} onChange={e => setCatalogForm(p => ({ ...p, fator_potencia: e.target.value }))} placeholder="1" className="mt-1 h-8 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-500">Tipo de conexão</Label>
+                          <Label className="text-xs text-gray-500">Conexão de rede CA</Label>
                           <Select value={catalogForm.tipo_conexao_saida || ''} onValueChange={v => setCatalogForm(p => ({ ...p, tipo_conexao_saida: v }))}>
                             <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
                             <SelectContent>

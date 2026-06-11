@@ -33,7 +33,8 @@ import {
   Info,          // ℹ️ Para mensagens informativas
   FileText,      // 📄 Para gerar procuração
   FileOutput,    // 📄 Para aba Gerar Projeto
-  ClipboardCheck // ✅ Para conferir informações do projeto
+  ClipboardCheck, // ✅ Para conferir informações do projeto
+  CheckCircle2,  // ✅ Para indicar setup concluído
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -69,6 +70,8 @@ import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioS
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
+import { SetupProjetoModal, SETUP_DEFAULTS } from '@/components/modals/SetupProjetoModal'
+import type { SetupProjetoData } from '@/components/modals/SetupProjetoModal'
 import { getConfiguracaoGeral } from '@/lib/services/configService.supabase'
 
 // Import custom icon components
@@ -464,6 +467,7 @@ export const ExpandedProjectView = ({
   const [showProcuracaoModal, setShowProcuracaoModal] = useState(false);
   const [selectedDistribuidoraGerarProjeto, setSelectedDistribuidoraGerarProjeto] = useState(project.distribuidora || '');
   const [showConferirModal, setShowConferirModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
   const [activeTemplatePreview, setActiveTemplatePreview] = useState<string | null>(null);
   const [gerarProjetoFields, setGerarProjetoFields] = useState({
     nomeClienteFinal: project.nomeClienteFinal || project.nome_cliente_final || '',
@@ -579,6 +583,15 @@ export const ExpandedProjectView = ({
     cabo_ca_capacidade_corrente_a: (project as any).cabo_ca_capacidade_corrente_a || '',
     cabo_ca_fator_temperatura: (project as any).cabo_ca_fator_temperatura || '',
     cabo_ca_fator_agrupamento: (project as any).cabo_ca_fator_agrupamento || '',
+    // Setup do Projeto
+    setup_padrao_entrada: (project as any).setup_padrao_entrada || SETUP_DEFAULTS.setup_padrao_entrada,
+    setup_quadro_cc: (project as any).setup_quadro_cc || SETUP_DEFAULTS.setup_quadro_cc,
+    setup_mais_de_um_inversor: (project as any).setup_mais_de_um_inversor || SETUP_DEFAULTS.setup_mais_de_um_inversor,
+    setup_tipo_inversor: (project as any).setup_tipo_inversor || SETUP_DEFAULTS.setup_tipo_inversor,
+    setup_configuracao_saidas: (project as any).setup_configuracao_saidas || SETUP_DEFAULTS.setup_configuracao_saidas,
+    setup_tipo_transformador: (project as any).setup_tipo_transformador || '',
+    setup_potencia_transformador: (project as any).setup_potencia_transformador || '',
+    setup_concluido: (project as any).setup_concluido || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
@@ -1436,6 +1449,20 @@ export const ExpandedProjectView = ({
       title: "Progresso salvo",
       description: `${result.debug?.savedFields?.length || 0} campos salvos no banco de dados.`,
     });
+  };
+
+  const handleSaveSetup = async (data: SetupProjetoData) => {
+    const resp = await fetch(`/api/projects/${project.id}/conferir-info`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: data }),
+    });
+    const result = await resp.json();
+    if (result.success) {
+      setGerarProjetoFields(prev => ({ ...prev, ...data }));
+      setEditedProject(prev => ({ ...prev, ...data }));
+      toast({ title: 'Setup salvo', description: 'Configuração do projeto atualizada.' });
+    }
   };
 
   // 🗑️ Função para arquivar projeto
@@ -2915,15 +2942,44 @@ export const ExpandedProjectView = ({
                         </Select>
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => setShowConferirModal(true)}
-                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                        >
-                          <ClipboardCheck className="h-4 w-4" />
-                          Conferir Informações do Projeto ({conferirProgress.filled}/{conferirProgress.total})
-                        </Button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowSetupModal(true)}
+                            className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                          >
+                            <Settings className="h-4 w-4" />
+                            Setup do Projeto
+                            <span className="text-[10px] text-amber-600 border border-amber-300 rounded-full px-1.5 py-0.5 leading-none">Em Breve</span>
+                            {gerarProjetoFields.setup_concluido === 'true' && (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => setShowConferirModal(true)}
+                            disabled={gerarProjetoFields.setup_concluido !== 'true'}
+                            className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={gerarProjetoFields.setup_concluido !== 'true' ? 'Conclua o Setup do Projeto primeiro' : undefined}
+                          >
+                            <ClipboardCheck className="h-4 w-4" />
+                            Conferir Informações do Projeto ({conferirProgress.filled}/{conferirProgress.total})
+                          </Button>
+                        </div>
+                        {gerarProjetoFields.setup_concluido !== 'true' && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Info className="h-3.5 w-3.5 flex-shrink-0" />
+                            Conclua o Setup do Projeto para liberar o preenchimento das informações. A geração dos documentos depende da topologia configurada.
+                          </p>
+                        )}
                       </div>
+
+                      <SetupProjetoModal
+                        open={showSetupModal}
+                        onClose={() => setShowSetupModal(false)}
+                        fields={gerarProjetoFields}
+                        onSave={handleSaveSetup}
+                      />
 
                       <ConferirInformacoesModal
                         open={showConferirModal}

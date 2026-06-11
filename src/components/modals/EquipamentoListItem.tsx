@@ -222,7 +222,7 @@ export function EquipamentoListItem(props: Props) {
         corrente_nominal: n2s(cat.corrente_nominal),
         quantidade_mppt: n2s(cat.quantidade_mppt),
         entradas_por_mppt: n2s(cat.entradas_por_mppt),
-        tipo_conexao_saida: s2s(cat.tipo_conexao_saida),
+        tipo_conexao_rede_ca: s2s(cat.tipo_conexao_saida),
         fator_potencia: s2s(cat.fator_potencia),
         rendimento: n2s(cat.rendimento),
         dht_corrente: n2s(cat.dht_corrente),
