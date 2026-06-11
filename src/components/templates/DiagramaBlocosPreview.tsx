@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
+import { getTotalKwp, getTotalModulosQtd } from '@/lib/utils/equipmentParser';
 
 interface DiagramaBlocosPreviewProps {
   projectData?: Record<string, any>;
@@ -35,15 +36,11 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
 
   const pd = projectData;
 
-  const modulosQtd = parseInt(String(pd?.modulos_quantidade || '0')) || 0;
+  const modulosQtd = getTotalModulosQtd(pd);
   const modulosWp = parseFloat(String(pd?.modulos_potencia_wp || '0')) || 0;
 
-  const potenciaTotal = (() => {
-    const p = parseFloat(String(pd?.potencia || '0'));
-    if (p > 0) return fmt2(p);
-    if (modulosQtd > 0 && modulosWp > 0) return fmt2((modulosQtd * modulosWp) / 1000);
-    return '___';
-  })();
+  const kwpTotal = getTotalKwp(pd);
+  const potenciaTotal = kwpTotal > 0 ? fmt2(kwpTotal) : '___';
 
   const stringsLine = (() => {
     const totalStrings = parseInt(String(pd?.modulos_total_strings || '0')) || 0;

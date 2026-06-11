@@ -12,6 +12,7 @@ import {
   Image,
   View,
 } from '@react-pdf/renderer';
+import { getTotalKwp, getTotalModulosQtd } from '@/lib/utils/equipmentParser';
 
 interface DiagramaUnifilarPDFProps {
   projectData?: Record<string, any>;
@@ -76,10 +77,8 @@ function PDFChaveSeccionadora({ x, y }: { x: number; y: number }) {
 export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const pd = projectData || {};
 
-  const modQtd    = parseInt(fv(pd.modulos_quantidade, '0')) || 0;
-  const modWp     = parseFloat(fv(pd.modulos_potencia_wp, '0')) || 0;
-  const potRaw    = parseFloat(fv(pd.potencia, '0')) || 0;
-  const potTotal  = potRaw > 0 ? potRaw : (modQtd > 0 && modWp > 0 ? (modQtd * modWp) / 1000 : 0);
+  const modQtd    = getTotalModulosQtd(pd);
+  const potTotal  = getTotalKwp(pd);
   const potKwp    = fn(potTotal);
 
   // Strings data from new fields

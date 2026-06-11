@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
+import { getAllModulos, getAllInversores, getTotalKwp, getTotalInversorKw, getPotenciaGeracao, getTotalModulosQtd, fmtBR } from '@/lib/utils/equipmentParser';
 
 interface FormularioSolicitacaoPreviewProps {
   distribuidora: string;
@@ -143,40 +144,29 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
     );
   };
 
-  // Valores derivados
-  const potenciaKwp = (() => {
-    const p = parseFloat(String(projectData?.potencia || '0'));
-    return isNaN(p) || p === 0 ? null : p.toFixed(2).replace('.', ',');
-  })();
+  // Valores derivados via equipmentParser (suporta múltiplos modelos)
+  const modulosList = getAllModulos(projectData);
+  const inversoresList = getAllInversores(projectData);
+
+  const kwpTotal = getTotalKwp(projectData);
+  const potenciaKwp = kwpTotal > 0 ? fmtBR(kwpTotal) : null;
+
+  const invKwTotal = getTotalInversorKw(projectData);
+  const totalInvPotencia = invKwTotal > 0 ? fmtBR(invKwTotal) : '';
+
+  const pgNum = getPotenciaGeracao(projectData);
+  const potenciaGeracao = pgNum > 0 ? fmtBR(pgNum) : null;
 
   const cargaDeclarada = parseFloat(String(projectData?.carga_declarada_kw || '0')) || 0;
   const potenciaDisp = parseFloat(String(projectData?.potencia_disponibilizada_kw || '0')) || 0;
   const okCarga = cargaDeclarada > 0 && potenciaDisp > 0 && cargaDeclarada <= potenciaDisp;
-  const potenciaNum = parseFloat(String(projectData?.potencia || '0')) || 0;
-  const okPGT = potenciaNum > 0 && potenciaDisp > 0 && potenciaNum <= potenciaDisp;
+  const okPGT = pgNum > 0 && potenciaDisp > 0 && pgNum <= potenciaDisp;
 
-  const inversoresQtd = Math.min(30, Math.max(1, parseInt(String(projectData?.inversores_quantidade || '1')) || 1));
+  const totalModulosQtd = getTotalModulosQtd(projectData);
 
-  const totalInvPotencia = (() => {
-    const p = parseFloat(String(projectData?.inversores_potencia || '0').replace(',', '.'));
-    if (isNaN(p) || p === 0) return '';
-    return (p * inversoresQtd).toFixed(2).replace('.', ',');
-  })();
-
-  const totalInvPotenciaNum = (() => {
-    const p = parseFloat(String(projectData?.inversores_potencia || '0').replace(',', '.'));
-    if (isNaN(p) || p === 0) return 0;
-    return p * inversoresQtd;
-  })();
-  const potenciaGeracao = (() => {
-    if (potenciaNum === 0) return null;
-    const n = totalInvPotenciaNum > 0 ? Math.min(potenciaNum, totalInvPotenciaNum) : potenciaNum;
-    return n.toFixed(2).replace('.', ',');
-  })();
-
-  // Linhas vazias para as tabelas de geradores (fixa 10 para módulos, 30 para inversores)
-  const emptyModuloRows = Array.from({ length: Math.max(0, 10 - 1) });
-  const emptyInversorRows = Array.from({ length: Math.max(0, 30 - inversoresQtd) });
+  // Linhas vazias para completar as tabelas
+  const emptyModuloRows = Array.from({ length: Math.max(0, 10 - modulosList.length) });
+  const emptyInversorRows = Array.from({ length: Math.max(0, 30 - inversoresList.length) });
 
   const modalidadeComp = String(projectData?.modalidade_compensacao || '');
   const modalidadeBanner = (() => {
@@ -728,20 +718,28 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 </tr>
               </thead>
               <tbody>
-                {/* Linha preenchida */}
-                <tr>
-                  <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>1</td>
-                  <td style={{ ...D2, textAlign: 'center' }}><V>{`{{modulos_potencia_wp}}`}</V></td>
-                  <td style={{ ...D2, textAlign: 'center' }}><V>{`{{modulos_quantidade}}`}</V></td>
-                  <td style={{ ...D2, textAlign: 'center' }}>{potenciaKwp ?? <V>{`{{potencia}}`}</V>}</td>
-                  <td style={{ ...D2, textAlign: 'center' }}><V>{`{{modulos_area_m2}}`}</V></td>
-                  <td style={D2}><V>{`{{modulos_fabricante}}`}</V></td>
-                  <td style={D2}><V>{`{{modulos_modelo}}`}</V></td>
-                </tr>
+                {/* Uma linha por modelo de módulo */}
+                {modulosList.map((m, i) => {
+                  const wp = parseFloat(String(m.potencia_wp || '0').replace(',', '.')) || 0;
+                  const qty = parseFloat(String(m.quantidade || '1').replace(',', '.')) || 1;
+                  const kwp = wp * qty / 1000;
+                  const area = parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) * qty || 0;
+                  return (
+                    <tr key={i}>
+                      <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
+                      <td style={{ ...D2, textAlign: 'center' }}>{m.potencia_wp || <V>{`{{modulos_potencia_wp}}`}</V>}</td>
+                      <td style={{ ...D2, textAlign: 'center' }}>{m.quantidade || '1'}</td>
+                      <td style={{ ...D2, textAlign: 'center' }}>{kwp > 0 ? fmtBR(kwp) : (potenciaKwp ?? <V>{`{{potencia}}`}</V>)}</td>
+                      <td style={{ ...D2, textAlign: 'center' }}>{area > 0 ? fmtBR(area) : (projectData?.modulos_area_m2 || '')}</td>
+                      <td style={D2}>{m.fabricante || <V>{`{{modulos_fabricante}}`}</V>}</td>
+                      <td style={D2}>{m.modelo || <V>{`{{modulos_modelo}}`}</V>}</td>
+                    </tr>
+                  );
+                })}
                 {/* Linhas vazias */}
                 {emptyModuloRows.map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...DPeach2, textAlign: 'center' }}>{i + 2}</td>
+                    <td style={{ ...DPeach2, textAlign: 'center' }}>{modulosList.length + i + 1}</td>
                     <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                     <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                   </tr>
@@ -750,9 +748,9 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 <tr>
                   <td style={TOTGray2}>TOTAL</td>
                   <td style={TOTGray2}></td>
-                  <td style={TOT2}><V>{`{{modulos_quantidade}}`}</V></td>
+                  <td style={TOT2}>{totalModulosQtd > 0 ? totalModulosQtd : ''}</td>
                   <td style={TOT2}>{potenciaKwp ?? ''}</td>
-                  <td style={TOT2}><V>{`{{modulos_area_m2}}`}</V></td>
+                  <td style={TOT2}>{projectData?.modulos_area_m2 || ''}</td>
                   <td style={TOTGray2}></td><td style={TOTGray2}></td>
                 </tr>
               </tbody>
@@ -780,24 +778,24 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 </tr>
               </thead>
               <tbody>
-                {/* Linhas preenchidas */}
-                {Array.from({ length: inversoresQtd }).map((_, i) => (
+                {/* Uma linha por modelo de inversor */}
+                {inversoresList.map((inv, i) => (
                   <tr key={i}>
                     <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
-                    <td style={D2}><V>{`{{inversores_fabricante}}`}</V></td>
-                    <td style={D2}><V>{`{{inversores_modelo}}`}</V></td>
-                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_potencia}}`}</V></td>
-                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_faixa_tensao}}`}</V></td>
-                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_corrente_nominal}}`}</V></td>
-                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_fator_potencia}}`}</V></td>
-                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_rendimento}}`}</V></td>
-                    <td style={{ ...D2, textAlign: 'center' }}><V>{`{{inversores_dht_corrente}}`}</V></td>
+                    <td style={D2}>{inv.fabricante || <V>{`{{inversores_fabricante}}`}</V>}</td>
+                    <td style={D2}>{inv.modelo || <V>{`{{inversores_modelo}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.potencia || <V>{`{{inversores_potencia}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.faixa_tensao || <V>{`{{inversores_faixa_tensao}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.corrente_nominal || <V>{`{{inversores_corrente_nominal}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.fator_potencia || <V>{`{{inversores_fator_potencia}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.rendimento || <V>{`{{inversores_rendimento}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.dht_corrente || <V>{`{{inversores_dht_corrente}}`}</V>}</td>
                   </tr>
                 ))}
                 {/* Linhas vazias */}
                 {emptyInversorRows.map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...DPeach2, textAlign: 'center' }}>{inversoresQtd + i + 1}</td>
+                    <td style={{ ...DPeach2, textAlign: 'center' }}>{inversoresList.length + i + 1}</td>
                     <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                     <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                     <td style={DPeach2}></td><td style={DPeach2}></td>

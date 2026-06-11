@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
+import { getTotalKwp, getTotalModulosQtd } from '@/lib/utils/equipmentParser';
 
 interface DiagramaUnifilarPreviewProps {
   projectData?: Record<string, any>;
@@ -67,10 +68,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const pd = projectData || {};
 
   // ── Derived values ─────────────────────────────────────────────────────────
-  const modQtd    = parseInt(fv(pd.modulos_quantidade, '0')) || 0;
-  const modWp     = parseFloat(fv(pd.modulos_potencia_wp, '0')) || 0;
-  const potRaw    = parseFloat(fv(pd.potencia, '0')) || 0;
-  const potTotal  = potRaw > 0 ? potRaw : (modQtd > 0 && modWp > 0 ? (modQtd * modWp) / 1000 : 0);
+  const modQtd    = getTotalModulosQtd(pd);
+  const potTotal  = getTotalKwp(pd);
   const potKwp    = fn(potTotal);
 
   // Strings data from new fields

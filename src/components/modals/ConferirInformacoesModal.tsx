@@ -14,6 +14,9 @@ import {
   Package, Settings, Building, Upload, ImageIcon, FolderArchive, Calendar,
   ClipboardList
 } from 'lucide-react';
+import { EquipamentoListEditor } from './EquipamentoListEditor';
+import { getAllModulos, getAllInversores } from '@/lib/utils/equipmentParser';
+import type { ModuloItem, InversorItem } from '@/lib/utils/equipmentParser';
 
 const DISTRIBUIDORAS = [
   "Enel", "Copel", "Cemig", "CPFL", "Neoenergia Cosern",
@@ -302,6 +305,21 @@ function initCustomOverrides(fields: Record<string, any>): Set<string> {
   return overrides;
 }
 
+// Campos dos grupos de equipamentos que são gerenciados pelo EquipamentoListEditor
+const MODULOS_MANAGED_FIELDS = new Set([
+  'modulos_fabricante', 'modulos_modelo', 'modulos_potencia_wp',
+  'modulos_voc', 'modulos_isc', 'modulos_vpmp', 'modulos_ipmp',
+  'modulos_eficiencia', 'modulos_comprimento_m', 'modulos_largura_m',
+  'modulos_area_unitaria_m2', 'modulos_peso_kg',
+]);
+const INVERSORES_MANAGED_FIELDS = new Set([
+  'inversores_fabricante', 'inversores_modelo', 'inversores_potencia',
+  'inversores_potencia_max_saida', 'inversores_vcc_max', 'inversores_icc_max',
+  'inversores_vpmp_max', 'inversores_vpmp_min', 'inversores_vcc_partida',
+  'inversores_corrente_nominal', 'inversores_quantidade_mppt', 'inversores_entradas_por_mppt',
+  'inversores_fator_potencia', 'inversores_rendimento', 'inversores_dht_corrente',
+]);
+
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
   const [localFields, setLocalFields] = useState<Record<string, any>>({ ...fields });
   const [skippedFields, setSkippedFields] = useState<Set<string>>(() => initSkippedFields(fields));
@@ -317,6 +335,10 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   const [responsavelLoading, setResponsavelLoading] = useState(false);
   const [useOutroResponsavelLegal, setUseOutroResponsavelLegal] = useState(false);
   const [useCustomDate, setUseCustomDate] = useState(false);
+
+  // Listas de múltiplos modelos (novo formato)
+  const [modulosList, setModulosList] = useState<ModuloItem[]>([]);
+  const [inversoresList, setInversoresList] = useState<InversorItem[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -334,6 +356,11 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     setUseOutroResponsavelLegal(false);
     setPlantaPreview(fields.planta_situacao_url && fields.planta_situacao_url !== 'nao_incluir' ? fields.planta_situacao_url : null);
     setPlantaFile(null);
+    // Inicializa listas de equipamentos (fallback para campos antigos se lista estiver vazia)
+    const mods = getAllModulos(fields);
+    setModulosList(mods.length > 0 ? mods : [{ fabricante: '', modelo: '', potencia_wp: '', quantidade: '1' }]);
+    const invs = getAllInversores(fields);
+    setInversoresList(invs.length > 0 ? invs : [{ fabricante: '', modelo: '', potencia: '', quantidade: '1' }]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -553,10 +580,65 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     return map;
   }, []);
 
+  // Sincroniza o primeiro item da lista de módulos de volta para os campos antigos (backward compat)
+  function syncModulosOldFields(list: ModuloItem[]): Record<string, any> {
+    const first = list[0];
+    if (!first) return {};
+    const qty = list.reduce((acc, m) => acc + (parseInt(String(m.quantidade || '1')) || 1), 0);
+    return {
+      modulos_fabricante: first.fabricante || '',
+      modulos_modelo: first.modelo || '',
+      modulos_potencia_wp: first.potencia_wp || '',
+      modulos_quantidade: qty > 0 ? String(qty) : String(parseInt(String(first.quantidade || '1')) || 1),
+      modulos_voc: first.voc || '',
+      modulos_isc: first.isc || '',
+      modulos_vpmp: first.vpmp || '',
+      modulos_ipmp: first.ipmp || '',
+      modulos_eficiencia: first.eficiencia || '',
+      modulos_comprimento_m: first.comprimento_m || '',
+      modulos_largura_m: first.largura_m || '',
+      modulos_area_unitaria_m2: first.area_unitaria_m2 || '',
+      modulos_peso_kg: first.peso_kg || '',
+    };
+  }
+
+  // Sincroniza o primeiro item da lista de inversores de volta para os campos antigos (backward compat)
+  function syncInversoresOldFields(list: InversorItem[]): Record<string, any> {
+    const first = list[0];
+    if (!first) return {};
+    const qty = list.reduce((acc, i) => acc + (parseInt(String(i.quantidade || '1')) || 1), 0);
+    return {
+      inversores_fabricante: first.fabricante || '',
+      inversores_modelo: first.modelo || '',
+      inversores_potencia: first.potencia || '',
+      inversores_quantidade: qty > 0 ? String(qty) : String(parseInt(String(first.quantidade || '1')) || 1),
+      inversores_potencia_max_saida: first.potencia_max_saida || '',
+      inversores_vcc_max: first.vcc_max || '',
+      inversores_icc_max: first.icc_max || '',
+      inversores_vpmp_max: first.vpmp_max || '',
+      inversores_vpmp_min: first.vpmp_min || '',
+      inversores_vcc_partida: first.vcc_partida || '',
+      inversores_corrente_nominal: first.corrente_nominal || '',
+      inversores_quantidade_mppt: first.quantidade_mppt || '',
+      inversores_entradas_por_mppt: first.entradas_por_mppt || '',
+      inversores_fator_potencia: first.fator_potencia || '',
+      inversores_rendimento: first.rendimento || '',
+      inversores_dht_corrente: first.dht_corrente || '',
+    };
+  }
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const dataToSave = { ...localFields };
+      const dataToSave = {
+        ...localFields,
+        // Sincroniza campos antigos do primeiro item (backward compat com templates)
+        ...syncModulosOldFields(modulosList),
+        ...syncInversoresOldFields(inversoresList),
+        // Salva as listas completas no novo formato
+        modulos_lista: JSON.stringify(modulosList),
+        inversores_lista: JSON.stringify(inversoresList),
+      };
 
       if (plantaFile) {
         dataToSave._plantaFile = plantaFile;
@@ -1033,7 +1115,17 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-1 space-y-6 mt-2">
-          {Array.from(groups.entries()).map(([groupName, groupFields]) => (
+          {Array.from(groups.entries()).map(([groupName, groupFields]) => {
+            const isMod = groupName === 'Módulos Fotovoltaicos';
+            const isInv = groupName === 'Inversores Fotovoltaicos';
+            // Campos do grupo que ainda são mostrados (os gerenciados pelo editor são ocultados)
+            const visibleFields = isMod
+              ? groupFields.filter(f => !MODULOS_MANAGED_FIELDS.has(f.key))
+              : isInv
+              ? groupFields.filter(f => !INVERSORES_MANAGED_FIELDS.has(f.key))
+              : groupFields;
+
+            return (
             <div key={groupName}>
               <h3 className="flex items-center justify-between mb-3 sticky top-0 bg-background py-2 z-10 border-b border-gray-100 dark:border-gray-800">
                 <span className="flex items-center gap-2">
@@ -1120,8 +1212,29 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                   )}
                 </div>
               )}
+              {/* Editor de lista de módulos */}
+              {isMod && (
+                <div className="mb-3">
+                  <EquipamentoListEditor
+                    tipo="modulo"
+                    items={modulosList}
+                    onChange={setModulosList}
+                  />
+                </div>
+              )}
+              {/* Editor de lista de inversores */}
+              {isInv && (
+                <div className="mb-3">
+                  <EquipamentoListEditor
+                    tipo="inversor"
+                    items={inversoresList}
+                    onChange={setInversoresList}
+                  />
+                </div>
+              )}
+
               <div className="space-y-3">
-                {groupFields.map(field => (
+                {visibleFields.map(field => (
                   <div key={field.key} className="flex items-start gap-3 group">
                     <div className="mt-2">
                       {getStatusIcon(field)}
@@ -1152,7 +1265,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                 ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <DialogFooter className="mt-4 border-t pt-4">
