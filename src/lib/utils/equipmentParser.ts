@@ -161,11 +161,11 @@ export function getTotalInversorKw(pd: Record<string, any> | undefined): number 
 }
 
 // Potência de geração para documentos = min(kWp total, kW inversores total)
+// Requer ambos os valores; retorna 0 quando dados de inversor não preenchidos
 export function getPotenciaGeracao(pd: Record<string, any> | undefined): number {
   const kwp = getTotalKwp(pd);
   const invKw = getTotalInversorKw(pd);
-  if (kwp <= 0) return 0;
-  if (invKw <= 0) return kwp;
+  if (kwp <= 0 || invKw <= 0) return 0;
   return Math.min(kwp, invKw);
 }
 

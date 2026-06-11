@@ -476,7 +476,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               <td style={D}><V upper>{`{{modalidade_compensacao}}`}</V></td>
               <td style={L}></td>
               <td style={LR}>Potência Geração do Orçamento</td>
-              <td style={D}>{potenciaGeracao ?? <V>{`{{potencia}}`}</V>} kW</td>
+              <td style={D}>{potenciaGeracao ?? '___'} kW</td>
             </tr>
 
             {/* NÃO É NECESSÁRIO / PREENCHER LISTA DE RATEIO */}
@@ -490,7 +490,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
               )}
               <td style={L}></td>
               <td style={LR}>Potência Geração Total da UC (PGT)</td>
-              <td style={D}>{potenciaGeracao ?? <V>{`{{potencia}}`}</V>} kW</td>
+              <td style={D}>{potenciaGeracao ?? '___'} kW</td>
             </tr>
 
             {/* Armazenamento / Potência Máxima Injetável */}
