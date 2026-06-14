@@ -101,7 +101,7 @@ export default function AssinaturasPage() {
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantsFilter, setTenantsFilter] = useState('all');
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ updated: number; unchanged: number; errors: number; errorDetails?: { name: string; error: string }[] } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ updated: number; unchanged: number; errors: number; errorDetails?: { name: string; error: string }[]; unchangedDetails?: { name: string; stripeStatus: string; cancelAtPeriodEnd: boolean; mappedTo: string }[] } | null>(null);
 
   const isSuperAdmin = user?.role === 'superadmin' || (user?.profile as any)?.role === 'superadmin';
 
@@ -1288,6 +1288,16 @@ export default function AssinaturasPage() {
                         {syncResult.errorDetails.map((e, i) => (
                           <div key={i} className="text-red-600 font-mono text-[10px] bg-red-50 px-2 py-1 rounded">
                             {e.name}: {e.error}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {syncResult.unchangedDetails && syncResult.unchangedDetails.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-[10px] text-slate-500 font-medium">Sem mudança (Stripe → banco):</p>
+                        {syncResult.unchangedDetails.map((u, i) => (
+                          <div key={i} className="text-slate-500 font-mono text-[10px] bg-slate-50 px-2 py-1 rounded">
+                            {u.name}: stripe={u.stripeStatus}{u.cancelAtPeriodEnd ? ' [cancel_at_period_end]' : ''} → {u.mappedTo}
                           </div>
                         ))}
                       </div>

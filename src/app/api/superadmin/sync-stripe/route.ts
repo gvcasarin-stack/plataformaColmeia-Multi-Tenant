@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       errors: 0,
       details: [] as { name: string; old: string; new: string; stripeStatus: string }[],
       errorDetails: [] as { name: string; error: string }[],
+      unchangedDetails: [] as { name: string; stripeStatus: string; cancelAtPeriodEnd: boolean; mappedTo: string }[],
     };
 
     for (const org of orgs) {
@@ -98,6 +99,12 @@ export async function POST(request: NextRequest) {
           devLog.log(`[SyncStripe] Atualizado: ${org.name} | ${org.subscription_status} → ${newStatus} (Stripe: ${subscription.status})`);
         } else {
           results.unchanged++;
+          results.unchangedDetails.push({
+            name: org.name,
+            stripeStatus: subscription.status,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            mappedTo: newStatus,
+          });
         }
       } catch (err: any) {
         // Subscription pode ter sido deletada no Stripe sem evento chegar
