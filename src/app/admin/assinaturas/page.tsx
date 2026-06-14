@@ -100,6 +100,8 @@ export default function AssinaturasPage() {
   const [tenantsBilling, setTenantsBilling] = useState<any[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantsFilter, setTenantsFilter] = useState('all');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ updated: number; unchanged: number; errors: number } | null>(null);
 
   const isSuperAdmin = user?.role === 'superadmin' || (user?.profile as any)?.role === 'superadmin';
 
@@ -346,6 +348,29 @@ export default function AssinaturasPage() {
       // silencioso — histórico é opcional
     } finally {
       setLoadingInvoices(false);
+    }
+  };
+
+  // Sincronizar status com o Stripe (apenas superadmin)
+  const handleSyncStripe = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user!.id);
+      const res = await fetch('/api/superadmin/sync-stripe', {
+        method: 'POST',
+        headers,
+      });
+      const result = await res.json();
+      if (result.success) {
+        setSyncResult(result.results);
+        await fetchTenantsBilling(); // recarrega a tabela após sync
+      }
+    } catch {
+      // silencioso
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -1237,12 +1262,32 @@ export default function AssinaturasPage() {
                   ))}
                   <button
                     onClick={fetchTenantsBilling}
-                    disabled={loadingTenants}
+                    disabled={loadingTenants || syncing}
                     className="text-xs px-3 py-1 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors"
                   >
                     {loadingTenants ? '...' : '↻ Atualizar'}
                   </button>
+                  <button
+                    onClick={handleSyncStripe}
+                    disabled={syncing || loadingTenants}
+                    className="text-xs px-3 py-1 rounded-full border border-emerald-400 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-medium transition-colors flex items-center gap-1"
+                  >
+                    {syncing ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" /> Sincronizando...</>
+                    ) : (
+                      '⚡ Sincronizar com Stripe'
+                    )}
+                  </button>
                 </div>
+                {/* Resultado da última sincronização */}
+                {syncResult && (
+                  <div className="mt-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-4">
+                    <span className="font-medium">Última sincronização:</span>
+                    <span className="text-emerald-700 font-medium">{syncResult.updated} atualizadas</span>
+                    <span className="text-gray-500">{syncResult.unchanged} sem mudança</span>
+                    {syncResult.errors > 0 && <span className="text-red-600">{syncResult.errors} erros</span>}
+                  </div>
+                )}
               </div>
               {/* Cards de resumo */}
               <div className="grid grid-cols-3 gap-3 mt-3">

@@ -2,5 +2,11 @@
   "version": 2,
   "buildCommand": "pnpm build",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "framework": "nextjs"
-} 
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/superadmin/sync-stripe",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
