@@ -54,6 +54,20 @@ async function sendBillingSES(to: string, subject: string, bodyHtml: string) {
   }
 }
 
+function mapStripeStatusToLocal(stripeStatus: string): string {
+  switch (stripeStatus) {
+    case 'active':    return 'active';
+    case 'trialing':  return 'active';
+    case 'past_due':  return 'past_due';
+    case 'unpaid':    return 'suspended';
+    case 'paused':    return 'suspended';
+    case 'canceled':
+    case 'incomplete_expired': return 'cancelled';
+    case 'incomplete': return 'past_due';
+    default:          return 'past_due';
+  }
+}
+
 async function getOrgOwnerEmail(supabase: any, orgId: string): Promise<string | null> {
   try {
     const { data } = await supabase
@@ -294,7 +308,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     // Preparar dados de atualização
     const updateData: any = {
       stripe_subscription_id: subscription.id,
-      subscription_status: subscription.status === 'active' ? 'active' : 'inactive',
+      subscription_status: mapStripeStatusToLocal(subscription.status),
       is_trial: false,
       payment_method_added: true,
       updated_at: new Date().toISOString()
@@ -347,11 +361,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Atualizar status da subscription
+    // Atualizar status da subscription usando mapeamento correto
+    const mappedStatus = mapStripeStatusToLocal(subscription.status);
     const { error: updateError } = await supabase
       .from('organizations')
       .update({
-        subscription_status: subscription.status === 'active' ? 'active' : 'inactive',
+        subscription_status: mappedStatus,
         updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', subscription.id);
@@ -363,7 +378,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
     devLog.log('[Stripe Webhook] Subscription status updated:', {
       subscriptionId: subscription.id,
-      newStatus: subscription.status
+      stripeStatus: subscription.status,
+      mappedStatus,
     });
 
   } catch (error) {

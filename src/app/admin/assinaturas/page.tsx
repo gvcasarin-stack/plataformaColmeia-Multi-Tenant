@@ -1261,13 +1261,6 @@ export default function AssinaturasPage() {
                     </button>
                   ))}
                   <button
-                    onClick={fetchTenantsBilling}
-                    disabled={loadingTenants || syncing}
-                    className="text-xs px-3 py-1 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors"
-                  >
-                    {loadingTenants ? '...' : '↻ Atualizar'}
-                  </button>
-                  <button
                     onClick={handleSyncStripe}
                     disabled={syncing || loadingTenants}
                     className="text-xs px-3 py-1 rounded-full border border-emerald-400 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-medium transition-colors flex items-center gap-1"
