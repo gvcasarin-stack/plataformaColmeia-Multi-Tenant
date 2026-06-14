@@ -101,7 +101,7 @@ export default function AssinaturasPage() {
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantsFilter, setTenantsFilter] = useState('all');
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ updated: number; unchanged: number; errors: number } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ updated: number; unchanged: number; errors: number; errorDetails?: { name: string; error: string }[] } | null>(null);
 
   const isSuperAdmin = user?.role === 'superadmin' || (user?.profile as any)?.role === 'superadmin';
 
@@ -1276,11 +1276,22 @@ export default function AssinaturasPage() {
                 </div>
                 {/* Resultado da última sincronização */}
                 {syncResult && (
-                  <div className="mt-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-4">
-                    <span className="font-medium">Última sincronização:</span>
-                    <span className="text-emerald-700 font-medium">{syncResult.updated} atualizadas</span>
-                    <span className="text-gray-500">{syncResult.unchanged} sem mudança</span>
-                    {syncResult.errors > 0 && <span className="text-red-600">{syncResult.errors} erros</span>}
+                  <div className="mt-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 w-full">
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium">Última sincronização:</span>
+                      <span className="text-emerald-700 font-medium">{syncResult.updated} atualizadas</span>
+                      <span className="text-gray-500">{syncResult.unchanged} sem mudança</span>
+                      {syncResult.errors > 0 && <span className="text-red-600 font-medium">{syncResult.errors} erros</span>}
+                    </div>
+                    {syncResult.errorDetails && syncResult.errorDetails.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {syncResult.errorDetails.map((e, i) => (
+                          <div key={i} className="text-red-600 font-mono text-[10px] bg-red-50 px-2 py-1 rounded">
+                            {e.name}: {e.error}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       unchanged: 0,
       errors: 0,
       details: [] as { name: string; old: string; new: string; stripeStatus: string }[],
+      errorDetails: [] as { name: string; error: string }[],
     };
 
     for (const org of orgs) {
@@ -115,6 +116,10 @@ export async function POST(request: NextRequest) {
         } else {
           devLog.error(`[SyncStripe] Erro ao processar ${org.name}:`, err.message);
           results.errors++;
+          results.errorDetails.push({
+            name: org.name,
+            error: `[${err?.statusCode || err?.status || 'ERR'}] ${err?.message || String(err)}`,
+          });
         }
       }
     }
