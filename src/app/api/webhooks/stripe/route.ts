@@ -62,7 +62,7 @@ function mapStripeStatusToLocal(stripeStatus: string): string {
     case 'unpaid':    return 'suspended';
     case 'paused':    return 'suspended';
     case 'canceled':
-    case 'incomplete_expired': return 'cancelled';
+    case 'incomplete_expired': return 'inactive';
     case 'incomplete': return 'past_due';
     default:          return 'past_due';
   }
@@ -403,7 +403,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     const { error: updateError } = await supabase
       .from('organizations')
       .update({
-        subscription_status: 'cancelled',
+        subscription_status: 'inactive',
         updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', subscription.id);
