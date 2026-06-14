@@ -25,7 +25,11 @@ import {
   Mail,
   FileText,
   Inbox,
-  Crown
+  Crown,
+  Download,
+  ExternalLink,
+  Receipt,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { devLog } from '@/lib/utils/productionLogger';
@@ -90,6 +94,9 @@ export default function AssinaturasPage() {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [manualSyncAvailable, setManualSyncAvailable] = useState(false);
   const [stripePlans, setStripePlans] = useState<any>(null);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [loadingPortal, setLoadingPortal] = useState(false);
 
   // Detectar sucesso no pagamento
   const paymentSuccess = searchParams.get('success') === 'true';
@@ -300,6 +307,43 @@ export default function AssinaturasPage() {
     }
   };
 
+  // Função para abrir o Stripe Customer Portal
+  const handleOpenPortal = async () => {
+    setLoadingPortal(true);
+    try {
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user!.id);
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnUrl: window.location.href }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (e: any) {
+      setError('Não foi possível abrir o portal de pagamento.');
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  // Carregar histórico de faturas
+  const fetchInvoices = async () => {
+    if (!user?.id) return;
+    setLoadingInvoices(true);
+    try {
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+      const res = await fetch('/api/admin/billing/invoices', { headers });
+      const result = await res.json();
+      if (result.success) setInvoices(result.data || []);
+    } catch {
+      // silencioso — histórico é opcional
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
+
   // Função para adicionar cartão de crédito
   const handleAddPaymentMethod = async () => {
     // Para trial expirado, redirecionar para upgrade básico
@@ -366,6 +410,7 @@ export default function AssinaturasPage() {
     if (user?.id) {
       fetchOrganizationData();
       fetchUsageStats();
+      fetchInvoices();
     }
   }, [user?.id]);
 
@@ -579,6 +624,50 @@ export default function AssinaturasPage() {
         </Alert>
       )}
 
+
+      {/* Alerta de Pagamento Pendente (past_due) */}
+      {organization.subscription_status === 'past_due' && (
+        <Alert className="border-l-4 border-l-yellow-500 bg-yellow-50">
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">Pagamento Pendente</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            Há uma cobrança pendente na sua assinatura. Atualize sua forma de pagamento para evitar a suspensão do acesso.
+            <div className="mt-3">
+              <Button
+                size="sm"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                onClick={handleOpenPortal}
+                disabled={loadingPortal}
+              >
+                {loadingPortal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                Atualizar forma de pagamento
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Alerta de Acesso Suspenso (suspended) */}
+      {organization.subscription_status === 'suspended' && (
+        <Alert variant="destructive" className="border-l-4 border-l-red-500">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Acesso Suspenso por Inadimplência</AlertTitle>
+          <AlertDescription>
+            O acesso foi suspenso após múltiplas tentativas de cobrança sem sucesso. Regularize o pagamento para restaurar o acesso.
+            <div className="mt-3">
+              <Button
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleOpenPortal}
+                disabled={loadingPortal}
+              >
+                {loadingPortal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                Regularizar pagamento
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Separador visual */}
       <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
@@ -992,6 +1081,109 @@ export default function AssinaturasPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Separador visual */}
+      <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
+
+      {/* Histórico de Faturas */}
+      <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/20 dark:to-gray-900/20 border-b-2 border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Receipt className="h-5 w-5 text-slate-600" />
+              Histórico de Faturas
+            </CardTitle>
+            {organization.subscription_status === 'active' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenPortal}
+                disabled={loadingPortal}
+              >
+                {loadingPortal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                Gerenciar assinatura
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {loadingInvoices ? (
+            <div className="flex items-center justify-center h-20">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-500" />
+            </div>
+          ) : invoices.length === 0 ? (
+            <p className="text-center text-gray-400 py-8 text-sm">
+              Nenhuma fatura encontrada. As faturas aparecerão aqui após a ativação da assinatura paga.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 font-medium text-gray-500">Data</th>
+                    <th className="text-left py-2 px-3 font-medium text-gray-500">Nº Fatura</th>
+                    <th className="text-right py-2 px-3 font-medium text-gray-500">Valor</th>
+                    <th className="text-center py-2 px-3 font-medium text-gray-500">Status</th>
+                    <th className="text-center py-2 px-3 font-medium text-gray-500">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {invoices.map(inv => (
+                    <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                      <td className="py-2.5 px-3 text-gray-600">
+                        {new Date(inv.date * 1000).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="py-2.5 px-3 text-gray-500 font-mono text-xs">{inv.number || '—'}</td>
+                      <td className="py-2.5 px-3 text-right font-medium text-gray-800">
+                        {(inv.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: inv.currency?.toUpperCase() || 'BRL' })}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        {inv.status === 'paid' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            <CheckCircle className="h-3 w-3" /> Pago
+                          </span>
+                        ) : inv.status === 'open' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                            <AlertTriangle className="h-3 w-3" /> Pendente
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            <AlertTriangle className="h-3 w-3" /> {inv.status}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {inv.pdf && (
+                            <a
+                              href={inv.pdf}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 text-xs"
+                            >
+                              <Download className="h-3 w-3" /> PDF
+                            </a>
+                          )}
+                          {inv.hosted_url && (
+                            <a
+                              href={inv.hosted_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 text-xs"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Ver
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
     </div>
   );

@@ -19,8 +19,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { devLog } from '@/lib/utils/productionLogger';
+
+const SUPERADMIN_EMAIL = 'atendimento.colmeiasolar@gmail.com';
+const SUPPORT_EMAIL = process.env.SES_SENDER_EMAIL || process.env.EMAIL_FROM || 'noreply@gerenciamentofotovoltaico.com.br';
+const MAX_FAILURES_BEFORE_SUSPEND = 3;
+
+function getSESClient() {
+  return new SESClient({
+    region: process.env.AWS_REGION || 'sa-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+  });
+}
+
+async function sendBillingSES(to: string, subject: string, bodyHtml: string) {
+  try {
+    const ses = getSESClient();
+    await ses.send(new SendEmailCommand({
+      Source: SUPPORT_EMAIL,
+      Destination: { ToAddresses: [to] },
+      Message: {
+        Subject: { Data: subject, Charset: 'UTF-8' },
+        Body: { Html: { Data: bodyHtml, Charset: 'UTF-8' } },
+      },
+    }));
+    devLog.log('[StripeWebhook] E-mail de billing enviado para:', to);
+  } catch (err: any) {
+    devLog.error('[StripeWebhook] Falha ao enviar e-mail de billing:', err.message);
+  }
+}
+
+async function getOrgOwnerEmail(supabase: any, orgId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('organization_id', orgId)
+      .eq('role', 'admin')
+      .limit(1)
+      .single();
+    return data?.email || null;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -374,12 +421,18 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Garantir que subscription está ativa após pagamento bem-sucedido
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('id, name, payment_failure_count')
+      .eq('stripe_subscription_id', invoice.subscription as string)
+      .single();
+
     const { error: updateError } = await supabase
       .from('organizations')
       .update({
         subscription_status: 'active',
         payment_method_added: true,
+        payment_failure_count: 0,
         updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', invoice.subscription as string);
@@ -387,6 +440,19 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     if (updateError) {
       devLog.error('[Stripe Webhook] Error updating after payment success:', updateError);
       return;
+    }
+
+    // Notificar o admin da tenant somente se estava inadimplente (havia falhas)
+    if (org && (org.payment_failure_count ?? 0) > 0) {
+      const ownerEmail = await getOrgOwnerEmail(supabase, org.id);
+      if (ownerEmail) {
+        const amountBrl = ((invoice.amount_paid || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        await sendBillingSES(
+          ownerEmail,
+          'Pagamento confirmado — acesso restaurado',
+          `<p>Olá,</p><p>O pagamento de <strong>${amountBrl}</strong> da assinatura de <strong>${org.name}</strong> foi confirmado com sucesso. Seu acesso está totalmente restaurado.</p><p>Obrigado por regularizar!</p>`
+        );
+      }
     }
 
     devLog.log('[Stripe Webhook] Payment succeeded, organization activated:', {
@@ -414,23 +480,74 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Marcar como payment failed (mas não desativar imediatamente)
+    // Buscar org atual para saber o count anterior
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('id, name, payment_failure_count')
+      .eq('stripe_subscription_id', invoice.subscription as string)
+      .single();
+
+    if (!org) {
+      devLog.error('[Stripe Webhook] Org não encontrada para subscription:', invoice.subscription);
+      return;
+    }
+
+    const newCount = (org.payment_failure_count ?? 0) + 1;
+    const isSuspended = newCount >= MAX_FAILURES_BEFORE_SUSPEND;
+    const amountBrl = ((invoice.amount_due || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const portalUrl = 'https://gerenciamentofotovoltaico.com.br/admin/assinaturas';
+
     const { error: updateError } = await supabase
       .from('organizations')
       .update({
-        subscription_status: 'past_due',
+        subscription_status: isSuspended ? 'suspended' : 'past_due',
+        payment_failure_count: newCount,
+        last_payment_failure_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .eq('stripe_subscription_id', invoice.subscription as string);
+      .eq('id', org.id);
 
     if (updateError) {
       devLog.error('[Stripe Webhook] Error updating after payment failure:', updateError);
       return;
     }
 
-    devLog.log('[Stripe Webhook] Payment failed, organization marked as past_due:', {
+    // E-mail para o admin da tenant
+    const ownerEmail = await getOrgOwnerEmail(supabase, org.id);
+    if (ownerEmail) {
+      let subject = '';
+      let body = '';
+
+      if (newCount === 1) {
+        subject = 'Problema no pagamento da sua assinatura';
+        body = `<p>Olá,</p><p>A cobrança de <strong>${amountBrl}</strong> da assinatura de <strong>${org.name}</strong> não foi aprovada.</p><p>Por favor, <a href="${portalUrl}">atualize sua forma de pagamento</a> para evitar a interrupção do serviço. Faremos novas tentativas nos próximos dias.</p>`;
+      } else if (newCount === 2) {
+        subject = 'Segunda tentativa de cobrança falhou — ação necessária';
+        body = `<p>Olá,</p><p>A segunda tentativa de cobrança de <strong>${amountBrl}</strong> da assinatura de <strong>${org.name}</strong> também falhou.</p><p><strong>Atenção:</strong> na próxima falha o acesso ao painel será suspenso automaticamente. <a href="${portalUrl}">Atualize seu cartão agora</a>.</p>`;
+      } else {
+        subject = 'Acesso suspenso por inadimplência';
+        body = `<p>Olá,</p><p>Após ${newCount} tentativas sem sucesso, o acesso ao painel de <strong>${org.name}</strong> foi <strong>suspenso</strong>.</p><p>Para restaurar o acesso, <a href="${portalUrl}">atualize sua forma de pagamento</a>. O acesso será restaurado automaticamente após o pagamento ser aprovado.</p>`;
+      }
+
+      await sendBillingSES(ownerEmail, subject, body);
+    }
+
+    // Notificação ao superadmin em todas as falhas
+    await sendBillingSES(
+      SUPERADMIN_EMAIL,
+      `[Billing] Falha de pagamento — ${org.name} (tentativa ${newCount})`,
+      `<p><strong>Tenant:</strong> ${org.name}<br/>
+      <strong>Tentativa nº:</strong> ${newCount}${isSuspended ? ' — <span style="color:red">SUSPENSO</span>' : ''}<br/>
+      <strong>Valor:</strong> ${amountBrl}<br/>
+      <strong>E-mail admin:</strong> ${ownerEmail || 'não encontrado'}<br/>
+      ${org.id ? `<a href="https://dashboard.stripe.com/customers/${invoice.customer}">Ver no Stripe</a>` : ''}</p>`
+    );
+
+    devLog.log('[Stripe Webhook] Payment failed processed:', {
       subscriptionId: invoice.subscription,
-      amount: invoice.amount_due
+      orgId: org.id,
+      failureCount: newCount,
+      suspended: isSuspended,
     });
 
   } catch (error) {

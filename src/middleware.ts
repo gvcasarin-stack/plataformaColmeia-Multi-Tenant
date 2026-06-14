@@ -88,7 +88,8 @@ async function safeCore(request: NextRequest) {
   if (pathname.startsWith('/account-canceled') ||
       pathname.startsWith('/account-suspended') ||
       pathname.startsWith('/tenant-not-found') ||
-      pathname.startsWith('/wrong-domain')) {
+      pathname.startsWith('/wrong-domain') ||
+      pathname.startsWith('/admin/bloqueio')) {
     devLog.log(`[Middleware] Página de erro bypass: ${pathname}`);
     return response;
   }
@@ -196,7 +197,13 @@ async function safeCore(request: NextRequest) {
           return NextResponse.redirect(new URL('/account-canceled', request.url));
         }
 
-        // Tenant suspensa - redirecionar para página de conta suspensa
+        // Tenant suspensa por billing - redirecionar para página de bloqueio de cobrança
+        if (tenantCheck.subscriptionStatus === 'suspended') {
+          devLog.log(`[Middleware] Tenant suspensa por billing: ${slug} - redirecionando para /admin/bloqueio`);
+          return NextResponse.redirect(new URL('/admin/bloqueio', request.url));
+        }
+
+        // Tenant suspensa administrativamente - redirecionar para página de conta suspensa
         if (tenantStatus === 'suspended') {
           devLog.log(`[Middleware] Tenant suspensa: ${slug} - redirecionando para /account-suspended`);
           return NextResponse.redirect(new URL('/account-suspended', request.url));

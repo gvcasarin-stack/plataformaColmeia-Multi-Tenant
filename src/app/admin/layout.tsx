@@ -10,12 +10,13 @@ import { LayoutManager } from '@/components/ui/layout-manager'
 import { logAdminPageAccess } from '@/lib/utils/adminRoutesLogger'
 import { ClientRequestProvider } from '@/lib/contexts/ClientRequestContext'
 import { PollingStatusIndicator } from '@/components/debug/PollingStatusIndicator'
+import { PastDueBanner } from '@/components/admin/PastDueBanner'
 
 // Dynamically load the sidebar to improve initial load time
 const Sidebar = dynamic(() => import("@/components/layouts/AdminSidebar").then(mod => ({ default: mod.default })), {
   ssr: false,
   loading: () => (
-    <div className="w-16 h-screen bg-white dark:bg-gray-800 shadow-md animate-pulse" />
+    <div className="w-16 h-full bg-white dark:bg-gray-800 shadow-md animate-pulse" />
   )
 })
 
@@ -41,7 +42,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
 
   // ✅ CRÍTICO: Rotas de login e definição de senha NÃO PRECISAM de autenticação
-  if (pathname === '/admin/login' || pathname === '/admin/nova-senha') {
+  if (pathname === '/admin/login' || pathname === '/admin/nova-senha' || pathname === '/admin/bloqueio') {
     devLog.log(`🔑 [ADMIN-LAYOUT] Rota ${pathname} - ACESSO LIVRE sem autenticação`);
     return <>{children}</>;
   }
@@ -89,6 +90,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // ✅ Layout completo apenas para admin autenticado em rotas protegidas
   return (
     <ClientRequestProvider>
+      <div className="flex flex-col h-screen">
+        <PastDueBanner />
+        <div className="flex flex-1 overflow-hidden">
       <LayoutManager sidebar={<Sidebar />}>
         {children}
         {/* 🧪 DEBUG: Indicador de status do polling (apenas em desenvolvimento) */}
@@ -96,6 +100,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <PollingStatusIndicator showDebugPanel={true} />
         )}
       </LayoutManager>
+        </div>
+      </div>
     </ClientRequestProvider>
   )
 } 

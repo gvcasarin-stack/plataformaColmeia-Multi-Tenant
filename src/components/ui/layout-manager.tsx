@@ -43,7 +43,7 @@ export function LayoutManager({ sidebar, children }: LayoutManagerProps) {
   }, [pathname, prevPathname, children]);
   
   return (
-    <div className="flex h-screen bg-white dark:bg-neutral-900">
+    <div className="flex h-full bg-white dark:bg-neutral-900">
       {/* Sidebar fixa */}
       <div className="flex-shrink-0 h-full z-10">
         {sidebar}
