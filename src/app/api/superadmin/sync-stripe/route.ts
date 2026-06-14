@@ -72,7 +72,11 @@ export async function POST(request: NextRequest) {
     for (const org of orgs) {
       try {
         const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
-        const newStatus = mapStripeStatus(subscription.status);
+        // cancel_at_period_end = true: Stripe mantém status 'active' mas assinatura será cancelada
+        const effectiveStatus = (subscription.status === 'active' && subscription.cancel_at_period_end)
+          ? 'canceled'
+          : subscription.status;
+        const newStatus = mapStripeStatus(effectiveStatus);
 
         if (newStatus !== org.subscription_status) {
           await supabase
@@ -88,7 +92,7 @@ export async function POST(request: NextRequest) {
             name: org.name,
             old: org.subscription_status,
             new: newStatus,
-            stripeStatus: subscription.status,
+            stripeStatus: subscription.cancel_at_period_end ? `${subscription.status} (cancel_at_period_end)` : subscription.status,
           });
 
           devLog.log(`[SyncStripe] Atualizado: ${org.name} | ${org.subscription_status} → ${newStatus} (Stripe: ${subscription.status})`);
