@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         const newStatus = mapStripeStatus(effectiveStatus);
 
         if (newStatus !== org.subscription_status) {
-          await supabase
+          const { error: updateError } = await supabase
             .from('organizations')
             .update({
               subscription_status: newStatus,
@@ -88,13 +88,18 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', org.id);
 
-          results.updated++;
-          results.details.push({
-            name: org.name,
-            old: org.subscription_status,
-            new: newStatus,
-            stripeStatus: subscription.cancel_at_period_end ? `${subscription.status} (cancel_at_period_end)` : subscription.status,
-          });
+          if (updateError) {
+            results.errors++;
+            results.errorDetails.push({ name: org.name, error: `Update falhou: ${updateError.message}` });
+          } else {
+            results.updated++;
+            results.details.push({
+              name: org.name,
+              old: org.subscription_status,
+              new: newStatus,
+              stripeStatus: subscription.cancel_at_period_end ? `${subscription.status} (cancel_at_period_end)` : subscription.status,
+            });
+          }
 
           devLog.log(`[SyncStripe] Atualizado: ${org.name} | ${org.subscription_status} → ${newStatus} (Stripe: ${subscription.status})`);
         } else {

@@ -101,7 +101,7 @@ export default function AssinaturasPage() {
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantsFilter, setTenantsFilter] = useState('all');
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ updated: number; unchanged: number; errors: number; errorDetails?: { name: string; error: string }[]; unchangedDetails?: { name: string; stripeStatus: string; cancelAtPeriodEnd: boolean; mappedTo: string }[] } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ updated: number; unchanged: number; errors: number; details?: { name: string; old: string; new: string; stripeStatus: string }[]; errorDetails?: { name: string; error: string }[]; unchangedDetails?: { name: string; stripeStatus: string; cancelAtPeriodEnd: boolean; mappedTo: string }[] } | null>(null);
 
   const isSuperAdmin = user?.role === 'superadmin' || (user?.profile as any)?.role === 'superadmin';
 
@@ -1283,6 +1283,16 @@ export default function AssinaturasPage() {
                       <span className="text-gray-500">{syncResult.unchanged} sem mudança</span>
                       {syncResult.errors > 0 && <span className="text-red-600 font-medium">{syncResult.errors} erros</span>}
                     </div>
+                    {syncResult.details && syncResult.details.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-[10px] text-emerald-600 font-medium">Atualizadas:</p>
+                        {syncResult.details.map((d, i) => (
+                          <div key={i} className="text-emerald-700 font-mono text-[10px] bg-emerald-50 px-2 py-1 rounded">
+                            {d.name}: {d.old} → {d.new} (stripe: {d.stripeStatus})
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {syncResult.errorDetails && syncResult.errorDetails.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {syncResult.errorDetails.map((e, i) => (
