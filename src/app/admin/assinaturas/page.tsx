@@ -1380,7 +1380,7 @@ export default function AssinaturasPage() {
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Inadimplente</span>
                               ) : t.subscription_status === 'suspended' ? (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Suspenso</span>
-                              ) : t.subscription_status === 'inactive' ? (
+                              ) : t.subscription_status === 'inactive' || t.subscription_status === 'canceled' ? (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Cancelado</span>
                               ) : (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{t.subscription_status || '—'}</span>

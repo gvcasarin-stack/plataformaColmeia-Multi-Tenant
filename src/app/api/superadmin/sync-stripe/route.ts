@@ -18,7 +18,7 @@ function mapStripeStatus(stripeStatus: string): string {
       return 'suspended';
     case 'canceled':
     case 'incomplete_expired':
-      return 'inactive';
+      return 'canceled';
     case 'incomplete':
       return 'past_due';
     default:
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           await supabase
             .from('organizations')
             .update({
-              subscription_status: 'inactive',
+              subscription_status: 'canceled',
               updated_at: new Date().toISOString(),
             })
             .eq('id', org.id);
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
           results.details.push({
             name: org.name,
             old: org.subscription_status,
-            new: 'inactive',
+            new: 'canceled',
             stripeStatus: 'not_found',
           });
         } else {
