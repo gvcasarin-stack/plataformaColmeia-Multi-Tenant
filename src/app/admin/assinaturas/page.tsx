@@ -97,6 +97,11 @@ export default function AssinaturasPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [tenantsBilling, setTenantsBilling] = useState<any[]>([]);
+  const [loadingTenants, setLoadingTenants] = useState(false);
+  const [tenantsFilter, setTenantsFilter] = useState('all');
+
+  const isSuperAdmin = user?.role === 'superadmin' || (user?.profile as any)?.role === 'superadmin';
 
   // Detectar sucesso no pagamento
   const paymentSuccess = searchParams.get('success') === 'true';
@@ -344,6 +349,23 @@ export default function AssinaturasPage() {
     }
   };
 
+  // Carregar dados de billing de todas as tenants (apenas superadmin)
+  const fetchTenantsBilling = async () => {
+    if (!user?.id || !isSuperAdmin) return;
+    setLoadingTenants(true);
+    try {
+      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+      const headers = await createTenantHeaders(user.id);
+      const res = await fetch('/api/superadmin/tenants-billing', { headers });
+      const result = await res.json();
+      if (result.success) setTenantsBilling(result.data || []);
+    } catch {
+      // silencioso
+    } finally {
+      setLoadingTenants(false);
+    }
+  };
+
   // Função para adicionar cartão de crédito
   const handleAddPaymentMethod = async () => {
     // Para trial expirado, redirecionar para upgrade básico
@@ -411,6 +433,7 @@ export default function AssinaturasPage() {
       fetchOrganizationData();
       fetchUsageStats();
       fetchInvoices();
+      fetchTenantsBilling();
     }
   }, [user?.id]);
 
@@ -1184,6 +1207,145 @@ export default function AssinaturasPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Painel Superadmin — visível apenas para superadmin */}
+      {isSuperAdmin && (
+        <>
+          <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
+
+          <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 border-slate-200 dark:border-slate-700 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/20 dark:to-gray-900/20 border-b-2 border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Shield className="h-5 w-5 text-slate-600" />
+                  Controle de Assinaturas — Todas as Tenants
+                  <span className="text-xs font-normal text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">Superadmin</span>
+                </CardTitle>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {['all', 'past_due', 'suspended', 'active', 'trial'].map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setTenantsFilter(f)}
+                      className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${
+                        tenantsFilter === f
+                          ? 'bg-slate-700 text-white border-slate-700'
+                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {{ all: 'Todos', past_due: 'Inadimplentes', suspended: 'Suspensos', active: 'Ativos', trial: 'Trial' }[f]}
+                    </button>
+                  ))}
+                  <button
+                    onClick={fetchTenantsBilling}
+                    disabled={loadingTenants}
+                    className="text-xs px-3 py-1 rounded-full border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    {loadingTenants ? '...' : '↻ Atualizar'}
+                  </button>
+                </div>
+              </div>
+              {/* Cards de resumo */}
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                {[
+                  { label: 'Inadimplentes', key: 'past_due', color: 'yellow' },
+                  { label: 'Suspensos', key: 'suspended', color: 'red' },
+                  { label: 'Com falhas', key: 'failures', color: 'orange' },
+                ].map(({ label, key, color }) => {
+                  const count = key === 'failures'
+                    ? tenantsBilling.filter(t => (t.payment_failure_count ?? 0) > 0).length
+                    : tenantsBilling.filter(t => t.subscription_status === key).length;
+                  return (
+                    <div key={key} className={`bg-${color}-50 border border-${color}-200 rounded-lg p-3 text-center`}>
+                      <p className={`text-2xl font-bold text-${color}-800`}>{count}</p>
+                      <p className={`text-xs text-${color}-600`}>{label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loadingTenants ? (
+                <div className="flex items-center justify-center h-24">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-600" />
+                </div>
+              ) : tenantsBilling.length === 0 ? (
+                <p className="text-center text-gray-400 py-8 text-sm">Nenhuma tenant encontrada.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-gray-50 dark:bg-gray-800/50">
+                        <th className="text-left px-4 py-3 font-medium text-gray-500">Tenant</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-500">Plano</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
+                        <th className="text-center px-4 py-3 font-medium text-gray-500">Falhas</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-500">Última falha</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {tenantsBilling
+                        .filter(t => {
+                          if (tenantsFilter === 'all') return true;
+                          if (tenantsFilter === 'trial') return t.is_trial;
+                          if (tenantsFilter === 'active') return t.subscription_status === 'active' && !t.is_trial;
+                          return t.subscription_status === tenantsFilter;
+                        })
+                        .map(t => (
+                          <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                            <td className="px-4 py-3">
+                              <p className="font-medium text-gray-900 dark:text-gray-100">{t.name}</p>
+                              <p className="text-xs text-gray-400">{t.slug}</p>
+                            </td>
+                            <td className="px-4 py-3 text-gray-600 text-sm">
+                              {t.plans?.name || '—'}
+                            </td>
+                            <td className="px-4 py-3">
+                              {t.is_trial ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Trial</span>
+                              ) : t.subscription_status === 'active' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Ativo</span>
+                              ) : t.subscription_status === 'past_due' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Inadimplente</span>
+                              ) : t.subscription_status === 'suspended' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Suspenso</span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{t.subscription_status || '—'}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {(t.payment_failure_count ?? 0) > 0
+                                ? <span className="font-bold text-red-600">{t.payment_failure_count}</span>
+                                : <span className="text-gray-400">0</span>
+                              }
+                            </td>
+                            <td className="px-4 py-3 text-gray-400 text-xs">
+                              {t.last_payment_failure_at
+                                ? new Date(t.last_payment_failure_at).toLocaleString('pt-BR')
+                                : '—'}
+                            </td>
+                            <td className="px-4 py-3">
+                              {t.stripe_customer_id && (
+                                <a
+                                  href={`https://dashboard.stripe.com/customers/${t.stripe_customer_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                >
+                                  Stripe <ExternalLink className="h-3 w-3" />
+                                </a>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
     </div>
   );

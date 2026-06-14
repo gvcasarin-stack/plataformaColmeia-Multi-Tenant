@@ -220,13 +220,6 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         color: "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50",
         visible: isFullAdmin
       },
-      {
-        href: "/admin/superadmin/assinaturas",
-        label: "Controle de Assinaturas",
-        icon: LucideIcons.ShieldCheck,
-        color: "bg-slate-50 text-slate-700 border-slate-200/50 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800/50",
-        visible: isSuperAdmin
-      },
     ];
 
     // ✅ Filtrar apenas links visíveis
@@ -236,7 +229,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
   return (
     <>
       <aside className={cn(
-        `${collapsed ? 'w-20' : 'w-64'} bg-white dark:bg-gray-800 shadow-md dark:text-white flex flex-col h-full transition-all duration-300`,
+        `${collapsed ? 'w-20' : 'w-64'} bg-white dark:bg-gray-800 shadow-md dark:text-white flex flex-col h-screen transition-all duration-300`,
         className
       )}>
         <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">

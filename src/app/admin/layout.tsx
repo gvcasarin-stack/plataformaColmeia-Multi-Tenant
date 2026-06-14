@@ -16,7 +16,7 @@ import { PastDueBanner } from '@/components/admin/PastDueBanner'
 const Sidebar = dynamic(() => import("@/components/layouts/AdminSidebar").then(mod => ({ default: mod.default })), {
   ssr: false,
   loading: () => (
-    <div className="w-16 h-full bg-white dark:bg-gray-800 shadow-md animate-pulse" />
+    <div className="w-16 h-screen bg-white dark:bg-gray-800 shadow-md animate-pulse" />
   )
 })
 
@@ -41,7 +41,7 @@ const LoadingSpinner = () => (
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  // ✅ CRÍTICO: Rotas de login e definição de senha NÃO PRECISAM de autenticação
+  // ✅ CRÍTICO: Rotas de login, definição de senha e bloqueio de billing NÃO PRECISAM de autenticação
   if (pathname === '/admin/login' || pathname === '/admin/nova-senha' || pathname === '/admin/bloqueio') {
     devLog.log(`🔑 [ADMIN-LAYOUT] Rota ${pathname} - ACESSO LIVRE sem autenticação`);
     return <>{children}</>;
@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return user.role === 'admin' || user.role === 'superadmin' || user.role === 'colaborador' ||
            user.profile?.role === 'admin' || user.profile?.role === 'superadmin' || user.profile?.role === 'colaborador';
   }, [user]);
-  
+
   // ✅ Log apenas para rotas protegidas
   useEffect(() => {
     if (pathname && user?.id) {
@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
     }
   }, [pathname, user]);
-  
+
   // ✅ Redirecionamento apenas para rotas protegidas
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
@@ -81,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoading) {
     return <LoadingSpinner />
   }
-  
+
   // ✅ Proteção apenas para rotas protegidas
   if (!user || !isAdmin) {
     return null;
@@ -90,18 +90,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // ✅ Layout completo apenas para admin autenticado em rotas protegidas
   return (
     <ClientRequestProvider>
-      <div className="flex flex-col h-screen">
-        <PastDueBanner />
-        <div className="flex flex-1 overflow-hidden">
-      <LayoutManager sidebar={<Sidebar />}>
+      <LayoutManager sidebar={<Sidebar />} topBanner={<PastDueBanner />}>
         {children}
         {/* 🧪 DEBUG: Indicador de status do polling (apenas em desenvolvimento) */}
         {process.env.NODE_ENV === 'development' && (
           <PollingStatusIndicator showDebugPanel={true} />
         )}
       </LayoutManager>
-        </div>
-      </div>
     </ClientRequestProvider>
   )
-} 
+}
