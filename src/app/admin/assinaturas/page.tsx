@@ -81,7 +81,7 @@ interface TrialInfo {
 }
 
 export default function AssinaturasPage() {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
@@ -357,10 +357,7 @@ export default function AssinaturasPage() {
     setSyncResult(null);
     try {
       const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
-      const headers = await createTenantHeaders(user!.id) as Record<string, string>;
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
+      const headers = await createTenantHeaders(user!.id);
       const res = await fetch('/api/superadmin/sync-stripe', {
         method: 'POST',
         headers,

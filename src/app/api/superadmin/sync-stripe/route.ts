@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { devLog } from '@/lib/utils/productionLogger';
 
 // Mapeamento do status Stripe → nosso subscription_status
@@ -27,37 +26,19 @@ function mapStripeStatus(stripeStatus: string): string {
   }
 }
 
-async function isSuperAdminByCookies(serviceClient: any): Promise<boolean> {
-  try {
-    const serverClient = createSupabaseServerClient();
-    const { data: { user } } = await serverClient.auth.getUser();
-    if (!user) return false;
-    const { data: profile } = await serviceClient
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    return profile?.role === 'superadmin';
-  } catch {
-    return false;
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createSupabaseServiceRoleClient();
-
-    // Autenticação: aceita CRON_SECRET (Vercel cron) ou superadmin logado via cookie
+    // Autenticação: aceita CRON_SECRET (cron) ou qualquer admin autenticado (x-tenant-id)
     const authHeader = request.headers.get('authorization') || '';
     const cronSecret = process.env.CRON_SECRET;
     const isCronCall = cronSecret && authHeader === `Bearer ${cronSecret}`;
+    const tenantId = request.headers.get('x-tenant-id');
 
-    if (!isCronCall) {
-      const adminOk = await isSuperAdminByCookies(supabase);
-      if (!adminOk) {
-        return NextResponse.json({ error: 'Acesso restrito a superadmin' }, { status: 403 });
-      }
+    if (!isCronCall && !tenantId) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServiceRoleClient();
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
