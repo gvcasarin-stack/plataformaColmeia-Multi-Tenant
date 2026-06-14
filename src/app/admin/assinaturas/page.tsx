@@ -81,7 +81,7 @@ interface TrialInfo {
 }
 
 export default function AssinaturasPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const searchParams = useSearchParams();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
@@ -357,7 +357,10 @@ export default function AssinaturasPage() {
     setSyncResult(null);
     try {
       const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
-      const headers = await createTenantHeaders(user!.id);
+      const headers = await createTenantHeaders(user!.id) as Record<string, string>;
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
       const res = await fetch('/api/superadmin/sync-stripe', {
         method: 'POST',
         headers,
@@ -365,10 +368,12 @@ export default function AssinaturasPage() {
       const result = await res.json();
       if (result.success) {
         setSyncResult(result.results);
-        await fetchTenantsBilling(); // recarrega a tabela após sync
+        await fetchTenantsBilling();
+      } else {
+        setSyncResult({ updated: 0, unchanged: 0, errors: 1 });
       }
     } catch {
-      // silencioso
+      setSyncResult({ updated: 0, unchanged: 0, errors: 1 });
     } finally {
       setSyncing(false);
     }
