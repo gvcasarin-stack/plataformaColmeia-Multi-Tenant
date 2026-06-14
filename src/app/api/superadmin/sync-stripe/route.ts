@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { devLog } from '@/lib/utils/productionLogger';
 
 // Mapeamento do status Stripe → nosso subscription_status
@@ -26,31 +27,33 @@ function mapStripeStatus(stripeStatus: string): string {
   }
 }
 
-async function isSuperAdmin(request: NextRequest, supabase: any): Promise<boolean> {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return false;
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user } } = await supabase.auth.getUser(token);
-  if (!user) return false;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-  return profile?.role === 'superadmin';
+async function isSuperAdminByCookies(serviceClient: any): Promise<boolean> {
+  try {
+    const serverClient = createSupabaseServerClient();
+    const { data: { user } } = await serverClient.auth.getUser();
+    if (!user) return false;
+    const { data: profile } = await serviceClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    return profile?.role === 'superadmin';
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = createSupabaseServiceRoleClient();
 
-    // Autenticação: aceita CRON_SECRET (Vercel cron) ou superadmin logado
+    // Autenticação: aceita CRON_SECRET (Vercel cron) ou superadmin logado via cookie
     const authHeader = request.headers.get('authorization') || '';
     const cronSecret = process.env.CRON_SECRET;
     const isCronCall = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
     if (!isCronCall) {
-      const adminOk = await isSuperAdmin(request, supabase);
+      const adminOk = await isSuperAdminByCookies(supabase);
       if (!adminOk) {
         return NextResponse.json({ error: 'Acesso restrito a superadmin' }, { status: 403 });
       }
