@@ -77,6 +77,15 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
   const fabricante = pd?.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
   const invPotencia = fmt2(pd?.inversores_potencia);
 
+  const hasStringbox = !!(pd?.setup_quadro_cc && pd.setup_quadro_cc !== 'nao');
+  const stringboxLabel = pd?.setup_quadro_cc === 'dps_chave_seccionadora' ? 'DPS e Chave Seccionadora'
+    : pd?.setup_quadro_cc === 'dps_disjuntor_cc' ? 'DPS e Disjuntor CC'
+    : 'DPS';
+  const numInversores = pd?.setup_mais_de_um_inversor === 'sim' && pd?.setup_tipo_inversor !== 'microinversor'
+    ? (parseInt(String(pd?.setup_total_inversores || '2')) || 2)
+    : 1;
+  const configuracaoSaidas = String(pd?.setup_configuracao_saidas || 'independentes');
+
   // ── Seal fields ────────────────────────────────────────────────────────────
   const owner    = String(pd?.nomeClienteFinal  || 'NOME DO PROPRIETÁRIO');
   const endereco = String(pd?.endereco_local     || 'ENDEREÇO DA OBRA');
@@ -115,35 +124,111 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
     <>
       {/* Diagrama */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px', fontFamily: 'Arial, sans-serif' }}>
-        {/* 1. Módulos */}
-        <div style={BOX}>
-          <div style={BOLD}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</div>
-          <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
-          {stringsLine && <div style={NORMAL}>{stringsLine}</div>}
-          <div style={NORMAL}>Potência total: {potenciaTotal} kWp</div>
-        </div>
+        {numInversores === 1 ? (
+          <>
+            {/* 1. Módulos */}
+            <div style={BOX}>
+              <div style={BOLD}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</div>
+              <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
+              {stringsLine && <div style={NORMAL}>{stringsLine}</div>}
+              <div style={NORMAL}>Potência total: {potenciaTotal} kWp</div>
+            </div>
 
-        <div style={V_LINE} />
+            <div style={V_LINE} />
 
-        {/* 2. Inversor */}
-        <div style={BOX}>
-          <div style={BOLD}>Inversor Fotovoltaico:</div>
-          <div style={BOLD}>{fabricante} {invPotencia}kW</div>
-          <div style={NORMAL}>Proteções CC Acopladas:</div>
-          <div style={NORMAL}>DPS e Chave Seccionadora</div>
-          <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
-          <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
-        </div>
+            {hasStringbox && (
+              <>
+                <div style={BOX}>
+                  <div style={BOLD}>Quadro de Proteção CC (Stringbox):</div>
+                  <div style={NORMAL}>{stringboxLabel}</div>
+                </div>
+                <div style={V_LINE} />
+              </>
+            )}
 
-        <div style={V_LINE} />
+            {/* 2. Inversor */}
+            <div style={BOX}>
+              <div style={BOLD}>Inversor Fotovoltaico:</div>
+              <div style={BOLD}>{fabricante} {invPotencia}kW</div>
+              <div style={NORMAL}>Proteções CC Acopladas:</div>
+              <div style={NORMAL}>DPS e Chave Seccionadora</div>
+              <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
+              <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
+            </div>
 
-        {/* 3. Quadro CA */}
-        <div style={BOX}>
-          <div style={BOLD}>Quadro de Proteção CA:</div>
-          <div style={NORMAL}>DPS e Disjuntor</div>
-        </div>
+            <div style={V_LINE} />
 
-        <div style={V_LINE} />
+            {/* 3. Quadro CA */}
+            <div style={BOX}>
+              <div style={BOLD}>Quadro de Proteção CA:</div>
+              <div style={NORMAL}>DPS e Disjuntor</div>
+            </div>
+
+            <div style={V_LINE} />
+          </>
+        ) : (
+          <>
+            {/* Multi-inversor: colunas side-by-side, borderBottom como barra de barramento */}
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', borderBottom: '1.5px solid #000000' }}>
+              {Array.from({ length: numInversores }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {/* Módulos */}
+                  <div style={BOX}>
+                    <div style={BOLD}>Módulos Fotovoltaicos</div>
+                    <div style={NORMAL}>(Inversor {i + 1})</div>
+                    <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
+                  </div>
+                  <div style={V_LINE} />
+
+                  {/* Stringbox por coluna */}
+                  {hasStringbox && (
+                    <>
+                      <div style={BOX}>
+                        <div style={BOLD}>Quadro de Proteção CC (Stringbox):</div>
+                        <div style={NORMAL}>{stringboxLabel}</div>
+                      </div>
+                      <div style={V_LINE} />
+                    </>
+                  )}
+
+                  {/* Inversor */}
+                  <div style={BOX}>
+                    <div style={BOLD}>Inversor Fotovoltaico {i + 1}:</div>
+                    <div style={BOLD}>{fabricante} {invPotencia}kW</div>
+                    <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
+                    <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
+                  </div>
+
+                  {/* Saídas independentes: Quadro CA por inversor */}
+                  {configuracaoSaidas === 'independentes' && (
+                    <>
+                      <div style={V_LINE} />
+                      <div style={BOX}>
+                        <div style={BOLD}>Quadro de Proteção CA:</div>
+                        <div style={NORMAL}>DPS e Disjuntor</div>
+                      </div>
+                    </>
+                  )}
+
+                  <div style={V_LINE} />
+                </div>
+              ))}
+            </div>
+
+            <div style={V_LINE} />
+
+            {/* Saídas agrupadas: único Quadro CA */}
+            {configuracaoSaidas === 'agrupadas' && (
+              <>
+                <div style={BOX}>
+                  <div style={BOLD}>Quadro de Proteção CA:</div>
+                  <div style={NORMAL}>DPS e Disjuntor</div>
+                </div>
+                <div style={V_LINE} />
+              </>
+            )}
+          </>
+        )}
 
         {/* 4. QGBT centralizado + Unidade Consumidora à direita */}
         <div style={{ position: 'relative', width: '200px' }}>

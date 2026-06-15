@@ -66,6 +66,7 @@ function ChaveSeccionadora({ x, y }: { x: number; y: number }) {
 export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreviewProps) {
   const [generating, setGenerating] = useState(false);
   const pd = projectData || {};
+  const hasStringbox = fv(pd.setup_quadro_cc, 'nao') !== 'nao';
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const modQtd    = getTotalModulosQtd(pd);
@@ -391,9 +392,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={BR - 8} y="720" fontSize="8" fontWeight="bold" textAnchor="end">QUADRO DE</text>
           <text x={BR - 8} y="732" fontSize="8" fontWeight="bold" textAnchor="end">PROTEÇÃO CC</text>
 
-          {/* (ACOPLADO AO INVERSOR FV) — inside box, upper-left corner */}
-          <text x={BX + 6} y="721" fontSize="5.5">(ACOPLADO AO</text>
-          <text x={BX + 6} y="730" fontSize="5.5">INVERSOR FV)</text>
+          {/* (ACOPLADO AO INVERSOR FV) — only when stringbox is NOT external */}
+          {!hasStringbox && (
+            <>
+              <text x={BX + 6} y="721" fontSize="5.5">(ACOPLADO AO</text>
+              <text x={BX + 6} y="730" fontSize="5.5">INVERSOR FV)</text>
+            </>
+          )}
 
           {/* DPS CC label (left inside box) */}
           <text x="228" y="758" fontSize="5.5" fontWeight="bold">DPS CC</text>

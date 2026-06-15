@@ -12,6 +12,7 @@ export interface SetupProjetoData {
   setup_quadro_cc: string;
   setup_mais_de_um_inversor: string;
   setup_tipo_inversor: string;
+  setup_total_inversores: string;
   setup_configuracao_saidas: string;
   setup_tipo_transformador: string;
   setup_potencia_transformador: string;
@@ -23,6 +24,7 @@ export const SETUP_DEFAULTS: SetupProjetoData = {
   setup_quadro_cc: 'nao',
   setup_mais_de_um_inversor: 'nao',
   setup_tipo_inversor: 'string',
+  setup_total_inversores: '2',
   setup_configuracao_saidas: 'independentes',
   setup_tipo_transformador: '',
   setup_potencia_transformador: '',
@@ -71,6 +73,7 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
       setup_quadro_cc: fields.setup_quadro_cc || SETUP_DEFAULTS.setup_quadro_cc,
       setup_mais_de_um_inversor: fields.setup_mais_de_um_inversor || SETUP_DEFAULTS.setup_mais_de_um_inversor,
       setup_tipo_inversor: fields.setup_tipo_inversor || SETUP_DEFAULTS.setup_tipo_inversor,
+      setup_total_inversores: fields.setup_total_inversores || SETUP_DEFAULTS.setup_total_inversores,
       setup_configuracao_saidas: fields.setup_configuracao_saidas || SETUP_DEFAULTS.setup_configuracao_saidas,
       setup_tipo_transformador: fields.setup_tipo_transformador || '',
       setup_potencia_transformador: fields.setup_potencia_transformador || '',
@@ -161,7 +164,9 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
               onChange={v => set('setup_quadro_cc', v)}
               options={[
                 { value: 'nao', label: 'Não' },
-                { value: 'sim', label: 'Sim — Stringbox externa' },
+                { value: 'dps_chave_seccionadora', label: 'Sim — DPS e Chave Seccionadora' },
+                { value: 'dps_disjuntor_cc', label: 'Sim — DPS e Disjuntor CC' },
+                { value: 'dps', label: 'Sim — apenas DPS' },
               ]}
             />
           </div>
@@ -186,6 +191,20 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
                 options={[
                   { value: 'string', label: 'Inversor String' },
                   { value: 'microinversor', label: 'Microinversor' },
+                ]}
+              />
+            )}
+            {maisDeUm && isString && (
+              <SelectQuestion
+                label="Quantidade de inversores"
+                value={local.setup_total_inversores}
+                onChange={v => set('setup_total_inversores', v)}
+                options={[
+                  { value: '2', label: '2 inversores' },
+                  { value: '3', label: '3 inversores' },
+                  { value: '4', label: '4 inversores' },
+                  { value: '5', label: '5 inversores' },
+                  { value: '6', label: '6 inversores' },
                 ]}
               />
             )}
