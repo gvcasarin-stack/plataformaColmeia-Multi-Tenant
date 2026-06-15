@@ -102,7 +102,6 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Settings className="h-5 w-5 text-blue-600" />
             Setup do Projeto
-            <span className="text-xs font-normal text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-2 py-0.5 rounded-full ml-1">Em Breve</span>
           </DialogTitle>
           <DialogDescription>
             Configure a topologia do sistema antes de preencher as informações do projeto.

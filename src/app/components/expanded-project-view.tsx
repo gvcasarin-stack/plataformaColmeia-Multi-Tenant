@@ -1459,11 +1459,31 @@ export const ExpandedProjectView = ({
       body: JSON.stringify({ fields: data }),
     });
     const result = await resp.json();
-    if (result.success) {
-      setGerarProjetoFields(prev => ({ ...prev, ...data }));
-      setEditedProject(prev => ({ ...prev, ...data }));
-      toast({ title: 'Setup salvo', description: 'Configuração do projeto atualizada.' });
+
+    if (!result.success) {
+      devLog.error('[SetupModal] Erro ao salvar:', result.error, result.debug);
+      toast({
+        title: 'Erro ao salvar setup',
+        description: result.error || 'Não foi possível salvar. Tente novamente.',
+        variant: 'destructive',
+        duration: 10000,
+      });
+      return;
     }
+
+    if (result.debug?.missingColumns?.length > 0) {
+      toast({
+        title: 'Colunas não encontradas no banco',
+        description: `Execute o script SQL add-setup-projeto-fields.sql no Supabase. Colunas faltantes: ${result.debug.missingColumns.join(', ')}`,
+        variant: 'destructive',
+        duration: 20000,
+      });
+      return;
+    }
+
+    setGerarProjetoFields(prev => ({ ...prev, ...data }));
+    setEditedProject(prev => ({ ...prev, ...data }));
+    toast({ title: 'Setup salvo', description: `${result.debug?.savedFields?.length || 0} campos salvos no banco de dados.` });
   };
 
   // 🗑️ Função para arquivar projeto
@@ -2952,7 +2972,6 @@ export const ExpandedProjectView = ({
                           >
                             <Settings className="h-4 w-4" />
                             Setup do Projeto
-                            <span className="text-[10px] text-amber-600 border border-amber-300 rounded-full px-1.5 py-0.5 leading-none">Em Breve</span>
                             {gerarProjetoFields.setup_concluido === 'true' && (
                               <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                             )}
