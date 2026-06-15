@@ -71,8 +71,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = 30;
-  const MI_MAX_COL_W = 200;
+  const MI_GAP = 160;
+  const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
   const miSectionW = numInversores * miColStep - MI_GAP;
@@ -180,6 +180,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const BW = 240;        // box width
   const BR = BX + BW;    // box right X = 460
 
+  // For multi-inv, center top section at QD center (always 450 with current math)
+  const topCX = isMultiInv ? 450 : CX;
+  const topBX = topCX - 120;
+  const topBR = topCX + 120;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 10, 160) : 195;
+
   const handleGeneratePdf = async () => {
     setGenerating(true);
     try {
@@ -216,48 +222,51 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
         >
 
           {/* ═══════════════ REDE DE BAIXA TENSÃO ═══════════════ */}
-          <line x1="90" y1="28" x2="490" y2="28" stroke="#000" strokeWidth="1.8" />
-          <text x={CX} y="21" fontSize="8" fontWeight="bold" textAnchor="middle">REDE DE BAIXA TENSÃO</text>
+          <line
+            x1={isMultiInv ? Math.round(miColBX(0)) - 20 : 90} y1="28"
+            x2={isMultiInv ? Math.round(miColBX(numInversores - 1)) + miColW + 20 : 490} y2="28"
+            stroke="#000" strokeWidth="1.8"
+          />
+          <text x={topCX} y="21" fontSize="8" fontWeight="bold" textAnchor="middle">REDE DE BAIXA TENSÃO</text>
 
           {/* Ponto de entrega */}
-          <line    x1={CX} y1="28" x2={CX} y2="44" stroke="#000" strokeWidth="1" />
-          <polygon points={`${CX - 5},28 ${CX + 5},28 ${CX},40`} fill="#000" />
-          <text x={CX + 8} y="37" fontSize="6.5">PONTO DE ENTREGA</text>
-          <text x={CX + 8} y="47" fontSize="6.5">ACESSADA</text>
-          <text x={CX + 8} y="57" fontSize="6.5">ACESSANTE</text>
+          <line    x1={topCX} y1="28" x2={topCX} y2="44" stroke="#000" strokeWidth="1" />
+          <polygon points={`${topCX - 5},28 ${topCX + 5},28 ${topCX},40`} fill="#000" />
+          <text x={topCX + 8} y="37" fontSize="6.5">PONTO DE ENTREGA</text>
+          <text x={topCX + 8} y="47" fontSize="6.5">ACESSADA</text>
+          <text x={topCX + 8} y="57" fontSize="6.5">ACESSANTE</text>
 
           {/* ═══════════════ PADRÃO DE ENTRADA ═══════════════ */}
-          <rect x={BX} y="42" width={BW} height="150" fill="white" stroke="#000" strokeWidth="1.2" />
-          {/* Label right-shifted inside box */}
-          <text x="406" y="57" fontSize="7.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
-          <text x="406" y="67" fontSize="6"   textAnchor="middle">(caixa de medição)</text>
+          <rect x={topBX} y="42" width={BW} height="150" fill="white" stroke="#000" strokeWidth="1.2" />
+          <text x={topCX + 66} y="57" fontSize="7.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
+          <text x={topCX + 66} y="67" fontSize="6"   textAnchor="middle">(caixa de medição)</text>
 
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
-          <line x1={CX} y1="42" x2={CX} y2="138" stroke="#000" strokeWidth="1" />
+          <line x1={topCX} y1="42" x2={topCX} y2="138" stroke="#000" strokeWidth="1" />
 
           {/* Horizontal tap to MEDIDOR (branch right) */}
-          <line x1={CX} y1="85" x2="355" y2="85" stroke="#000" strokeWidth="1" />
+          <line x1={topCX} y1="85" x2={topCX + 15} y2="85" stroke="#000" strokeWidth="1" />
 
           {/* MEDIDOR box — right of main line */}
-          <rect x="355" y="71" width="95" height="28" fill="white" stroke="#000" strokeWidth="1" />
-          <text x="402" y="88" fontSize="9" fontWeight="bold" textAnchor="middle">MEDIDOR</text>
+          <rect x={topCX + 15} y="71" width="95" height="28" fill="white" stroke="#000" strokeWidth="1" />
+          <text x={topCX + 62} y="88" fontSize="9" fontWeight="bold" textAnchor="middle">MEDIDOR</text>
 
           {/* Ramal de Ligação — drawn AFTER rects so it's visible over white fills */}
-          <text x="244" y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
-          <text x="244" y="87"  fontSize="5.8" fontWeight="bold">{`Alumínio ${ramalTipo} - 1,0 kV`}</text>
-          <text x="244" y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
-          <text x="244" y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
+          <text x={topCX - 96} y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
+          <text x={topCX - 96} y="87"  fontSize="5.8" fontWeight="bold">{`Alumínio ${ramalTipo} - 1,0 kV`}</text>
+          <text x={topCX - 96} y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
+          <text x={topCX - 96} y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
           {/* D1 on main vertical line */}
-          <Disjuntor x={CX} y={145} />
-          <text x={CX + 15} y="143" fontSize="6.5">D1</text>
-          <text x={CX + 15} y="152" fontSize="5.5">{djLabel}</text>
+          <Disjuntor x={topCX} y={145} />
+          <text x={topCX + 15} y="143" fontSize="6.5">D1</text>
+          <text x={topCX + 15} y="152" fontSize="5.5">{djLabel}</text>
 
           {/* Wire D1 → out of PADRÃO (continuous, grounding branch removed) */}
-          <line x1={CX} y1="152" x2={CX} y2="220" stroke="#000" strokeWidth="1" />
+          <line x1={topCX} y1="152" x2={topCX} y2="220" stroke="#000" strokeWidth="1" />
 
           {/* Terra — lower-right corner of PADRÃO DE ENTRADA (same style as QUADRO DIST) */}
-          <Terra x={BR - 18} y={192} />
+          <Terra x={topBR - 18} y={192} />
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect
@@ -274,7 +283,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           >QUADRO DE DISTRIBUIÇÃO</text>
 
           {/* Main vertical line through box */}
-          <line x1={CX} y1="220" x2={CX} y2="302" stroke="#000" strokeWidth="1" />
+          <line x1={topCX} y1="220" x2={topCX} y2="302" stroke="#000" strokeWidth="1" />
 
           {/* Barramento horizontal */}
           <line
@@ -286,12 +295,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* Terra — lower-right corner of QD */}
           <Terra x={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 505} y={302} />
 
-          {/* Cargas derivation — inside box (x=195), drops with arrow */}
-          <line x1="195" y1="255" x2="195" y2="315" stroke="#000" strokeWidth="1" />
-          <polygon points="190,315 200,315 195,325" fill="#000" />
-          <text x="215" y="311" fontSize="5.8">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</text>
-          <text x="215" y="320" fontSize="5.8">{`Tensão Nominal: ${tensaoNom} V`}</text>
-          <text x="215" y="329" fontSize="5.8">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</text>
+          {/* Cargas derivation — inside QD box */}
+          <line x1={cargasX} y1="255" x2={cargasX} y2="315" stroke="#000" strokeWidth="1" />
+          <polygon points={`${cargasX - 5},315 ${cargasX + 5},315 ${cargasX},325`} fill="#000" />
+          <text x={cargasX + 20} y="311" fontSize="5.8">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</text>
+          <text x={cargasX + 20} y="320" fontSize="5.8">{`Tensão Nominal: ${tensaoNom} V`}</text>
+          <text x={cargasX + 20} y="329" fontSize="5.8">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</text>
 
           {!isMultiInv && (<>
           {/* Wire → QUADRO CA (+10px extra gap) */}
@@ -536,6 +545,33 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cBR - 26} y1={560} x2={cBR - 4} y2={560} stroke="#000" strokeWidth="0.9" />
                   <line x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth="0.9" />
 
+                  {/* Specs (left of inversor box) */}
+                  <text x={cBX - 5} y={557} fontSize="4.8" textAnchor="end">Marca: {invFab}</text>
+                  <text x={cBX - 5} y={564} fontSize="4.8" textAnchor="end">Modelo: {invMod}</text>
+                  <text x={cBX - 5} y={571} fontSize="4.8" textAnchor="end">Potência: {invPot} kW</text>
+                  <text x={cBX - 5} y={578} fontSize="4.8" textAnchor="end">Ent - Vcc max: {invVccMax} V</text>
+                  <text x={cBX - 5} y={585} fontSize="4.8" textAnchor="end">  - Icc max: {invIccMax} A</text>
+                  <text x={cBX - 5} y={592} fontSize="4.8" textAnchor="end">Saída - V: {tensaoNom} Vca</text>
+                  <text x={cBX - 5} y={599} fontSize="4.8" textAnchor="end">  - I: {invCorrOut} A</text>
+
+                  {/* Protection relays (right of inversor box, compact) */}
+                  <line x1={cBR} y1={581} x2={cBR + 20} y2={581} stroke="#000" strokeWidth="1" />
+                  <line x1={cBR + 20} y1={527} x2={cBR + 20} y2={618} stroke="#000" strokeWidth="1" />
+                  {([
+                    { l: '25', s: '' }, { l: '27', s: '' },
+                    { l: '59', s: '' }, { l: '81', s: 'U/O' },
+                  ] as { l: string; s: string }[]).map(({ l, s }, ri) => (
+                    <g key={`rel-${i}-${l}`}>
+                      <line x1={cBR + 20} y1={534 + ri * 18} x2={cBR + 22} y2={534 + ri * 18} stroke="#000" strokeWidth="0.8" />
+                      <rect x={cBR + 22} y={527 + ri * 18} width={16} height={14} fill="white" stroke="#000" strokeWidth="0.8" />
+                      <text x={cBR + 30} y={s ? 536 + ri * 18 : 538 + ri * 18} fontSize="6" fontWeight="bold" textAnchor="middle">{l}</text>
+                      {s && <text x={cBR + 30} y={542 + ri * 18} fontSize="4" textAnchor="middle">{s}</text>}
+                    </g>
+                  ))}
+                  <line x1={cBR + 20} y1={601} x2={cBR + 22} y2={601} stroke="#000" strokeWidth="0.8" />
+                  <rect x={cBR + 22} y={595} width={52} height={10} fill="white" stroke="#000" strokeWidth="0.8" />
+                  <text x={cBR + 48} y={602} fontSize="4.5" textAnchor="middle">ANTI-ILHAMENTO</text>
+
                   {/* Wire INVERSOR → QUADRO CC */}
                   <line x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth="1" />
 
@@ -594,20 +630,36 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cCX} y1={1003} x2={cCX} y2={1017} stroke="#000" strokeWidth="1.2" />
                   <Terra x={cCX} y={1017} />
 
-                  {/* Módulos — última coluna */}
-                  {i === numInversores - 1 && (
+                  {/* Módulos — primeira coluna: esquerda do G */}
+                  {i === 0 && (
                     <>
-                      <line x1={cCX + 32} y1={971} x2={cBR + 12} y2={971} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                      <text x={cBR + 15} y={938} fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
-                      <text x={cBR + 15} y={948} fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
-                      <text x={cBR + 15} y={957} fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
-                      <text x={cBR + 15} y={966} fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
-                      <text x={cBR + 15} y={975} fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
-                      <text x={cBR + 15} y={984} fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
-                      <text x={cBR + 15} y={993} fontSize="5.5">Quantidade: {qtdDescr}</text>
-                      <text x={cBR + 15} y={1002} fontSize="5.5">Potência total: {potKwp} kWp</text>
-                      <text x={cBR + 15} y={1011} fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
-                      <text x={cBR + 15} y={1020} fontSize="5.5">{corrLabel}: {corrStr} A</text>
+                      <line x1={cCX - 32} y1={971} x2={cBX - 12} y2={971} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                      <text x={cBX - 15} y={938} fontSize="5.5" fontWeight="bold" textAnchor="end">Módulos Fotovoltaicos:</text>
+                      <text x={cBX - 15} y={948} fontSize="5.5" textAnchor="end">Marca: {fv(pd.modulos_fabricante)}</text>
+                      <text x={cBX - 15} y={957} fontSize="5.5" textAnchor="end">Modelo: {fv(pd.modulos_modelo)}</text>
+                      <text x={cBX - 15} y={966} fontSize="5.5" textAnchor="end">Potência: {fv(pd.modulos_potencia_wp)} W</text>
+                      <text x={cBX - 15} y={975} fontSize="5.5" textAnchor="end">Tensão: {fv(pd.modulos_vpmp)} V</text>
+                      <text x={cBX - 15} y={984} fontSize="5.5" textAnchor="end">Corrente: {fv(pd.modulos_ipmp)} A</text>
+                      <text x={cBX - 15} y={993} fontSize="5.5" textAnchor="end">Quantidade: {qtdDescr}</text>
+                      <text x={cBX - 15} y={1002} fontSize="5.5" textAnchor="end">Potência total: {potKwp} kWp</text>
+                      <text x={cBX - 15} y={1011} fontSize="5.5" textAnchor="end">{tensaoLabel}: {tensaoStr} V</text>
+                      <text x={cBX - 15} y={1020} fontSize="5.5" textAnchor="end">{corrLabel}: {corrStr} A</text>
+                    </>
+                  )}
+                  {/* Módulos — última coluna: direita do G (próximo ao círculo) */}
+                  {i === numInversores - 1 && numInversores > 1 && (
+                    <>
+                      <line x1={cCX + 32} y1={971} x2={cCX + 40} y2={971} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                      <text x={cCX + 43} y={938} fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
+                      <text x={cCX + 43} y={948} fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
+                      <text x={cCX + 43} y={957} fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
+                      <text x={cCX + 43} y={966} fontSize="5.5">Potência: {fv(pd.modulos_potencia_wp)} W</text>
+                      <text x={cCX + 43} y={975} fontSize="5.5">Tensão: {fv(pd.modulos_vpmp)} V</text>
+                      <text x={cCX + 43} y={984} fontSize="5.5">Corrente: {fv(pd.modulos_ipmp)} A</text>
+                      <text x={cCX + 43} y={993} fontSize="5.5">Quantidade: {qtdDescr}</text>
+                      <text x={cCX + 43} y={1002} fontSize="5.5">Potência total: {potKwp} kWp</text>
+                      <text x={cCX + 43} y={1011} fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
+                      <text x={cCX + 43} y={1020} fontSize="5.5">{corrLabel}: {corrStr} A</text>
                     </>
                   )}
                 </g>
@@ -616,8 +668,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           </>)}
 
           {/* ═══════════════ LEGENDA (top right) ═══════════════ */}
-          <rect x="655" y="22" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
-          <text x="774" y="38" fontSize="8" fontWeight="bold" textAnchor="middle">LEGENDA:</text>
+          <rect x="660" y="-20" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
+          <text x="779" y="-4" fontSize="8" fontWeight="bold" textAnchor="middle">LEGENDA:</text>
           {[
             'D1: Disjuntor de entrada ou geral da',
             '       unidade consumidora',
@@ -634,7 +686,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             'NP: Número de polos do disjuntor',
             'YYY A: Corrente nominal',
           ].map((ln, i) => (
-            <text key={i} x="663" y={52 + i * 13} fontSize="6.5">{ln}</text>
+            <text key={i} x="668" y={10 + i * 13} fontSize="6.5">{ln}</text>
           ))}
 
 
