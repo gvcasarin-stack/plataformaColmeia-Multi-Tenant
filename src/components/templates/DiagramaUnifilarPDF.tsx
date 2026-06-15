@@ -240,23 +240,31 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <PDFTerra x={BR - 18} y={192} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
-          {/* Wider box — extended both left (x=150) and right (to x=520) */}
-          <Rect x={150} y={220} width={370} height={82} fill="white" stroke="#000" strokeWidth={1.2} />
-          {/* Label — upper right, clear of center line */}
-          <Text x={512} y={233} fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE DISTRIBUICAO</Text>
+          <Rect
+            x={isMultiInv ? miColBX(0) - 20 : 150}
+            y={220}
+            width={isMultiInv ? miSectionW + 40 : 370}
+            height={82}
+            fill="white" stroke="#000" strokeWidth={1.2}
+          />
+          <Text
+            x={isMultiInv ? miColBX(numInversores - 1) + miColW + 12 : 512}
+            y={233}
+            fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000"
+          >QUADRO DE DISTRIBUICAO</Text>
 
           {/* Main vertical line through box */}
           <Line x1={CX} y1={220} x2={CX} y2={302} stroke="#000" strokeWidth={1} />
 
-          {/* Barramento horizontal — with margin at each end */}
+          {/* Barramento horizontal */}
           <Line
-            x1={isMultiInv ? Math.min(175, miColCX(0) - 30) : 175} y1={255}
-            x2={isMultiInv ? Math.max(495, miColCX(numInversores - 1) + 30) : 495} y2={255}
+            x1={isMultiInv ? miColBX(0) - 15 : 175} y1={255}
+            x2={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 495} y2={255}
             stroke="#000" strokeWidth={1}
           />
 
-          {/* Terra — grounding symbol at lower-right corner (not connected to barramento internally) */}
-          <PDFTerra x={505} y={302} />
+          {/* Terra — lower-right corner of QD */}
+          <PDFTerra x={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 505} y={302} />
 
           {/* Cargas derivation — inside box (x=195), drops with arrow */}
           <Line x1={195} y1={255} x2={195} y2={315} stroke="#000" strokeWidth={1} />
@@ -432,16 +440,26 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
               const cCX = miColCX(i);
               const cBX = miColBX(i);
               const cBR = cBX + miColW;
-              const dpsX = cBX + 25;
+              const dpsX = cCX - 50;
               return (
                 <>
-                  {/* Vertical barramento → Quadro CA */}
+                  {/* Barramento → Quadro CA */}
                   <Line key={`vl-${i}`} x1={cCX} y1={255} x2={cCX} y2={358} stroke="#000" strokeWidth={1} />
+
+                  {/* Cabos CA — barramento → Quadro CA */}
+                  <Line key={`ca1-ln-${i}`} x1={cCX} y1={310} x2={cCX + 12} y2={310} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`ca1-t0-${i}`} x={cCX + 15} y={303} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
+                  <Text key={`ca1-t1-${i}`} x={cCX + 15} y={311} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
+                  <Text key={`ca1-t2-${i}`} x={cCX + 15} y={319} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
+                  <Text key={`ca1-t3-${i}`} x={cCX + 15} y={327} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
 
                   {/* QUADRO DE PROTECAO CA */}
                   <Rect key={`qca-r-${i}`} x={cBX} y={358} width={miColW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
-                  <Text key={`qca-t1-${i}`} x={cBR - 5} y={371} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
-                  <Text key={`qca-t2-${i}`} x={cBR - 5} y={381} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
+                  <Text key={`qca-t1-${i}`} x={cBR - 5} y={371} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+                  <Text key={`qca-t2-${i}`} x={cBR - 5} y={381} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
+                  <Text key={`dpsca-l0-${i}`} x={cBX + 5} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{dpsLabel}</Text>
+                  <Text key={`dpsca-l1-${i}`} x={cBX + 5} y={405} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
+                  <Text key={`dpsca-l2-${i}`} x={cBX + 5} y={414} fontSize={5.5} fill="#000">Classe II</Text>
                   <Line key={`qca-v1-${i}`} x1={cCX} y1={358} x2={cCX} y2={408} stroke="#000" strokeWidth={1} />
                   <Line key={`dpsca-h-${i}`} x1={cCX} y1={385} x2={dpsX} y2={385} stroke="#000" strokeWidth={0.8} />
                   <Line key={`dpsca-v-${i}`} x1={dpsX} y1={385} x2={dpsX} y2={420} stroke="#000" strokeWidth={0.8} />
@@ -449,14 +467,22 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <Line key={`dpsca-bt-${i}`} x1={dpsX} y1={438} x2={dpsX} y2={450} stroke="#000" strokeWidth={0.8} />
                   <PDFTerra key={`dpsca-t-${i}`} x={dpsX} y={450} />
                   <PDFDisjuntor key={`d2-${i}`} x={cCX} y={415} />
-                  {i === 0 && <Text key={`d2-lbl-${i}`} x={cCX + 13} y={413} fontSize={6} fontFamily="Helvetica-Bold" fill="#000">D2</Text>}
+                  <Text key={`d2-lbl-${i}`} x={cCX + 15} y={413} fontSize={6.5} fill="#000">{`D${i + 2}`}</Text>
+                  <Text key={`d2-typ-${i}`} x={cCX + 15} y={423} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
                   <Line key={`qca-v2-${i}`} x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth={1} />
 
                   {/* Wire → INVERSOR */}
                   <Line key={`inv-up-${i}`} x1={cCX} y1={480} x2={cCX} y2={554} stroke="#000" strokeWidth={1} />
 
+                  {/* Cabos CA — Quadro CA → Inversor */}
+                  <Line key={`ca2-ln-${i}`} x1={cCX} y1={502} x2={cCX + 12} y2={502} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`ca2-t0-${i}`} x={cCX + 15} y={495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
+                  <Text key={`ca2-t1-${i}`} x={cCX + 15} y={503} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
+                  <Text key={`ca2-t2-${i}`} x={cCX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
+                  <Text key={`ca2-t3-${i}`} x={cCX + 15} y={519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
+
                   {/* INVERSOR */}
-                  <Text key={`inv-lbl-${i}`} x={cCX} y={551} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{`INV. ${i + 1}`}</Text>
+                  <Text key={`inv-lbl-${i}`} x={cBR - 5} y={551} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
                   <Rect key={`inv-r-${i}`} x={cBX} y={554} width={miColW} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
                   <Line key={`inv-diag-${i}`} x1={cBX} y1={554} x2={cBR} y2={609} stroke="#000" strokeWidth={0.9} />
                   <Path key={`inv-ac-${i}`} d={`M${cBX + 4} 598 Q${cBX + 8} 591 ${cBX + 12} 598 Q${cBX + 16} 605 ${cBX + 20} 598`} stroke="#000" strokeWidth={0.9} fill="none" />
@@ -466,10 +492,23 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   {/* Wire INVERSOR → QUADRO CC */}
                   <Line key={`inv-dn-${i}`} x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth={1} />
 
+                  {/* Cabos CC — Inversor → Quadro CC */}
+                  <Line key={`cc1-ln-${i}`} x1={cCX} y1={644} x2={cCX + 12} y2={644} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`cc1-t0-${i}`} x={cCX + 15} y={636} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+                  <Text key={`cc1-t1-${i}`} x={cCX + 15} y={644} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc1-t2-${i}`} x={cCX + 15} y={652} fontSize={5.5} fill="#000">Para cada string:</Text>
+                  <Text key={`cc1-t3-${i}`} x={cCX + 15} y={659} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
+                  <Text key={`cc1-t4-${i}`} x={cCX + 15} y={666} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
+                  <Text key={`cc1-t5-${i}`} x={cCX + 15} y={674} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc1-t6-${i}`} x={cCX + 15} y={681} fontSize={5.5} fill="#000">1 #6,0mm² (T)</Text>
+
                   {/* QUADRO DE PROTECAO CC */}
                   <Rect key={`qcc-r-${i}`} x={cBX} y={708} width={miColW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
-                  <Text key={`qcc-t1-${i}`} x={cBR - 5} y={720} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
-                  <Text key={`qcc-t2-${i}`} x={cBR - 5} y={730} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
+                  <Text key={`qcc-t1-${i}`} x={cBR - 5} y={720} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+                  <Text key={`qcc-t2-${i}`} x={cBR - 5} y={730} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
+                  <Text key={`dpscc-l0-${i}`} x={cBX + 5} y={758} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
+                  <Text key={`dpscc-l1-${i}`} x={cBX + 5} y={767} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
+                  <Text key={`dpscc-l2-${i}`} x={cBX + 5} y={776} fontSize={5.5} fill="#000">Classe II</Text>
                   <Line key={`qcc-v1-${i}`} x1={cCX} y1={708} x2={cCX} y2={745} stroke="#000" strokeWidth={1} />
                   <Line key={`dpscc-h-${i}`} x1={cCX} y1={725} x2={dpsX} y2={725} stroke="#000" strokeWidth={0.8} />
                   <Line key={`dpscc-v-${i}`} x1={dpsX} y1={725} x2={dpsX} y2={780} stroke="#000" strokeWidth={0.8} />
@@ -477,25 +516,44 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <Line key={`dpscc-bt-${i}`} x1={dpsX} y1={798} x2={dpsX} y2={810} stroke="#000" strokeWidth={0.8} />
                   <PDFTerra key={`dpscc-t-${i}`} x={dpsX} y={810} />
                   <PDFChaveSeccionadora key={`c1-${i}`} x={cCX} y={766} />
-                  {i === 0 && <Text key={`c1-lbl-${i}`} x={cCX + 20} y={764} fontSize={5} fill="#000">C1 - Chave Secc.</Text>}
-                  <Line key={`qcc-v2-${i}`} x1={cCX} y1={770} x2={cCX} y2={935} stroke="#000" strokeWidth={1} />
+                  <Text key={`c1-n-${i}`} x={cCX + 22} y={758} fontSize={6.5} fill="#000">{`C${i + 1}`}</Text>
+                  <Text key={`c1-l1-${i}`} x={cCX + 22} y={768} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
+                  <Text key={`c1-l2-${i}`} x={cCX + 22} y={777} fontSize={5.5} fill="#000">(4 polos)</Text>
+                  <Text key={`c1-l3-${i}`} x={cCX + 22} y={786} fontSize={5.5} fill="#000">1200 Vcc 32 A</Text>
 
-                  {/* G circle */}
+                  {/* Wire QCC → G */}
+                  <Line key={`qcc-v2-${i}`} x1={cCX} y1={770} x2={cCX} y2={848} stroke="#000" strokeWidth={1} />
+
+                  {/* Cabos CC — Quadro CC → G */}
+                  <Line key={`cc2-ln-${i}`} x1={cCX} y1={872} x2={cCX + 12} y2={872} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`cc2-t0-${i}`} x={cCX + 15} y={865} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+                  <Text key={`cc2-t1-${i}`} x={cCX + 15} y={873} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc2-t2-${i}`} x={cCX + 15} y={881} fontSize={5.5} fill="#000">Para cada string:</Text>
+                  <Text key={`cc2-t3-${i}`} x={cCX + 15} y={888} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
+                  <Text key={`cc2-t4-${i}`} x={cCX + 15} y={895} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
+                  <Text key={`cc2-t5-${i}`} x={cCX + 15} y={903} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc2-t6-${i}`} x={cCX + 15} y={910} fontSize={5.5} fill="#000">1 #6,0mm² (T)</Text>
+
+                  {/* G — GERADOR */}
+                  <Line key={`g-up-${i}`} x1={cCX} y1={848} x2={cCX} y2={935} stroke="#000" strokeWidth={1} />
                   <Circle key={`g-c-${i}`} cx={cCX} cy={971} r={32} fill="white" stroke="#000" strokeWidth={1.5} />
                   <Text key={`g-t-${i}`} x={cCX} y={978} fontSize={20} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
                   <Line key={`g-v-${i}`} x1={cCX} y1={1003} x2={cCX} y2={1017} stroke="#000" strokeWidth={1.2} />
                   <PDFTerra key={`g-terra-${i}`} x={cCX} y={1017} />
 
-                  {/* Module annotation — last column only, if room */}
-                  {i === numInversores - 1 && numInversores <= 3 && (<>
+                  {/* Modulos — ultima coluna */}
+                  {i === numInversores - 1 && (<>
                     <Line key={`mod-ln-${i}`} x1={cCX + 32} y1={971} x2={cBR + 12} y2={971} stroke="#000" strokeWidth={0.6} />
-                    <Text key={`mod-t0-${i}`} x={cBR + 15} y={942} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
-                    <Text key={`mod-t1-${i}`} x={cBR + 15} y={952} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-                    <Text key={`mod-t2-${i}`} x={cBR + 15} y={962} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-                    <Text key={`mod-t3-${i}`} x={cBR + 15} y={972} fontSize={5.5} fill="#000">Pot.: {fv(pd.modulos_potencia_wp)} W</Text>
-                    <Text key={`mod-t4-${i}`} x={cBR + 15} y={982} fontSize={5.5} fill="#000">Qtd.: {qtdDescr}</Text>
-                    <Text key={`mod-t5-${i}`} x={cBR + 15} y={992} fontSize={5.5} fill="#000">Total: {potKwp} kWp</Text>
-                    <Text key={`mod-t6-${i}`} x={cBR + 15} y={1002} fontSize={5.5} fill="#000">{tensaoStr} V / {corrStr} A</Text>
+                    <Text key={`mod-t0-${i}`} x={cBR + 15} y={938} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+                    <Text key={`mod-t1-${i}`} x={cBR + 15} y={948} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+                    <Text key={`mod-t2-${i}`} x={cBR + 15} y={957} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+                    <Text key={`mod-t3-${i}`} x={cBR + 15} y={966} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+                    <Text key={`mod-t4-${i}`} x={cBR + 15} y={975} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+                    <Text key={`mod-t5-${i}`} x={cBR + 15} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+                    <Text key={`mod-t6-${i}`} x={cBR + 15} y={993} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
+                    <Text key={`mod-t7-${i}`} x={cBR + 15} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
+                    <Text key={`mod-t8-${i}`} x={cBR + 15} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
+                    <Text key={`mod-t9-${i}`} x={cBR + 15} y={1020} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
                   </>)}
                 </>
               );
