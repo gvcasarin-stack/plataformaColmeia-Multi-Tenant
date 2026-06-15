@@ -10,6 +10,7 @@ export function PastDueBanner() {
   const [status, setStatus] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -36,6 +37,7 @@ export function PastDueBanner() {
 
   async function handlePortal() {
     setLoadingPortal(true);
+    setPortalError(null);
     try {
       const res = await fetch('/api/billing/portal', {
         method: 'POST',
@@ -43,9 +45,13 @@ export function PastDueBanner() {
         body: JSON.stringify({ returnUrl: window.location.href }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setPortalError(data.error || 'Não foi possível abrir o portal.');
+      }
     } catch {
-      // silencioso — usuário pode ir em /admin/assinaturas
+      setPortalError('Erro de conexão.');
     } finally {
       setLoadingPortal(false);
     }
@@ -54,10 +60,13 @@ export function PastDueBanner() {
   if (status !== 'past_due' || dismissed) return null;
 
   return (
-    <div className="w-full bg-yellow-500 text-yellow-950 px-4 py-2.5 flex items-center gap-3 text-sm font-medium shadow-sm">
+    <div className="w-full bg-yellow-500 text-yellow-950 px-4 py-2.5 flex items-center gap-3 text-sm font-medium shadow-sm flex-wrap">
       <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-      <span className="flex-1">
+      <span className="flex-1 min-w-0">
         Pagamento pendente — atualize sua forma de pagamento para evitar a suspensão do acesso.
+        {portalError && (
+          <span className="block text-xs text-red-800 font-normal mt-0.5">{portalError}</span>
+        )}
       </span>
       <button
         onClick={handlePortal}

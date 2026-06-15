@@ -97,6 +97,7 @@ export default function AssinaturasPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
   const [tenantsBilling, setTenantsBilling] = useState<any[]>([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
   const [tenantsFilter, setTenantsFilter] = useState('all');
@@ -317,6 +318,7 @@ export default function AssinaturasPage() {
   // Função para abrir o Stripe Customer Portal
   const handleOpenPortal = async () => {
     setLoadingPortal(true);
+    setPortalError(null);
     try {
       const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
       const headers = await createTenantHeaders(user!.id);
@@ -326,9 +328,13 @@ export default function AssinaturasPage() {
         body: JSON.stringify({ returnUrl: window.location.href }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setPortalError(data.error || 'Não foi possível abrir o portal. Tente novamente.');
+      }
     } catch (e: any) {
-      setError('Não foi possível abrir o portal de pagamento.');
+      setPortalError('Erro de conexão ao abrir o portal de pagamento.');
     } finally {
       setLoadingPortal(false);
     }
@@ -682,7 +688,7 @@ export default function AssinaturasPage() {
           <AlertTitle className="text-yellow-800">Pagamento Pendente</AlertTitle>
           <AlertDescription className="text-yellow-700">
             Há uma cobrança pendente na sua assinatura. Atualize sua forma de pagamento para evitar a suspensão do acesso.
-            <div className="mt-3">
+            <div className="mt-3 space-y-2">
               <Button
                 size="sm"
                 className="bg-yellow-600 hover:bg-yellow-700 text-white"
@@ -692,6 +698,9 @@ export default function AssinaturasPage() {
                 {loadingPortal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1" />}
                 Atualizar forma de pagamento
               </Button>
+              {portalError && (
+                <p className="text-xs text-red-600 font-medium">{portalError}</p>
+              )}
             </div>
           </AlertDescription>
         </Alert>
@@ -704,7 +713,7 @@ export default function AssinaturasPage() {
           <AlertTitle>Acesso Suspenso por Inadimplência</AlertTitle>
           <AlertDescription>
             O acesso foi suspenso após múltiplas tentativas de cobrança sem sucesso. Regularize o pagamento para restaurar o acesso.
-            <div className="mt-3">
+            <div className="mt-3 space-y-2">
               <Button
                 size="sm"
                 className="bg-red-600 hover:bg-red-700 text-white"
@@ -714,6 +723,9 @@ export default function AssinaturasPage() {
                 {loadingPortal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1" />}
                 Regularizar pagamento
               </Button>
+              {portalError && (
+                <p className="text-xs text-red-200 font-medium">{portalError}</p>
+              )}
             </div>
           </AlertDescription>
         </Alert>
