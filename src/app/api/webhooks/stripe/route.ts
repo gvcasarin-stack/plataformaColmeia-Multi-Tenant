@@ -559,6 +559,64 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
       ${org.id ? `<a href="https://dashboard.stripe.com/customers/${invoice.customer}">Ver no Stripe</a>` : ''}</p>`
     );
 
+    // Notificações in-app para admins da tenant afetada
+    try {
+      const { data: orgAdmins } = await supabase
+        .from('users')
+        .select('id, tenant_id')
+        .eq('tenant_id', org.id)
+        .in('role', ['admin', 'owner']);
+
+      if (orgAdmins?.length) {
+        const inAppTitle = isSuspended
+          ? 'Acesso suspenso por inadimplência'
+          : 'Falha no pagamento da assinatura';
+        const inAppMessage = isSuspended
+          ? `Após ${newCount} tentativas sem sucesso, o acesso foi suspenso. Regularize sua assinatura para restaurar o acesso.`
+          : `A cobrança de ${amountBrl} não foi aprovada (tentativa ${newCount}). Atualize sua forma de pagamento para evitar suspensão.`;
+
+        const notifications = orgAdmins.map((u: any) => ({
+          type: 'warning',
+          category: 'system',
+          priority: 'normal',
+          title: inAppTitle,
+          message: inAppMessage,
+          user_id: u.id,
+          tenant_id: u.tenant_id,
+          read: false,
+          data: { orgId: org.id, failureCount: newCount, isSuspended },
+        }));
+        await supabase.from('notifications').insert(notifications);
+      }
+    } catch (notifErr: any) {
+      devLog.error('[StripeWebhook] Erro ao criar notificações in-app tenant:', notifErr.message);
+    }
+
+    // Notificação in-app para o superadmin
+    try {
+      const { data: superAdminUser } = await supabase
+        .from('users')
+        .select('id, tenant_id')
+        .eq('email', SUPERADMIN_EMAIL)
+        .maybeSingle();
+
+      if (superAdminUser) {
+        await supabase.from('notifications').insert({
+          type: 'warning',
+          category: 'system',
+          priority: 'normal',
+          title: `[Billing] ${org.name} — falha ${newCount}${isSuspended ? ' (SUSPENSO)' : ''}`,
+          message: `Falha de pagamento: ${amountBrl}. E-mail admin: ${ownerEmail || 'não encontrado'}.`,
+          user_id: superAdminUser.id,
+          tenant_id: superAdminUser.tenant_id,
+          read: false,
+          data: { orgId: org.id, orgName: org.name, failureCount: newCount, isSuspended },
+        });
+      }
+    } catch (superNotifErr: any) {
+      devLog.error('[StripeWebhook] Erro ao criar notificação in-app superadmin:', superNotifErr.message);
+    }
+
     devLog.log('[Stripe Webhook] Payment failed processed:', {
       subscriptionId: invoice.subscription,
       orgId: org.id,

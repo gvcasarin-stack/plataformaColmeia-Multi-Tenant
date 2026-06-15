@@ -89,7 +89,8 @@ async function safeCore(request: NextRequest) {
       pathname.startsWith('/account-suspended') ||
       pathname.startsWith('/tenant-not-found') ||
       pathname.startsWith('/wrong-domain') ||
-      pathname.startsWith('/admin/bloqueio')) {
+      pathname.startsWith('/admin/bloqueio') ||
+      pathname.startsWith('/api/billing/reactivate-checkout')) {
     devLog.log(`[Middleware] Página de erro bypass: ${pathname}`);
     return response;
   }
@@ -191,9 +192,15 @@ async function safeCore(request: NextRequest) {
         // Verificar status da tenant antes de permitir acesso
         const tenantStatus = tenantCheck.status;
 
-        // Tenant cancelada - redirecionar para página de conta encerrada
+        // Tenant cancelada (campo status) - redirecionar para página de conta encerrada
         if (tenantStatus === 'canceled') {
           devLog.log(`[Middleware] Tenant cancelada: ${slug} - redirecionando para /account-canceled`);
+          return NextResponse.redirect(new URL('/account-canceled', request.url));
+        }
+
+        // Assinatura cancelada via Stripe (subscription_status) - mesmo redirecionamento
+        if (tenantCheck.subscriptionStatus === 'canceled') {
+          devLog.log(`[Middleware] Assinatura cancelada: ${slug} - redirecionando para /account-canceled`);
           return NextResponse.redirect(new URL('/account-canceled', request.url));
         }
 

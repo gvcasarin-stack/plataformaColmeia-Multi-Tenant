@@ -1249,7 +1249,7 @@ export default function AssinaturasPage() {
                   <span className="text-xs font-normal text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">Superadmin</span>
                 </CardTitle>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {['all', 'past_due', 'suspended', 'active', 'trial'].map(f => (
+                  {['all', 'past_due', 'suspended', 'canceled', 'active', 'trial'].map(f => (
                     <button
                       key={f}
                       onClick={() => setTenantsFilter(f)}
@@ -1259,7 +1259,7 @@ export default function AssinaturasPage() {
                           : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
                       }`}
                     >
-                      {{ all: 'Todos', past_due: 'Inadimplentes', suspended: 'Suspensos', active: 'Ativos', trial: 'Trial' }[f]}
+                      {{ all: 'Todos', past_due: 'Inadimplentes', suspended: 'Suspensos', canceled: 'Cancelados', active: 'Ativos', trial: 'Trial' }[f]}
                     </button>
                   ))}
                   <button
@@ -1316,11 +1316,12 @@ export default function AssinaturasPage() {
                 )}
               </div>
               {/* Cards de resumo */}
-              <div className="grid grid-cols-3 gap-3 mt-3">
+              <div className="grid grid-cols-4 gap-3 mt-3">
                 {[
                   { label: 'Inadimplentes', key: 'past_due', color: 'yellow' },
                   { label: 'Suspensos', key: 'suspended', color: 'red' },
                   { label: 'Com falhas', key: 'failures', color: 'orange' },
+                  { label: 'Cancelados', key: 'canceled', color: 'gray' },
                 ].map(({ label, key, color }) => {
                   const count = key === 'failures'
                     ? tenantsBilling.filter(t => (t.payment_failure_count ?? 0) > 0).length
