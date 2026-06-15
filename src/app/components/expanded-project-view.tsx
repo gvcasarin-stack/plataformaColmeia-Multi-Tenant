@@ -1453,28 +1453,22 @@ export const ExpandedProjectView = ({
   };
 
   const handleSaveSetup = async (data: SetupProjetoData) => {
-    const resp = await fetch(`/api/projects/${project.id}/conferir-info`, {
+    const resp = await fetch(`/api/projects/${project.id}/setup`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: data }),
     });
     const result = await resp.json();
+    devLog.log('[SetupModal] Resultado da API /setup:', result);
 
     if (!result.success) {
-      devLog.error('[SetupModal] Erro ao salvar:', result.error, result.debug);
+      devLog.error('[SetupModal] Erro ao salvar:', result);
+      const desc = result.missingColumns?.length > 0
+        ? `Colunas faltantes no banco: ${result.missingColumns.join(', ')}. Execute o script scripts/add-setup-projeto-fields.sql no Supabase.`
+        : result.error || 'Não foi possível salvar. Tente novamente.';
       toast({
         title: 'Erro ao salvar setup',
-        description: result.error || 'Não foi possível salvar. Tente novamente.',
-        variant: 'destructive',
-        duration: 10000,
-      });
-      return;
-    }
-
-    if (result.debug?.missingColumns?.length > 0) {
-      toast({
-        title: 'Colunas não encontradas no banco',
-        description: `Execute o script SQL add-setup-projeto-fields.sql no Supabase. Colunas faltantes: ${result.debug.missingColumns.join(', ')}`,
+        description: desc,
         variant: 'destructive',
         duration: 20000,
       });
@@ -1483,7 +1477,7 @@ export const ExpandedProjectView = ({
 
     setGerarProjetoFields(prev => ({ ...prev, ...data }));
     setEditedProject(prev => ({ ...prev, ...data }));
-    toast({ title: 'Setup salvo', description: `${result.debug?.savedFields?.length || 0} campos salvos no banco de dados.` });
+    toast({ title: 'Setup salvo', description: `${result.savedFields?.length || 0} campos salvos no banco de dados.` });
   };
 
   // 🗑️ Função para arquivar projeto
