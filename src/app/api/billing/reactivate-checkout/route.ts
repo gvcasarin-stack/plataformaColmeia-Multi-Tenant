@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       success_url: `${baseUrl}/admin/assinaturas?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/account-canceled`,
       metadata: {
