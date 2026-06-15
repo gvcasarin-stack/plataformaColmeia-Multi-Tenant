@@ -269,14 +269,13 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 </div>
               ))}
             </div>
-            {/* Barramento horizontal exatamente de centro a centro */}
-            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '1.5px' }}>
-              <div style={{ position: 'absolute', top: 0, left: '100px', right: '100px', height: '1.5px', backgroundColor: '#000' }} />
-            </div>
-            {/* N linhas verticais independentes descendo ao QGBT */}
+            {/* Conexão em L individual por bloco: do centro vai à direita, depois desce ao QGBT */}
             <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '22px' }}>
               {Array.from({ length: numInversores }).map((_, i) => (
-                <div key={i} style={{ position: 'absolute', left: `${i * 216 + 99}px`, top: 0, width: '1px', height: '22px', backgroundColor: '#000' }} />
+                <div key={`h${i}`} style={{ position: 'absolute', top: 0, left: `${i * 216 + 99}px`, width: '77px', height: '1.5px', backgroundColor: '#000' }} />
+              ))}
+              {Array.from({ length: numInversores }).map((_, i) => (
+                <div key={`v${i}`} style={{ position: 'absolute', top: 0, left: `${i * 216 + 175}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />
               ))}
             </div>
             {/* QGBT largo — N entradas independentes visíveis no topo */}
