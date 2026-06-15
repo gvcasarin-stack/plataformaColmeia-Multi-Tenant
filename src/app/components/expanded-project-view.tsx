@@ -588,6 +588,7 @@ export const ExpandedProjectView = ({
     setup_quadro_cc: (project as any).setup_quadro_cc || SETUP_DEFAULTS.setup_quadro_cc,
     setup_mais_de_um_inversor: (project as any).setup_mais_de_um_inversor || SETUP_DEFAULTS.setup_mais_de_um_inversor,
     setup_tipo_inversor: (project as any).setup_tipo_inversor || SETUP_DEFAULTS.setup_tipo_inversor,
+    setup_total_inversores: (project as any).setup_total_inversores || SETUP_DEFAULTS.setup_total_inversores,
     setup_configuracao_saidas: (project as any).setup_configuracao_saidas || SETUP_DEFAULTS.setup_configuracao_saidas,
     setup_tipo_transformador: (project as any).setup_tipo_transformador || '',
     setup_potencia_transformador: (project as any).setup_potencia_transformador || '',

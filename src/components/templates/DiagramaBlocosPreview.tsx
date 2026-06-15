@@ -183,7 +183,6 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={BOX}>
                     <div style={BOLD}>Módulos Fotovoltaicos</div>
-                    <div style={NORMAL}>(Inversor {i + 1})</div>
                     <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
                   </div>
                   <div style={V_LINE} />
@@ -206,13 +205,25 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 </div>
               ))}
             </div>
-            {/* Barramento horizontal exatamente de centro a centro */}
-            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '1.5px' }}>
-              <div style={{ position: 'absolute', top: 0, left: '100px', right: '100px', height: '1.5px', backgroundColor: '#000' }} />
+            {/* Funil simétrico — mesmo padrão das saídas independentes */}
+            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '22px' }}>
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const lc = (numInversores * 216 - 16) / 2;
+                const bc = i * 216 + 100;
+                if (bc < lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 100}px`, width: '75px', height: '1.5px', backgroundColor: '#000' }} />;
+                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 25}px`, width: '75px', height: '1.5px', backgroundColor: '#000' }} />;
+                return null;
+              })}
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const lc = (numInversores * 216 - 16) / 2;
+                const bc = i * 216 + 100;
+                if (bc < lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 175}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 25}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+                return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 100}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+              })}
             </div>
-            {/* Quadro CA único */}
-            <div style={V_LINE} />
-            <div style={BOX}>
+            {/* Quadro CA único — largura igual às colunas */}
+            <div style={{ border: '1.5px solid #000', width: `${numInversores * 216 - 16}px`, padding: '8px 10px', textAlign: 'center', backgroundColor: '#FFFFFF', fontSize: '8px', lineHeight: '1.5', boxSizing: 'border-box' }}>
               <div style={BOLD}>Quadro de Proteção CA:</div>
               <div style={NORMAL}>DPS e Disjuntor</div>
             </div>
@@ -241,7 +252,6 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={BOX}>
                     <div style={BOLD}>Módulos Fotovoltaicos</div>
-                    <div style={NORMAL}>(Inversor {i + 1})</div>
                     <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
                   </div>
                   <div style={V_LINE} />
@@ -275,8 +285,8 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
               {Array.from({ length: numInversores }).map((_, i) => {
                 const lc = (numInversores * 216 - 16) / 2;
                 const bc = i * 216 + 100;
-                if (bc < lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 99}px`, width: '76px', height: '1.5px', backgroundColor: '#000' }} />;
-                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 24}px`, width: '76px', height: '1.5px', backgroundColor: '#000' }} />;
+                if (bc < lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 100}px`, width: '75px', height: '1.5px', backgroundColor: '#000' }} />;
+                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 25}px`, width: '75px', height: '1.5px', backgroundColor: '#000' }} />;
                 return null;
               })}
               {/* Verticais (quedas ao QGBT) */}
@@ -284,8 +294,8 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 const lc = (numInversores * 216 - 16) / 2;
                 const bc = i * 216 + 100;
                 if (bc < lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 175}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
-                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 24}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
-                return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 99}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 25}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+                return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 100}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
               })}
             </div>
             {/* QGBT largo — N entradas independentes visíveis no topo */}

@@ -171,6 +171,44 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
   const fabricante = pd?.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
   const invPotencia = fmt2(pd?.inversores_potencia);
 
+  const hasStringbox = !!(pd?.setup_quadro_cc && pd.setup_quadro_cc !== 'nao');
+  const stringboxLabel = pd?.setup_quadro_cc === 'dps_chave_seccionadora' ? 'DPS e Chave Seccionadora'
+    : pd?.setup_quadro_cc === 'dps_disjuntor_cc' ? 'DPS e Disjuntor CC'
+    : 'DPS';
+  const numInversores = pd?.setup_mais_de_um_inversor === 'sim' && pd?.setup_tipo_inversor !== 'microinversor'
+    ? (parseInt(String(pd?.setup_total_inversores || '2')) || 2)
+    : 1;
+  const configuracaoSaidas = String(pd?.setup_configuracao_saidas || 'independentes');
+
+  const PDF_GAP = 10;
+  const pdfColW = numInversores === 1 ? BOX_W
+    : Math.min(BOX_W, Math.floor((475 - PDF_GAP * (numInversores - 1)) / numInversores));
+  const pdfStep = pdfColW + PDF_GAP;
+  const pdfCenter = pdfColW / 2;
+  const pdfSectionW = numInversores * pdfStep - PDF_GAP;
+  const pdfLayoutCenter = pdfSectionW / 2;
+  const pdfHW = Math.round(pdfStep * 75 / 216);
+  const FUNNEL_H = 18;
+
+  function renderFunnel() {
+    return (
+      <View style={{ position: 'relative', width: pdfSectionW, height: FUNNEL_H }}>
+        {Array.from({ length: numInversores }).map((_, i) => {
+          const bc = i * pdfStep + pdfCenter;
+          if (bc < pdfLayoutCenter) return <View key={`fh${i}`} style={{ position: 'absolute', top: 0, left: bc, width: pdfHW, height: 1, backgroundColor: BC }} />;
+          if (bc > pdfLayoutCenter) return <View key={`fh${i}`} style={{ position: 'absolute', top: 0, left: bc - pdfHW, width: pdfHW, height: 1, backgroundColor: BC }} />;
+          return null;
+        })}
+        {Array.from({ length: numInversores }).map((_, i) => {
+          const bc = i * pdfStep + pdfCenter;
+          if (bc < pdfLayoutCenter) return <View key={`fv${i}`} style={{ position: 'absolute', top: 0, left: bc + pdfHW, width: 1, height: FUNNEL_H, backgroundColor: BC }} />;
+          if (bc > pdfLayoutCenter) return <View key={`fv${i}`} style={{ position: 'absolute', top: 0, left: bc - pdfHW, width: 1, height: FUNNEL_H, backgroundColor: BC }} />;
+          return <View key={`fv${i}`} style={{ position: 'absolute', top: 0, left: bc, width: 1, height: FUNNEL_H, backgroundColor: BC }} />;
+        })}
+      </View>
+    );
+  }
+
   // ── Seal fields ────────────────────────────────────────────────────────────
   const owner    = String(pd?.nomeClienteFinal   || 'NOME DO PROPRIETARIO');
   const endereco = String(pd?.endereco_local      || 'ENDERECO DA OBRA');
@@ -184,52 +222,158 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        {/* 1. Módulos */}
-        <View style={s.box}>
-          <Text style={s.boldLine}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</Text>
-          <Text style={s.normalLine}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</Text>
-          {stringsLine && <Text style={s.normalLine}>{stringsLine}</Text>}
-          <Text style={s.normalLine}>Potência total: {potenciaTotal} kWp</Text>
-        </View>
-
-        <View style={s.vLine} />
-
-        {/* 2. Inversor */}
-        <View style={s.box}>
-          <Text style={s.boldLine}>Inversor Fotovoltaico:</Text>
-          <Text style={s.boldLine}>{fabricante} {invPotencia}kW</Text>
-          <Text style={s.normalLine}>Proteções CC Acopladas:</Text>
-          <Text style={s.normalLine}>DPS e Chave Seccionadora</Text>
-          <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
-          <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
-        </View>
-
-        <View style={s.vLine} />
-
-        {/* 3. Quadro CA */}
-        <View style={s.box}>
-          <Text style={s.boldLine}>Quadro de Proteção CA:</Text>
-          <Text style={s.normalLine}>DPS e Disjuntor</Text>
-        </View>
-
-        <View style={s.vLine} />
-
-        {/* 4. QGBT centralizado + Unidade Consumidora à direita */}
-        <View style={{ width: BOX_W, position: 'relative' }}>
-          <View style={s.box}>
-            <Text style={s.normalLine}>QGBT</Text>
-            <Text style={s.normalLine}>Quadro de baixa tensão</Text>
-          </View>
-          <View style={{ position: 'absolute', top: 0, left: BOX_W, flexDirection: 'row', alignItems: 'center', height: '100%' }}>
-            <View style={[s.hLine, { alignSelf: 'center' }]} />
-            <View style={[s.box, { width: 120 }]}>
-              <Text style={s.normalLine}>Unidade</Text>
-              <Text style={s.normalLine}>Consumidora/Geradora</Text>
+        {numInversores === 1 ? (
+          <>
+            {/* 1. Módulos */}
+            <View style={s.box}>
+              <Text style={s.boldLine}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</Text>
+              <Text style={s.normalLine}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</Text>
+              {stringsLine && <Text style={s.normalLine}>{stringsLine}</Text>}
+              <Text style={s.normalLine}>Potência total: {potenciaTotal} kWp</Text>
             </View>
-          </View>
-        </View>
-
-        <View style={s.vLine} />
+            <View style={s.vLine} />
+            {hasStringbox && (
+              <>
+                <View style={s.box}>
+                  <Text style={s.boldLine}>Quadro de Proteção CC (Stringbox):</Text>
+                  <Text style={s.normalLine}>{stringboxLabel}</Text>
+                </View>
+                <View style={s.vLine} />
+              </>
+            )}
+            {/* 2. Inversor */}
+            <View style={s.box}>
+              <Text style={s.boldLine}>Inversor Fotovoltaico:</Text>
+              <Text style={s.boldLine}>{fabricante} {invPotencia}kW</Text>
+              <Text style={s.normalLine}>Proteções CC Acopladas:</Text>
+              <Text style={s.normalLine}>DPS e Chave Seccionadora</Text>
+              <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
+              <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
+            </View>
+            <View style={s.vLine} />
+            {/* 3. Quadro CA */}
+            <View style={s.box}>
+              <Text style={s.boldLine}>Quadro de Proteção CA:</Text>
+              <Text style={s.normalLine}>DPS e Disjuntor</Text>
+            </View>
+            <View style={s.vLine} />
+            {/* 4. QGBT */}
+            <View style={{ width: BOX_W, position: 'relative' }}>
+              <View style={s.box}>
+                <Text style={s.normalLine}>QGBT</Text>
+                <Text style={s.normalLine}>Quadro de baixa tensão</Text>
+              </View>
+              <View style={{ position: 'absolute', top: 0, left: BOX_W, flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+                <View style={[s.hLine, { alignSelf: 'center' }]} />
+                <View style={[s.box, { width: 120 }]}>
+                  <Text style={s.normalLine}>Unidade</Text>
+                  <Text style={s.normalLine}>Consumidora/Geradora</Text>
+                </View>
+              </View>
+            </View>
+            <View style={s.vLine} />
+          </>
+        ) : configuracaoSaidas === 'agrupadas' ? (
+          <>
+            <View style={{ width: pdfSectionW, flexDirection: 'row', justifyContent: 'space-between' }}>
+              {Array.from({ length: numInversores }).map((_, i) => (
+                <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
+                  <View style={[s.box, { width: pdfColW }]}>
+                    <Text style={s.boldLine}>Módulos Fotovoltaicos</Text>
+                    <Text style={s.normalLine}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</Text>
+                  </View>
+                  <View style={s.vLine} />
+                  {hasStringbox && (
+                    <>
+                      <View style={[s.box, { width: pdfColW }]}>
+                        <Text style={s.boldLine}>Quadro de Proteção CC (Stringbox):</Text>
+                        <Text style={s.normalLine}>{stringboxLabel}</Text>
+                      </View>
+                      <View style={s.vLine} />
+                    </>
+                  )}
+                  <View style={[s.box, { width: pdfColW }]}>
+                    <Text style={s.boldLine}>Inversor Fotovoltaico {i + 1}:</Text>
+                    <Text style={s.boldLine}>{fabricante} {invPotencia}kW</Text>
+                    <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
+                    <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
+                  </View>
+                  <View style={s.vLine} />
+                </View>
+              ))}
+            </View>
+            {renderFunnel()}
+            <View style={{ borderWidth: 1, borderColor: BC, width: pdfSectionW, paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' }}>
+              <Text style={s.boldLine}>Quadro de Proteção CA:</Text>
+              <Text style={s.normalLine}>DPS e Disjuntor</Text>
+            </View>
+            <View style={s.vLine} />
+            <View style={{ width: pdfColW, position: 'relative' }}>
+              <View style={[s.box, { width: pdfColW }]}>
+                <Text style={s.normalLine}>QGBT</Text>
+                <Text style={s.normalLine}>Quadro de baixa tensão</Text>
+              </View>
+              <View style={{ position: 'absolute', top: 0, left: pdfColW, flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+                <View style={[s.hLine, { alignSelf: 'center' }]} />
+                <View style={[s.box, { width: 120 }]}>
+                  <Text style={s.normalLine}>Unidade</Text>
+                  <Text style={s.normalLine}>Consumidora/Geradora</Text>
+                </View>
+              </View>
+            </View>
+            <View style={s.vLine} />
+          </>
+        ) : (
+          <>
+            <View style={{ width: pdfSectionW, flexDirection: 'row', justifyContent: 'space-between' }}>
+              {Array.from({ length: numInversores }).map((_, i) => (
+                <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
+                  <View style={[s.box, { width: pdfColW }]}>
+                    <Text style={s.boldLine}>Módulos Fotovoltaicos</Text>
+                    <Text style={s.normalLine}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</Text>
+                  </View>
+                  <View style={s.vLine} />
+                  {hasStringbox && (
+                    <>
+                      <View style={[s.box, { width: pdfColW }]}>
+                        <Text style={s.boldLine}>Quadro de Proteção CC (Stringbox):</Text>
+                        <Text style={s.normalLine}>{stringboxLabel}</Text>
+                      </View>
+                      <View style={s.vLine} />
+                    </>
+                  )}
+                  <View style={[s.box, { width: pdfColW }]}>
+                    <Text style={s.boldLine}>Inversor Fotovoltaico {i + 1}:</Text>
+                    <Text style={s.boldLine}>{fabricante} {invPotencia}kW</Text>
+                    <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
+                    <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
+                  </View>
+                  <View style={s.vLine} />
+                  <View style={[s.box, { width: pdfColW }]}>
+                    <Text style={s.boldLine}>Quadro de Proteção CA:</Text>
+                    <Text style={s.normalLine}>DPS e Disjuntor</Text>
+                  </View>
+                  <View style={s.vLine} />
+                </View>
+              ))}
+            </View>
+            {renderFunnel()}
+            <View style={{ width: pdfSectionW, position: 'relative' }}>
+              <View style={{ borderWidth: 1, borderColor: BC, width: pdfSectionW, paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' }}>
+                <Text style={s.normalLine}>QGBT</Text>
+                <Text style={s.normalLine}>Quadro de baixa tensão</Text>
+              </View>
+              <View style={{ position: 'absolute', top: 0, left: pdfSectionW, flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+                <View style={[s.hLine, { alignSelf: 'center' }]} />
+                <View style={[s.box, { width: 120 }]}>
+                  <Text style={s.normalLine}>Unidade</Text>
+                  <Text style={s.normalLine}>Consumidora/Geradora</Text>
+                </View>
+              </View>
+            </View>
+            <View style={s.vLine} />
+          </>
+        )}
 
         {/* 5. Disjuntor */}
         <View style={s.box}>

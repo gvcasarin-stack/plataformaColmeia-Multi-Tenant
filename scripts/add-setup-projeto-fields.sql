@@ -1,0 +1,10 @@
+-- Adicionar campos de Setup do Projeto na tabela projects
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_padrao_entrada TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_quadro_cc TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_mais_de_um_inversor TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_tipo_inversor TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_total_inversores TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_configuracao_saidas TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_tipo_transformador TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_potencia_transformador TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS setup_concluido TEXT;
