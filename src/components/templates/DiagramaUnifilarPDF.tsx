@@ -178,14 +178,19 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = 30;
-  const MI_MAX_COL_W = 200;
+  const MI_GAP = 160;
+  const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
   const miSectionW = numInversores * miColStep - MI_GAP;
   const miSectionStart = (900 - miSectionW) / 2;
   const miColCX = (i: number) => Math.round(miSectionStart + miColW / 2 + i * miColStep);
   const miColBX = (i: number) => Math.round(miSectionStart + i * miColStep);
+
+  const topCX = isMultiInv ? 450 : CX;
+  const topBX = topCX - 120;
+  const topBR = topCX + 120;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 10, 160) : 195;
 
   // Seal column centers
   const MID_CTR = 439; // center of middle col (178-700)
@@ -196,48 +201,50 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
         <Svg width={812} height={991} viewBox="0 -25 900 1203">
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
-          <Line x1={90} y1={28} x2={490} y2={28} stroke="#000" strokeWidth={1.8} />
-          <Text x={CX} y={21} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">REDE DE BAIXA TENSAO</Text>
+          <Line
+            x1={isMultiInv ? Math.round(miColBX(0)) - 20 : 90} y1={28}
+            x2={isMultiInv ? Math.round(miColBX(numInversores - 1)) + miColW + 20 : 490} y2={28}
+            stroke="#000" strokeWidth={1.8}
+          />
+          <Text x={topCX} y={21} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">REDE DE BAIXA TENSAO</Text>
 
-          <Line x1={CX} y1={28} x2={CX} y2={44} stroke="#000" strokeWidth={1} />
-          <Polygon points={`${CX - 5},28 ${CX + 5},28 ${CX},40`} fill="#000" />
-          <Text x={CX + 8} y={37} fontSize={6.5} fill="#000">PONTO DE ENTREGA</Text>
-          <Text x={CX + 8} y={47} fontSize={6.5} fill="#000">ACESSADA</Text>
-          <Text x={CX + 8} y={57} fontSize={6.5} fill="#000">ACESSANTE</Text>
+          <Line x1={topCX} y1={28} x2={topCX} y2={44} stroke="#000" strokeWidth={1} />
+          <Polygon points={`${topCX - 5},28 ${topCX + 5},28 ${topCX},40`} fill="#000" />
+          <Text x={topCX + 8} y={37} fontSize={6.5} fill="#000">PONTO DE ENTREGA</Text>
+          <Text x={topCX + 8} y={47} fontSize={6.5} fill="#000">ACESSADA</Text>
+          <Text x={topCX + 8} y={57} fontSize={6.5} fill="#000">ACESSANTE</Text>
 
-          {/* Ramal de Ligação — annotation left of MEDIDOR (y=78–105) */}
           {/* ═══ PADRÃO DE ENTRADA ═══ */}
-          <Rect x={BX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
-          {/* Label right-shifted inside box */}
-          <Text x={406} y={57} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
-          <Text x={406} y={67} fontSize={6} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
+          <Rect x={topBX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Text x={topCX + 66} y={57} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
+          <Text x={topCX + 66} y={67} fontSize={6} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
 
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
-          <Line x1={CX} y1={42} x2={CX} y2={138} stroke="#000" strokeWidth={1} />
+          <Line x1={topCX} y1={42} x2={topCX} y2={138} stroke="#000" strokeWidth={1} />
 
           {/* Horizontal tap to MEDIDOR (branch right) */}
-          <Line x1={CX} y1={85} x2={355} y2={85} stroke="#000" strokeWidth={1} />
+          <Line x1={topCX} y1={85} x2={topCX + 15} y2={85} stroke="#000" strokeWidth={1} />
 
           {/* MEDIDOR box — right of main line */}
-          <Rect x={355} y={71} width={95} height={28} fill="white" stroke="#000" strokeWidth={1} />
-          <Text x={402} y={88} fontSize={9} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">MEDIDOR</Text>
+          <Rect x={topCX + 15} y={71} width={95} height={28} fill="white" stroke="#000" strokeWidth={1} />
+          <Text x={topCX + 62} y={88} fontSize={9} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">MEDIDOR</Text>
 
           {/* Ramal de Ligação — drawn AFTER rects so visible over white fills */}
-          <Text x={244} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
-          <Text x={244} y={87}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">{`Aluminio ${ramalTipo} - 1,0 kV`}</Text>
-          <Text x={244} y={96}  fontSize={5.8} fill="#000">{`${nFaseRL} #${secaoFase}mm² (F)`}</Text>
-          <Text x={244} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (N)`}</Text>
+          <Text x={topCX - 96} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
+          <Text x={topCX - 96} y={87}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">{`Aluminio ${ramalTipo} - 1,0 kV`}</Text>
+          <Text x={topCX - 96} y={96}  fontSize={5.8} fill="#000">{`${nFaseRL} #${secaoFase}mm² (F)`}</Text>
+          <Text x={topCX - 96} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (N)`}</Text>
 
           {/* D1 on main vertical line */}
-          <PDFDisjuntor x={CX} y={145} />
-          <Text x={CX + 15} y={143} fontSize={6.5} fill="#000">D1</Text>
-          <Text x={CX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
+          <PDFDisjuntor x={topCX} y={145} />
+          <Text x={topCX + 15} y={143} fontSize={6.5} fill="#000">D1</Text>
+          <Text x={topCX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
 
-          {/* D1 exit → out of PADRÃO (continuous, grounding branch removed) */}
-          <Line x1={CX} y1={152} x2={CX} y2={220} stroke="#000" strokeWidth={1} />
+          {/* D1 exit → out of PADRÃO */}
+          <Line x1={topCX} y1={152} x2={topCX} y2={220} stroke="#000" strokeWidth={1} />
 
           {/* Terra — lower-right corner of PADRAO DE ENTRADA */}
-          <PDFTerra x={BR - 18} y={192} />
+          <PDFTerra x={topBR - 18} y={192} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           <Rect
@@ -254,7 +261,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           >QUADRO DE DISTRIBUICAO</Text>
 
           {/* Main vertical line through box */}
-          <Line x1={CX} y1={220} x2={CX} y2={302} stroke="#000" strokeWidth={1} />
+          <Line x1={topCX} y1={220} x2={topCX} y2={302} stroke="#000" strokeWidth={1} />
 
           {/* Barramento horizontal */}
           <Line
@@ -266,12 +273,12 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* Terra — lower-right corner of QD */}
           <PDFTerra x={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 505} y={302} />
 
-          {/* Cargas derivation — inside box (x=195), drops with arrow */}
-          <Line x1={195} y1={255} x2={195} y2={315} stroke="#000" strokeWidth={1} />
-          <Polygon points="190,315 200,315 195,325" fill="#000" />
-          <Text x={215} y={311} fontSize={5.8} fill="#000">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</Text>
-          <Text x={215} y={320} fontSize={5.8} fill="#000">{`Tensao Nominal: ${tensaoNom} V`}</Text>
-          <Text x={215} y={329} fontSize={5.8} fill="#000">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</Text>
+          {/* Cargas derivation — inside QD box */}
+          <Line x1={cargasX} y1={255} x2={cargasX} y2={315} stroke="#000" strokeWidth={1} />
+          <Polygon points={`${cargasX - 5},315 ${cargasX + 5},315 ${cargasX},325`} fill="#000" />
+          <Text x={cargasX + 20} y={311} fontSize={5.8} fill="#000">{`Cargas (${cargaKw !== '___' ? cargaKw : '--'} kW)`}</Text>
+          <Text x={cargasX + 20} y={320} fontSize={5.8} fill="#000">{`Tensao Nominal: ${tensaoNom} V`}</Text>
+          <Text x={cargasX + 20} y={329} fontSize={5.8} fill="#000">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</Text>
 
           {!isMultiInv && (<>
           <Line x1={CX} y1={302} x2={CX} y2={358} stroke="#000" strokeWidth={1} />
@@ -489,6 +496,31 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <Line key={`inv-dc1-${i}`} x1={cBR - 26} y1={560} x2={cBR - 4} y2={560} stroke="#000" strokeWidth={0.9} />
                   <Line key={`inv-dc2-${i}`} x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth={0.9} />
 
+                  {/* Specs — esquerda do inversor */}
+                  <Text key={`spec-t0-${i}`} x={cBX - 5} y={557} fontSize={4.8} textAnchor="end" fill="#000">Marca: {invFab}</Text>
+                  <Text key={`spec-t1-${i}`} x={cBX - 5} y={564} fontSize={4.8} textAnchor="end" fill="#000">Modelo: {invMod}</Text>
+                  <Text key={`spec-t2-${i}`} x={cBX - 5} y={571} fontSize={4.8} textAnchor="end" fill="#000">Potencia: {invPot} kW</Text>
+                  <Text key={`spec-t3-${i}`} x={cBX - 5} y={578} fontSize={4.8} textAnchor="end" fill="#000">Ent - V max: {invVccMax} Vcc</Text>
+                  <Text key={`spec-t4-${i}`} x={cBX - 5} y={585} fontSize={4.8} textAnchor="end" fill="#000">  - I max: {invIccMax} A</Text>
+                  <Text key={`spec-t5-${i}`} x={cBX - 5} y={592} fontSize={4.8} textAnchor="end" fill="#000">Saida - V: {tensaoNom} Vca</Text>
+                  <Text key={`spec-t6-${i}`} x={cBX - 5} y={599} fontSize={4.8} textAnchor="end" fill="#000">  - I: {invCorrOut} A</Text>
+                  <Text key={`spec-t7-${i}`} x={cBX - 5} y={606} fontSize={4.8} textAnchor="end" fill="#000">Ver datasheet</Text>
+
+                  {/* Relays — direita do inversor (compacto) */}
+                  <Line key={`rel-h-${i}`} x1={cBR} y1={581} x2={cBR + 20} y2={581} stroke="#000" strokeWidth={1} />
+                  <Line key={`rel-v-${i}`} x1={cBR + 20} y1={527} x2={cBR + 20} y2={618} stroke="#000" strokeWidth={1} />
+                  {[{ l: '25', s: '' }, { l: '27', s: '' }, { l: '59', s: '' }, { l: '81', s: 'U/O' }].map(({ l, s }, ri) => (
+                    <>
+                      <Line key={`rl-${i}-${l}`} x1={cBR + 20} y1={534 + ri * 18} x2={cBR + 22} y2={534 + ri * 18} stroke="#000" strokeWidth={0.8} />
+                      <Rect key={`rr-${i}-${l}`} x={cBR + 22} y={527 + ri * 18} width={16} height={14} fill="white" stroke="#000" strokeWidth={0.8} />
+                      <Text key={`rt-${i}-${l}`} x={cBR + 30} y={s ? 536 + ri * 18 : 538 + ri * 18} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
+                      {s ? <Text key={`rs-${i}-${l}`} x={cBR + 30} y={542 + ri * 18} fontSize={4} textAnchor="middle" fill="#000">{s}</Text> : null}
+                    </>
+                  ))}
+                  <Line key={`ai-h-${i}`} x1={cBR + 20} y1={601} x2={cBR + 22} y2={601} stroke="#000" strokeWidth={0.8} />
+                  <Rect key={`ai-r-${i}`} x={cBR + 22} y={595} width={52} height={10} fill="white" stroke="#000" strokeWidth={0.8} />
+                  <Text key={`ai-t-${i}`} x={cBR + 48} y={602} fontSize={4.5} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
+
                   {/* Wire INVERSOR → QUADRO CC */}
                   <Line key={`inv-dn-${i}`} x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth={1} />
 
@@ -541,19 +573,33 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <Line key={`g-v-${i}`} x1={cCX} y1={1003} x2={cCX} y2={1017} stroke="#000" strokeWidth={1.2} />
                   <PDFTerra key={`g-terra-${i}`} x={cCX} y={1017} />
 
-                  {/* Modulos — ultima coluna */}
-                  {i === numInversores - 1 && (<>
-                    <Line key={`mod-ln-${i}`} x1={cCX + 32} y1={971} x2={cBR + 12} y2={971} stroke="#000" strokeWidth={0.6} />
-                    <Text key={`mod-t0-${i}`} x={cBR + 15} y={938} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
-                    <Text key={`mod-t1-${i}`} x={cBR + 15} y={948} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-                    <Text key={`mod-t2-${i}`} x={cBR + 15} y={957} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-                    <Text key={`mod-t3-${i}`} x={cBR + 15} y={966} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
-                    <Text key={`mod-t4-${i}`} x={cBR + 15} y={975} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-                    <Text key={`mod-t5-${i}`} x={cBR + 15} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-                    <Text key={`mod-t6-${i}`} x={cBR + 15} y={993} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
-                    <Text key={`mod-t7-${i}`} x={cBR + 15} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
-                    <Text key={`mod-t8-${i}`} x={cBR + 15} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
-                    <Text key={`mod-t9-${i}`} x={cBR + 15} y={1020} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
+                  {/* Modulos — primeira coluna (esquerda do G) */}
+                  {i === 0 && (<>
+                    <Line key={`mod-ln-${i}`} x1={cCX - 32} y1={971} x2={cBX - 12} y2={971} stroke="#000" strokeWidth={0.6} />
+                    <Text key={`mod-t0-${i}`} x={cBX - 15} y={938} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">Modulos Fotovoltaicos:</Text>
+                    <Text key={`mod-t1-${i}`} x={cBX - 15} y={948} fontSize={5.5} textAnchor="end" fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+                    <Text key={`mod-t2-${i}`} x={cBX - 15} y={957} fontSize={5.5} textAnchor="end" fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+                    <Text key={`mod-t3-${i}`} x={cBX - 15} y={966} fontSize={5.5} textAnchor="end" fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+                    <Text key={`mod-t4-${i}`} x={cBX - 15} y={975} fontSize={5.5} textAnchor="end" fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+                    <Text key={`mod-t5-${i}`} x={cBX - 15} y={984} fontSize={5.5} textAnchor="end" fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+                    <Text key={`mod-t6-${i}`} x={cBX - 15} y={993} fontSize={5.5} textAnchor="end" fill="#000">Quantidade: {qtdDescr}</Text>
+                    <Text key={`mod-t7-${i}`} x={cBX - 15} y={1002} fontSize={5.5} textAnchor="end" fill="#000">Potencia total: {potKwp} kWp</Text>
+                    <Text key={`mod-t8-${i}`} x={cBX - 15} y={1011} fontSize={5.5} textAnchor="end" fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
+                    <Text key={`mod-t9-${i}`} x={cBX - 15} y={1020} fontSize={5.5} textAnchor="end" fill="#000">{corrLabel}: {corrStr} A</Text>
+                  </>)}
+                  {/* Modulos — ultima coluna (direita do G, mais proximo) */}
+                  {i === numInversores - 1 && numInversores > 1 && (<>
+                    <Line key={`mod-ln2-${i}`} x1={cCX + 32} y1={971} x2={cCX + 40} y2={971} stroke="#000" strokeWidth={0.6} />
+                    <Text key={`mod-t0b-${i}`} x={cCX + 43} y={938} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+                    <Text key={`mod-t1b-${i}`} x={cCX + 43} y={948} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+                    <Text key={`mod-t2b-${i}`} x={cCX + 43} y={957} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+                    <Text key={`mod-t3b-${i}`} x={cCX + 43} y={966} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+                    <Text key={`mod-t4b-${i}`} x={cCX + 43} y={975} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+                    <Text key={`mod-t5b-${i}`} x={cCX + 43} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+                    <Text key={`mod-t6b-${i}`} x={cCX + 43} y={993} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
+                    <Text key={`mod-t7b-${i}`} x={cCX + 43} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
+                    <Text key={`mod-t8b-${i}`} x={cCX + 43} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
+                    <Text key={`mod-t9b-${i}`} x={cCX + 43} y={1020} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
                   </>)}
                 </>
               );
@@ -561,8 +607,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           </>)}
 
           {/* ═══ LEGENDA ═══ */}
-          <Rect x={655} y={22} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
-          <Text x={774} y={38} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">LEGENDA:</Text>
+          <Rect x={660} y={-20} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
+          <Text x={779} y={-4} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">LEGENDA:</Text>
           {[
             'D1: Disjuntor de entrada ou geral da',
             '       unidade consumidora',
@@ -579,7 +625,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
             'NP: Numero de polos do disjuntor',
             'YYY A: Corrente nominal',
           ].map((ln, i) => (
-            <Text key={i} x={663} y={52 + i * 13} fontSize={6.5} fill="#000">{ln}</Text>
+            <Text key={i} x={668} y={10 + i * 13} fontSize={6.5} fill="#000">{ln}</Text>
           ))}
 
 
