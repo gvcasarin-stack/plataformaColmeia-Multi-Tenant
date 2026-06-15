@@ -230,6 +230,16 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
       client_city: item.client_city || undefined,
       client_state: item.client_state || undefined,
 
+      setup_padrao_entrada: item.setup_padrao_entrada || undefined,
+      setup_quadro_cc: item.setup_quadro_cc || undefined,
+      setup_mais_de_um_inversor: item.setup_mais_de_um_inversor || undefined,
+      setup_tipo_inversor: item.setup_tipo_inversor || undefined,
+      setup_total_inversores: item.setup_total_inversores || undefined,
+      setup_configuracao_saidas: item.setup_configuracao_saidas || undefined,
+      setup_tipo_transformador: item.setup_tipo_transformador || undefined,
+      setup_potencia_transformador: item.setup_potencia_transformador || undefined,
+      setup_concluido: item.setup_concluido || undefined,
+
       // 💳 BILLING: Adicionar campos de faturamento
       billing_mode: item.billing_mode || 'avulso',
       billing_snapshot: item.billing_snapshot || null,
@@ -455,6 +465,16 @@ export const getProjectsWithFilters = async (filters: {
         data_documento: item.data_documento || undefined,
         secao_aterramento_mm2: item.secao_aterramento_mm2 || undefined,
 
+        setup_padrao_entrada: item.setup_padrao_entrada || undefined,
+        setup_quadro_cc: item.setup_quadro_cc || undefined,
+        setup_mais_de_um_inversor: item.setup_mais_de_um_inversor || undefined,
+        setup_tipo_inversor: item.setup_tipo_inversor || undefined,
+        setup_total_inversores: item.setup_total_inversores || undefined,
+        setup_configuracao_saidas: item.setup_configuracao_saidas || undefined,
+        setup_tipo_transformador: item.setup_tipo_transformador || undefined,
+        setup_potencia_transformador: item.setup_potencia_transformador || undefined,
+        setup_concluido: item.setup_concluido || undefined,
+
         // 💳 BILLING: Adicionar campos de faturamento
         billing_mode: item.billing_mode || 'avulso',
         billing_snapshot: item.billing_snapshot || null,
@@ -586,6 +606,16 @@ export const getProject = async (projectId: string): Promise<Project | null> => 
       responsavel_registro: data.responsavel_registro || undefined,
       data_documento: data.data_documento || undefined,
       secao_aterramento_mm2: data.secao_aterramento_mm2 || undefined,
+
+      setup_padrao_entrada: data.setup_padrao_entrada || undefined,
+      setup_quadro_cc: data.setup_quadro_cc || undefined,
+      setup_mais_de_um_inversor: data.setup_mais_de_um_inversor || undefined,
+      setup_tipo_inversor: data.setup_tipo_inversor || undefined,
+      setup_total_inversores: data.setup_total_inversores || undefined,
+      setup_configuracao_saidas: data.setup_configuracao_saidas || undefined,
+      setup_tipo_transformador: data.setup_tipo_transformador || undefined,
+      setup_potencia_transformador: data.setup_potencia_transformador || undefined,
+      setup_concluido: data.setup_concluido || undefined,
 
       createdAt: sanitizeDate(data.created_at),
       updatedAt: sanitizeDate(data.updated_at),

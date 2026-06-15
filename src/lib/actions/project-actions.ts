@@ -2582,6 +2582,16 @@ export async function getProjectAction(projectId: string): Promise<{
       cabo_ca_fator_temperatura: data.cabo_ca_fator_temperatura || undefined,
       cabo_ca_fator_agrupamento: data.cabo_ca_fator_agrupamento || undefined,
 
+      setup_padrao_entrada: data.setup_padrao_entrada || undefined,
+      setup_quadro_cc: data.setup_quadro_cc || undefined,
+      setup_mais_de_um_inversor: data.setup_mais_de_um_inversor || undefined,
+      setup_tipo_inversor: data.setup_tipo_inversor || undefined,
+      setup_total_inversores: data.setup_total_inversores || undefined,
+      setup_configuracao_saidas: data.setup_configuracao_saidas || undefined,
+      setup_tipo_transformador: data.setup_tipo_transformador || undefined,
+      setup_potencia_transformador: data.setup_potencia_transformador || undefined,
+      setup_concluido: data.setup_concluido || undefined,
+
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',
       // ✅ FIX: Permitir valor 0, usar ?? ao invés de ||
@@ -3349,7 +3359,17 @@ export async function editProjectAction(
       prioridade: updatedProjectData.prioridade,
       valorProjeto: updatedProjectData.valor_projeto,
       pagamento: updatedProjectData.pagamento,
-      
+
+      setup_padrao_entrada: updatedProjectData.setup_padrao_entrada || undefined,
+      setup_quadro_cc: updatedProjectData.setup_quadro_cc || undefined,
+      setup_mais_de_um_inversor: updatedProjectData.setup_mais_de_um_inversor || undefined,
+      setup_tipo_inversor: updatedProjectData.setup_tipo_inversor || undefined,
+      setup_total_inversores: updatedProjectData.setup_total_inversores || undefined,
+      setup_configuracao_saidas: updatedProjectData.setup_configuracao_saidas || undefined,
+      setup_tipo_transformador: updatedProjectData.setup_tipo_transformador || undefined,
+      setup_potencia_transformador: updatedProjectData.setup_potencia_transformador || undefined,
+      setup_concluido: updatedProjectData.setup_concluido || undefined,
+
       createdAt: updatedProjectData.created_at,
       updatedAt: updatedProjectData.updated_at,
       adminResponsibleId: updatedProjectData.admin_responsible_id,
