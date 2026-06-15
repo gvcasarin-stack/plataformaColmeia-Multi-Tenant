@@ -175,6 +175,18 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const BW = 240;
   const BR = BX + BW;
 
+  const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
+    ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
+  const isMultiInv = numInversores > 1;
+  const MI_GAP = 30;
+  const MI_MAX_COL_W = 200;
+  const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
+  const miColStep = miColW + MI_GAP;
+  const miSectionW = numInversores * miColStep - MI_GAP;
+  const miSectionStart = (900 - miSectionW) / 2;
+  const miColCX = (i: number) => Math.round(miSectionStart + miColW / 2 + i * miColStep);
+  const miColBX = (i: number) => Math.round(miSectionStart + i * miColStep);
+
   // Seal column centers
   const MID_CTR = 439; // center of middle col (178-700)
 
@@ -237,7 +249,11 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Line x1={CX} y1={220} x2={CX} y2={302} stroke="#000" strokeWidth={1} />
 
           {/* Barramento horizontal — with margin at each end */}
-          <Line x1={175} y1={255} x2={495} y2={255} stroke="#000" strokeWidth={1} />
+          <Line
+            x1={isMultiInv ? Math.min(175, miColCX(0) - 30) : 175} y1={255}
+            x2={isMultiInv ? Math.max(495, miColCX(numInversores - 1) + 30) : 495} y2={255}
+            stroke="#000" strokeWidth={1}
+          />
 
           {/* Terra — grounding symbol at lower-right corner (not connected to barramento internally) */}
           <PDFTerra x={505} y={302} />
@@ -249,6 +265,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={215} y={320} fontSize={5.8} fill="#000">{`Tensao Nominal: ${tensaoNom} V`}</Text>
           <Text x={215} y={329} fontSize={5.8} fill="#000">{`Corrente: ${corrCargas !== '___' ? corrCargas : '--'} A`}</Text>
 
+          {!isMultiInv && (<>
           <Line x1={CX} y1={302} x2={CX} y2={358} stroke="#000" strokeWidth={1} />
 
           {/* CA cables annotation — centered on main line */}
@@ -407,6 +424,83 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Text x={CX + 55} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
           <Text x={CX + 55} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
           <Text x={CX + 55} y={1020} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
+          </>)}
+
+          {/* ── Multi-inverter columns ── */}
+          {isMultiInv && (<>
+            {Array.from({ length: numInversores }, (_, i) => {
+              const cCX = miColCX(i);
+              const cBX = miColBX(i);
+              const cBR = cBX + miColW;
+              const dpsX = cBX + 25;
+              return (
+                <>
+                  {/* Vertical barramento → Quadro CA */}
+                  <Line key={`vl-${i}`} x1={cCX} y1={255} x2={cCX} y2={358} stroke="#000" strokeWidth={1} />
+
+                  {/* QUADRO DE PROTECAO CA */}
+                  <Rect key={`qca-r-${i}`} x={cBX} y={358} width={miColW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
+                  <Text key={`qca-t1-${i}`} x={cBR - 5} y={371} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+                  <Text key={`qca-t2-${i}`} x={cBR - 5} y={381} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
+                  <Line key={`qca-v1-${i}`} x1={cCX} y1={358} x2={cCX} y2={408} stroke="#000" strokeWidth={1} />
+                  <Line key={`dpsca-h-${i}`} x1={cCX} y1={385} x2={dpsX} y2={385} stroke="#000" strokeWidth={0.8} />
+                  <Line key={`dpsca-v-${i}`} x1={dpsX} y1={385} x2={dpsX} y2={420} stroke="#000" strokeWidth={0.8} />
+                  <PDFDPSSymbol key={`dpsca-sym-${i}`} x={dpsX} y={429} />
+                  <Line key={`dpsca-bt-${i}`} x1={dpsX} y1={438} x2={dpsX} y2={450} stroke="#000" strokeWidth={0.8} />
+                  <PDFTerra key={`dpsca-t-${i}`} x={dpsX} y={450} />
+                  <PDFDisjuntor key={`d2-${i}`} x={cCX} y={415} />
+                  {i === 0 && <Text key={`d2-lbl-${i}`} x={cCX + 13} y={413} fontSize={6} fontFamily="Helvetica-Bold" fill="#000">D2</Text>}
+                  <Line key={`qca-v2-${i}`} x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth={1} />
+
+                  {/* Wire → INVERSOR */}
+                  <Line key={`inv-up-${i}`} x1={cCX} y1={480} x2={cCX} y2={554} stroke="#000" strokeWidth={1} />
+
+                  {/* INVERSOR */}
+                  <Text key={`inv-lbl-${i}`} x={cCX} y={551} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{`INV. ${i + 1}`}</Text>
+                  <Rect key={`inv-r-${i}`} x={cBX} y={554} width={miColW} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
+                  <Line key={`inv-diag-${i}`} x1={cBX} y1={554} x2={cBR} y2={609} stroke="#000" strokeWidth={0.9} />
+                  <Path key={`inv-ac-${i}`} d={`M${cBX + 4} 598 Q${cBX + 8} 591 ${cBX + 12} 598 Q${cBX + 16} 605 ${cBX + 20} 598`} stroke="#000" strokeWidth={0.9} fill="none" />
+                  <Line key={`inv-dc1-${i}`} x1={cBR - 26} y1={560} x2={cBR - 4} y2={560} stroke="#000" strokeWidth={0.9} />
+                  <Line key={`inv-dc2-${i}`} x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth={0.9} />
+
+                  {/* Wire INVERSOR → QUADRO CC */}
+                  <Line key={`inv-dn-${i}`} x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth={1} />
+
+                  {/* QUADRO DE PROTECAO CC */}
+                  <Rect key={`qcc-r-${i}`} x={cBX} y={708} width={miColW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
+                  <Text key={`qcc-t1-${i}`} x={cBR - 5} y={720} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+                  <Text key={`qcc-t2-${i}`} x={cBR - 5} y={730} fontSize={6.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
+                  <Line key={`qcc-v1-${i}`} x1={cCX} y1={708} x2={cCX} y2={745} stroke="#000" strokeWidth={1} />
+                  <Line key={`dpscc-h-${i}`} x1={cCX} y1={725} x2={dpsX} y2={725} stroke="#000" strokeWidth={0.8} />
+                  <Line key={`dpscc-v-${i}`} x1={dpsX} y1={725} x2={dpsX} y2={780} stroke="#000" strokeWidth={0.8} />
+                  <PDFDPSSymbol key={`dpscc-sym-${i}`} x={dpsX} y={789} />
+                  <Line key={`dpscc-bt-${i}`} x1={dpsX} y1={798} x2={dpsX} y2={810} stroke="#000" strokeWidth={0.8} />
+                  <PDFTerra key={`dpscc-t-${i}`} x={dpsX} y={810} />
+                  <PDFChaveSeccionadora key={`c1-${i}`} x={cCX} y={766} />
+                  {i === 0 && <Text key={`c1-lbl-${i}`} x={cCX + 20} y={764} fontSize={5} fill="#000">C1 - Chave Secc.</Text>}
+                  <Line key={`qcc-v2-${i}`} x1={cCX} y1={770} x2={cCX} y2={935} stroke="#000" strokeWidth={1} />
+
+                  {/* G circle */}
+                  <Circle key={`g-c-${i}`} cx={cCX} cy={971} r={32} fill="white" stroke="#000" strokeWidth={1.5} />
+                  <Text key={`g-t-${i}`} x={cCX} y={978} fontSize={20} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
+                  <Line key={`g-v-${i}`} x1={cCX} y1={1003} x2={cCX} y2={1017} stroke="#000" strokeWidth={1.2} />
+                  <PDFTerra key={`g-terra-${i}`} x={cCX} y={1017} />
+
+                  {/* Module annotation — last column only, if room */}
+                  {i === numInversores - 1 && numInversores <= 3 && (<>
+                    <Line key={`mod-ln-${i}`} x1={cCX + 32} y1={971} x2={cBR + 12} y2={971} stroke="#000" strokeWidth={0.6} />
+                    <Text key={`mod-t0-${i}`} x={cBR + 15} y={942} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+                    <Text key={`mod-t1-${i}`} x={cBR + 15} y={952} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+                    <Text key={`mod-t2-${i}`} x={cBR + 15} y={962} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+                    <Text key={`mod-t3-${i}`} x={cBR + 15} y={972} fontSize={5.5} fill="#000">Pot.: {fv(pd.modulos_potencia_wp)} W</Text>
+                    <Text key={`mod-t4-${i}`} x={cBR + 15} y={982} fontSize={5.5} fill="#000">Qtd.: {qtdDescr}</Text>
+                    <Text key={`mod-t5-${i}`} x={cBR + 15} y={992} fontSize={5.5} fill="#000">Total: {potKwp} kWp</Text>
+                    <Text key={`mod-t6-${i}`} x={cBR + 15} y={1002} fontSize={5.5} fill="#000">{tensaoStr} V / {corrStr} A</Text>
+                  </>)}
+                </>
+              );
+            })}
+          </>)}
 
           {/* ═══ LEGENDA ═══ */}
           <Rect x={655} y={22} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
