@@ -133,9 +133,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
               {stringsLine && <div style={NORMAL}>{stringsLine}</div>}
               <div style={NORMAL}>Potência total: {potenciaTotal} kWp</div>
             </div>
-
             <div style={V_LINE} />
-
             {hasStringbox && (
               <>
                 <div style={BOX}>
@@ -145,7 +143,6 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 <div style={V_LINE} />
               </>
             )}
-
             {/* 2. Inversor */}
             <div style={BOX}>
               <div style={BOLD}>Inversor Fotovoltaico:</div>
@@ -155,32 +152,41 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
               <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
               <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
             </div>
-
             <div style={V_LINE} />
-
             {/* 3. Quadro CA */}
             <div style={BOX}>
               <div style={BOLD}>Quadro de Proteção CA:</div>
               <div style={NORMAL}>DPS e Disjuntor</div>
             </div>
-
+            <div style={V_LINE} />
+            {/* 4. QGBT */}
+            <div style={{ position: 'relative', width: '200px' }}>
+              <div style={BOX}>
+                <div style={NORMAL}>QGBT</div>
+                <div style={NORMAL}>Quadro de baixa tensão</div>
+              </div>
+              <div style={{ position: 'absolute', top: 0, left: '200px', display: 'flex', flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+                <div style={H_LINE} />
+                <div style={{ ...BOX, width: '140px' }}>
+                  <div style={NORMAL}>Unidade</div>
+                  <div style={NORMAL}>Consumidora/Geradora</div>
+                </div>
+              </div>
+            </div>
             <div style={V_LINE} />
           </>
-        ) : (
+        ) : configuracaoSaidas === 'agrupadas' ? (
           <>
-            {/* Multi-inversor: colunas side-by-side, borderBottom como barra de barramento */}
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', borderBottom: '1.5px solid #000000' }}>
+            {/* Multi-inversor agrupadas: colunas → barramento centro-a-centro → Quadro CA único → QGBT */}
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
               {Array.from({ length: numInversores }).map((_, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  {/* Módulos */}
                   <div style={BOX}>
                     <div style={BOLD}>Módulos Fotovoltaicos</div>
                     <div style={NORMAL}>(Inversor {i + 1})</div>
                     <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
                   </div>
                   <div style={V_LINE} />
-
-                  {/* Stringbox por coluna */}
                   {hasStringbox && (
                     <>
                       <div style={BOX}>
@@ -190,62 +196,106 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                       <div style={V_LINE} />
                     </>
                   )}
-
-                  {/* Inversor */}
                   <div style={BOX}>
                     <div style={BOLD}>Inversor Fotovoltaico {i + 1}:</div>
                     <div style={BOLD}>{fabricante} {invPotencia}kW</div>
                     <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
                     <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
                   </div>
-
-                  {/* Saídas independentes: Quadro CA por inversor */}
-                  {configuracaoSaidas === 'independentes' && (
-                    <>
-                      <div style={V_LINE} />
-                      <div style={BOX}>
-                        <div style={BOLD}>Quadro de Proteção CA:</div>
-                        <div style={NORMAL}>DPS e Disjuntor</div>
-                      </div>
-                    </>
-                  )}
-
                   <div style={V_LINE} />
                 </div>
               ))}
             </div>
-
+            {/* Barramento horizontal exatamente de centro a centro */}
+            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '1.5px' }}>
+              <div style={{ position: 'absolute', top: 0, left: '100px', right: '100px', height: '1.5px', backgroundColor: '#000' }} />
+            </div>
+            {/* Quadro CA único */}
             <div style={V_LINE} />
-
-            {/* Saídas agrupadas: único Quadro CA */}
-            {configuracaoSaidas === 'agrupadas' && (
-              <>
-                <div style={BOX}>
-                  <div style={BOLD}>Quadro de Proteção CA:</div>
-                  <div style={NORMAL}>DPS e Disjuntor</div>
+            <div style={BOX}>
+              <div style={BOLD}>Quadro de Proteção CA:</div>
+              <div style={NORMAL}>DPS e Disjuntor</div>
+            </div>
+            <div style={V_LINE} />
+            {/* QGBT */}
+            <div style={{ position: 'relative', width: '200px' }}>
+              <div style={BOX}>
+                <div style={NORMAL}>QGBT</div>
+                <div style={NORMAL}>Quadro de baixa tensão</div>
+              </div>
+              <div style={{ position: 'absolute', top: 0, left: '200px', display: 'flex', flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+                <div style={H_LINE} />
+                <div style={{ ...BOX, width: '140px' }}>
+                  <div style={NORMAL}>Unidade</div>
+                  <div style={NORMAL}>Consumidora/Geradora</div>
                 </div>
-                <div style={V_LINE} />
-              </>
-            )}
+              </div>
+            </div>
+            <div style={V_LINE} />
+          </>
+        ) : (
+          <>
+            {/* Multi-inversor independentes: colunas → barramento centro-a-centro → N linhas independentes → QGBT largo */}
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
+              {Array.from({ length: numInversores }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={BOX}>
+                    <div style={BOLD}>Módulos Fotovoltaicos</div>
+                    <div style={NORMAL}>(Inversor {i + 1})</div>
+                    <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
+                  </div>
+                  <div style={V_LINE} />
+                  {hasStringbox && (
+                    <>
+                      <div style={BOX}>
+                        <div style={BOLD}>Quadro de Proteção CC (Stringbox):</div>
+                        <div style={NORMAL}>{stringboxLabel}</div>
+                      </div>
+                      <div style={V_LINE} />
+                    </>
+                  )}
+                  <div style={BOX}>
+                    <div style={BOLD}>Inversor Fotovoltaico {i + 1}:</div>
+                    <div style={BOLD}>{fabricante} {invPotencia}kW</div>
+                    <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
+                    <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
+                  </div>
+                  <div style={V_LINE} />
+                  <div style={BOX}>
+                    <div style={BOLD}>Quadro de Proteção CA:</div>
+                    <div style={NORMAL}>DPS e Disjuntor</div>
+                  </div>
+                  <div style={V_LINE} />
+                </div>
+              ))}
+            </div>
+            {/* Barramento horizontal exatamente de centro a centro */}
+            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '1.5px' }}>
+              <div style={{ position: 'absolute', top: 0, left: '100px', right: '100px', height: '1.5px', backgroundColor: '#000' }} />
+            </div>
+            {/* N linhas verticais independentes descendo ao QGBT */}
+            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '22px' }}>
+              {Array.from({ length: numInversores }).map((_, i) => (
+                <div key={i} style={{ position: 'absolute', left: `${i * 216 + 99}px`, top: 0, width: '1px', height: '22px', backgroundColor: '#000' }} />
+              ))}
+            </div>
+            {/* QGBT largo — N entradas independentes visíveis no topo */}
+            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px` }}>
+              <div style={{ border: '1.5px solid #000', width: '100%', padding: '8px 10px', textAlign: 'center', backgroundColor: '#FFFFFF', fontSize: '8px', lineHeight: '1.5', boxSizing: 'border-box' }}>
+                <div style={NORMAL}>QGBT</div>
+                <div style={NORMAL}>Quadro de baixa tensão</div>
+              </div>
+              <div style={{ position: 'absolute', top: 0, left: '100%', display: 'flex', flexDirection: 'row', alignItems: 'center', height: '100%' }}>
+                <div style={H_LINE} />
+                <div style={{ ...BOX, width: '140px' }}>
+                  <div style={NORMAL}>Unidade</div>
+                  <div style={NORMAL}>Consumidora/Geradora</div>
+                </div>
+              </div>
+            </div>
+            <div style={V_LINE} />
           </>
         )}
-
-        {/* 4. QGBT centralizado + Unidade Consumidora à direita */}
-        <div style={{ position: 'relative', width: '200px' }}>
-          <div style={BOX}>
-            <div style={NORMAL}>QGBT</div>
-            <div style={NORMAL}>Quadro de baixa tensão</div>
-          </div>
-          <div style={{ position: 'absolute', top: 0, left: '200px', display: 'flex', flexDirection: 'row', alignItems: 'center', height: '100%' }}>
-            <div style={H_LINE} />
-            <div style={{ ...BOX, width: '140px' }}>
-              <div style={NORMAL}>Unidade</div>
-              <div style={NORMAL}>Consumidora/Geradora</div>
-            </div>
-          </div>
-        </div>
-
-        <div style={V_LINE} />
 
         {/* 5. Disjuntor */}
         <div style={BOX}>
