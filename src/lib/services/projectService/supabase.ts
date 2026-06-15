@@ -121,6 +121,17 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       data_documento: data.data_documento || undefined,
       secao_aterramento_mm2: data.secao_aterramento_mm2 || undefined,
 
+      // Setup do Projeto
+      setup_padrao_entrada: data.setup_padrao_entrada || undefined,
+      setup_quadro_cc: data.setup_quadro_cc || undefined,
+      setup_mais_de_um_inversor: data.setup_mais_de_um_inversor || undefined,
+      setup_tipo_inversor: data.setup_tipo_inversor || undefined,
+      setup_total_inversores: data.setup_total_inversores || undefined,
+      setup_configuracao_saidas: data.setup_configuracao_saidas || undefined,
+      setup_tipo_transformador: data.setup_tipo_transformador || undefined,
+      setup_potencia_transformador: data.setup_potencia_transformador || undefined,
+      setup_concluido: data.setup_concluido || undefined,
+
       // 💳 BILLING: Adicionar campos de faturamento
       billing_mode: data.billing_mode || 'avulso',
       billing_snapshot: data.billing_snapshot || null,
