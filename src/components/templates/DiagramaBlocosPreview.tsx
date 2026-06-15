@@ -269,14 +269,24 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 </div>
               ))}
             </div>
-            {/* Conexão em L individual por bloco: do centro vai à direita, depois desce ao QGBT */}
+            {/* Funil simétrico: blocos à esquerda do centro → linha vai à direita; à direita → vai à esquerda */}
             <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '22px' }}>
-              {Array.from({ length: numInversores }).map((_, i) => (
-                <div key={`h${i}`} style={{ position: 'absolute', top: 0, left: `${i * 216 + 99}px`, width: '77px', height: '1.5px', backgroundColor: '#000' }} />
-              ))}
-              {Array.from({ length: numInversores }).map((_, i) => (
-                <div key={`v${i}`} style={{ position: 'absolute', top: 0, left: `${i * 216 + 175}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />
-              ))}
+              {/* Horizontais */}
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const lc = (numInversores * 216 - 16) / 2;
+                const bc = i * 216 + 100;
+                if (bc < lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 99}px`, width: '76px', height: '1.5px', backgroundColor: '#000' }} />;
+                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 24}px`, width: '76px', height: '1.5px', backgroundColor: '#000' }} />;
+                return null;
+              })}
+              {/* Verticais (quedas ao QGBT) */}
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const lc = (numInversores * 216 - 16) / 2;
+                const bc = i * 216 + 100;
+                if (bc < lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 175}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+                if (bc > lc) return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 24}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+                return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 99}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
+              })}
             </div>
             {/* QGBT largo — N entradas independentes visíveis no topo */}
             <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px` }}>
