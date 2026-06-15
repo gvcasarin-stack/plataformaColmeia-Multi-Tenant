@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { XCircle, Mail, ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
+import { XCircle, ArrowLeft, CreditCard, Loader2, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AccountCanceledPage() {
@@ -83,17 +83,20 @@ export default function AccountCanceledPage() {
             {/* Seção de ajuda */}
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
               <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                <Mail className="h-5 w-5 text-blue-400" />
+                <MessageCircle className="h-5 w-5 text-green-400" />
                 Precisa de ajuda?
               </h2>
               <p className="text-slate-300 text-sm mb-4">
-                Se você acredita que isso é um erro ou precisa de suporte, entre em contato:
+                Se você acredita que isso é um erro ou precisa de suporte, fale conosco pelo WhatsApp:
               </p>
               <a
-                href="mailto:suporte@gerenciamentofotovoltaico.com.br"
-                className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium"
+                href="http://web.whatsapp.com/send?phone=554891760130"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-colors shadow"
               >
-                suporte@gerenciamentofotovoltaico.com.br
+                <MessageCircle className="h-4 w-4" />
+                Entrar em contato no WhatsApp
               </a>
             </div>
 
