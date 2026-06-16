@@ -71,7 +71,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = 312;
+  const MI_GAP = numInversores >= 3 ? 120 : 312;
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -223,8 +223,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ REDE DE BAIXA TENSÃO ═══════════════ */}
           <line
-            x1={isMultiInv ? Math.round(miColBX(0)) - 20 : 90} y1="28"
-            x2={isMultiInv ? Math.round(miColBX(numInversores - 1)) + miColW + 20 : 490} y2="28"
+            x1={isMultiInv ? 144 : 90} y1="28"
+            x2={isMultiInv ? 756 : 490} y2="28"
             stroke="#000" strokeWidth="1.8"
           />
           <text x={topCX} y="21" fontSize="8" fontWeight="bold" textAnchor="middle">REDE DE BAIXA TENSÃO</text>
@@ -538,14 +538,15 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <text x={cCX + 15} y={519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
                   {/* INVERSOR */}
-                  <text x={cBR - 5} y={551} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
+                  <text x={cCX} y={551} fontSize="8" fontWeight="bold" textAnchor="middle">INVERSOR {i + 1}</text>
                   <rect x={cBX} y={554} width={miColW} height={55} fill="white" stroke="#000" strokeWidth="1.2" />
                   <line x1={cBX} y1={554} x2={cBR} y2={609} stroke="#000" strokeWidth="0.9" />
                   <path d={`M${cBX + 4},598 Q${cBX + 8},591 ${cBX + 12},598 Q${cBX + 16},605 ${cBX + 20},598`} stroke="#000" strokeWidth="0.9" fill="none" />
                   <line x1={cBR - 26} y1={560} x2={cBR - 4} y2={560} stroke="#000" strokeWidth="0.9" />
                   <line x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth="0.9" />
 
-                  {/* Specs (left of inversor box) */}
+                  {/* Specs (left of inversor box) — only col 0 when N>=3 */}
+                  {(numInversores <= 2 || i === 0) && (<>
                   <text x={cBX - 118} y={557} fontSize="5.5">Marca: {invFab}</text>
                   <text x={cBX - 118} y={564} fontSize="5.5">Modelo: {invMod}</text>
                   <text x={cBX - 118} y={571} fontSize="5.5">Potência: {invPot} kW</text>
@@ -554,8 +555,10 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <text x={cBX - 118} y={592} fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
                   <text x={cBX - 118} y={599} fontSize="5.5">  - Corrente: {invCorrOut} A</text>
                   <text x={cBX - 118} y={606} fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
+                  </>)}
 
-                  {/* Protection relays — mesmo estilo do inversor individual */}
+                  {/* Protection relays — only last col when N>=3 */}
+                  {(numInversores <= 2 || i === numInversores - 1) && (<>
                   <line x1={cBR} y1={581} x2={cBR + 67} y2={581} stroke="#000" strokeWidth="1" />
                   <line x1={cBR + 67} y1={534} x2={cBR + 67} y2={651} stroke="#000" strokeWidth="1" />
                   {([
@@ -572,6 +575,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cBR + 67} y1={643} x2={cBR + 90} y2={643} stroke="#000" strokeWidth="0.8" />
                   <rect x={cBR + 90} y={635} width={80} height={16} fill="white" stroke="#000" strokeWidth="0.8" />
                   <text x={cBR + 130} y={646} fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
+                  </>)}
 
                   {/* Wire INVERSOR → QUADRO CC */}
                   <line x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth="1" />
