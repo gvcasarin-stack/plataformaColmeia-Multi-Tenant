@@ -71,7 +71,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = 260;
+  const MI_GAP = 312;
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -184,7 +184,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 40, 110) : 195;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, 100) : 195;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -270,9 +270,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect
-            x={isMultiInv ? miColBX(0) - 72 : 150}
+            x={isMultiInv ? miColBX(0) - 86 : 150}
             y="220"
-            width={isMultiInv ? miSectionW + 132 : 370}
+            width={isMultiInv ? miSectionW + 146 : 370}
             height="82"
             fill="white" stroke="#000" strokeWidth="1.2"
           />
@@ -287,7 +287,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* Barramento horizontal */}
           <line
-            x1={isMultiInv ? miColBX(0) - 67 : 175} y1="255"
+            x1={isMultiInv ? miColBX(0) - 80 : 175} y1="255"
             x2={isMultiInv ? miColBX(numInversores - 1) + miColW + 55 : 495} y2="255"
             stroke="#000" strokeWidth="1"
           />
@@ -555,23 +555,23 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <text x={cBX - 118} y={599} fontSize="5.5">  - Corrente: {invCorrOut} A</text>
                   <text x={cBX - 118} y={606} fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
 
-                  {/* Protection relays (right of inversor box) */}
-                  <line x1={cBR} y1={581} x2={cBR + 30} y2={581} stroke="#000" strokeWidth="1" />
-                  <line x1={cBR + 30} y1={527} x2={cBR + 30} y2={620} stroke="#000" strokeWidth="1" />
+                  {/* Protection relays — mesmo estilo do inversor individual */}
+                  <line x1={cBR} y1={581} x2={cBR + 67} y2={581} stroke="#000" strokeWidth="1" />
+                  <line x1={cBR + 67} y1={534} x2={cBR + 67} y2={651} stroke="#000" strokeWidth="1" />
                   {([
                     { l: '25', s: '' }, { l: '27', s: '' },
                     { l: '59', s: '' }, { l: '81', s: 'U/O' },
                   ] as { l: string; s: string }[]).map(({ l, s }, ri) => (
                     <g key={`rel-${i}-${l}`}>
-                      <line x1={cBR + 30} y1={538 + ri * 22} x2={cBR + 32} y2={538 + ri * 22} stroke="#000" strokeWidth="0.8" />
-                      <rect x={cBR + 32} y={527 + ri * 22} width={20} height={20} fill="white" stroke="#000" strokeWidth="0.8" />
-                      <text x={cBR + 42} y={s ? 538 + ri * 22 : 541 + ri * 22} fontSize="6.5" fontWeight="bold" textAnchor="middle">{l}</text>
-                      {s && <text x={cBR + 42} y={545 + ri * 22} fontSize="5" textAnchor="middle">{s}</text>}
+                      <line x1={cBR + 67} y1={544 + ri * 25} x2={cBR + 90} y2={544 + ri * 25} stroke="#000" strokeWidth="0.8" />
+                      <rect x={cBR + 90} y={534 + ri * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth="0.8" />
+                      <text x={cBR + 103} y={s ? 545 + ri * 25 : 548 + ri * 25} fontSize="7" fontWeight="bold" textAnchor="middle">{l}</text>
+                      {s && <text x={cBR + 103} y={552 + ri * 25} fontSize="5.5" textAnchor="middle">{s}</text>}
                     </g>
                   ))}
-                  <line x1={cBR + 30} y1={613} x2={cBR + 32} y2={613} stroke="#000" strokeWidth="0.8" />
-                  <rect x={cBR + 32} y={607} width={60} height={13} fill="white" stroke="#000" strokeWidth="0.8" />
-                  <text x={cBR + 62} y={616} fontSize="5.5" textAnchor="middle">ANTI-ILHAMENTO</text>
+                  <line x1={cBR + 67} y1={643} x2={cBR + 90} y2={643} stroke="#000" strokeWidth="0.8" />
+                  <rect x={cBR + 90} y={635} width={80} height={16} fill="white" stroke="#000" strokeWidth="0.8" />
+                  <text x={cBR + 130} y={646} fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
 
                   {/* Wire INVERSOR → QUADRO CC */}
                   <line x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth="1" />
