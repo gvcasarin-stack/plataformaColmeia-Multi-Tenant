@@ -71,6 +71,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
+  const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
   const MI_GAP = numInversores >= 3 ? 156 : 312;
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
@@ -184,7 +185,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 80 : 100) : 195;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
   const legendX = isMultiInv ? 810 : 490;
 
   const handleGeneratePdf = async () => {
@@ -493,6 +494,47 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ── Multi-inverter columns ── */}
           {isMultiInv && (<>
+
+            {/* ═══ UNIFIED QD CA — saídas agrupadas ═══ */}
+            {isSaidaAgrupada && (<>
+              {/* Barramento → QD CA unificado */}
+              <line x1={topCX} y1={255} x2={topCX} y2={358} stroke="#000" strokeWidth="1" />
+              {/* Cabos CA — barramento → QD CA */}
+              <line x1={topCX} y1={310} x2={topCX + 12} y2={310} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+              <text x={topCX + 15} y={303} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+              <text x={topCX + 15} y={311} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+              <text x={topCX + 15} y={319} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+              <text x={topCX + 15} y={327} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+              {/* Retângulo unificado QD Proteção CA */}
+              <rect
+                x={miColBX(0) - (numInversores >= 3 ? 119 : 99)}
+                y={358}
+                width={miSectionW + (numInversores >= 3 ? 188 : 168)}
+                height={140}
+                fill="white" stroke="#000" strokeWidth="1.2"
+              />
+              <text x={miColBX(numInversores - 1) + miColW + 52} y={370} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
+              <text x={miColBX(numInversores - 1) + miColW + 52} y={380} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
+              {/* Linha central do barramento até disjuntor geral */}
+              <line x1={topCX} y1={358} x2={topCX} y2={415} stroke="#000" strokeWidth="1" />
+              {/* DPS lateral */}
+              <text x={topCX - 115} y={372} fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
+              <text x={topCX - 115} y={381} fontSize="5.5">275 Vca, 20-40 kA</text>
+              <text x={topCX - 115} y={390} fontSize="5.5">Classe II</text>
+              <line x1={topCX} y1={375} x2={topCX - 80} y2={375} stroke="#000" strokeWidth="0.8" />
+              <line x1={topCX - 80} y1={375} x2={topCX - 80} y2={410} stroke="#000" strokeWidth="0.8" />
+              <DPSSymbol x={topCX - 80} y={419} />
+              <line x1={topCX - 80} y1={428} x2={topCX - 80} y2={440} stroke="#000" strokeWidth="0.8" />
+              <Terra x={topCX - 80} y={440} />
+              {/* Disjuntor Geral */}
+              <Disjuntor x={topCX} y={393} />
+              <text x={topCX + 15} y={391} fontSize="6.5">D2</text>
+              <text x={topCX + 15} y={401} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+              <text x={topCX + 15} y={410} fontSize="5" fontStyle="italic">GERAL</text>
+              {/* Barramento horizontal entre inversores */}
+              <line x1={miColCX(0)} y1={415} x2={miColCX(numInversores - 1)} y2={415} stroke="#000" strokeWidth="1" />
+            </>)}
+
             {Array.from({ length: numInversores }, (_, i) => {
               const cCX = miColCX(i);
               const cBX = miColBX(i);
@@ -500,43 +542,53 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               const dpsX = cCX - 50;
               return (
                 <g key={`inv-col-${i}`}>
-                  {/* Barramento → Quadro CA */}
-                  <line x1={cCX} y1={255} x2={cCX} y2={358} stroke="#000" strokeWidth="1" />
+                  {/* ─── Independentes: QD CA individual por inversor ─── */}
+                  {!isSaidaAgrupada && (<>
+                    {/* Barramento → Quadro CA */}
+                    <line x1={cCX} y1={255} x2={cCX} y2={358} stroke="#000" strokeWidth="1" />
+                    {/* Cabos CA — barramento → Quadro CA */}
+                    <line x1={cCX} y1={330} x2={cCX + 12} y2={330} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                    <text x={cCX + 15} y={323} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+                    <text x={cCX + 15} y={331} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+                    <text x={cCX + 15} y={339} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+                    <text x={cCX + 15} y={347} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+                    {/* QUADRO DE PROTEÇÃO CA */}
+                    <rect x={cCX - 120} y={358} width={240} height={122} fill="white" stroke="#000" strokeWidth="1.2" />
+                    <text x={cCX + 115} y={371} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
+                    <text x={cCX + 115} y={381} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
+                    <text x={cCX - 115} y={396} fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
+                    <text x={cCX - 115} y={405} fontSize="5.5">275 Vca, 20-40 kA</text>
+                    <text x={cCX - 115} y={414} fontSize="5.5">Classe II</text>
+                    <line x1={cCX} y1={358} x2={cCX} y2={408} stroke="#000" strokeWidth="1" />
+                    <line x1={cCX} y1={385} x2={dpsX} y2={385} stroke="#000" strokeWidth="0.8" />
+                    <line x1={dpsX} y1={385} x2={dpsX} y2={420} stroke="#000" strokeWidth="0.8" />
+                    <DPSSymbol x={dpsX} y={429} />
+                    <line x1={dpsX} y1={438} x2={dpsX} y2={450} stroke="#000" strokeWidth="0.8" />
+                    <Terra x={dpsX} y={450} />
+                    <Disjuntor x={cCX} y={415} />
+                    <text x={cCX + 15} y={413} fontSize="6.5">D{i + 2}</text>
+                    <text x={cCX + 15} y={423} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+                    <line x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth="1" />
+                  </>)}
 
-                  {/* Cabos CA — barramento → Quadro CA */}
-                  <line x1={cCX} y1={330} x2={cCX + 12} y2={330} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={323} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                  <text x={cCX + 15} y={331} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
-                  <text x={cCX + 15} y={339} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
-                  <text x={cCX + 15} y={347} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
-
-                  {/* QUADRO DE PROTEÇÃO CA */}
-                  <rect x={cCX - 120} y={358} width={240} height={122} fill="white" stroke="#000" strokeWidth="1.2" />
-                  <text x={cCX + 115} y={371} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
-                  <text x={cCX + 115} y={381} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
-                  <text x={cCX - 115} y={396} fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
-                  <text x={cCX - 115} y={405} fontSize="5.5">275 Vca, 20-40 kA</text>
-                  <text x={cCX - 115} y={414} fontSize="5.5">Classe II</text>
-                  <line x1={cCX} y1={358} x2={cCX} y2={408} stroke="#000" strokeWidth="1" />
-                  <line x1={cCX} y1={385} x2={dpsX} y2={385} stroke="#000" strokeWidth="0.8" />
-                  <line x1={dpsX} y1={385} x2={dpsX} y2={420} stroke="#000" strokeWidth="0.8" />
-                  <DPSSymbol x={dpsX} y={429} />
-                  <line x1={dpsX} y1={438} x2={dpsX} y2={450} stroke="#000" strokeWidth="0.8" />
-                  <Terra x={dpsX} y={450} />
-                  <Disjuntor x={cCX} y={415} />
-                  <text x={cCX + 15} y={413} fontSize="6.5">D{i + 2}</text>
-                  <text x={cCX + 15} y={423} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
-                  <line x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth="1" />
+                  {/* ─── Agrupadas: disjuntor individual dentro do QD CA unificado ─── */}
+                  {isSaidaAgrupada && (<>
+                    <line x1={cCX} y1={415} x2={cCX} y2={433} stroke="#000" strokeWidth="1" />
+                    <Disjuntor x={cCX} y={440} />
+                    <text x={cCX + 10} y={438} fontSize="6.5">D{i + 3}</text>
+                    <text x={cCX + 10} y={448} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+                    <line x1={cCX} y1={448} x2={cCX} y2={498} stroke="#000" strokeWidth="1" />
+                  </>)}
 
                   {/* Wire → INVERSOR */}
-                  <line x1={cCX} y1={480} x2={cCX} y2={554} stroke="#000" strokeWidth="1" />
+                  <line x1={cCX} y1={isSaidaAgrupada ? 498 : 480} x2={cCX} y2={554} stroke="#000" strokeWidth="1" />
 
-                  {/* Cabos CA — Quadro CA → Inversor */}
-                  <line x1={cCX} y1={502} x2={cCX + 12} y2={502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                  <text x={cCX + 15} y={503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
-                  <text x={cCX + 15} y={511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
-                  <text x={cCX + 15} y={519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+                  {/* Cabos CA — QD CA → Inversor */}
+                  <line x1={cCX} y1={isSaidaAgrupada ? 520 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 520 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 513 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 521 : 503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 529 : 511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 537 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
                   {/* INVERSOR */}
                   <text x={cBR} y={551} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
