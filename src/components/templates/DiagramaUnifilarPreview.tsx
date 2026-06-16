@@ -71,7 +71,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = numInversores >= 3 ? 120 : 312;
+  const MI_GAP = numInversores >= 3 ? 156 : 312;
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -184,7 +184,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, 100) : 195;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 80 : 100) : 195;
   const legendX = isMultiInv ? 810 : 490;
 
   const handleGeneratePdf = async () => {
@@ -215,9 +215,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox="0 -25 1060 1203"
+          viewBox={numInversores >= 3 ? "-25 -25 1085 1203" : "0 -25 1060 1203"}
           width="100%"
-          style={{ maxWidth: 1060, display: 'block', margin: '0 auto' }}
+          style={{ maxWidth: numInversores >= 3 ? 1085 : 1060, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >
@@ -546,8 +546,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cBR - 26} y1={560} x2={cBR - 4} y2={560} stroke="#000" strokeWidth="0.9" />
                   <line x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth="0.9" />
 
-                  {/* Specs (left of inversor box) — all cols except last when N>=3 */}
-                  {(numInversores <= 2 || i < numInversores - 1) && (<>
+                  {/* Specs (left of inversor box) */}
                   <text x={cBX - 118} y={557} fontSize="5.5">Marca: {invFab}</text>
                   <text x={cBX - 118} y={564} fontSize="5.5">Modelo: {invMod}</text>
                   <text x={cBX - 118} y={571} fontSize="5.5">Potência: {invPot} kW</text>
@@ -556,7 +555,6 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <text x={cBX - 118} y={592} fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
                   <text x={cBX - 118} y={599} fontSize="5.5">  - Corrente: {invCorrOut} A</text>
                   <text x={cBX - 118} y={606} fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
-                  </>)}
 
                   {/* Protection relays — only last col when N>=3 */}
                   {(numInversores <= 2 || i === numInversores - 1) && (<>
