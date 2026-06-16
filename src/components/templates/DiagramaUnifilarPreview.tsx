@@ -270,9 +270,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect
-            x={isMultiInv ? miColBX(0) - 86 : 150}
+            x={isMultiInv ? miColBX(0) - 99 : 150}
             y="220"
-            width={isMultiInv ? miSectionW + 146 : 370}
+            width={isMultiInv ? miSectionW + 168 : 370}
             height="82"
             fill="white" stroke="#000" strokeWidth="1.2"
           />
@@ -282,8 +282,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             fontSize="8.5" fontWeight="bold" textAnchor="end"
           >QUADRO DE DISTRIBUIÇÃO</text>
 
-          {/* Main vertical line through box — vai só até o barramento (y=255) */}
-          <line x1={topCX} y1="220" x2={topCX} y2="255" stroke="#000" strokeWidth="1" />
+          {/* Main vertical line through box */}
+          <line x1={topCX} y1="220" x2={topCX} y2={isMultiInv ? 255 : 302} stroke="#000" strokeWidth="1" />
 
           {/* Barramento horizontal */}
           <line
