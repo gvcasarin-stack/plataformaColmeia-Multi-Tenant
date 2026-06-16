@@ -71,7 +71,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = 160;
+  const MI_GAP = 220;
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -184,7 +184,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 10, 160) : 195;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 40, 110) : 195;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -214,9 +214,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox="0 -25 900 1203"
+          viewBox="0 -25 980 1203"
           width="100%"
-          style={{ maxWidth: 900, display: 'block', margin: '0 auto' }}
+          style={{ maxWidth: 980, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >
@@ -270,14 +270,14 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect
-            x={isMultiInv ? miColBX(0) - 20 : 150}
+            x={isMultiInv ? miColBX(0) - 60 : 150}
             y="220"
-            width={isMultiInv ? miSectionW + 40 : 370}
+            width={isMultiInv ? miSectionW + 120 : 370}
             height="82"
             fill="white" stroke="#000" strokeWidth="1.2"
           />
           <text
-            x={isMultiInv ? miColBX(numInversores - 1) + miColW + 12 : 512}
+            x={isMultiInv ? miColBX(numInversores - 1) + miColW + 52 : 512}
             y="233"
             fontSize="8.5" fontWeight="bold" textAnchor="end"
           >QUADRO DE DISTRIBUIÇÃO</text>
@@ -287,13 +287,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* Barramento horizontal */}
           <line
-            x1={isMultiInv ? miColBX(0) - 15 : 175} y1="255"
-            x2={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 495} y2="255"
+            x1={isMultiInv ? miColBX(0) - 55 : 175} y1="255"
+            x2={isMultiInv ? miColBX(numInversores - 1) + miColW + 55 : 495} y2="255"
             stroke="#000" strokeWidth="1"
           />
 
           {/* Terra — lower-right corner of QD */}
-          <Terra x={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 505} y={302} />
+          <Terra x={isMultiInv ? miColBX(numInversores - 1) + miColW + 55 : 505} y={302} />
 
           {/* Cargas derivation — inside QD box */}
           <line x1={cargasX} y1="255" x2={cargasX} y2="315" stroke="#000" strokeWidth="1" />
@@ -503,19 +503,19 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cCX} y1={255} x2={cCX} y2={358} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CA — barramento → Quadro CA */}
-                  <line x1={cCX} y1={310} x2={cCX + 12} y2={310} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={303} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                  <text x={cCX + 15} y={311} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
-                  <text x={cCX + 15} y={319} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
-                  <text x={cCX + 15} y={327} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+                  <line x1={cCX} y1={330} x2={cCX + 12} y2={330} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={323} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+                  <text x={cCX + 15} y={331} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+                  <text x={cCX + 15} y={339} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+                  <text x={cCX + 15} y={347} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
                   {/* QUADRO DE PROTEÇÃO CA */}
-                  <rect x={cBX} y={358} width={miColW} height={122} fill="white" stroke="#000" strokeWidth="1.2" />
-                  <text x={cBR - 5} y={371} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
-                  <text x={cBR - 5} y={381} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
-                  <text x={cBX + 5} y={396} fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
-                  <text x={cBX + 5} y={405} fontSize="5.5">275 Vca, 20-40 kA</text>
-                  <text x={cBX + 5} y={414} fontSize="5.5">Classe II</text>
+                  <rect x={cCX - 120} y={358} width={240} height={122} fill="white" stroke="#000" strokeWidth="1.2" />
+                  <text x={cCX + 115} y={371} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
+                  <text x={cCX + 115} y={381} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
+                  <text x={cCX - 115} y={396} fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
+                  <text x={cCX - 115} y={405} fontSize="5.5">275 Vca, 20-40 kA</text>
+                  <text x={cCX - 115} y={414} fontSize="5.5">Classe II</text>
                   <line x1={cCX} y1={358} x2={cCX} y2={408} stroke="#000" strokeWidth="1" />
                   <line x1={cCX} y1={385} x2={dpsX} y2={385} stroke="#000" strokeWidth="0.8" />
                   <line x1={dpsX} y1={385} x2={dpsX} y2={420} stroke="#000" strokeWidth="0.8" />
@@ -546,13 +546,14 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth="0.9" />
 
                   {/* Specs (left of inversor box) */}
-                  <text x={cBX - 5} y={557} fontSize="4.8" textAnchor="end">Marca: {invFab}</text>
-                  <text x={cBX - 5} y={564} fontSize="4.8" textAnchor="end">Modelo: {invMod}</text>
-                  <text x={cBX - 5} y={571} fontSize="4.8" textAnchor="end">Potência: {invPot} kW</text>
-                  <text x={cBX - 5} y={578} fontSize="4.8" textAnchor="end">Ent - Vcc max: {invVccMax} V</text>
-                  <text x={cBX - 5} y={585} fontSize="4.8" textAnchor="end">  - Icc max: {invIccMax} A</text>
-                  <text x={cBX - 5} y={592} fontSize="4.8" textAnchor="end">Saída - V: {tensaoNom} Vca</text>
-                  <text x={cBX - 5} y={599} fontSize="4.8" textAnchor="end">  - I: {invCorrOut} A</text>
+                  <text x={cBX - 130} y={557} fontSize="5.5">Marca: {invFab}</text>
+                  <text x={cBX - 130} y={564} fontSize="5.5">Modelo: {invMod}</text>
+                  <text x={cBX - 130} y={571} fontSize="5.5">Potência: {invPot} kW</text>
+                  <text x={cBX - 130} y={578} fontSize="5.5">Entrada - Tensão max: {invVccMax} Vcc</text>
+                  <text x={cBX - 130} y={585} fontSize="5.5">  - Corrente max: {invIccMax} A</text>
+                  <text x={cBX - 130} y={592} fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
+                  <text x={cBX - 130} y={599} fontSize="5.5">  - Corrente: {invCorrOut} A</text>
+                  <text x={cBX - 130} y={606} fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
 
                   {/* Protection relays (right of inversor box, compact) */}
                   <line x1={cBR} y1={581} x2={cBR + 20} y2={581} stroke="#000" strokeWidth="1" />
@@ -586,18 +587,18 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <text x={cCX + 15} y={681} fontSize="5.5">1 #6,0mm² (T)</text>
 
                   {/* QUADRO DE PROTEÇÃO CC */}
-                  <rect x={cBX} y={708} width={miColW} height={140} fill="white" stroke="#000" strokeWidth="1.2" />
-                  <text x={cBR - 5} y={720} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
-                  <text x={cBR - 5} y={730} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CC</text>
+                  <rect x={cCX - 120} y={708} width={240} height={140} fill="white" stroke="#000" strokeWidth="1.2" />
+                  <text x={cCX + 115} y={720} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
+                  <text x={cCX + 115} y={730} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CC</text>
                   {!hasStringbox && (
                     <>
-                      <text x={cBX + 5} y={721} fontSize="5.5">(ACOPLADO AO</text>
-                      <text x={cBX + 5} y={730} fontSize="5.5">INVERSOR FV)</text>
+                      <text x={cCX - 115} y={721} fontSize="5.5">(ACOPLADO AO</text>
+                      <text x={cCX - 115} y={730} fontSize="5.5">INVERSOR FV)</text>
                     </>
                   )}
-                  <text x={cBX + 5} y={758} fontSize="5.5" fontWeight="bold">DPS CC</text>
-                  <text x={cBX + 5} y={767} fontSize="5.5">1040 Vcc, 18-40 kA</text>
-                  <text x={cBX + 5} y={776} fontSize="5.5">Classe II</text>
+                  <text x={cCX - 115} y={758} fontSize="5.5" fontWeight="bold">DPS CC</text>
+                  <text x={cCX - 115} y={767} fontSize="5.5">1040 Vcc, 18-40 kA</text>
+                  <text x={cCX - 115} y={776} fontSize="5.5">Classe II</text>
                   <line x1={cCX} y1={708} x2={cCX} y2={745} stroke="#000" strokeWidth="1" />
                   <line x1={cCX} y1={725} x2={dpsX} y2={725} stroke="#000" strokeWidth="0.8" />
                   <line x1={dpsX} y1={725} x2={dpsX} y2={780} stroke="#000" strokeWidth="0.8" />
@@ -630,36 +631,20 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cCX} y1={1003} x2={cCX} y2={1017} stroke="#000" strokeWidth="1.2" />
                   <Terra x={cCX} y={1017} />
 
-                  {/* Módulos — primeira coluna: esquerda do G */}
-                  {i === 0 && (
+                  {/* Módulos — última coluna: direita do G */}
+                  {i === numInversores - 1 && (
                     <>
-                      <line x1={cCX - 32} y1={971} x2={cBX - 12} y2={971} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                      <text x={cBX - 15} y={938} fontSize="5.5" fontWeight="bold" textAnchor="end">Módulos Fotovoltaicos:</text>
-                      <text x={cBX - 15} y={948} fontSize="5.5" textAnchor="end">Marca: {fv(pd.modulos_fabricante)}</text>
-                      <text x={cBX - 15} y={957} fontSize="5.5" textAnchor="end">Modelo: {fv(pd.modulos_modelo)}</text>
-                      <text x={cBX - 15} y={966} fontSize="5.5" textAnchor="end">Potência: {fv(pd.modulos_potencia_wp)} W</text>
-                      <text x={cBX - 15} y={975} fontSize="5.5" textAnchor="end">Tensão: {fv(pd.modulos_vpmp)} V</text>
-                      <text x={cBX - 15} y={984} fontSize="5.5" textAnchor="end">Corrente: {fv(pd.modulos_ipmp)} A</text>
-                      <text x={cBX - 15} y={993} fontSize="5.5" textAnchor="end">Quantidade: {qtdDescr}</text>
-                      <text x={cBX - 15} y={1002} fontSize="5.5" textAnchor="end">Potência total: {potKwp} kWp</text>
-                      <text x={cBX - 15} y={1011} fontSize="5.5" textAnchor="end">{tensaoLabel}: {tensaoStr} V</text>
-                      <text x={cBX - 15} y={1020} fontSize="5.5" textAnchor="end">{corrLabel}: {corrStr} A</text>
-                    </>
-                  )}
-                  {/* Módulos — última coluna: direita do G (próximo ao círculo) */}
-                  {i === numInversores - 1 && numInversores > 1 && (
-                    <>
-                      <line x1={cCX + 32} y1={971} x2={cCX + 40} y2={971} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                      <text x={cCX + 43} y={938} fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
-                      <text x={cCX + 43} y={948} fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
-                      <text x={cCX + 43} y={957} fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
-                      <text x={cCX + 43} y={966} fontSize="5.5">Potência: {fv(pd.modulos_potencia_wp)} W</text>
-                      <text x={cCX + 43} y={975} fontSize="5.5">Tensão: {fv(pd.modulos_vpmp)} V</text>
-                      <text x={cCX + 43} y={984} fontSize="5.5">Corrente: {fv(pd.modulos_ipmp)} A</text>
-                      <text x={cCX + 43} y={993} fontSize="5.5">Quantidade: {qtdDescr}</text>
-                      <text x={cCX + 43} y={1002} fontSize="5.5">Potência total: {potKwp} kWp</text>
-                      <text x={cCX + 43} y={1011} fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
-                      <text x={cCX + 43} y={1020} fontSize="5.5">{corrLabel}: {corrStr} A</text>
+                      <line x1={cCX + 32} y1={971} x2={cCX + 52} y2={971} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                      <text x={cCX + 55} y={938} fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
+                      <text x={cCX + 55} y={948} fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
+                      <text x={cCX + 55} y={957} fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
+                      <text x={cCX + 55} y={966} fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
+                      <text x={cCX + 55} y={975} fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
+                      <text x={cCX + 55} y={984} fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
+                      <text x={cCX + 55} y={993} fontSize="5.5">Quantidade: {qtdDescr}</text>
+                      <text x={cCX + 55} y={1002} fontSize="5.5">Potência total: {potKwp} kWp</text>
+                      <text x={cCX + 55} y={1011} fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
+                      <text x={cCX + 55} y={1020} fontSize="5.5">{corrLabel}: {corrStr} A</text>
                     </>
                   )}
                 </g>
@@ -668,8 +653,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           </>)}
 
           {/* ═══════════════ LEGENDA (top right) ═══════════════ */}
-          <rect x="660" y="-20" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
-          <text x="779" y="-4" fontSize="8" fontWeight="bold" textAnchor="middle">LEGENDA:</text>
+          <rect x="720" y="-20" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
+          <text x="839" y="-4" fontSize="8" fontWeight="bold" textAnchor="middle">LEGENDA:</text>
           {[
             'D1: Disjuntor de entrada ou geral da',
             '       unidade consumidora',
@@ -686,12 +671,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             'NP: Número de polos do disjuntor',
             'YYY A: Corrente nominal',
           ].map((ln, i) => (
-            <text key={i} x="668" y={10 + i * 13} fontSize="6.5">{ln}</text>
+            <text key={i} x="728" y={10 + i * 13} fontSize="6.5">{ln}</text>
           ))}
 
 
           {/* ═══════════════ TITLE BLOCK ═══════════════ */}
-          <rect x="5" y="1058" width="885" height="120" fill="white" stroke="#000" strokeWidth="1.2" />
+          <rect x="5" y="1058" width="970" height="120" fill="white" stroke="#000" strokeWidth="1.2" />
 
           {/* Vertical dividers: Left|Mid at x=178, Mid|Right at x=700 */}
           <line x1="178" y1="1058" x2="178" y2="1178" stroke="#000" strokeWidth="0.8" />
