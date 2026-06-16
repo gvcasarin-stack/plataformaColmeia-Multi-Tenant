@@ -71,7 +71,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = numInversores >= 3 ? 156 : 312;
+  const MI_GAP = numInversores >= 3 ? 120 : 312;
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -184,7 +184,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - (numInversores >= 3 ? 66 : 55), numInversores >= 3 ? 85 : 100) : 195;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, 100) : 195;
   const legendX = isMultiInv ? 810 : 490;
 
   const handleGeneratePdf = async () => {
@@ -215,9 +215,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox={numInversores >= 3 ? "-25 -25 1085 1203" : "0 -25 1060 1203"}
+          viewBox="0 -25 1060 1203"
           width="100%"
-          style={{ maxWidth: numInversores >= 3 ? 1085 : 1060, display: 'block', margin: '0 auto' }}
+          style={{ maxWidth: 1060, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >
