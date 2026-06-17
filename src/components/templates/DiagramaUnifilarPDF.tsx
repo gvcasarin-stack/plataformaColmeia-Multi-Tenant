@@ -206,8 +206,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line
-            x1={isMultiInv ? Math.round(miColBX(0)) - 20 : 90} y1={28}
-            x2={isMultiInv ? Math.round(miColBX(numInversores - 1)) + miColW + 20 : 490} y2={28}
+            x1={isMultiInv ? 144 : 90} y1={28}
+            x2={isMultiInv ? 756 : 490} y2={28}
             stroke="#000" strokeWidth={1.8}
           />
           <Text x={topCX} y={21} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">REDE DE BAIXA TENSAO</Text>
@@ -252,30 +252,30 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           <Rect
-            x={isMultiInv ? miColBX(0) - 20 : 150}
+            x={isMultiInv ? miColBX(0) - (numInversores >= 3 ? 119 : 99) : 150}
             y={220}
-            width={isMultiInv ? miSectionW + 40 : 370}
+            width={isMultiInv ? miSectionW + (numInversores >= 3 ? 188 : 168) : 370}
             height={82}
             fill="white" stroke="#000" strokeWidth={1.2}
           />
           <Text
-            x={isMultiInv ? miColBX(numInversores - 1) + miColW + 12 : 512}
+            x={isMultiInv ? miColBX(numInversores - 1) + miColW + 52 : 512}
             y={233}
             fontSize={8.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000"
           >QUADRO DE DISTRIBUICAO</Text>
 
           {/* Main vertical line through box */}
-          <Line x1={topCX} y1={220} x2={topCX} y2={302} stroke="#000" strokeWidth={1} />
+          <Line x1={topCX} y1={220} x2={topCX} y2={isMultiInv ? 255 : 302} stroke="#000" strokeWidth={1} />
 
           {/* Barramento horizontal */}
           <Line
-            x1={isMultiInv ? miColBX(0) - 15 : 175} y1={255}
-            x2={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 495} y2={255}
+            x1={isMultiInv ? miColBX(0) - 80 : 175} y1={255}
+            x2={isMultiInv ? miColBX(numInversores - 1) + miColW + 55 : 495} y2={255}
             stroke="#000" strokeWidth={1}
           />
 
           {/* Terra — lower-right corner of QD */}
-          <PDFTerra x={isMultiInv ? miColBX(numInversores - 1) + miColW + 15 : 505} y={302} />
+          <PDFTerra x={isMultiInv ? miColBX(numInversores - 1) + miColW + 55 : 505} y={302} />
 
           {/* Cargas derivation — inside QD box */}
           <Line x1={cargasX} y1={255} x2={cargasX} y2={315} stroke="#000" strokeWidth={1} />
@@ -535,8 +535,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
                   {/* INVERSOR */}
                   <Text key={`inv-lbl-${i}`} x={cBR} y={551 + miInvShift} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
-                  <Rect key={`inv-r-${i}`} x={cBX} y={554 + miInvShift} width={miColW} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
-                  <Line key={`inv-diag-${i}`} x1={cBX} y1={554 + miInvShift} x2={cBR} y2={609 + miInvShift} stroke="#000" strokeWidth={0.9} />
+                  <Rect key={`inv-r-${i}`} x={cBX} y={554 + miInvShift} width={miColW} height={62} fill="white" stroke="#000" strokeWidth={1.2} />
+                  <Line key={`inv-diag-${i}`} x1={cBX} y1={554 + miInvShift} x2={cBR} y2={616 + miInvShift} stroke="#000" strokeWidth={0.9} />
                   <Path key={`inv-ac-${i}`} d={`M${cBX + 4} ${598 + miInvShift} Q${cBX + 8} ${591 + miInvShift} ${cBX + 12} ${598 + miInvShift} Q${cBX + 16} ${605 + miInvShift} ${cBX + 20} ${598 + miInvShift}`} stroke="#000" strokeWidth={0.9} fill="none" />
                   <Line key={`inv-dc1-${i}`} x1={cBR - 26} y1={560 + miInvShift} x2={cBR - 4} y2={560 + miInvShift} stroke="#000" strokeWidth={0.9} />
                   <Line key={`inv-dc2-${i}`} x1={cBR - 26} y1={564 + miInvShift} x2={cBR - 4} y2={564 + miInvShift} stroke="#000" strokeWidth={0.9} />
@@ -569,7 +569,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   </>)}
 
                   {/* Wire INVERSOR → QUADRO CC */}
-                  <Line key={`inv-dn-${i}`} x1={cCX} y1={609 + miInvShift} x2={cCX} y2={708 + miQccShift} stroke="#000" strokeWidth={1} />
+                  <Line key={`inv-dn-${i}`} x1={cCX} y1={616 + miInvShift} x2={cCX} y2={708 + miQccShift} stroke="#000" strokeWidth={1} />
 
                   {/* Cabos CC — Inversor → Quadro CC */}
                   <Line key={`cc1-ln-${i}`} x1={cCX} y1={isSaidaAgrupada ? 719 : 644} x2={cCX + 12} y2={isSaidaAgrupada ? 719 : 644} stroke="#000" strokeWidth={0.6} />
