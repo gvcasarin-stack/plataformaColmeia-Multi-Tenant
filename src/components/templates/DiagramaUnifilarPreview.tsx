@@ -187,8 +187,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topBR = topCX + 120;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
   const legendX = isMultiInv ? 810 : 650;
-  const miInvShift = isSaidaAgrupada ? 60 : 0;
-  const miQccShift = isSaidaAgrupada ? 20 : 0;
+  const miInvShift = isSaidaAgrupada ? 75 : 0;
+  const miQccShift = isSaidaAgrupada ? 45 : 0;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -218,7 +218,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox={numInversores >= 3 ? "-25 -25 1085 1203" : "0 -25 1060 1203"}
+          viewBox={numInversores >= 3 ? "-25 -25 1085 1265" : "0 -25 1060 1265"}
           width="100%"
           style={{ maxWidth: numInversores >= 3 ? 1085 : 1060, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
@@ -634,14 +634,14 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cCX} y1={609 + miInvShift} x2={cCX} y2={708 + miQccShift} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CC — Inversor → Quadro CC */}
-                  <line x1={cCX} y1={isSaidaAgrupada ? 679 : 644} x2={cCX + 12} y2={isSaidaAgrupada ? 679 : 644} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 672 : 636} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 679 : 644} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 687 : 652} fontSize="5.5">Para cada string:</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 695 : 659} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 703 : 666} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 711 : 674} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 719 : 681} fontSize="5.5">1 #6,0mm² (T)</text>
+                  <line x1={cCX} y1={isSaidaAgrupada ? 700 : 644} x2={cCX + 12} y2={isSaidaAgrupada ? 700 : 644} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 692 : 636} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 700 : 644} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 708 : 652} fontSize="5.5">Para cada string:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 716 : 659} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 724 : 666} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 732 : 674} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 740 : 681} fontSize="5.5">1 #6,0mm² (T)</text>
 
                   {/* QUADRO DE PROTEÇÃO CC */}
                   <rect x={cCX - 120} y={708 + miQccShift} width={240} height={140} fill="white" stroke="#000" strokeWidth="1.2" />
@@ -733,74 +733,74 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
 
           {/* ═══════════════ TITLE BLOCK ═══════════════ */}
-          <rect x="5" y="1058" width="1050" height="120" fill="white" stroke="#000" strokeWidth="1.2" />
+          <rect x="5" y="1098" width="1050" height="120" fill="white" stroke="#000" strokeWidth="1.2" />
 
           {/* Vertical dividers: Left|Mid at x=178, Mid|Right at x=700 */}
-          <line x1="178" y1="1058" x2="178" y2="1178" stroke="#000" strokeWidth="0.8" />
-          <line x1="700" y1="1058" x2="700" y2="1178" stroke="#000" strokeWidth="0.8" />
+          <line x1="178" y1="1098" x2="178" y2="1218" stroke="#000" strokeWidth="0.8" />
+          <line x1="700" y1="1098" x2="700" y2="1218" stroke="#000" strokeWidth="0.8" />
           {/* Left sub-col: label area | R values — starts below PRODUTO section */}
-          <line x1="118" y1="1088" x2="118" y2="1178" stroke="#000" strokeWidth="0.6" />
+          <line x1="118" y1="1128" x2="118" y2="1218" stroke="#000" strokeWidth="0.6" />
 
           {/* Horizontal dividers */}
           {/* Below PRODUTO section (left + mid cols) */}
-          <line x1="5"   y1="1088" x2="700" y2="1088" stroke="#000" strokeWidth="0.7" />
+          <line x1="5"   y1="1128" x2="700" y2="1128" stroke="#000" strokeWidth="0.7" />
           {/* Left col — 4 equal rows of 16px + last row to 1170 */}
-          <line x1="5"   y1="1104" x2="178" y2="1104" stroke="#000" strokeWidth="0.5" />
-          <line x1="5"   y1="1120" x2="178" y2="1120" stroke="#000" strokeWidth="0.5" />
-          <line x1="5"   y1="1136" x2="178" y2="1136" stroke="#000" strokeWidth="0.5" />
-          <line x1="5"   y1="1152" x2="178" y2="1152" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1144" x2="178" y2="1144" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1160" x2="178" y2="1160" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1176" x2="178" y2="1176" stroke="#000" strokeWidth="0.5" />
+          <line x1="5"   y1="1192" x2="178" y2="1192" stroke="#000" strokeWidth="0.5" />
           {/* Mid col: owner | resp separator (aligns with left col row 3 end) */}
-          <line x1="178" y1="1136" x2="700" y2="1136" stroke="#000" strokeWidth="0.5" />
+          <line x1="178" y1="1176" x2="700" y2="1176" stroke="#000" strokeWidth="0.5" />
 
           {/* === LEFT COLUMN — PRODUTO (top, full width, centered) === */}
-          <text x="8"  y="1067"  fontSize="5.5" fontWeight="bold">PRODUTO</text>
-          <text x="92" y="1082" fontSize="9"   fontWeight="bold" textAnchor="middle">GFV {potKwp} kWp</text>
+          <text x="8"  y="1107"  fontSize="5.5" fontWeight="bold">PRODUTO</text>
+          <text x="92" y="1122" fontSize="9"   fontWeight="bold" textAnchor="middle">GFV {potKwp} kWp</text>
 
-          {/* DATA  (row 1: y=1088–1104) */}
-          <text x="8"  y="1095" fontSize="5.5" fontWeight="bold">DATA</text>
-          <text x="62" y="1102" fontSize="6"   textAnchor="middle">{dataDoc}</text>
-          <text x="148" y="1099" fontSize="5.5" textAnchor="middle">R1:</text>
+          {/* DATA  (row 1: y=1128–1144) */}
+          <text x="8"  y="1135" fontSize="5.5" fontWeight="bold">DATA</text>
+          <text x="62" y="1142" fontSize="6"   textAnchor="middle">{dataDoc}</text>
+          <text x="148" y="1139" fontSize="5.5" textAnchor="middle">R1:</text>
 
-          {/* ESCALA  (row 2: y=1104–1120) */}
-          <text x="8"  y="1111" fontSize="5.5" fontWeight="bold">ESCALA</text>
-          <text x="62" y="1118" fontSize="6"   textAnchor="middle">S/ ESCALA</text>
-          <text x="148" y="1115" fontSize="5.5" textAnchor="middle">R2:</text>
+          {/* ESCALA  (row 2: y=1144–1160) */}
+          <text x="8"  y="1151" fontSize="5.5" fontWeight="bold">ESCALA</text>
+          <text x="62" y="1158" fontSize="6"   textAnchor="middle">S/ ESCALA</text>
+          <text x="148" y="1155" fontSize="5.5" textAnchor="middle">R2:</text>
 
-          {/* TAMANHO  (row 3: y=1120–1136) */}
-          <text x="8"  y="1127" fontSize="5.5" fontWeight="bold">TAMANHO</text>
-          <text x="62" y="1134" fontSize="6"   textAnchor="middle">A3</text>
-          <text x="148" y="1131" fontSize="5.5" textAnchor="middle">R3:</text>
+          {/* TAMANHO  (row 3: y=1160–1176) */}
+          <text x="8"  y="1167" fontSize="5.5" fontWeight="bold">TAMANHO</text>
+          <text x="62" y="1174" fontSize="6"   textAnchor="middle">A3</text>
+          <text x="148" y="1171" fontSize="5.5" textAnchor="middle">R3:</text>
 
-          {/* FOLHA  (row 4: y=1136–1152) */}
-          <text x="8"  y="1143" fontSize="5.5" fontWeight="bold">FOLHA</text>
-          <text x="62" y="1150" fontSize="6"   textAnchor="middle">1/1</text>
-          <text x="148" y="1147" fontSize="5.5" textAnchor="middle">R4:</text>
+          {/* FOLHA  (row 4: y=1176–1192) */}
+          <text x="8"  y="1183" fontSize="5.5" fontWeight="bold">FOLHA</text>
+          <text x="62" y="1190" fontSize="6"   textAnchor="middle">1/1</text>
+          <text x="148" y="1187" fontSize="5.5" textAnchor="middle">R4:</text>
 
-          {/* REVISÃO  (row 5: y=1152–1170) */}
-          <text x="8"  y="1159" fontSize="5.5" fontWeight="bold">REVISÃO</text>
-          <text x="62" y="1166" fontSize="6"   textAnchor="middle">R0</text>
-          <text x="148" y="1163" fontSize="5.5" textAnchor="middle">R5:</text>
+          {/* REVISÃO  (row 5: y=1192–1210) */}
+          <text x="8"  y="1199" fontSize="5.5" fontWeight="bold">REVISÃO</text>
+          <text x="62" y="1206" fontSize="6"   textAnchor="middle">R0</text>
+          <text x="148" y="1203" fontSize="5.5" textAnchor="middle">R5:</text>
 
           {/* === MIDDLE COLUMN — TÍTULO (top) === */}
-          <text x="185" y="1069" fontSize="5.5" fontWeight="bold">TÍTULO</text>
-          <text x="439" y="1083" fontSize="11" fontWeight="bold" textAnchor="middle">DIAGRAMA UNIFILAR</text>
+          <text x="185" y="1109" fontSize="5.5" fontWeight="bold">TÍTULO</text>
+          <text x="439" y="1123" fontSize="11" fontWeight="bold" textAnchor="middle">DIAGRAMA UNIFILAR</text>
 
-          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1088–1136, 5 items equidistant 9px) === */}
-          <text x="439" y="1097" fontSize="5.5" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
-          <text x="439" y="1106" fontSize="6" textAnchor="middle">Nome: {owner}</text>
-          <text x="439" y="1115" fontSize="6" textAnchor="middle">Endereço: {endereco}</text>
-          <text x="439" y="1124" fontSize="6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
-          <text x="439" y="1133" fontSize="6" textAnchor="middle">CEP: {cep}</text>
+          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1128–1176, 5 items equidistant 9px) === */}
+          <text x="439" y="1137" fontSize="5.5" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
+          <text x="439" y="1146" fontSize="6" textAnchor="middle">Nome: {owner}</text>
+          <text x="439" y="1155" fontSize="6" textAnchor="middle">Endereço: {endereco}</text>
+          <text x="439" y="1164" fontSize="6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
+          <text x="439" y="1173" fontSize="6" textAnchor="middle">CEP: {cep}</text>
 
-          {/* === MIDDLE COLUMN — RESPONSÁVEL BLOCK (y=1136–1170, 4 items equidistant 8px) === */}
-          <text x="439" y="1145" fontSize="5.5" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
-          <text x="439" y="1153" fontSize="6" fontWeight="bold" textAnchor="middle">{respNome}</text>
-          <text x="439" y="1161" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
-          <text x="439" y="1169" fontSize="5.5" textAnchor="middle">CFT: {respCft}</text>
+          {/* === MIDDLE COLUMN — RESPONSÁVEL BLOCK (y=1176–1210, 4 items equidistant 8px) === */}
+          <text x="439" y="1185" fontSize="5.5" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
+          <text x="439" y="1193" fontSize="6" fontWeight="bold" textAnchor="middle">{respNome}</text>
+          <text x="439" y="1201" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
+          <text x="439" y="1209" fontSize="5.5" textAnchor="middle">CFT: {respCft}</text>
 
           {/* === RIGHT COLUMN — Logo (centralizada na coluna x=700..1055) === */}
           {pd.logo_empresa_url
-            ? <image href={pd.logo_empresa_url} x="787" y="1062" width="182" height="112" preserveAspectRatio="xMidYMid meet" />
+            ? <image href={pd.logo_empresa_url} x="787" y="1102" width="182" height="112" preserveAspectRatio="xMidYMid meet" />
             : null}
 
         </svg>
