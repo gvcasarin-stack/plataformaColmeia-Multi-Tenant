@@ -542,30 +542,30 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <Line key={`inv-dc2-${i}`} x1={cBR - 26} y1={564 + miInvShift} x2={cBR - 4} y2={564 + miInvShift} stroke="#000" strokeWidth={0.9} />
 
                   {/* Specs */}
-                  <Text key={`spec-t0-${i}`} x={cBX - 5} y={557 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Marca: {invFab}</Text>
-                  <Text key={`spec-t1-${i}`} x={cBX - 5} y={564 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Modelo: {invMod}</Text>
-                  <Text key={`spec-t2-${i}`} x={cBX - 5} y={571 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Potencia: {invPot} kW</Text>
-                  <Text key={`spec-t3-${i}`} x={cBX - 5} y={578 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Ent - V max: {invVccMax} Vcc</Text>
-                  <Text key={`spec-t4-${i}`} x={cBX - 5} y={585 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">  - I max: {invIccMax} A</Text>
-                  <Text key={`spec-t5-${i}`} x={cBX - 5} y={592 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Saida - V: {tensaoNom} Vca</Text>
-                  <Text key={`spec-t6-${i}`} x={cBX - 5} y={599 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">  - I: {invCorrOut} A</Text>
-                  <Text key={`spec-t7-${i}`} x={cBX - 5} y={606 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Ver datasheet</Text>
+                  <Text key={`spec-t0-${i}`} x={cBX - 118} y={557 + miInvShift} fontSize={5.5} fill="#000">Marca: {invFab}</Text>
+                  <Text key={`spec-t1-${i}`} x={cBX - 118} y={564 + miInvShift} fontSize={5.5} fill="#000">Modelo: {invMod}</Text>
+                  <Text key={`spec-t2-${i}`} x={cBX - 118} y={571 + miInvShift} fontSize={5.5} fill="#000">Potencia: {invPot} kW</Text>
+                  <Text key={`spec-t3-${i}`} x={cBX - 118} y={578 + miInvShift} fontSize={5.5} fill="#000">Ent - V max: {invVccMax} Vcc</Text>
+                  <Text key={`spec-t4-${i}`} x={cBX - 118} y={585 + miInvShift} fontSize={5.5} fill="#000">  - I max: {invIccMax} A</Text>
+                  <Text key={`spec-t5-${i}`} x={cBX - 118} y={592 + miInvShift} fontSize={5.5} fill="#000">Saida - V: {tensaoNom} Vca</Text>
+                  <Text key={`spec-t6-${i}`} x={cBX - 118} y={599 + miInvShift} fontSize={5.5} fill="#000">  - I: {invCorrOut} A</Text>
+                  <Text key={`spec-t7-${i}`} x={cBX - 118} y={606 + miInvShift} fontSize={5.5} fill="#000">Ver datasheet</Text>
 
                   {/* Relays — only last col when N>=3 */}
                   {(numInversores <= 2 || i === numInversores - 1) && (<>
-                    <Line key={`rel-h-${i}`} x1={cBR} y1={581 + miInvShift} x2={cBR + 20} y2={581 + miInvShift} stroke="#000" strokeWidth={1} />
-                    <Line key={`rel-v-${i}`} x1={cBR + 20} y1={527 + miInvShift} x2={cBR + 20} y2={618 + miInvShift} stroke="#000" strokeWidth={1} />
+                    <Line key={`rel-h-${i}`} x1={cBR} y1={581 + miInvShift} x2={cBR + 67} y2={581 + miInvShift} stroke="#000" strokeWidth={1} />
+                    <Line key={`rel-v-${i}`} x1={cBR + 67} y1={534 + miInvShift} x2={cBR + 67} y2={651 + miInvShift} stroke="#000" strokeWidth={1} />
                     {[{ l: '25', s: '' }, { l: '27', s: '' }, { l: '59', s: '' }, { l: '81', s: 'U/O' }].map(({ l, s }, ri) => (
                       <>
-                        <Line key={`rl-${i}-${l}`} x1={cBR + 20} y1={534 + ri * 18 + miInvShift} x2={cBR + 22} y2={534 + ri * 18 + miInvShift} stroke="#000" strokeWidth={0.8} />
-                        <Rect key={`rr-${i}-${l}`} x={cBR + 22} y={527 + ri * 18 + miInvShift} width={16} height={14} fill="white" stroke="#000" strokeWidth={0.8} />
-                        <Text key={`rt-${i}-${l}`} x={cBR + 30} y={s ? 536 + ri * 18 + miInvShift : 538 + ri * 18 + miInvShift} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
-                        {s ? <Text key={`rs-${i}-${l}`} x={cBR + 30} y={542 + ri * 18 + miInvShift} fontSize={4} textAnchor="middle" fill="#000">{s}</Text> : null}
+                        <Line key={`rl-${i}-${l}`} x1={cBR + 67} y1={544 + ri * 25 + miInvShift} x2={cBR + 90} y2={544 + ri * 25 + miInvShift} stroke="#000" strokeWidth={0.8} />
+                        <Rect key={`rr-${i}-${l}`} x={cBR + 90} y={534 + ri * 25 + miInvShift} width={26} height={20} fill="white" stroke="#000" strokeWidth={0.8} />
+                        <Text key={`rt-${i}-${l}`} x={cBR + 103} y={s ? 545 + ri * 25 + miInvShift : 548 + ri * 25 + miInvShift} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
+                        {s ? <Text key={`rs-${i}-${l}`} x={cBR + 103} y={552 + ri * 25 + miInvShift} fontSize={5.5} textAnchor="middle" fill="#000">{s}</Text> : null}
                       </>
                     ))}
-                    <Line key={`ai-h-${i}`} x1={cBR + 20} y1={601 + miInvShift} x2={cBR + 22} y2={601 + miInvShift} stroke="#000" strokeWidth={0.8} />
-                    <Rect key={`ai-r-${i}`} x={cBR + 22} y={595 + miInvShift} width={52} height={10} fill="white" stroke="#000" strokeWidth={0.8} />
-                    <Text key={`ai-t-${i}`} x={cBR + 48} y={602 + miInvShift} fontSize={4.5} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
+                    <Line key={`ai-h-${i}`} x1={cBR + 67} y1={643 + miInvShift} x2={cBR + 90} y2={643 + miInvShift} stroke="#000" strokeWidth={0.8} />
+                    <Rect key={`ai-r-${i}`} x={cBR + 90} y={635 + miInvShift} width={80} height={16} fill="white" stroke="#000" strokeWidth={0.8} />
+                    <Text key={`ai-t-${i}`} x={cBR + 130} y={646 + miInvShift} fontSize={6} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
                   </>)}
 
                   {/* Wire INVERSOR → QUADRO CC */}
@@ -623,17 +623,17 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <PDFTerra key={`g-terra-${i}`} x={cCX} y={1017 + miQccShift} />
 
                   {/* Modulos — direita do G */}
-                  <Line key={`mod-ln-${i}`} x1={cCX + 32} y1={971 + miQccShift} x2={cCX + 40} y2={971 + miQccShift} stroke="#000" strokeWidth={0.6} />
-                  <Text key={`mod-t0-${i}`} x={cCX + 43} y={938 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
-                  <Text key={`mod-t1-${i}`} x={cCX + 43} y={948 + miQccShift} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-                  <Text key={`mod-t2-${i}`} x={cCX + 43} y={957 + miQccShift} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-                  <Text key={`mod-t3-${i}`} x={cCX + 43} y={966 + miQccShift} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
-                  <Text key={`mod-t4-${i}`} x={cCX + 43} y={975 + miQccShift} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-                  <Text key={`mod-t5-${i}`} x={cCX + 43} y={984 + miQccShift} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-                  <Text key={`mod-t6-${i}`} x={cCX + 43} y={993 + miQccShift} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
-                  <Text key={`mod-t7-${i}`} x={cCX + 43} y={1002 + miQccShift} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
-                  <Text key={`mod-t8-${i}`} x={cCX + 43} y={1011 + miQccShift} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
-                  <Text key={`mod-t9-${i}`} x={cCX + 43} y={1020 + miQccShift} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
+                  <Line key={`mod-ln-${i}`} x1={cCX + 32} y1={971 + miQccShift} x2={cCX + 52} y2={971 + miQccShift} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`mod-t0-${i}`} x={cCX + 55} y={938 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+                  <Text key={`mod-t1-${i}`} x={cCX + 55} y={948 + miQccShift} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+                  <Text key={`mod-t2-${i}`} x={cCX + 55} y={957 + miQccShift} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+                  <Text key={`mod-t3-${i}`} x={cCX + 55} y={966 + miQccShift} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+                  <Text key={`mod-t4-${i}`} x={cCX + 55} y={975 + miQccShift} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+                  <Text key={`mod-t5-${i}`} x={cCX + 55} y={984 + miQccShift} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+                  <Text key={`mod-t6-${i}`} x={cCX + 55} y={993 + miQccShift} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
+                  <Text key={`mod-t7-${i}`} x={cCX + 55} y={1002 + miQccShift} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
+                  <Text key={`mod-t8-${i}`} x={cCX + 55} y={1011 + miQccShift} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
+                  <Text key={`mod-t9-${i}`} x={cCX + 55} y={1020 + miQccShift} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
                 </>
               );
             })}
