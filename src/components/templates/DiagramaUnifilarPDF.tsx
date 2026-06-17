@@ -178,7 +178,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = 160;
+  const MI_GAP = numInversores >= 3 ? 156 : 312;
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -190,7 +190,11 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 10, 160) : 195;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
+  const legendX = isMultiInv ? 810 : 650;
+  const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
+  const miInvShift = isSaidaAgrupada ? 75 : 0;
+  const miQccShift = isSaidaAgrupada ? 75 : 0;
 
   // Seal column centers
   const MID_CTR = 439; // center of middle col (178-700)
@@ -198,7 +202,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   return (
     <Document>
       <Page size="A3" style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={812} height={991} viewBox="0 -25 900 1203">
+        <Svg width={812} height={numInversores >= 3 ? 968 : 992} viewBox={numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295"}>
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line
@@ -443,6 +447,40 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* ── Multi-inverter columns ── */}
           {isMultiInv && (<>
+
+            {/* ═══ UNIFIED QD CA — saidas agrupadas ═══ */}
+            {isSaidaAgrupada && (<>
+              <Line x1={topCX} y1={255} x2={topCX} y2={358} stroke="#000" strokeWidth={1} />
+              <Line x1={topCX} y1={322} x2={topCX + 12} y2={322} stroke="#000" strokeWidth={0.6} />
+              <Text x={topCX + 15} y={315} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70{'º'}C - 1,0 kV</Text>
+              <Text x={topCX + 15} y={323} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm{'²'} (F)`}</Text>
+              <Text x={topCX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm{'²'} ${caboCaMidLabel}`}</Text>
+              <Text x={topCX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm{'²'} (T)`}</Text>
+              <Rect
+                x={miColBX(0) - (numInversores >= 3 ? 119 : 99)}
+                y={358}
+                width={miSectionW + (numInversores >= 3 ? 188 : 168)}
+                height={185}
+                fill="white" stroke="#000" strokeWidth={1.2}
+              />
+              <Text x={miColBX(numInversores - 1) + miColW + 52} y={370} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+              <Text x={miColBX(numInversores - 1) + miColW + 52} y={380} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
+              <Line x1={topCX} y1={358} x2={topCX} y2={465} stroke="#000" strokeWidth={1} />
+              <Text x={topCX - 130} y={372} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{dpsLabel}</Text>
+              <Text x={topCX - 130} y={381} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
+              <Text x={topCX - 130} y={390} fontSize={5.5} fill="#000">Classe II</Text>
+              <Line x1={topCX} y1={375} x2={topCX - 80} y2={375} stroke="#000" strokeWidth={0.8} />
+              <Line x1={topCX - 80} y1={375} x2={topCX - 80} y2={400} stroke="#000" strokeWidth={0.8} />
+              <PDFDPSSymbol x={topCX - 80} y={409} />
+              <Line x1={topCX - 80} y1={418} x2={topCX - 80} y2={428} stroke="#000" strokeWidth={0.8} />
+              <PDFTerra x={topCX - 80} y={428} />
+              <PDFDisjuntor x={topCX} y={408} />
+              <Text x={topCX + 15} y={406} fontSize={6.5} fill="#000">D2</Text>
+              <Text x={topCX + 15} y={416} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
+              <Text x={topCX + 15} y={425} fontSize={5} fill="#000">GERAL</Text>
+              <Line x1={miColCX(0)} y1={465} x2={miColCX(numInversores - 1)} y2={465} stroke="#000" strokeWidth={1} />
+            </>)}
+
             {Array.from({ length: numInversores }, (_, i) => {
               const cCX = miColCX(i);
               const cBX = miColBX(i);
@@ -450,165 +488,160 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
               const dpsX = cCX - 50;
               return (
                 <>
-                  {/* Barramento → Quadro CA */}
-                  <Line key={`vl-${i}`} x1={cCX} y1={255} x2={cCX} y2={358} stroke="#000" strokeWidth={1} />
+                  {/* Independente: QD CA individual */}
+                  {!isSaidaAgrupada && (<>
+                    <Line key={`vl-${i}`} x1={cCX} y1={255} x2={cCX} y2={358} stroke="#000" strokeWidth={1} />
+                    <Line key={`ca1-ln-${i}`} x1={cCX} y1={330} x2={cCX + 12} y2={330} stroke="#000" strokeWidth={0.6} />
+                    <Text key={`ca1-t0-${i}`} x={cCX + 15} y={323} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70{'º'}C - 1,0 kV</Text>
+                    <Text key={`ca1-t1-${i}`} x={cCX + 15} y={331} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
+                    <Text key={`ca1-t2-${i}`} x={cCX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
+                    <Text key={`ca1-t3-${i}`} x={cCX + 15} y={347} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
+                    <Rect key={`qca-r-${i}`} x={cCX - 120} y={358} width={240} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
+                    <Text key={`qca-t1-${i}`} x={cCX + 115} y={371} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+                    <Text key={`qca-t2-${i}`} x={cCX + 115} y={381} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
+                    <Text key={`dpsca-l0-${i}`} x={cCX - 115} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{dpsLabel}</Text>
+                    <Text key={`dpsca-l1-${i}`} x={cCX - 115} y={405} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
+                    <Text key={`dpsca-l2-${i}`} x={cCX - 115} y={414} fontSize={5.5} fill="#000">Classe II</Text>
+                    <Line key={`qca-v1-${i}`} x1={cCX} y1={358} x2={cCX} y2={408} stroke="#000" strokeWidth={1} />
+                    <Line key={`dpsca-h-${i}`} x1={cCX} y1={385} x2={dpsX} y2={385} stroke="#000" strokeWidth={0.8} />
+                    <Line key={`dpsca-v-${i}`} x1={dpsX} y1={385} x2={dpsX} y2={420} stroke="#000" strokeWidth={0.8} />
+                    <PDFDPSSymbol key={`dpsca-sym-${i}`} x={dpsX} y={429} />
+                    <Line key={`dpsca-bt-${i}`} x1={dpsX} y1={438} x2={dpsX} y2={450} stroke="#000" strokeWidth={0.8} />
+                    <PDFTerra key={`dpsca-t-${i}`} x={dpsX} y={450} />
+                    <PDFDisjuntor key={`d2-${i}`} x={cCX} y={415} />
+                    <Text key={`d2-lbl-${i}`} x={cCX + 15} y={413} fontSize={6.5} fill="#000">{`D${i + 2}`}</Text>
+                    <Text key={`d2-typ-${i}`} x={cCX + 15} y={423} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
+                    <Line key={`qca-v2-${i}`} x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth={1} />
+                  </>)}
 
-                  {/* Cabos CA — barramento → Quadro CA */}
-                  <Line key={`ca1-ln-${i}`} x1={cCX} y1={310} x2={cCX + 12} y2={310} stroke="#000" strokeWidth={0.6} />
-                  <Text key={`ca1-t0-${i}`} x={cCX + 15} y={303} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
-                  <Text key={`ca1-t1-${i}`} x={cCX + 15} y={311} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
-                  <Text key={`ca1-t2-${i}`} x={cCX + 15} y={319} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
-                  <Text key={`ca1-t3-${i}`} x={cCX + 15} y={327} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
-
-                  {/* QUADRO DE PROTECAO CA */}
-                  <Rect key={`qca-r-${i}`} x={cBX} y={358} width={miColW} height={122} fill="white" stroke="#000" strokeWidth={1.2} />
-                  <Text key={`qca-t1-${i}`} x={cBR - 5} y={371} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
-                  <Text key={`qca-t2-${i}`} x={cBR - 5} y={381} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CA</Text>
-                  <Text key={`dpsca-l0-${i}`} x={cBX + 5} y={396} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{dpsLabel}</Text>
-                  <Text key={`dpsca-l1-${i}`} x={cBX + 5} y={405} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
-                  <Text key={`dpsca-l2-${i}`} x={cBX + 5} y={414} fontSize={5.5} fill="#000">Classe II</Text>
-                  <Line key={`qca-v1-${i}`} x1={cCX} y1={358} x2={cCX} y2={408} stroke="#000" strokeWidth={1} />
-                  <Line key={`dpsca-h-${i}`} x1={cCX} y1={385} x2={dpsX} y2={385} stroke="#000" strokeWidth={0.8} />
-                  <Line key={`dpsca-v-${i}`} x1={dpsX} y1={385} x2={dpsX} y2={420} stroke="#000" strokeWidth={0.8} />
-                  <PDFDPSSymbol key={`dpsca-sym-${i}`} x={dpsX} y={429} />
-                  <Line key={`dpsca-bt-${i}`} x1={dpsX} y1={438} x2={dpsX} y2={450} stroke="#000" strokeWidth={0.8} />
-                  <PDFTerra key={`dpsca-t-${i}`} x={dpsX} y={450} />
-                  <PDFDisjuntor key={`d2-${i}`} x={cCX} y={415} />
-                  <Text key={`d2-lbl-${i}`} x={cCX + 15} y={413} fontSize={6.5} fill="#000">{`D${i + 2}`}</Text>
-                  <Text key={`d2-typ-${i}`} x={cCX + 15} y={423} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
-                  <Line key={`qca-v2-${i}`} x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth={1} />
+                  {/* Agrupadas: disjuntor individual dentro do QD CA unificado */}
+                  {isSaidaAgrupada && (<>
+                    <Line key={`agr-v1-${i}`} x1={cCX} y1={465} x2={cCX} y2={483} stroke="#000" strokeWidth={1} />
+                    <PDFDisjuntor key={`agr-d-${i}`} x={cCX} y={490} />
+                    <Text key={`agr-dlbl-${i}`} x={cCX + 22} y={488} fontSize={6.5} fill="#000">{`D${i + 3}`}</Text>
+                    <Text key={`agr-dtyp-${i}`} x={cCX + 22} y={498} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
+                    <Line key={`agr-v2-${i}`} x1={cCX} y1={498} x2={cCX} y2={543} stroke="#000" strokeWidth={1} />
+                  </>)}
 
                   {/* Wire → INVERSOR */}
-                  <Line key={`inv-up-${i}`} x1={cCX} y1={480} x2={cCX} y2={554} stroke="#000" strokeWidth={1} />
+                  <Line key={`inv-up-${i}`} x1={cCX} y1={isSaidaAgrupada ? 543 : 480} x2={cCX} y2={554 + miInvShift} stroke="#000" strokeWidth={1} />
 
-                  {/* Cabos CA — Quadro CA → Inversor */}
-                  <Line key={`ca2-ln-${i}`} x1={cCX} y1={502} x2={cCX + 12} y2={502} stroke="#000" strokeWidth={0.6} />
-                  <Text key={`ca2-t0-${i}`} x={cCX + 15} y={495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70ºC - 1,0 kV</Text>
-                  <Text key={`ca2-t1-${i}`} x={cCX + 15} y={503} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
-                  <Text key={`ca2-t2-${i}`} x={cCX + 15} y={511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
-                  <Text key={`ca2-t3-${i}`} x={cCX + 15} y={519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
+                  {/* Cabos CA — QD CA → Inversor */}
+                  <Line key={`ca2-ln-${i}`} x1={cCX} y1={isSaidaAgrupada ? 568 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 568 : 502} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`ca2-t0-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 561 : 495} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70{'º'}C - 1,0 kV</Text>
+                  <Text key={`ca2-t1-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 576 : 503} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
+                  <Text key={`ca2-t2-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 584 : 511} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
+                  <Text key={`ca2-t3-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 592 : 519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
 
                   {/* INVERSOR */}
-                  <Text key={`inv-lbl-${i}`} x={cBR - 5} y={551} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
-                  <Rect key={`inv-r-${i}`} x={cBX} y={554} width={miColW} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
-                  <Line key={`inv-diag-${i}`} x1={cBX} y1={554} x2={cBR} y2={609} stroke="#000" strokeWidth={0.9} />
-                  <Path key={`inv-ac-${i}`} d={`M${cBX + 4} 598 Q${cBX + 8} 591 ${cBX + 12} 598 Q${cBX + 16} 605 ${cBX + 20} 598`} stroke="#000" strokeWidth={0.9} fill="none" />
-                  <Line key={`inv-dc1-${i}`} x1={cBR - 26} y1={560} x2={cBR - 4} y2={560} stroke="#000" strokeWidth={0.9} />
-                  <Line key={`inv-dc2-${i}`} x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth={0.9} />
+                  <Text key={`inv-lbl-${i}`} x={cBR - 5} y={551 + miInvShift} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
+                  <Rect key={`inv-r-${i}`} x={cBX} y={554 + miInvShift} width={miColW} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
+                  <Line key={`inv-diag-${i}`} x1={cBX} y1={554 + miInvShift} x2={cBR} y2={609 + miInvShift} stroke="#000" strokeWidth={0.9} />
+                  <Path key={`inv-ac-${i}`} d={`M${cBX + 4} ${598 + miInvShift} Q${cBX + 8} ${591 + miInvShift} ${cBX + 12} ${598 + miInvShift} Q${cBX + 16} ${605 + miInvShift} ${cBX + 20} ${598 + miInvShift}`} stroke="#000" strokeWidth={0.9} fill="none" />
+                  <Line key={`inv-dc1-${i}`} x1={cBR - 26} y1={560 + miInvShift} x2={cBR - 4} y2={560 + miInvShift} stroke="#000" strokeWidth={0.9} />
+                  <Line key={`inv-dc2-${i}`} x1={cBR - 26} y1={564 + miInvShift} x2={cBR - 4} y2={564 + miInvShift} stroke="#000" strokeWidth={0.9} />
 
-                  {/* Specs — esquerda do inversor */}
-                  <Text key={`spec-t0-${i}`} x={cBX - 5} y={557} fontSize={4.8} textAnchor="end" fill="#000">Marca: {invFab}</Text>
-                  <Text key={`spec-t1-${i}`} x={cBX - 5} y={564} fontSize={4.8} textAnchor="end" fill="#000">Modelo: {invMod}</Text>
-                  <Text key={`spec-t2-${i}`} x={cBX - 5} y={571} fontSize={4.8} textAnchor="end" fill="#000">Potencia: {invPot} kW</Text>
-                  <Text key={`spec-t3-${i}`} x={cBX - 5} y={578} fontSize={4.8} textAnchor="end" fill="#000">Ent - V max: {invVccMax} Vcc</Text>
-                  <Text key={`spec-t4-${i}`} x={cBX - 5} y={585} fontSize={4.8} textAnchor="end" fill="#000">  - I max: {invIccMax} A</Text>
-                  <Text key={`spec-t5-${i}`} x={cBX - 5} y={592} fontSize={4.8} textAnchor="end" fill="#000">Saida - V: {tensaoNom} Vca</Text>
-                  <Text key={`spec-t6-${i}`} x={cBX - 5} y={599} fontSize={4.8} textAnchor="end" fill="#000">  - I: {invCorrOut} A</Text>
-                  <Text key={`spec-t7-${i}`} x={cBX - 5} y={606} fontSize={4.8} textAnchor="end" fill="#000">Ver datasheet</Text>
+                  {/* Specs */}
+                  <Text key={`spec-t0-${i}`} x={cBX - 5} y={557 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Marca: {invFab}</Text>
+                  <Text key={`spec-t1-${i}`} x={cBX - 5} y={564 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Modelo: {invMod}</Text>
+                  <Text key={`spec-t2-${i}`} x={cBX - 5} y={571 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Potencia: {invPot} kW</Text>
+                  <Text key={`spec-t3-${i}`} x={cBX - 5} y={578 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Ent - V max: {invVccMax} Vcc</Text>
+                  <Text key={`spec-t4-${i}`} x={cBX - 5} y={585 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">  - I max: {invIccMax} A</Text>
+                  <Text key={`spec-t5-${i}`} x={cBX - 5} y={592 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Saida - V: {tensaoNom} Vca</Text>
+                  <Text key={`spec-t6-${i}`} x={cBX - 5} y={599 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">  - I: {invCorrOut} A</Text>
+                  <Text key={`spec-t7-${i}`} x={cBX - 5} y={606 + miInvShift} fontSize={4.8} textAnchor="end" fill="#000">Ver datasheet</Text>
 
-                  {/* Relays — direita do inversor (compacto) */}
-                  <Line key={`rel-h-${i}`} x1={cBR} y1={581} x2={cBR + 20} y2={581} stroke="#000" strokeWidth={1} />
-                  <Line key={`rel-v-${i}`} x1={cBR + 20} y1={527} x2={cBR + 20} y2={618} stroke="#000" strokeWidth={1} />
-                  {[{ l: '25', s: '' }, { l: '27', s: '' }, { l: '59', s: '' }, { l: '81', s: 'U/O' }].map(({ l, s }, ri) => (
-                    <>
-                      <Line key={`rl-${i}-${l}`} x1={cBR + 20} y1={534 + ri * 18} x2={cBR + 22} y2={534 + ri * 18} stroke="#000" strokeWidth={0.8} />
-                      <Rect key={`rr-${i}-${l}`} x={cBR + 22} y={527 + ri * 18} width={16} height={14} fill="white" stroke="#000" strokeWidth={0.8} />
-                      <Text key={`rt-${i}-${l}`} x={cBR + 30} y={s ? 536 + ri * 18 : 538 + ri * 18} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
-                      {s ? <Text key={`rs-${i}-${l}`} x={cBR + 30} y={542 + ri * 18} fontSize={4} textAnchor="middle" fill="#000">{s}</Text> : null}
-                    </>
-                  ))}
-                  <Line key={`ai-h-${i}`} x1={cBR + 20} y1={601} x2={cBR + 22} y2={601} stroke="#000" strokeWidth={0.8} />
-                  <Rect key={`ai-r-${i}`} x={cBR + 22} y={595} width={52} height={10} fill="white" stroke="#000" strokeWidth={0.8} />
-                  <Text key={`ai-t-${i}`} x={cBR + 48} y={602} fontSize={4.5} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
+                  {/* Relays — only last col when N>=3 */}
+                  {(numInversores <= 2 || i === numInversores - 1) && (<>
+                    <Line key={`rel-h-${i}`} x1={cBR} y1={581 + miInvShift} x2={cBR + 20} y2={581 + miInvShift} stroke="#000" strokeWidth={1} />
+                    <Line key={`rel-v-${i}`} x1={cBR + 20} y1={527 + miInvShift} x2={cBR + 20} y2={618 + miInvShift} stroke="#000" strokeWidth={1} />
+                    {[{ l: '25', s: '' }, { l: '27', s: '' }, { l: '59', s: '' }, { l: '81', s: 'U/O' }].map(({ l, s }, ri) => (
+                      <>
+                        <Line key={`rl-${i}-${l}`} x1={cBR + 20} y1={534 + ri * 18 + miInvShift} x2={cBR + 22} y2={534 + ri * 18 + miInvShift} stroke="#000" strokeWidth={0.8} />
+                        <Rect key={`rr-${i}-${l}`} x={cBR + 22} y={527 + ri * 18 + miInvShift} width={16} height={14} fill="white" stroke="#000" strokeWidth={0.8} />
+                        <Text key={`rt-${i}-${l}`} x={cBR + 30} y={s ? 536 + ri * 18 + miInvShift : 538 + ri * 18 + miInvShift} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{l}</Text>
+                        {s ? <Text key={`rs-${i}-${l}`} x={cBR + 30} y={542 + ri * 18 + miInvShift} fontSize={4} textAnchor="middle" fill="#000">{s}</Text> : null}
+                      </>
+                    ))}
+                    <Line key={`ai-h-${i}`} x1={cBR + 20} y1={601 + miInvShift} x2={cBR + 22} y2={601 + miInvShift} stroke="#000" strokeWidth={0.8} />
+                    <Rect key={`ai-r-${i}`} x={cBR + 22} y={595 + miInvShift} width={52} height={10} fill="white" stroke="#000" strokeWidth={0.8} />
+                    <Text key={`ai-t-${i}`} x={cBR + 48} y={602 + miInvShift} fontSize={4.5} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
+                  </>)}
 
                   {/* Wire INVERSOR → QUADRO CC */}
-                  <Line key={`inv-dn-${i}`} x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth={1} />
+                  <Line key={`inv-dn-${i}`} x1={cCX} y1={609 + miInvShift} x2={cCX} y2={708 + miQccShift} stroke="#000" strokeWidth={1} />
 
                   {/* Cabos CC — Inversor → Quadro CC */}
-                  <Line key={`cc1-ln-${i}`} x1={cCX} y1={644} x2={cCX + 12} y2={644} stroke="#000" strokeWidth={0.6} />
-                  <Text key={`cc1-t0-${i}`} x={cCX + 15} y={636} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-                  <Text key={`cc1-t1-${i}`} x={cCX + 15} y={644} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
-                  <Text key={`cc1-t2-${i}`} x={cCX + 15} y={652} fontSize={5.5} fill="#000">Para cada string:</Text>
-                  <Text key={`cc1-t3-${i}`} x={cCX + 15} y={659} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
-                  <Text key={`cc1-t4-${i}`} x={cCX + 15} y={666} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
-                  <Text key={`cc1-t5-${i}`} x={cCX + 15} y={674} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-                  <Text key={`cc1-t6-${i}`} x={cCX + 15} y={681} fontSize={5.5} fill="#000">1 #6,0mm² (T)</Text>
+                  <Line key={`cc1-ln-${i}`} x1={cCX} y1={isSaidaAgrupada ? 719 : 644} x2={cCX + 12} y2={isSaidaAgrupada ? 719 : 644} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`cc1-t0-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 712 : 636} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+                  <Text key={`cc1-t1-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 719 : 644} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc1-t2-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 727 : 652} fontSize={5.5} fill="#000">Para cada string:</Text>
+                  <Text key={`cc1-t3-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 735 : 659} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
+                  <Text key={`cc1-t4-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 743 : 666} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
+                  <Text key={`cc1-t5-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 751 : 674} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc1-t6-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 759 : 681} fontSize={5.5} fill="#000">1 #6,0mm² (T)</Text>
 
                   {/* QUADRO DE PROTECAO CC */}
-                  <Rect key={`qcc-r-${i}`} x={cBX} y={708} width={miColW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
-                  <Text key={`qcc-t1-${i}`} x={cBR - 5} y={720} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
-                  <Text key={`qcc-t2-${i}`} x={cBR - 5} y={730} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
-                  <Text key={`dpscc-l0-${i}`} x={cBX + 5} y={758} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
-                  <Text key={`dpscc-l1-${i}`} x={cBX + 5} y={767} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
-                  <Text key={`dpscc-l2-${i}`} x={cBX + 5} y={776} fontSize={5.5} fill="#000">Classe II</Text>
-                  <Line key={`qcc-v1-${i}`} x1={cCX} y1={708} x2={cCX} y2={745} stroke="#000" strokeWidth={1} />
-                  <Line key={`dpscc-h-${i}`} x1={cCX} y1={725} x2={dpsX} y2={725} stroke="#000" strokeWidth={0.8} />
-                  <Line key={`dpscc-v-${i}`} x1={dpsX} y1={725} x2={dpsX} y2={780} stroke="#000" strokeWidth={0.8} />
-                  <PDFDPSSymbol key={`dpscc-sym-${i}`} x={dpsX} y={789} />
-                  <Line key={`dpscc-bt-${i}`} x1={dpsX} y1={798} x2={dpsX} y2={810} stroke="#000" strokeWidth={0.8} />
-                  <PDFTerra key={`dpscc-t-${i}`} x={dpsX} y={810} />
-                  <PDFChaveSeccionadora key={`c1-${i}`} x={cCX} y={766} />
-                  <Text key={`c1-n-${i}`} x={cCX + 22} y={758} fontSize={6.5} fill="#000">{`C${i + 1}`}</Text>
-                  <Text key={`c1-l1-${i}`} x={cCX + 22} y={768} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
-                  <Text key={`c1-l2-${i}`} x={cCX + 22} y={777} fontSize={5.5} fill="#000">(4 polos)</Text>
-                  <Text key={`c1-l3-${i}`} x={cCX + 22} y={786} fontSize={5.5} fill="#000">1200 Vcc 32 A</Text>
+                  <Rect key={`qcc-r-${i}`} x={cCX - 120} y={708 + miQccShift} width={240} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
+                  <Text key={`qcc-t1-${i}`} x={cCX + 115} y={720 + miQccShift} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
+                  <Text key={`qcc-t2-${i}`} x={cCX + 115} y={730 + miQccShift} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
+                  <Text key={`dpscc-la-${i}`} x={cCX - 115} y={721 + miQccShift} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
+                  <Text key={`dpscc-lb-${i}`} x={cCX - 115} y={730 + miQccShift} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+                  <Text key={`dpscc-l0-${i}`} x={cCX - 115} y={758 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
+                  <Text key={`dpscc-l1-${i}`} x={cCX - 115} y={767 + miQccShift} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
+                  <Text key={`dpscc-l2-${i}`} x={cCX - 115} y={776 + miQccShift} fontSize={5.5} fill="#000">Classe II</Text>
+                  <Line key={`qcc-v1-${i}`} x1={cCX} y1={708 + miQccShift} x2={cCX} y2={745 + miQccShift} stroke="#000" strokeWidth={1} />
+                  <Line key={`dpscc-h-${i}`} x1={cCX} y1={725 + miQccShift} x2={dpsX} y2={725 + miQccShift} stroke="#000" strokeWidth={0.8} />
+                  <Line key={`dpscc-v-${i}`} x1={dpsX} y1={725 + miQccShift} x2={dpsX} y2={780 + miQccShift} stroke="#000" strokeWidth={0.8} />
+                  <PDFDPSSymbol key={`dpscc-sym-${i}`} x={dpsX} y={789 + miQccShift} />
+                  <Line key={`dpscc-bt-${i}`} x1={dpsX} y1={798 + miQccShift} x2={dpsX} y2={810 + miQccShift} stroke="#000" strokeWidth={0.8} />
+                  <PDFTerra key={`dpscc-t-${i}`} x={dpsX} y={810 + miQccShift} />
+                  <PDFChaveSeccionadora key={`c1-${i}`} x={cCX} y={766 + miQccShift} />
+                  <Text key={`c1-n-${i}`} x={cCX + 22} y={758 + miQccShift} fontSize={6.5} fill="#000">{`C${i + 1}`}</Text>
+                  <Text key={`c1-l1-${i}`} x={cCX + 22} y={768 + miQccShift} fontSize={5.5} fill="#000">Chave Seccionadora</Text>
+                  <Text key={`c1-l2-${i}`} x={cCX + 22} y={777 + miQccShift} fontSize={5.5} fill="#000">(4 polos)</Text>
+                  <Text key={`c1-l3-${i}`} x={cCX + 22} y={786 + miQccShift} fontSize={5.5} fill="#000">1200 Vcc 32 A</Text>
 
                   {/* Wire QCC → G */}
-                  <Line key={`qcc-v2-${i}`} x1={cCX} y1={770} x2={cCX} y2={848} stroke="#000" strokeWidth={1} />
+                  <Line key={`qcc-v2-${i}`} x1={cCX} y1={770 + miQccShift} x2={cCX} y2={848 + miQccShift} stroke="#000" strokeWidth={1} />
 
                   {/* Cabos CC — Quadro CC → G */}
-                  <Line key={`cc2-ln-${i}`} x1={cCX} y1={872} x2={cCX + 12} y2={872} stroke="#000" strokeWidth={0.6} />
-                  <Text key={`cc2-t0-${i}`} x={cCX + 15} y={865} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
-                  <Text key={`cc2-t1-${i}`} x={cCX + 15} y={873} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
-                  <Text key={`cc2-t2-${i}`} x={cCX + 15} y={881} fontSize={5.5} fill="#000">Para cada string:</Text>
-                  <Text key={`cc2-t3-${i}`} x={cCX + 15} y={888} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
-                  <Text key={`cc2-t4-${i}`} x={cCX + 15} y={895} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
-                  <Text key={`cc2-t5-${i}`} x={cCX + 15} y={903} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
-                  <Text key={`cc2-t6-${i}`} x={cCX + 15} y={910} fontSize={5.5} fill="#000">1 #6,0mm² (T)</Text>
+                  <Line key={`cc2-ln-${i}`} x1={cCX} y1={872 + miQccShift} x2={cCX + 12} y2={872 + miQccShift} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`cc2-t0-${i}`} x={cCX + 15} y={865 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CC Fotovoltaico -</Text>
+                  <Text key={`cc2-t1-${i}`} x={cCX + 15} y={873 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc2-t2-${i}`} x={cCX + 15} y={881 + miQccShift} fontSize={5.5} fill="#000">Para cada string:</Text>
+                  <Text key={`cc2-t3-${i}`} x={cCX + 15} y={888 + miQccShift} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (-)`}</Text>
+                  <Text key={`cc2-t4-${i}`} x={cCX + 15} y={895 + miQccShift} fontSize={5.5} fill="#000">{`1 #${caboCC}mm² (+)`}</Text>
+                  <Text key={`cc2-t5-${i}`} x={cCX + 15} y={903 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
+                  <Text key={`cc2-t6-${i}`} x={cCX + 15} y={910 + miQccShift} fontSize={5.5} fill="#000">1 #6,0mm² (T)</Text>
 
                   {/* G — GERADOR */}
-                  <Line key={`g-up-${i}`} x1={cCX} y1={848} x2={cCX} y2={935} stroke="#000" strokeWidth={1} />
-                  <Circle key={`g-c-${i}`} cx={cCX} cy={971} r={32} fill="white" stroke="#000" strokeWidth={1.5} />
-                  <Text key={`g-t-${i}`} x={cCX} y={978} fontSize={20} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
-                  <Line key={`g-v-${i}`} x1={cCX} y1={1003} x2={cCX} y2={1017} stroke="#000" strokeWidth={1.2} />
-                  <PDFTerra key={`g-terra-${i}`} x={cCX} y={1017} />
+                  <Line key={`g-up-${i}`} x1={cCX} y1={848 + miQccShift} x2={cCX} y2={935 + miQccShift} stroke="#000" strokeWidth={1} />
+                  <Circle key={`g-c-${i}`} cx={cCX} cy={971 + miQccShift} r={32} fill="white" stroke="#000" strokeWidth={1.5} />
+                  <Text key={`g-t-${i}`} x={cCX} y={978 + miQccShift} fontSize={20} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">G</Text>
+                  <Line key={`g-v-${i}`} x1={cCX} y1={1003 + miQccShift} x2={cCX} y2={1017 + miQccShift} stroke="#000" strokeWidth={1.2} />
+                  <PDFTerra key={`g-terra-${i}`} x={cCX} y={1017 + miQccShift} />
 
-                  {/* Modulos — primeira coluna (esquerda do G) */}
-                  {i === 0 && (<>
-                    <Line key={`mod-ln-${i}`} x1={cCX - 32} y1={971} x2={cBX - 12} y2={971} stroke="#000" strokeWidth={0.6} />
-                    <Text key={`mod-t0-${i}`} x={cBX - 15} y={938} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">Modulos Fotovoltaicos:</Text>
-                    <Text key={`mod-t1-${i}`} x={cBX - 15} y={948} fontSize={5.5} textAnchor="end" fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-                    <Text key={`mod-t2-${i}`} x={cBX - 15} y={957} fontSize={5.5} textAnchor="end" fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-                    <Text key={`mod-t3-${i}`} x={cBX - 15} y={966} fontSize={5.5} textAnchor="end" fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
-                    <Text key={`mod-t4-${i}`} x={cBX - 15} y={975} fontSize={5.5} textAnchor="end" fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-                    <Text key={`mod-t5-${i}`} x={cBX - 15} y={984} fontSize={5.5} textAnchor="end" fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-                    <Text key={`mod-t6-${i}`} x={cBX - 15} y={993} fontSize={5.5} textAnchor="end" fill="#000">Quantidade: {qtdDescr}</Text>
-                    <Text key={`mod-t7-${i}`} x={cBX - 15} y={1002} fontSize={5.5} textAnchor="end" fill="#000">Potencia total: {potKwp} kWp</Text>
-                    <Text key={`mod-t8-${i}`} x={cBX - 15} y={1011} fontSize={5.5} textAnchor="end" fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
-                    <Text key={`mod-t9-${i}`} x={cBX - 15} y={1020} fontSize={5.5} textAnchor="end" fill="#000">{corrLabel}: {corrStr} A</Text>
-                  </>)}
-                  {/* Modulos — ultima coluna (direita do G, mais proximo) */}
-                  {i === numInversores - 1 && numInversores > 1 && (<>
-                    <Line key={`mod-ln2-${i}`} x1={cCX + 32} y1={971} x2={cCX + 40} y2={971} stroke="#000" strokeWidth={0.6} />
-                    <Text key={`mod-t0b-${i}`} x={cCX + 43} y={938} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
-                    <Text key={`mod-t1b-${i}`} x={cCX + 43} y={948} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
-                    <Text key={`mod-t2b-${i}`} x={cCX + 43} y={957} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
-                    <Text key={`mod-t3b-${i}`} x={cCX + 43} y={966} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
-                    <Text key={`mod-t4b-${i}`} x={cCX + 43} y={975} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-                    <Text key={`mod-t5b-${i}`} x={cCX + 43} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
-                    <Text key={`mod-t6b-${i}`} x={cCX + 43} y={993} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
-                    <Text key={`mod-t7b-${i}`} x={cCX + 43} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
-                    <Text key={`mod-t8b-${i}`} x={cCX + 43} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
-                    <Text key={`mod-t9b-${i}`} x={cCX + 43} y={1020} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
-                  </>)}
+                  {/* Modulos — direita do G */}
+                  <Line key={`mod-ln-${i}`} x1={cCX + 32} y1={971 + miQccShift} x2={cCX + 40} y2={971 + miQccShift} stroke="#000" strokeWidth={0.6} />
+                  <Text key={`mod-t0-${i}`} x={cCX + 43} y={938 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Modulos Fotovoltaicos:</Text>
+                  <Text key={`mod-t1-${i}`} x={cCX + 43} y={948 + miQccShift} fontSize={5.5} fill="#000">Marca: {fv(pd.modulos_fabricante)}</Text>
+                  <Text key={`mod-t2-${i}`} x={cCX + 43} y={957 + miQccShift} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
+                  <Text key={`mod-t3-${i}`} x={cCX + 43} y={966 + miQccShift} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
+                  <Text key={`mod-t4-${i}`} x={cCX + 43} y={975 + miQccShift} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
+                  <Text key={`mod-t5-${i}`} x={cCX + 43} y={984 + miQccShift} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+                  <Text key={`mod-t6-${i}`} x={cCX + 43} y={993 + miQccShift} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
+                  <Text key={`mod-t7-${i}`} x={cCX + 43} y={1002 + miQccShift} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
+                  <Text key={`mod-t8-${i}`} x={cCX + 43} y={1011 + miQccShift} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
+                  <Text key={`mod-t9-${i}`} x={cCX + 43} y={1020 + miQccShift} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
                 </>
               );
             })}
           </>)}
 
           {/* ═══ LEGENDA ═══ */}
-          <Rect x={660} y={-20} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
-          <Text x={779} y={-4} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">LEGENDA:</Text>
+          <Rect x={legendX} y={-20} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
+          <Text x={legendX + 119} y={-4} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">LEGENDA:</Text>
           {[
             'D1: Disjuntor de entrada ou geral da',
             '       unidade consumidora',
@@ -625,7 +658,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
             'NP: Numero de polos do disjuntor',
             'YYY A: Corrente nominal',
           ].map((ln, i) => (
-            <Text key={i} x={668} y={10 + i * 13} fontSize={6.5} fill="#000">{ln}</Text>
+            <Text key={i} x={legendX + 8} y={10 + i * 13} fontSize={6.5} fill="#000">{ln}</Text>
           ))}
 
 
@@ -634,87 +667,83 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           ═══════════════════════════════════════════ */}
 
           {/* Seal outer rect */}
-          <Rect x={5} y={1058} width={885} height={120} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Rect x={5} y={1128} width={1050} height={120} fill="white" stroke="#000" strokeWidth={1.2} />
 
           {/* === COLUMN DIVIDERS === */}
           {/* Left | Mid */}
-          <Line x1={178} y1={1058} x2={178} y2={1178} stroke="#000" strokeWidth={0.8} />
+          <Line x1={178} y1={1128} x2={178} y2={1248} stroke="#000" strokeWidth={0.8} />
           {/* Mid | Right (logo area) */}
-          <Line x1={700} y1={1058} x2={700} y2={1178} stroke="#000" strokeWidth={0.8} />
+          <Line x1={700} y1={1128} x2={700} y2={1248} stroke="#000" strokeWidth={0.8} />
           {/* Left sub-col: label area | R values — starts below PRODUTO section */}
-          <Line x1={118} y1={1088} x2={118} y2={1178} stroke="#000" strokeWidth={0.6} />
+          <Line x1={118} y1={1158} x2={118} y2={1248} stroke="#000" strokeWidth={0.6} />
 
           {/* === HORIZONTAL DIVIDERS === */}
           {/* Below PRODUTO section (left + mid cols) */}
-          <Line x1={5} y1={1088} x2={700} y2={1088} stroke="#000" strokeWidth={0.7} />
+          <Line x1={5} y1={1158} x2={700} y2={1158} stroke="#000" strokeWidth={0.7} />
           {/* Left col — 4 equal rows of 16px + last row to 1170 */}
-          <Line x1={5} y1={1104} x2={178} y2={1104} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1120} x2={178} y2={1120} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1136} x2={178} y2={1136} stroke="#000" strokeWidth={0.5} />
-          <Line x1={5} y1={1152} x2={178} y2={1152} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1174} x2={178} y2={1174} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1190} x2={178} y2={1190} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1206} x2={178} y2={1206} stroke="#000" strokeWidth={0.5} />
+          <Line x1={5} y1={1222} x2={178} y2={1222} stroke="#000" strokeWidth={0.5} />
           {/* Mid col: owner | responsavel separator (aligns with left col row 3 end) */}
-          <Line x1={178} y1={1136} x2={700} y2={1136} stroke="#000" strokeWidth={0.5} />
+          <Line x1={178} y1={1206} x2={700} y2={1206} stroke="#000" strokeWidth={0.5} />
 
           {/* === LEFT COLUMN — PRODUTO (top, full width, value centered) === */}
-          <Text x={8}  y={1067}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
-          <Text x={92} y={1082} fontSize={9}   fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">GFV {potKwp} kWp</Text>
+          <Text x={8}  y={1137}  fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">PRODUTO</Text>
+          <Text x={92} y={1152} fontSize={9}   fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">GFV {potKwp} kWp</Text>
 
-          {/* DATA  (row 1: y=1088–1104) */}
-          <Text x={8}   y={1095} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
-          <Text x={62}  y={1102} fontSize={6}   textAnchor="middle" fill="#000">{dataDoc}</Text>
-          <Text x={148} y={1099} fontSize={5.5} textAnchor="middle" fill="#000">R1:</Text>
+          {/* DATA  (row 1: y=1158–1174) */}
+          <Text x={8}   y={1165} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DATA</Text>
+          <Text x={62}  y={1172} fontSize={6}   textAnchor="middle" fill="#000">{dataDoc}</Text>
+          <Text x={148} y={1169} fontSize={5.5} textAnchor="middle" fill="#000">R1:</Text>
 
-          {/* ESCALA  (row 2: y=1104–1120) */}
-          <Text x={8}   y={1111} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
-          <Text x={62}  y={1118} fontSize={6}   textAnchor="middle" fill="#000">S/ ESCALA</Text>
-          <Text x={148} y={1115} fontSize={5.5} textAnchor="middle" fill="#000">R2:</Text>
+          {/* ESCALA  (row 2: y=1174–1190) */}
+          <Text x={8}   y={1181} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">ESCALA</Text>
+          <Text x={62}  y={1188} fontSize={6}   textAnchor="middle" fill="#000">S/ ESCALA</Text>
+          <Text x={148} y={1185} fontSize={5.5} textAnchor="middle" fill="#000">R2:</Text>
 
-          {/* TAMANHO  (row 3: y=1120–1136) */}
-          <Text x={8}   y={1127} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
-          <Text x={62}  y={1134} fontSize={6}   textAnchor="middle" fill="#000">A3</Text>
-          <Text x={148} y={1131} fontSize={5.5} textAnchor="middle" fill="#000">R3:</Text>
+          {/* TAMANHO  (row 3: y=1190–1206) */}
+          <Text x={8}   y={1197} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
+          <Text x={62}  y={1204} fontSize={6}   textAnchor="middle" fill="#000">A3</Text>
+          <Text x={148} y={1201} fontSize={5.5} textAnchor="middle" fill="#000">R3:</Text>
 
-          {/* FOLHA  (row 4: y=1136–1152) */}
-          <Text x={8}   y={1143} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
-          <Text x={62}  y={1150} fontSize={6}   textAnchor="middle" fill="#000">1/1</Text>
-          <Text x={148} y={1147} fontSize={5.5} textAnchor="middle" fill="#000">R4:</Text>
+          {/* FOLHA  (row 4: y=1206–1222) */}
+          <Text x={8}   y={1213} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">FOLHA</Text>
+          <Text x={62}  y={1220} fontSize={6}   textAnchor="middle" fill="#000">1/1</Text>
+          <Text x={148} y={1217} fontSize={5.5} textAnchor="middle" fill="#000">R4:</Text>
 
-          {/* REVISAO  (row 5: y=1152–1170) */}
-          <Text x={8}   y={1159} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
-          <Text x={62}  y={1166} fontSize={6}   textAnchor="middle" fill="#000">R0</Text>
-          <Text x={148} y={1163} fontSize={5.5} textAnchor="middle" fill="#000">R5:</Text>
+          {/* REVISAO  (row 5: y=1222–1240) */}
+          <Text x={8}   y={1229} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">REVISAO</Text>
+          <Text x={62}  y={1236} fontSize={6}   textAnchor="middle" fill="#000">R0</Text>
+          <Text x={148} y={1233} fontSize={5.5} textAnchor="middle" fill="#000">R5:</Text>
 
           {/* === MIDDLE COLUMN — TITULO (top) === */}
-          <Text x={185} y={1069} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
-          <Text x={MID_CTR} y={1083} fontSize={11} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
+          <Text x={185} y={1139} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TITULO</Text>
+          <Text x={MID_CTR} y={1153} fontSize={11} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">DIAGRAMA UNIFILAR</Text>
 
-          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1088–1136, 5 items equidistant 9px) === */}
-          <Text x={MID_CTR} y={1097} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
-          <Text x={MID_CTR} y={1106} fontSize={6} textAnchor="middle" fill="#000">{`Nome: ${owner}`}</Text>
-          <Text x={MID_CTR} y={1115} fontSize={6} textAnchor="middle" fill="#000">{`Endereco: ${endereco}`}</Text>
-          <Text x={MID_CTR} y={1124} fontSize={6} textAnchor="middle" fill="#000">{`Cidade: ${uf ? `${cidade} - ${uf}` : cidade}`}</Text>
-          <Text x={MID_CTR} y={1133} fontSize={6} textAnchor="middle" fill="#000">{`CEP: ${cep}`}</Text>
+          {/* === MIDDLE COLUMN — OWNER BLOCK (y=1158–1206, 5 items equidistant 9px) === */}
+          <Text x={MID_CTR} y={1167} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Proprietario e Obra:</Text>
+          <Text x={MID_CTR} y={1176} fontSize={6} textAnchor="middle" fill="#000">{`Nome: ${owner}`}</Text>
+          <Text x={MID_CTR} y={1185} fontSize={6} textAnchor="middle" fill="#000">{`Endereco: ${endereco}`}</Text>
+          <Text x={MID_CTR} y={1194} fontSize={6} textAnchor="middle" fill="#000">{`Cidade: ${uf ? `${cidade} - ${uf}` : cidade}`}</Text>
+          <Text x={MID_CTR} y={1203} fontSize={6} textAnchor="middle" fill="#000">{`CEP: ${cep}`}</Text>
 
-          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1136–1170, 4 items equidistant 8px) === */}
-          <Text x={MID_CTR} y={1145} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
-          <Text x={MID_CTR} y={1153} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
-          <Text x={MID_CTR} y={1161} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
-          <Text x={MID_CTR} y={1169} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
+          {/* === MIDDLE COLUMN — RESPONSAVEL BLOCK (y=1206–1240, 4 items equidistant 8px) === */}
+          <Text x={MID_CTR} y={1215} fontSize={5.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">Responsavel Tecnico:</Text>
+          <Text x={MID_CTR} y={1223} fontSize={6} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">{respNome}</Text>
+          <Text x={MID_CTR} y={1231} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
+          <Text x={MID_CTR} y={1239} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
 
         </Svg>
 
         {/* Logo fora do SVG com posição absoluta sobre a coluna direita do selo */}
-        {/* Cálculo: position:absolute é relativo ao content-box (sem o padding de 15) */}
-        {/* Logo da empresa: View com overflow hidden garante que não extrapola o espaço do selo */}
-        {/* Coluna direita do selo em coords SVG: x=700–890, y=1058–1178 */}
-        {/* Content-box coords: left=627, top=910, w=154, h=89 (-10% escala, +10% direita) */}
         {pd.logo_empresa_url && (
           <View style={{
             position: 'absolute',
-            left: 627,
-            top: 910,
-            width: 154,
-            height: 89,
+            left: numInversores >= 3 ? 622 : 618,
+            top: numInversores >= 3 ? 879 : 901,
+            width: numInversores >= 3 ? 136 : 139,
+            height: numInversores >= 3 ? 84 : 86,
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
