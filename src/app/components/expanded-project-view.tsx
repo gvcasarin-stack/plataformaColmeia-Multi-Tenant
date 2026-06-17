@@ -1383,7 +1383,7 @@ export const ExpandedProjectView = ({
   };
 
   const handleSaveConferirModal = async (updatedFields: Record<string, any>) => {
-    const { _plantaFile, ...fieldsToSave } = updatedFields;
+    const { _plantaFile, _autoSave, ...fieldsToSave } = updatedFields;
 
     if (_plantaFile && _plantaFile instanceof File) {
       try {
@@ -1446,10 +1446,12 @@ export const ExpandedProjectView = ({
     setEditedProject(prev => ({ ...prev, ...fieldsToSave }));
     setSelectedDistribuidoraGerarProjeto(fieldsToSave.distribuidora || selectedDistribuidoraGerarProjeto);
 
-    toast({
-      title: "Progresso salvo",
-      description: `${result.debug?.savedFields?.length || 0} campos salvos no banco de dados.`,
-    });
+    if (!_autoSave) {
+      toast({
+        title: "Progresso salvo",
+        description: `${result.debug?.savedFields?.length || 0} campos salvos no banco de dados.`,
+      });
+    }
   };
 
   const handleSaveSetup = async (data: SetupProjetoData) => {

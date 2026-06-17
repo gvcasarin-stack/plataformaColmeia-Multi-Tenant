@@ -110,6 +110,7 @@ interface EquipamentoListItemModuloProps {
   onUpdate: (updated: ModuloItem) => void;
   onRemove: () => void;
   hideStrings?: boolean;
+  onAfterCatalogSave?: () => void;
 }
 
 interface EquipamentoListItemInversorProps {
@@ -119,6 +120,7 @@ interface EquipamentoListItemInversorProps {
   onUpdate: (updated: InversorItem) => void;
   onRemove: () => void;
   modulosList?: ModuloItem[];
+  onAfterCatalogSave?: () => void;
 }
 
 type Props = EquipamentoListItemModuloProps | EquipamentoListItemInversorProps;
@@ -394,8 +396,10 @@ export function EquipamentoListItem(props: Props) {
       if (result.success && result.data?.id) {
         if (tipo === 'modulo') {
           (props as EquipamentoListItemModuloProps).onUpdate({ ...m, catalog_id: result.data.id });
+          (props as EquipamentoListItemModuloProps).onAfterCatalogSave?.();
         } else {
           (props as EquipamentoListItemInversorProps).onUpdate({ ...inv, catalog_id: result.data.id });
+          (props as EquipamentoListItemInversorProps).onAfterCatalogSave?.();
         }
         setCatalogSaved(true);
         setTimeout(() => setCatalogSaved(false), 3000);
@@ -678,14 +682,14 @@ export function EquipamentoListItem(props: Props) {
                   <Field label="Faixa de tensão" value={inv.faixa_tensao || ''} onChange={v => updateField('faixa_tensao', v)} placeholder="200-500" />
                   <Field label="Corrente nom. (A)" value={inv.corrente_nominal || ''} onChange={v => updateField('corrente_nominal', v)} suffix="A" placeholder="22,8" />
                   <SelectField
-                    label="Tipo de conexão *"
+                    label="Nº de Fases + Neutro + Terra *"
                     value={inv.tipo_conexao_saida || ''}
                     onChange={v => updateField('tipo_conexao_saida', v)}
                     options={TIPO_CONEXAO_OPTIONS}
                     placeholder="Selecione"
                   />
                   <SelectField
-                    label="Conexão de rede CA *"
+                    label="Tipo de Conexão *"
                     value={inv.tipo_conexao_rede_ca || ''}
                     onChange={v => updateField('tipo_conexao_rede_ca', v)}
                     options={[{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Trifásico', label: 'Trifásico' }]}

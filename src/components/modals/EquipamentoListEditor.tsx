@@ -12,6 +12,7 @@ interface ModulosEditorProps {
   items: ModuloItem[];
   onChange: (items: ModuloItem[]) => void;
   hideStrings?: boolean;
+  onAfterCatalogSave?: () => void;
 }
 
 // ─── Inversores ─────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ interface InversoresEditorProps {
   items: InversorItem[];
   onChange: (items: InversorItem[]) => void;
   modulosList?: ModuloItem[];
+  onAfterCatalogSave?: () => void;
 }
 
 type Props = ModulosEditorProps | InversoresEditorProps;
@@ -96,6 +98,7 @@ export function EquipamentoListEditor(props: Props) {
             onUpdate={updated => updateItem(idx, updated)}
             onRemove={() => removeItem(idx)}
             hideStrings={(props as ModulosEditorProps).hideStrings}
+            onAfterCatalogSave={(props as ModulosEditorProps).onAfterCatalogSave}
           />
         ) : (
           <EquipamentoListItem
@@ -106,6 +109,7 @@ export function EquipamentoListEditor(props: Props) {
             onUpdate={updated => updateItem(idx, updated)}
             onRemove={() => removeItem(idx)}
             modulosList={(props as InversoresEditorProps).modulosList || []}
+            onAfterCatalogSave={(props as InversoresEditorProps).onAfterCatalogSave}
           />
         )
       ))}
