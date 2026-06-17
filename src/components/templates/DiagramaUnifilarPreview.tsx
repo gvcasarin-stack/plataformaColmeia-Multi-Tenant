@@ -187,7 +187,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topBR = topCX + 120;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
   const legendX = isMultiInv ? 810 : 650;
-  const miInvShift = isSaidaAgrupada ? 40 : 0;
+  const miInvShift = isSaidaAgrupada ? 60 : 0;
+  const miQccShift = isSaidaAgrupada ? 20 : 0;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -585,11 +586,11 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <line x1={cCX} y1={isSaidaAgrupada ? 543 : 480} x2={cCX} y2={554 + miInvShift} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CA — QD CA → Inversor */}
-                  <line x1={cCX} y1={isSaidaAgrupada ? 553 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 553 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 546 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 561 : 503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 569 : 511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 577 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+                  <line x1={cCX} y1={isSaidaAgrupada ? 568 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 568 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 561 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 576 : 503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 584 : 511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 592 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
                   {/* INVERSOR */}
                   <text x={cBR} y={551 + miInvShift} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
@@ -630,77 +631,77 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   </>)}
 
                   {/* Wire INVERSOR → QUADRO CC */}
-                  <line x1={cCX} y1={609 + miInvShift} x2={cCX} y2={708} stroke="#000" strokeWidth="1" />
+                  <line x1={cCX} y1={609 + miInvShift} x2={cCX} y2={708 + miQccShift} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CC — Inversor → Quadro CC */}
-                  <line x1={cCX} y1={isSaidaAgrupada ? 659 : 644} x2={cCX + 12} y2={isSaidaAgrupada ? 659 : 644} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 652 : 636} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 659 : 644} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 667 : 652} fontSize="5.5">Para cada string:</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 675 : 659} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 683 : 666} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 691 : 674} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 699 : 681} fontSize="5.5">1 #6,0mm² (T)</text>
+                  <line x1={cCX} y1={isSaidaAgrupada ? 679 : 644} x2={cCX + 12} y2={isSaidaAgrupada ? 679 : 644} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 672 : 636} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 679 : 644} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 687 : 652} fontSize="5.5">Para cada string:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 695 : 659} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 703 : 666} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 711 : 674} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 719 : 681} fontSize="5.5">1 #6,0mm² (T)</text>
 
                   {/* QUADRO DE PROTEÇÃO CC */}
-                  <rect x={cCX - 120} y={708} width={240} height={140} fill="white" stroke="#000" strokeWidth="1.2" />
-                  <text x={cCX + 115} y={720} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
-                  <text x={cCX + 115} y={730} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CC</text>
+                  <rect x={cCX - 120} y={708 + miQccShift} width={240} height={140} fill="white" stroke="#000" strokeWidth="1.2" />
+                  <text x={cCX + 115} y={720 + miQccShift} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
+                  <text x={cCX + 115} y={730 + miQccShift} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CC</text>
                   {!hasStringbox && (
                     <>
-                      <text x={cCX - 115} y={721} fontSize="5.5">(ACOPLADO AO</text>
-                      <text x={cCX - 115} y={730} fontSize="5.5">INVERSOR FV)</text>
+                      <text x={cCX - 115} y={721 + miQccShift} fontSize="5.5">(ACOPLADO AO</text>
+                      <text x={cCX - 115} y={730 + miQccShift} fontSize="5.5">INVERSOR FV)</text>
                     </>
                   )}
-                  <text x={cCX - 115} y={758} fontSize="5.5" fontWeight="bold">DPS CC</text>
-                  <text x={cCX - 115} y={767} fontSize="5.5">1040 Vcc, 18-40 kA</text>
-                  <text x={cCX - 115} y={776} fontSize="5.5">Classe II</text>
-                  <line x1={cCX} y1={708} x2={cCX} y2={745} stroke="#000" strokeWidth="1" />
-                  <line x1={cCX} y1={725} x2={dpsX} y2={725} stroke="#000" strokeWidth="0.8" />
-                  <line x1={dpsX} y1={725} x2={dpsX} y2={780} stroke="#000" strokeWidth="0.8" />
-                  <DPSSymbol x={dpsX} y={789} />
-                  <line x1={dpsX} y1={798} x2={dpsX} y2={810} stroke="#000" strokeWidth="0.8" />
-                  <Terra x={dpsX} y={810} />
-                  <ChaveSeccionadora x={cCX} y={766} />
-                  <text x={cCX + 22} y={758} fontSize="6.5">C{i + 1}</text>
-                  <text x={cCX + 22} y={768} fontSize="5.5">Chave Seccionadora</text>
-                  <text x={cCX + 22} y={777} fontSize="5.5">(4 polos)</text>
-                  <text x={cCX + 22} y={786} fontSize="5.5">1200 Vcc 32 A</text>
+                  <text x={cCX - 115} y={758 + miQccShift} fontSize="5.5" fontWeight="bold">DPS CC</text>
+                  <text x={cCX - 115} y={767 + miQccShift} fontSize="5.5">1040 Vcc, 18-40 kA</text>
+                  <text x={cCX - 115} y={776 + miQccShift} fontSize="5.5">Classe II</text>
+                  <line x1={cCX} y1={708 + miQccShift} x2={cCX} y2={745 + miQccShift} stroke="#000" strokeWidth="1" />
+                  <line x1={cCX} y1={725 + miQccShift} x2={dpsX} y2={725 + miQccShift} stroke="#000" strokeWidth="0.8" />
+                  <line x1={dpsX} y1={725 + miQccShift} x2={dpsX} y2={780 + miQccShift} stroke="#000" strokeWidth="0.8" />
+                  <DPSSymbol x={dpsX} y={789 + miQccShift} />
+                  <line x1={dpsX} y1={798 + miQccShift} x2={dpsX} y2={810 + miQccShift} stroke="#000" strokeWidth="0.8" />
+                  <Terra x={dpsX} y={810 + miQccShift} />
+                  <ChaveSeccionadora x={cCX} y={766 + miQccShift} />
+                  <text x={cCX + 22} y={758 + miQccShift} fontSize="6.5">C{i + 1}</text>
+                  <text x={cCX + 22} y={768 + miQccShift} fontSize="5.5">Chave Seccionadora</text>
+                  <text x={cCX + 22} y={777 + miQccShift} fontSize="5.5">(4 polos)</text>
+                  <text x={cCX + 22} y={786 + miQccShift} fontSize="5.5">1200 Vcc 32 A</text>
 
                   {/* Wire QCC → G */}
-                  <line x1={cCX} y1={770} x2={cCX} y2={848} stroke="#000" strokeWidth="1" />
+                  <line x1={cCX} y1={770 + miQccShift} x2={cCX} y2={848 + miQccShift} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CC — Quadro CC → G */}
-                  <line x1={cCX} y1={872} x2={cCX + 12} y2={872} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={865} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-                  <text x={cCX + 15} y={873} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={881} fontSize="5.5">Para cada string:</text>
-                  <text x={cCX + 15} y={888} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
-                  <text x={cCX + 15} y={895} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
-                  <text x={cCX + 15} y={903} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={910} fontSize="5.5">1 #6,0mm² (T)</text>
+                  <line x1={cCX} y1={872 + miQccShift} x2={cCX + 12} y2={872 + miQccShift} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={865 + miQccShift} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+                  <text x={cCX + 15} y={873 + miQccShift} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={881 + miQccShift} fontSize="5.5">Para cada string:</text>
+                  <text x={cCX + 15} y={888 + miQccShift} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+                  <text x={cCX + 15} y={895 + miQccShift} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+                  <text x={cCX + 15} y={903 + miQccShift} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={910 + miQccShift} fontSize="5.5">1 #6,0mm² (T)</text>
 
                   {/* G — GERADOR */}
-                  <line x1={cCX} y1={848} x2={cCX} y2={935} stroke="#000" strokeWidth="1" />
-                  <circle cx={cCX} cy={971} r={32} fill="white" stroke="#000" strokeWidth="1.5" />
-                  <text x={cCX} y={978} fontSize="20" fontWeight="bold" textAnchor="middle">G</text>
-                  <line x1={cCX} y1={1003} x2={cCX} y2={1017} stroke="#000" strokeWidth="1.2" />
-                  <Terra x={cCX} y={1017} />
+                  <line x1={cCX} y1={848 + miQccShift} x2={cCX} y2={935 + miQccShift} stroke="#000" strokeWidth="1" />
+                  <circle cx={cCX} cy={971 + miQccShift} r={32} fill="white" stroke="#000" strokeWidth="1.5" />
+                  <text x={cCX} y={978 + miQccShift} fontSize="20" fontWeight="bold" textAnchor="middle">G</text>
+                  <line x1={cCX} y1={1003 + miQccShift} x2={cCX} y2={1017 + miQccShift} stroke="#000" strokeWidth="1.2" />
+                  <Terra x={cCX} y={1017 + miQccShift} />
 
                   {/* Módulos — direita do G (todas as colunas) */}
                   {(
                     <>
-                      <line x1={cCX + 32} y1={971} x2={cCX + 52} y2={971} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                      <text x={cCX + 55} y={938} fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
-                      <text x={cCX + 55} y={948} fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
-                      <text x={cCX + 55} y={957} fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
-                      <text x={cCX + 55} y={966} fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
-                      <text x={cCX + 55} y={975} fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
-                      <text x={cCX + 55} y={984} fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
-                      <text x={cCX + 55} y={993} fontSize="5.5">Quantidade: {qtdDescr}</text>
-                      <text x={cCX + 55} y={1002} fontSize="5.5">Potência total: {potKwp} kWp</text>
-                      <text x={cCX + 55} y={1011} fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
-                      <text x={cCX + 55} y={1020} fontSize="5.5">{corrLabel}: {corrStr} A</text>
+                      <line x1={cCX + 32} y1={971 + miQccShift} x2={cCX + 52} y2={971 + miQccShift} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                      <text x={cCX + 55} y={938 + miQccShift} fontSize="5.5" fontWeight="bold">Módulos Fotovoltaicos:</text>
+                      <text x={cCX + 55} y={948 + miQccShift} fontSize="5.5">Marca: {fv(pd.modulos_fabricante)}</text>
+                      <text x={cCX + 55} y={957 + miQccShift} fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
+                      <text x={cCX + 55} y={966 + miQccShift} fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
+                      <text x={cCX + 55} y={975 + miQccShift} fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
+                      <text x={cCX + 55} y={984 + miQccShift} fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
+                      <text x={cCX + 55} y={993 + miQccShift} fontSize="5.5">Quantidade: {qtdDescr}</text>
+                      <text x={cCX + 55} y={1002 + miQccShift} fontSize="5.5">Potência total: {potKwp} kWp</text>
+                      <text x={cCX + 55} y={1011 + miQccShift} fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
+                      <text x={cCX + 55} y={1020 + miQccShift} fontSize="5.5">{corrLabel}: {corrStr} A</text>
                     </>
                   )}
                 </g>
