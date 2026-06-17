@@ -186,7 +186,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topBX = topCX - 120;
   const topBR = topCX + 120;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
-  const legendX = isMultiInv ? 810 : 490;
+  const legendX = isMultiInv ? 810 : 650;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -500,27 +500,27 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               {/* Barramento → QD CA unificado */}
               <line x1={topCX} y1={255} x2={topCX} y2={358} stroke="#000" strokeWidth="1" />
               {/* Cabos CA — barramento → QD CA */}
-              <line x1={topCX} y1={310} x2={topCX + 12} y2={310} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-              <text x={topCX + 15} y={303} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-              <text x={topCX + 15} y={311} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
-              <text x={topCX + 15} y={319} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
-              <text x={topCX + 15} y={327} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
-              {/* Retângulo unificado QD Proteção CA — +~38% de altura */}
+              <line x1={topCX} y1={322} x2={topCX + 12} y2={322} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+              <text x={topCX + 15} y={315} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+              <text x={topCX + 15} y={323} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+              <text x={topCX + 15} y={331} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+              <text x={topCX + 15} y={339} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+              {/* Retângulo unificado QD Proteção CA */}
               <rect
                 x={miColBX(0) - (numInversores >= 3 ? 119 : 99)}
                 y={358}
                 width={miSectionW + (numInversores >= 3 ? 188 : 168)}
-                height={190}
+                height={160}
                 fill="white" stroke="#000" strokeWidth="1.2"
               />
               <text x={miColBX(numInversores - 1) + miColW + 52} y={370} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
               <text x={miColBX(numInversores - 1) + miColW + 52} y={380} fontSize="7" fontWeight="bold" textAnchor="end">PROTEÇÃO CA</text>
               {/* Linha central do barramento até disjuntor geral */}
-              <line x1={topCX} y1={358} x2={topCX} y2={430} stroke="#000" strokeWidth="1" />
+              <line x1={topCX} y1={358} x2={topCX} y2={465} stroke="#000" strokeWidth="1" />
               {/* DPS lateral */}
-              <text x={topCX - 115} y={372} fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
-              <text x={topCX - 115} y={381} fontSize="5.5">275 Vca, 20-40 kA</text>
-              <text x={topCX - 115} y={390} fontSize="5.5">Classe II</text>
+              <text x={topCX - 130} y={372} fontSize="5.5" fontWeight="bold">{dpsLabel}</text>
+              <text x={topCX - 130} y={381} fontSize="5.5">275 Vca, 20-40 kA</text>
+              <text x={topCX - 130} y={390} fontSize="5.5">Classe II</text>
               <line x1={topCX} y1={375} x2={topCX - 80} y2={375} stroke="#000" strokeWidth="0.8" />
               <line x1={topCX - 80} y1={375} x2={topCX - 80} y2={400} stroke="#000" strokeWidth="0.8" />
               <DPSSymbol x={topCX - 80} y={409} />
@@ -532,7 +532,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               <text x={topCX + 15} y={401} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
               <text x={topCX + 15} y={410} fontSize="5" fontStyle="italic">GERAL</text>
               {/* Barramento horizontal entre inversores */}
-              <line x1={miColCX(0)} y1={430} x2={miColCX(numInversores - 1)} y2={430} stroke="#000" strokeWidth="1" />
+              <line x1={miColCX(0)} y1={465} x2={miColCX(numInversores - 1)} y2={465} stroke="#000" strokeWidth="1" />
             </>)}
 
             {Array.from({ length: numInversores }, (_, i) => {
@@ -573,22 +573,22 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
                   {/* ─── Agrupadas: disjuntor individual dentro do QD CA unificado ─── */}
                   {isSaidaAgrupada && (<>
-                    <line x1={cCX} y1={430} x2={cCX} y2={448} stroke="#000" strokeWidth="1" />
-                    <Disjuntor x={cCX} y={455} />
-                    <text x={cCX + 22} y={453} fontSize="6.5">D{i + 3}</text>
-                    <text x={cCX + 22} y={463} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
-                    <line x1={cCX} y1={463} x2={cCX} y2={530} stroke="#000" strokeWidth="1" />
+                    <line x1={cCX} y1={465} x2={cCX} y2={483} stroke="#000" strokeWidth="1" />
+                    <Disjuntor x={cCX} y={490} />
+                    <text x={cCX + 22} y={488} fontSize="6.5">D{i + 3}</text>
+                    <text x={cCX + 22} y={498} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+                    <line x1={cCX} y1={498} x2={cCX} y2={518} stroke="#000" strokeWidth="1" />
                   </>)}
 
                   {/* Wire → INVERSOR */}
-                  <line x1={cCX} y1={isSaidaAgrupada ? 530 : 480} x2={cCX} y2={554} stroke="#000" strokeWidth="1" />
+                  <line x1={cCX} y1={isSaidaAgrupada ? 518 : 480} x2={cCX} y2={554} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CA — QD CA → Inversor */}
-                  <line x1={cCX} y1={isSaidaAgrupada ? 490 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 490 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 483 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 491 : 503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 499 : 511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 507 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+                  <line x1={cCX} y1={isSaidaAgrupada ? 528 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 528 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 521 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 529 : 503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 537 : 511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 545 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
                   {/* INVERSOR */}
                   <text x={cBR} y={551} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
@@ -796,9 +796,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x="439" y="1161" fontSize="5.5" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
           <text x="439" y="1169" fontSize="5.5" textAnchor="middle">CFT: {respCft}</text>
 
-          {/* === RIGHT COLUMN — Logo === */}
+          {/* === RIGHT COLUMN — Logo (centralizada na coluna x=700..1055) === */}
           {pd.logo_empresa_url
-            ? <image href={pd.logo_empresa_url} x="704" y="1062" width="182" height="112" preserveAspectRatio="xMidYMid meet" />
+            ? <image href={pd.logo_empresa_url} x="787" y="1062" width="182" height="112" preserveAspectRatio="xMidYMid meet" />
             : null}
 
         </svg>
