@@ -610,6 +610,24 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     return map;
   }, []);
 
+  const isMultiInv = useMemo(() => {
+    const totalUnits = inversoresList.reduce((acc, inv) => acc + (parseInt(String(inv.quantidade || '1')) || 1), 0);
+    return totalUnits > 1;
+  }, [inversoresList]);
+
+  const invStringsStats = useMemo(() => {
+    const totalUnits = inversoresList.reduce((acc, inv) => acc + (parseInt(String(inv.quantidade || '1')) || 1), 0);
+    let configured = 0;
+    for (const inv of inversoresList) {
+      const qty = parseInt(String(inv.quantidade || '1')) || 1;
+      const configs = inv.units_config || [];
+      for (let u = 0; u < qty; u++) {
+        if (configs[u] && configs[u].total_strings > 0) configured++;
+      }
+    }
+    return { totalUnits, configured };
+  }, [inversoresList]);
+
   // Sincroniza o primeiro item da lista de módulos de volta para os campos antigos (backward compat)
   function syncModulosOldFields(list: ModuloItem[]): Record<string, any> {
     const first = list[0];
@@ -1278,16 +1296,31 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
               {/* Editor de lista de módulos */}
               {isMod && (
                 <div className="mb-3">
+                  {isMultiInv && (
+                    <div className="mb-3 rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        <Info className="h-3.5 w-3.5 inline mr-1" />
+                        As strings deste projeto são configuradas individualmente na seção <strong>Inversores Fotovoltaicos</strong>.
+                      </p>
+                    </div>
+                  )}
                   <EquipamentoListEditor
                     tipo="modulo"
                     items={modulosList}
                     onChange={setModulosList}
+                    hideStrings={isMultiInv}
                   />
                 </div>
               )}
               {/* Editor de lista de inversores */}
               {isInv && (
                 <div className="mb-3">
+                  <div className="mb-3 rounded-md border border-blue-100 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      <Info className="h-3.5 w-3.5 inline mr-1" />
+                      Arranjo fotovoltaico: <strong>{invStringsStats.configured}</strong> de <strong>{invStringsStats.totalUnits}</strong> {invStringsStats.totalUnits === 1 ? 'inversor configurado' : 'inversores configurados'}
+                    </p>
+                  </div>
                   <EquipamentoListEditor
                     tipo="inversor"
                     items={inversoresList}

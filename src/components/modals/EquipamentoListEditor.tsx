@@ -11,6 +11,7 @@ interface ModulosEditorProps {
   tipo: 'modulo';
   items: ModuloItem[];
   onChange: (items: ModuloItem[]) => void;
+  hideStrings?: boolean;
 }
 
 // ─── Inversores ─────────────────────────────────────────────────────────────
@@ -94,6 +95,7 @@ export function EquipamentoListEditor(props: Props) {
             index={idx}
             onUpdate={updated => updateItem(idx, updated)}
             onRemove={() => removeItem(idx)}
+            hideStrings={(props as ModulosEditorProps).hideStrings}
           />
         ) : (
           <EquipamentoListItem

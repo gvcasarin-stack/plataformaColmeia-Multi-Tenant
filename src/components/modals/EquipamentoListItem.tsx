@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  ChevronDown, ChevronRight, Trash2, Loader2, CheckCircle2,
+  ChevronDown, ChevronRight, Trash2, Loader2, CheckCircle2, Plus, X,
 } from 'lucide-react';
 import type { ModuloItem, InversorItem, InversorUnitConfig } from '@/lib/utils/equipmentParser';
 import type { EquipmentCatalogItem } from '@/lib/services/equipmentCatalogService';
@@ -109,6 +109,7 @@ interface EquipamentoListItemModuloProps {
   index: number;
   onUpdate: (updated: ModuloItem) => void;
   onRemove: () => void;
+  hideStrings?: boolean;
 }
 
 interface EquipamentoListItemInversorProps {
@@ -126,6 +127,7 @@ type Props = EquipamentoListItemModuloProps | EquipamentoListItemInversorProps;
 
 export function EquipamentoListItem(props: Props) {
   const { tipo, index, onRemove } = props;
+  const hideStrings = tipo === 'modulo' ? ((props as EquipamentoListItemModuloProps).hideStrings ?? false) : false;
   const [expanded, setExpanded] = useState(index === 0);
 
   // Autocomplete state
@@ -459,7 +461,7 @@ export function EquipamentoListItem(props: Props) {
               </div>
 
               {/* Arranjo / Strings */}
-              <div>
+              {!hideStrings && <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Arranjo / Strings</p>
                 <div className="space-y-2">
                   {/* Microinversor */}
@@ -539,7 +541,7 @@ export function EquipamentoListItem(props: Props) {
                     <p className="text-[11px] text-blue-500 italic">Microinversor — strings não se aplicam.</p>
                   )}
                 </div>
-              </div>
+              </div>}
             </>
           )}
 
@@ -628,6 +630,12 @@ export function EquipamentoListItem(props: Props) {
                     const unitTotalStrings = cfg.total_strings || 0;
                     let unitStringsModulos: string[] = [];
                     try { unitStringsModulos = JSON.parse(cfg.strings_modulos || '[]'); } catch {}
+                    const selectedMod = modulosListProp[cfg.modulo_idx ?? 0];
+                    const modPotWp = parseFloat(String(selectedMod?.potencia_wp || '').replace(',', '.'));
+                    const unitTotalMods = unitStringsModulos.reduce((s, n) => s + (parseInt(String(n)) || 0), 0);
+                    const unitKwpText = !isNaN(modPotWp) && modPotWp > 0 && unitTotalMods > 0
+                      ? ((modPotWp * unitTotalMods) / 1000).toFixed(2).replace('.', ',')
+                      : null;
 
                     function updateUnit(newCfg: InversorUnitConfig) {
                       const base = Array.from({ length: qty }, (_, i) =>
@@ -669,43 +677,57 @@ export function EquipamentoListItem(props: Props) {
                           />
                         )}
 
-                        {/* Total de strings */}
-                        <div className="mt-2">
-                          <Field
-                            label="Total de Strings"
-                            value={unitTotalStrings > 0 ? String(unitTotalStrings) : ''}
-                            onChange={v => {
-                              const n = parseInt(v) || 0;
-                              const newArr = Array.from({ length: n }, (_, si) => unitStringsModulos[si] || '');
-                              updateUnit({ ...cfg, total_strings: n, strings_modulos: JSON.stringify(newArr) });
+                        {/* Strings dinâmicas */}
+                        <div className="mt-2 space-y-1">
+                          {unitStringsModulos.map((count, si) => (
+                            <div key={si} className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-gray-400 shrink-0 w-16">String {si + 1}</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={String(count) || ''}
+                                onChange={e => {
+                                  const arr = [...unitStringsModulos];
+                                  arr[si] = e.target.value;
+                                  updateUnit({ ...cfg, total_strings: arr.length, strings_modulos: JSON.stringify(arr) });
+                                }}
+                                placeholder="Módulos"
+                                className="h-7 text-xs flex-1"
+                              />
+                              <span className="text-[10px] text-gray-400 shrink-0">mód.</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 shrink-0"
+                                onClick={() => {
+                                  const arr = unitStringsModulos.filter((_, i) => i !== si);
+                                  updateUnit({ ...cfg, total_strings: arr.length, strings_modulos: JSON.stringify(arr) });
+                                }}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const arr = [...unitStringsModulos, ''];
+                              updateUnit({ ...cfg, total_strings: arr.length, strings_modulos: JSON.stringify(arr) });
                             }}
-                            placeholder="Nº de strings"
-                          />
+                            className="w-full mt-0.5 border-dashed text-gray-500 hover:text-gray-700 hover:border-gray-400"
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            Adicionar String
+                          </Button>
+                          {unitTotalMods > 0 && (
+                            <p className="text-[11px] text-blue-600 dark:text-blue-400">
+                              {unitTotalMods} módulos{unitKwpText ? ` — ${unitKwpText} kWp` : ''}
+                            </p>
+                          )}
                         </div>
-
-                        {/* Módulos por string */}
-                        {unitTotalStrings > 0 && (
-                          <div className="space-y-1 pl-2 border-l-2 border-blue-200 dark:border-blue-800 mt-2">
-                            {Array.from({ length: unitTotalStrings }, (_, si) => (
-                              <div key={si} className="flex items-center gap-2">
-                                <Label className="text-[10px] text-gray-500 whitespace-nowrap w-32">String {si + 1} — Módulos</Label>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={unitStringsModulos[si] || ''}
-                                  onChange={e => {
-                                    const arr = [...unitStringsModulos];
-                                    while (arr.length < unitTotalStrings) arr.push('');
-                                    arr[si] = e.target.value;
-                                    updateUnit({ ...cfg, strings_modulos: JSON.stringify(arr) });
-                                  }}
-                                  placeholder="Qtd."
-                                  className="h-7 text-xs"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
