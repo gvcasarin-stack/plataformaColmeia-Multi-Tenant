@@ -212,6 +212,10 @@ export interface Project {
   modulos_area_unitaria_m2?: string;
   modulos_peso_kg?: string;
 
+  // Listas completas de equipamentos (novo formato JSON)
+  modulos_lista?: string;
+  inversores_lista?: string;
+
   // Dimensionamento dos Cabos
   cabo_isolacao_material?: string;
   cabo_cc_secao_mm2?: string;
