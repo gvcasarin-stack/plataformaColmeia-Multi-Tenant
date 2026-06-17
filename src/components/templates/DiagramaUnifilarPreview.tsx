@@ -187,6 +187,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topBR = topCX + 120;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
   const legendX = isMultiInv ? 810 : 650;
+  const miInvShift = isSaidaAgrupada ? 40 : 0;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -510,7 +511,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                 x={miColBX(0) - (numInversores >= 3 ? 119 : 99)}
                 y={358}
                 width={miSectionW + (numInversores >= 3 ? 188 : 168)}
-                height={160}
+                height={185}
                 fill="white" stroke="#000" strokeWidth="1.2"
               />
               <text x={miColBX(numInversores - 1) + miColW + 52} y={370} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
@@ -527,10 +528,10 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               <line x1={topCX - 80} y1={418} x2={topCX - 80} y2={428} stroke="#000" strokeWidth="0.8" />
               <Terra x={topCX - 80} y={428} />
               {/* Disjuntor Geral */}
-              <Disjuntor x={topCX} y={393} />
-              <text x={topCX + 15} y={391} fontSize="6.5">D2</text>
-              <text x={topCX + 15} y={401} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
-              <text x={topCX + 15} y={410} fontSize="5" fontStyle="italic">GERAL</text>
+              <Disjuntor x={topCX} y={408} />
+              <text x={topCX + 15} y={406} fontSize="6.5">D2</text>
+              <text x={topCX + 15} y={416} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+              <text x={topCX + 15} y={425} fontSize="5" fontStyle="italic">GERAL</text>
               {/* Barramento horizontal entre inversores */}
               <line x1={miColCX(0)} y1={465} x2={miColCX(numInversores - 1)} y2={465} stroke="#000" strokeWidth="1" />
             </>)}
@@ -577,69 +578,69 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                     <Disjuntor x={cCX} y={490} />
                     <text x={cCX + 22} y={488} fontSize="6.5">D{i + 3}</text>
                     <text x={cCX + 22} y={498} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
-                    <line x1={cCX} y1={498} x2={cCX} y2={518} stroke="#000" strokeWidth="1" />
+                    <line x1={cCX} y1={498} x2={cCX} y2={543} stroke="#000" strokeWidth="1" />
                   </>)}
 
                   {/* Wire → INVERSOR */}
-                  <line x1={cCX} y1={isSaidaAgrupada ? 518 : 480} x2={cCX} y2={554} stroke="#000" strokeWidth="1" />
+                  <line x1={cCX} y1={isSaidaAgrupada ? 543 : 480} x2={cCX} y2={554 + miInvShift} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CA — QD CA → Inversor */}
-                  <line x1={cCX} y1={isSaidaAgrupada ? 528 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 528 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 521 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 529 : 503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 537 : 511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 545 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
+                  <line x1={cCX} y1={isSaidaAgrupada ? 553 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 553 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 546 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 561 : 503} fontSize="5.5">{`${caboCaFCount} #${caboCA}mm² (F)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 569 : 511} fontSize="5.5">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 577 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
                   {/* INVERSOR */}
-                  <text x={cBR} y={551} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
-                  <rect x={cBX} y={554} width={miColW} height={55} fill="white" stroke="#000" strokeWidth="1.2" />
-                  <line x1={cBX} y1={554} x2={cBR} y2={609} stroke="#000" strokeWidth="0.9" />
-                  <path d={`M${cBX + 4},598 Q${cBX + 8},591 ${cBX + 12},598 Q${cBX + 16},605 ${cBX + 20},598`} stroke="#000" strokeWidth="0.9" fill="none" />
-                  <line x1={cBR - 26} y1={560} x2={cBR - 4} y2={560} stroke="#000" strokeWidth="0.9" />
-                  <line x1={cBR - 26} y1={564} x2={cBR - 4} y2={564} stroke="#000" strokeWidth="0.9" />
+                  <text x={cBR} y={551 + miInvShift} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
+                  <rect x={cBX} y={554 + miInvShift} width={miColW} height={55} fill="white" stroke="#000" strokeWidth="1.2" />
+                  <line x1={cBX} y1={554 + miInvShift} x2={cBR} y2={609 + miInvShift} stroke="#000" strokeWidth="0.9" />
+                  <path d={`M${cBX + 4},${598 + miInvShift} Q${cBX + 8},${591 + miInvShift} ${cBX + 12},${598 + miInvShift} Q${cBX + 16},${605 + miInvShift} ${cBX + 20},${598 + miInvShift}`} stroke="#000" strokeWidth="0.9" fill="none" />
+                  <line x1={cBR - 26} y1={560 + miInvShift} x2={cBR - 4} y2={560 + miInvShift} stroke="#000" strokeWidth="0.9" />
+                  <line x1={cBR - 26} y1={564 + miInvShift} x2={cBR - 4} y2={564 + miInvShift} stroke="#000" strokeWidth="0.9" />
 
                   {/* Specs (left of inversor box) */}
-                  <text x={cBX - 118} y={557} fontSize="5.5">Marca: {invFab}</text>
-                  <text x={cBX - 118} y={564} fontSize="5.5">Modelo: {invMod}</text>
-                  <text x={cBX - 118} y={571} fontSize="5.5">Potência: {invPot} kW</text>
-                  <text x={cBX - 118} y={578} fontSize="5.5">Entrada - Tensão max: {invVccMax} Vcc</text>
-                  <text x={cBX - 118} y={585} fontSize="5.5">  - Corrente max: {invIccMax} A</text>
-                  <text x={cBX - 118} y={592} fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
-                  <text x={cBX - 118} y={599} fontSize="5.5">  - Corrente: {invCorrOut} A</text>
-                  <text x={cBX - 118} y={606} fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
+                  <text x={cBX - 118} y={557 + miInvShift} fontSize="5.5">Marca: {invFab}</text>
+                  <text x={cBX - 118} y={564 + miInvShift} fontSize="5.5">Modelo: {invMod}</text>
+                  <text x={cBX - 118} y={571 + miInvShift} fontSize="5.5">Potência: {invPot} kW</text>
+                  <text x={cBX - 118} y={578 + miInvShift} fontSize="5.5">Entrada - Tensão max: {invVccMax} Vcc</text>
+                  <text x={cBX - 118} y={585 + miInvShift} fontSize="5.5">  - Corrente max: {invIccMax} A</text>
+                  <text x={cBX - 118} y={592 + miInvShift} fontSize="5.5">Saída - Tensão: {tensaoNom} Vca</text>
+                  <text x={cBX - 118} y={599 + miInvShift} fontSize="5.5">  - Corrente: {invCorrOut} A</text>
+                  <text x={cBX - 118} y={606 + miInvShift} fontSize="5.5" fontStyle="italic">Ver datasheet para mais detalhes</text>
 
                   {/* Protection relays — only last col when N>=3 */}
                   {(numInversores <= 2 || i === numInversores - 1) && (<>
-                  <line x1={cBR} y1={581} x2={cBR + 67} y2={581} stroke="#000" strokeWidth="1" />
-                  <line x1={cBR + 67} y1={534} x2={cBR + 67} y2={651} stroke="#000" strokeWidth="1" />
+                  <line x1={cBR} y1={581 + miInvShift} x2={cBR + 67} y2={581 + miInvShift} stroke="#000" strokeWidth="1" />
+                  <line x1={cBR + 67} y1={534 + miInvShift} x2={cBR + 67} y2={651 + miInvShift} stroke="#000" strokeWidth="1" />
                   {([
                     { l: '25', s: '' }, { l: '27', s: '' },
                     { l: '59', s: '' }, { l: '81', s: 'U/O' },
                   ] as { l: string; s: string }[]).map(({ l, s }, ri) => (
                     <g key={`rel-${i}-${l}`}>
-                      <line x1={cBR + 67} y1={544 + ri * 25} x2={cBR + 90} y2={544 + ri * 25} stroke="#000" strokeWidth="0.8" />
-                      <rect x={cBR + 90} y={534 + ri * 25} width={26} height={20} fill="white" stroke="#000" strokeWidth="0.8" />
-                      <text x={cBR + 103} y={s ? 545 + ri * 25 : 548 + ri * 25} fontSize="7" fontWeight="bold" textAnchor="middle">{l}</text>
-                      {s && <text x={cBR + 103} y={552 + ri * 25} fontSize="5.5" textAnchor="middle">{s}</text>}
+                      <line x1={cBR + 67} y1={544 + ri * 25 + miInvShift} x2={cBR + 90} y2={544 + ri * 25 + miInvShift} stroke="#000" strokeWidth="0.8" />
+                      <rect x={cBR + 90} y={534 + ri * 25 + miInvShift} width={26} height={20} fill="white" stroke="#000" strokeWidth="0.8" />
+                      <text x={cBR + 103} y={s ? 545 + ri * 25 + miInvShift : 548 + ri * 25 + miInvShift} fontSize="7" fontWeight="bold" textAnchor="middle">{l}</text>
+                      {s && <text x={cBR + 103} y={552 + ri * 25 + miInvShift} fontSize="5.5" textAnchor="middle">{s}</text>}
                     </g>
                   ))}
-                  <line x1={cBR + 67} y1={643} x2={cBR + 90} y2={643} stroke="#000" strokeWidth="0.8" />
-                  <rect x={cBR + 90} y={635} width={80} height={16} fill="white" stroke="#000" strokeWidth="0.8" />
-                  <text x={cBR + 130} y={646} fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
+                  <line x1={cBR + 67} y1={643 + miInvShift} x2={cBR + 90} y2={643 + miInvShift} stroke="#000" strokeWidth="0.8" />
+                  <rect x={cBR + 90} y={635 + miInvShift} width={80} height={16} fill="white" stroke="#000" strokeWidth="0.8" />
+                  <text x={cBR + 130} y={646 + miInvShift} fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
                   </>)}
 
                   {/* Wire INVERSOR → QUADRO CC */}
-                  <line x1={cCX} y1={609} x2={cCX} y2={708} stroke="#000" strokeWidth="1" />
+                  <line x1={cCX} y1={609 + miInvShift} x2={cCX} y2={708} stroke="#000" strokeWidth="1" />
 
                   {/* Cabos CC — Inversor → Quadro CC */}
-                  <line x1={cCX} y1={644} x2={cCX + 12} y2={644} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
-                  <text x={cCX + 15} y={636} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
-                  <text x={cCX + 15} y={644} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={652} fontSize="5.5">Para cada string:</text>
-                  <text x={cCX + 15} y={659} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
-                  <text x={cCX + 15} y={666} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
-                  <text x={cCX + 15} y={674} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
-                  <text x={cCX + 15} y={681} fontSize="5.5">1 #6,0mm² (T)</text>
+                  <line x1={cCX} y1={isSaidaAgrupada ? 659 : 644} x2={cCX + 12} y2={isSaidaAgrupada ? 659 : 644} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 652 : 636} fontSize="5.5" fontWeight="bold">Cabos CC Fotovoltaico -</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 659 : 644} fontSize="5.5" fontWeight="bold">HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 667 : 652} fontSize="5.5">Para cada string:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 675 : 659} fontSize="5.5">{`1 #${caboCC}mm² (-)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 683 : 666} fontSize="5.5">{`1 #${caboCC}mm² (+)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 691 : 674} fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 699 : 681} fontSize="5.5">1 #6,0mm² (T)</text>
 
                   {/* QUADRO DE PROTEÇÃO CC */}
                   <rect x={cCX - 120} y={708} width={240} height={140} fill="white" stroke="#000" strokeWidth="1.2" />
