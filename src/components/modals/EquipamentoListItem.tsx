@@ -129,6 +129,8 @@ export function EquipamentoListItem(props: Props) {
   const { tipo, index, onRemove } = props;
   const hideStrings = tipo === 'modulo' ? ((props as EquipamentoListItemModuloProps).hideStrings ?? false) : false;
   const [expanded, setExpanded] = useState(index === 0);
+  const [savingToCatalog, setSavingToCatalog] = useState(false);
+  const [catalogSaved, setCatalogSaved] = useState(false);
 
   // Autocomplete state
   const [fabricanteInput, setFabricanteInput] = useState('');
@@ -334,6 +336,77 @@ export function EquipamentoListItem(props: Props) {
     ? !!(m.fabricante && m.modelo && m.potencia_wp)
     : !!(inv.fabricante && inv.modelo && inv.potencia);
 
+  const hasCatalogId = !!(props.item as any).catalog_id;
+
+  async function handleSaveToCatalog() {
+    if (savingToCatalog || hasCatalogId || !isFilled) return;
+    setSavingToCatalog(true);
+    try {
+      const parseN = (v: string | undefined | null) => {
+        const n = parseFloat(String(v || '').replace(',', '.'));
+        return isNaN(n) ? null : n;
+      };
+      const payload: Record<string, any> = tipo === 'modulo'
+        ? {
+            tipo: 'modulo',
+            fabricante: m.fabricante,
+            modelo: m.modelo,
+            potencia_wp: parseN(m.potencia_wp),
+            voc: parseN(m.voc),
+            isc: parseN(m.isc),
+            vpmp: parseN(m.vpmp),
+            ipmp: parseN(m.ipmp),
+            eficiencia: parseN(m.eficiencia),
+            comprimento_m: parseN(m.comprimento_m),
+            largura_m: parseN(m.largura_m),
+            area_unitaria_m2: parseN(m.area_unitaria_m2),
+            peso_kg: parseN(m.peso_kg),
+          }
+        : {
+            tipo: 'inversor',
+            fabricante: inv.fabricante,
+            modelo: inv.modelo,
+            potencia_kw: parseN(inv.potencia),
+            potencia_max_saida: parseN(inv.potencia_max_saida),
+            tensao: inv.tensao || null,
+            tensao_max_ca: parseN(inv.tensao_max_ca),
+            tensao_min_ca: parseN(inv.tensao_min_ca),
+            faixa_tensao: inv.faixa_tensao || null,
+            vcc_max: parseN(inv.vcc_max),
+            icc_max: parseN(inv.icc_max),
+            vpmp_max: parseN(inv.vpmp_max),
+            vpmp_min: parseN(inv.vpmp_min),
+            vcc_partida: parseN(inv.vcc_partida),
+            corrente_nominal: parseN(inv.corrente_nominal),
+            quantidade_mppt: parseN(inv.quantidade_mppt),
+            entradas_por_mppt: parseN(inv.entradas_por_mppt),
+            tipo_conexao_saida: inv.tipo_conexao_saida || null,
+            fator_potencia: inv.fator_potencia || null,
+            rendimento: parseN(inv.rendimento),
+            dht_corrente: parseN(inv.dht_corrente),
+          };
+      const resp = await fetch('/api/admin/equipment-catalog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await resp.json();
+      if (result.success && result.data?.id) {
+        if (tipo === 'modulo') {
+          (props as EquipamentoListItemModuloProps).onUpdate({ ...m, catalog_id: result.data.id });
+        } else {
+          (props as EquipamentoListItemInversorProps).onUpdate({ ...inv, catalog_id: result.data.id });
+        }
+        setCatalogSaved(true);
+        setTimeout(() => setCatalogSaved(false), 3000);
+      }
+    } catch {
+      // silent
+    } finally {
+      setSavingToCatalog(false);
+    }
+  }
+
   // Strings por módulo (módulo)
   const totalStrings = parseInt(String(m.total_strings || '0')) || 0;
   let stringsModulos: string[] = [];
@@ -434,6 +507,35 @@ export function EquipamentoListItem(props: Props) {
                   placeholder="1"
                 />
               </div>
+            </div>
+
+            {/* Salvar no catálogo */}
+            <div className="flex justify-end mt-1">
+              {hasCatalogId ? (
+                <span className="text-[11px] text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> No catálogo
+                </span>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!isFilled || savingToCatalog}
+                  onClick={handleSaveToCatalog}
+                  className={`text-[11px] h-7 px-2 transition-colors ${
+                    isFilled
+                      ? 'border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-700 dark:text-green-400'
+                      : 'border-red-200 text-red-400 opacity-50 cursor-not-allowed dark:border-red-800 dark:text-red-600'
+                  }`}
+                >
+                  {savingToCatalog
+                    ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Salvando...</>
+                    : catalogSaved
+                    ? <><CheckCircle2 className="h-3 w-3 mr-1" />Salvo!</>
+                    : 'Salvar no catálogo'
+                  }
+                </Button>
+              )}
             </div>
           </div>
 

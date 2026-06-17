@@ -1199,6 +1199,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           {Array.from(groups.entries()).map(([groupName, groupFields]) => {
             const isMod = groupName === 'Módulos Fotovoltaicos';
             const isInv = groupName === 'Inversores Fotovoltaicos';
+            const setupInvQty = isInv ? (parseInt(String(fields.inversores_quantidade || '0')) || 0) : 0;
+            const missingInv = setupInvQty > 0 ? Math.max(0, setupInvQty - invStringsStats.totalUnits) : 0;
             // Campos do grupo que ainda são mostrados (os gerenciados pelo editor são ocultados)
             const visibleFields = isMod
               ? groupFields.filter(f => !MODULOS_MANAGED_FIELDS.has(f.key))
@@ -1296,31 +1298,38 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
               {/* Editor de lista de módulos */}
               {isMod && (
                 <div className="mb-3">
-                  {isMultiInv && (
-                    <div className="mb-3 rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        <Info className="h-3.5 w-3.5 inline mr-1" />
-                        As strings deste projeto são configuradas individualmente na seção <strong>Inversores Fotovoltaicos</strong>.
-                      </p>
-                    </div>
-                  )}
+                  <div className="mb-3 rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <Info className="h-3.5 w-3.5 inline mr-1" />
+                      As strings de cada inversor são configuradas na seção <strong>Inversores Fotovoltaicos</strong>.
+                    </p>
+                  </div>
                   <EquipamentoListEditor
                     tipo="modulo"
                     items={modulosList}
                     onChange={setModulosList}
-                    hideStrings={isMultiInv}
+                    hideStrings={true}
                   />
                 </div>
               )}
               {/* Editor de lista de inversores */}
               {isInv && (
                 <div className="mb-3">
-                  <div className="mb-3 rounded-md border border-blue-100 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
-                      <Info className="h-3.5 w-3.5 inline mr-1" />
-                      Arranjo fotovoltaico: <strong>{invStringsStats.configured}</strong> de <strong>{invStringsStats.totalUnits}</strong> {invStringsStats.totalUnits === 1 ? 'inversor configurado' : 'inversores configurados'}
-                    </p>
-                  </div>
+                  {missingInv > 0 ? (
+                    <div className="mb-3 rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        <Info className="h-3.5 w-3.5 inline mr-1" />
+                        O projeto foi configurado com <strong>{setupInvQty}</strong> {setupInvQty === 1 ? 'inversor' : 'inversores'} — você adicionou <strong>{invStringsStats.totalUnits}</strong>. Adicione mais <strong>{missingInv}</strong> à lista abaixo.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mb-3 rounded-md border border-blue-100 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        <Info className="h-3.5 w-3.5 inline mr-1" />
+                        Arranjo: <strong>{invStringsStats.configured}</strong> de <strong>{invStringsStats.totalUnits}</strong> {invStringsStats.totalUnits === 1 ? 'inversor configurado' : 'inversores configurados'}
+                      </p>
+                    </div>
+                  )}
                   <EquipamentoListEditor
                     tipo="inversor"
                     items={inversoresList}
