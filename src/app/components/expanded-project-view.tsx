@@ -593,6 +593,8 @@ export const ExpandedProjectView = ({
     setup_tipo_transformador: (project as any).setup_tipo_transformador || '',
     setup_potencia_transformador: (project as any).setup_potencia_transformador || '',
     setup_concluido: (project as any).setup_concluido || '',
+    modulos_lista: (project as any).modulos_lista || '',
+    inversores_lista: (project as any).inversores_lista || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
