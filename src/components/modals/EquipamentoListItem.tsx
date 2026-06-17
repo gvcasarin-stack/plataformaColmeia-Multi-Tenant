@@ -11,7 +11,7 @@ import {
 import {
   ChevronDown, ChevronRight, Trash2, Loader2, CheckCircle2,
 } from 'lucide-react';
-import type { ModuloItem, InversorItem } from '@/lib/utils/equipmentParser';
+import type { ModuloItem, InversorItem, InversorUnitConfig } from '@/lib/utils/equipmentParser';
 import type { EquipmentCatalogItem } from '@/lib/services/equipmentCatalogService';
 
 type Tipo = 'modulo' | 'inversor';
@@ -117,6 +117,7 @@ interface EquipamentoListItemInversorProps {
   index: number;
   onUpdate: (updated: InversorItem) => void;
   onRemove: () => void;
+  modulosList?: ModuloItem[];
 }
 
 type Props = EquipamentoListItemModuloProps | EquipamentoListItemInversorProps;
@@ -291,8 +292,34 @@ export function EquipamentoListItem(props: Props) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  // Propaga alteração no units_config do inversor
+  function updateUnitsConfig(newConfig: InversorUnitConfig[]) {
+    (props as EquipamentoListItemInversorProps).onUpdate({
+      ...(props.item as InversorItem),
+      units_config: newConfig,
+    });
+  }
+
+  // Sincroniza comprimento de units_config com quantidade ao alterar
+  const invQtdVal = tipo === 'inversor' ? (props.item as InversorItem).quantidade : undefined;
+  const invUnitsLen = tipo === 'inversor' ? ((props.item as InversorItem).units_config || []).length : 0;
+
+  useEffect(() => {
+    if (tipo !== 'inversor') return;
+    const inv = props.item as InversorItem;
+    const qty = parseInt(String(inv.quantidade || '1')) || 1;
+    const current = inv.units_config || [];
+    if (current.length === qty) return;
+    const synced: InversorUnitConfig[] = Array.from({ length: qty }, (_, i) =>
+      current[i] ?? { modulo_idx: 0, total_strings: 0, strings_modulos: '[]' }
+    );
+    updateUnitsConfig(synced);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invQtdVal, invUnitsLen]);
+
   const m = props.item as ModuloItem;
   const inv = props.item as InversorItem;
+  const modulosListProp = tipo === 'inversor' ? ((props as EquipamentoListItemInversorProps).modulosList || []) : [];
   const summaryLabel = tipo === 'modulo'
     ? (m.fabricante && m.modelo
       ? `${m.fabricante} / ${m.modelo}${m.potencia_wp ? ` — ${m.potencia_wp} Wp` : ''}${m.quantidade && m.quantidade !== '1' ? ` × ${m.quantidade}` : ''}`
@@ -587,6 +614,101 @@ export function EquipamentoListItem(props: Props) {
                   <Field label="Rendimento (%)" value={inv.rendimento || ''} onChange={v => updateField('rendimento', v)} suffix="%" placeholder="98" />
                   <Field label="DHT corrente (%)" value={inv.dht_corrente || ''} onChange={v => updateField('dht_corrente', v)} suffix="%" placeholder="3" />
                   <Field label="Fator de potência" value={inv.fator_potencia || ''} onChange={v => updateField('fator_potencia', v)} placeholder="1" />
+                </div>
+              </div>
+
+              {/* Arranjo Fotovoltaico — strings e módulos por unidade */}
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Arranjo Fotovoltaico</p>
+                <div className="space-y-4">
+                  {Array.from({ length: Math.max(1, parseInt(String(inv.quantidade || '1')) || 1) }, (_, unitIdx) => {
+                    const qty = parseInt(String(inv.quantidade || '1')) || 1;
+                    const currentConfigs = inv.units_config || [];
+                    const cfg: InversorUnitConfig = currentConfigs[unitIdx] ?? { modulo_idx: 0, total_strings: 0, strings_modulos: '[]' };
+                    const unitTotalStrings = cfg.total_strings || 0;
+                    let unitStringsModulos: string[] = [];
+                    try { unitStringsModulos = JSON.parse(cfg.strings_modulos || '[]'); } catch {}
+
+                    function updateUnit(newCfg: InversorUnitConfig) {
+                      const base = Array.from({ length: qty }, (_, i) =>
+                        currentConfigs[i] ?? { modulo_idx: 0, total_strings: 0, strings_modulos: '[]' }
+                      );
+                      base[unitIdx] = newCfg;
+                      updateUnitsConfig(base);
+                    }
+
+                    return (
+                      <div key={unitIdx} className={qty > 1 ? 'pl-3 border-l-2 border-blue-100 dark:border-blue-900' : ''}>
+                        {qty > 1 && (
+                          <p className="text-[10px] font-semibold text-blue-500 dark:text-blue-400 mb-2">
+                            Unidade {unitIdx + 1}
+                          </p>
+                        )}
+
+                        {/* Módulo conectado */}
+                        {modulosListProp.length === 0 && (
+                          <p className="text-[11px] text-amber-500 italic mb-2">Configure os módulos fotovoltaicos primeiro.</p>
+                        )}
+                        {modulosListProp.length === 1 && (
+                          <p className="text-[11px] text-gray-500 mb-2">
+                            Módulo: <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {modulosListProp[0].fabricante} {modulosListProp[0].modelo}
+                              {modulosListProp[0].potencia_wp ? ` — ${modulosListProp[0].potencia_wp} Wp` : ''}
+                            </span>
+                          </p>
+                        )}
+                        {modulosListProp.length > 1 && (
+                          <SelectField
+                            label="Módulo conectado"
+                            value={String(cfg.modulo_idx ?? 0)}
+                            onChange={v => updateUnit({ ...cfg, modulo_idx: parseInt(v) || 0 })}
+                            options={modulosListProp.map((mm, mi) => ({
+                              value: String(mi),
+                              label: `${mm.fabricante} ${mm.modelo}${mm.potencia_wp ? ` (${mm.potencia_wp} Wp)` : ''}`,
+                            }))}
+                          />
+                        )}
+
+                        {/* Total de strings */}
+                        <div className="mt-2">
+                          <Field
+                            label="Total de Strings"
+                            value={unitTotalStrings > 0 ? String(unitTotalStrings) : ''}
+                            onChange={v => {
+                              const n = parseInt(v) || 0;
+                              const newArr = Array.from({ length: n }, (_, si) => unitStringsModulos[si] || '');
+                              updateUnit({ ...cfg, total_strings: n, strings_modulos: JSON.stringify(newArr) });
+                            }}
+                            placeholder="Nº de strings"
+                          />
+                        </div>
+
+                        {/* Módulos por string */}
+                        {unitTotalStrings > 0 && (
+                          <div className="space-y-1 pl-2 border-l-2 border-blue-200 dark:border-blue-800 mt-2">
+                            {Array.from({ length: unitTotalStrings }, (_, si) => (
+                              <div key={si} className="flex items-center gap-2">
+                                <Label className="text-[10px] text-gray-500 whitespace-nowrap w-32">String {si + 1} — Módulos</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={unitStringsModulos[si] || ''}
+                                  onChange={e => {
+                                    const arr = [...unitStringsModulos];
+                                    while (arr.length < unitTotalStrings) arr.push('');
+                                    arr[si] = e.target.value;
+                                    updateUnit({ ...cfg, strings_modulos: JSON.stringify(arr) });
+                                  }}
+                                  placeholder="Qtd."
+                                  className="h-7 text-xs"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </>

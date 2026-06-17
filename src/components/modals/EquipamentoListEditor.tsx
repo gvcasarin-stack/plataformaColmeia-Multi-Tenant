@@ -19,6 +19,7 @@ interface InversoresEditorProps {
   tipo: 'inversor';
   items: InversorItem[];
   onChange: (items: InversorItem[]) => void;
+  modulosList?: ModuloItem[];
 }
 
 type Props = ModulosEditorProps | InversoresEditorProps;
@@ -102,6 +103,7 @@ export function EquipamentoListEditor(props: Props) {
             index={idx}
             onUpdate={updated => updateItem(idx, updated)}
             onRemove={() => removeItem(idx)}
+            modulosList={(props as InversoresEditorProps).modulosList || []}
           />
         )
       ))}

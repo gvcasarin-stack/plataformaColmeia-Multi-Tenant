@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { EquipamentoListEditor } from './EquipamentoListEditor';
 import { getAllModulos, getAllInversores } from '@/lib/utils/equipmentParser';
-import type { ModuloItem, InversorItem } from '@/lib/utils/equipmentParser';
+import type { ModuloItem, InversorItem, InversorUnitConfig } from '@/lib/utils/equipmentParser';
 
 const DISTRIBUIDORAS = [
   "Enel", "Copel", "Cemig", "CPFL", "Neoenergia Cosern",
@@ -323,6 +323,32 @@ const INVERSORES_MANAGED_FIELDS = new Set([
   'inversores_tensao_min_ca', 'inversores_faixa_tensao', 'inversores_tipo_conexao_saida',
   'disjuntor_ca_corrente_a', 'disjuntor_ca_polos', 'tipo_conexao_rede_ca',
 ]);
+
+// Calcula strings globais a partir dos units_config de cada inversor.
+// Retorna null se nenhuma unidade tiver dados configurados (fallback para campos de módulo).
+function computeStringsGlobals(invList: InversorItem[]): { modulos_total_strings: string; modulos_strings_modulos: string } | null {
+  let total = 0;
+  const modules: number[] = [];
+  let hasData = false;
+  for (const inv of invList) {
+    const qty = parseInt(String(inv.quantidade || '1')) || 1;
+    const configs: InversorUnitConfig[] = inv.units_config || [];
+    for (let u = 0; u < qty; u++) {
+      const cfg = configs[u];
+      if (!cfg || !cfg.total_strings) continue;
+      hasData = true;
+      total += cfg.total_strings;
+      try {
+        const sm: (string | number)[] = JSON.parse(cfg.strings_modulos || '[]');
+        for (const n of sm) {
+          if (n !== '' && n !== null && n !== undefined) modules.push(Number(n));
+        }
+      } catch {}
+    }
+  }
+  if (!hasData) return null;
+  return { modulos_total_strings: String(total), modulos_strings_modulos: JSON.stringify(modules) };
+}
 
 export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
   const [localFields, setLocalFields] = useState<Record<string, any>>({ ...fields });
@@ -656,20 +682,22 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   useEffect(() => {
     if (!open) return;
     const synced = syncInversoresOldFields(inversoresList);
-    if (Object.keys(synced).length > 0) {
-      setLocalFields(prev => ({ ...prev, ...synced }));
-    }
+    const stringsGlobals = computeStringsGlobals(inversoresList);
+    setLocalFields(prev => ({ ...prev, ...synced, ...(stringsGlobals || {}) }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inversoresList]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const stringsGlobals = computeStringsGlobals(inversoresList);
       const dataToSave = {
         ...localFields,
         // Sincroniza campos antigos do primeiro item (backward compat com templates)
         ...syncModulosOldFields(modulosList),
         ...syncInversoresOldFields(inversoresList),
+        // Sobrescreve strings globais com dados por inversor quando disponíveis
+        ...(stringsGlobals || {}),
         // Salva as listas completas no novo formato
         modulos_lista: JSON.stringify(modulosList),
         inversores_lista: JSON.stringify(inversoresList),
@@ -1264,6 +1292,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                     tipo="inversor"
                     items={inversoresList}
                     onChange={setInversoresList}
+                    modulosList={modulosList}
                   />
                 </div>
               )}

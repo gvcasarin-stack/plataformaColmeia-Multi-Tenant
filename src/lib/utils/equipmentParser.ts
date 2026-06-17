@@ -20,6 +20,13 @@ export interface ModuloItem {
   is_microinversor?: string;
 }
 
+// Config de arranjo para cada unidade física de um inversor
+export interface InversorUnitConfig {
+  modulo_idx: number;      // índice em modulos_lista (0-based)
+  total_strings: number;
+  strings_modulos: string; // JSON de number[]
+}
+
 export interface InversorItem {
   catalog_id?: string;
   fabricante: string;
@@ -46,6 +53,7 @@ export interface InversorItem {
   disjuntor_ca_corrente_a?: string;
   disjuntor_ca_polos?: string;
   tipo_conexao_rede_ca?: string;
+  units_config?: InversorUnitConfig[]; // config por unidade física
 }
 
 function parseNum(val: string | number | undefined): number {
