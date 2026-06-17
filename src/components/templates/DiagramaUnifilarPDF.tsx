@@ -201,8 +201,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
   return (
     <Document>
-      <Page size="A3" style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={812} height={numInversores >= 3 ? 968 : 992} viewBox={numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295"}>
+      <Page size={numInversores >= 3 ? 'A2' : 'A3'} style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
+        <Svg width={numInversores >= 3 ? 1160 : 812} height={numInversores >= 3 ? 1385 : 992} viewBox={numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295"}>
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line
@@ -453,9 +453,9 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
               <Line x1={topCX} y1={255} x2={topCX} y2={358} stroke="#000" strokeWidth={1} />
               <Line x1={topCX} y1={322} x2={topCX + 12} y2={322} stroke="#000" strokeWidth={0.6} />
               <Text x={topCX + 15} y={315} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabos CA - PVC 70{'º'}C - 1,0 kV</Text>
-              <Text x={topCX + 15} y={323} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm{'²'} (F)`}</Text>
-              <Text x={topCX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm{'²'} ${caboCaMidLabel}`}</Text>
-              <Text x={topCX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm{'²'} (T)`}</Text>
+              <Text x={topCX + 15} y={323} fontSize={5.5} fill="#000">{`${caboCaFCount} #${caboCA}mm² (F)`}</Text>
+              <Text x={topCX + 15} y={331} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² ${caboCaMidLabel}`}</Text>
+              <Text x={topCX + 15} y={339} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
               <Rect
                 x={miColBX(0) - (numInversores >= 3 ? 119 : 99)}
                 y={358}
@@ -534,7 +534,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <Text key={`ca2-t3-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 592 : 519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
 
                   {/* INVERSOR */}
-                  <Text key={`inv-lbl-${i}`} x={cBR - 5} y={551 + miInvShift} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
+                  <Text key={`inv-lbl-${i}`} x={cBR} y={551 + miInvShift} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
                   <Rect key={`inv-r-${i}`} x={cBX} y={554 + miInvShift} width={miColW} height={55} fill="white" stroke="#000" strokeWidth={1.2} />
                   <Line key={`inv-diag-${i}`} x1={cBX} y1={554 + miInvShift} x2={cBR} y2={609 + miInvShift} stroke="#000" strokeWidth={0.9} />
                   <Path key={`inv-ac-${i}`} d={`M${cBX + 4} ${598 + miInvShift} Q${cBX + 8} ${591 + miInvShift} ${cBX + 12} ${598 + miInvShift} Q${cBX + 16} ${605 + miInvShift} ${cBX + 20} ${598 + miInvShift}`} stroke="#000" strokeWidth={0.9} fill="none" />
@@ -740,10 +740,10 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
         {pd.logo_empresa_url && (
           <View style={{
             position: 'absolute',
-            left: numInversores >= 3 ? 622 : 618,
-            top: numInversores >= 3 ? 879 : 901,
-            width: numInversores >= 3 ? 136 : 139,
-            height: numInversores >= 3 ? 84 : 86,
+            left: numInversores >= 3 ? 883 : 618,
+            top: numInversores >= 3 ? 1252 : 901,
+            width: numInversores >= 3 ? 195 : 139,
+            height: numInversores >= 3 ? 120 : 86,
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
