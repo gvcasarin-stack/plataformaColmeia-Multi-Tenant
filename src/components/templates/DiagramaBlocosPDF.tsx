@@ -304,8 +304,8 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
             <View style={{ width: pdfSectionW, flexDirection: 'row', justifyContent: 'space-between' }}>
               {Array.from({ length: numInversores }).map((_, i) => {
                 const unit = physicalInvData[i];
-                const uFab = unit?.fabricante ?? fabricante;
-                const uPot = unit?.potencia ?? invPotencia;
+                const uFab = unit?.fabricante ?? '___';
+                const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
                 return (
@@ -361,8 +361,8 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
             <View style={{ width: pdfSectionW, flexDirection: 'row', justifyContent: 'space-between' }}>
               {Array.from({ length: numInversores }).map((_, i) => {
                 const unit = physicalInvData[i];
-                const uFab = unit?.fabricante ?? fabricante;
-                const uPot = unit?.potencia ?? invPotencia;
+                const uFab = unit?.fabricante ?? '___';
+                const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
                 return (

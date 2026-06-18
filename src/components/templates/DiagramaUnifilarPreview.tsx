@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
-import { getTotalKwp, getTotalModulosQtd } from '@/lib/utils/equipmentParser';
+import { getTotalKwp, getTotalModulosQtd, getAllInversores } from '@/lib/utils/equipmentParser';
 
 interface DiagramaUnifilarPreviewProps {
   projectData?: Record<string, any>;
@@ -165,6 +165,21 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const djCaPolos        = fv(pd.disjuntor_ca_polos, '2');
   const d2Tipo           = djCaPolos === '3' ? 'Tripolar' : djCaPolos === '1' ? 'Monopolar' : 'Bipolar';
   const dpsLabel         = isRedeMono ? '2x DPS CA' : '4x DPS CA';
+
+  const physicalInvDisj = (() => {
+    const invsList = getAllInversores(pd);
+    const result: Array<{ corrente: string; tipo: string }> = [];
+    for (const inv of invsList) {
+      const qty = parseInt(String(inv.quantidade || '1')) || 1;
+      for (let u = 0; u < qty; u++) {
+        const corrente = inv.disjuntor_ca_corrente_a || fv(pd.disjuntor_ca_corrente_a, djCorr);
+        const polos = inv.disjuntor_ca_polos || djCaPolos;
+        const tipo = polos === '3' ? 'Tripolar' : polos === '1' ? 'Monopolar' : 'Bipolar';
+        result.push({ corrente, tipo });
+      }
+    }
+    return result;
+  })();
 
   const owner      = fv(pd.nomeClienteFinal,  'NOME DO PROPRIETÁRIO');
   const endereco   = fv(pd.endereco_local,    'ENDEREÇO DA OBRA');
@@ -542,6 +557,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               const cBX = miColBX(i);
               const cBR = cBX + miColW;
               const dpsX = cCX - 50;
+              const invDisj = physicalInvDisj[i] || { corrente: djCorr, tipo: d2Tipo };
               return (
                 <g key={`inv-col-${i}`}>
                   {/* ─── Independentes: QD CA individual por inversor ─── */}
@@ -569,7 +585,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                     <Terra x={dpsX} y={450} />
                     <Disjuntor x={cCX} y={415} />
                     <text x={cCX + 15} y={413} fontSize="6.5">D{i + 2}</text>
-                    <text x={cCX + 15} y={423} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+                    <text x={cCX + 15} y={423} fontSize="5.5">{`${invDisj.tipo} - ${invDisj.corrente} A / ${djTensao} Vca`}</text>
                     <line x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth="1" />
                   </>)}
 
@@ -578,7 +594,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                     <line x1={cCX} y1={465} x2={cCX} y2={483} stroke="#000" strokeWidth="1" />
                     <Disjuntor x={cCX} y={490} />
                     <text x={cCX + 22} y={488} fontSize="6.5">D{i + 3}</text>
-                    <text x={cCX + 22} y={498} fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+                    <text x={cCX + 22} y={498} fontSize="5.5">{`${invDisj.tipo} - ${invDisj.corrente} A / ${djTensao} Vca`}</text>
                     <line x1={cCX} y1={498} x2={cCX} y2={543} stroke="#000" strokeWidth="1" />
                   </>)}
 

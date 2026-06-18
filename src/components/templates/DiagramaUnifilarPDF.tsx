@@ -12,7 +12,7 @@ import {
   Image,
   View,
 } from '@react-pdf/renderer';
-import { getTotalKwp, getTotalModulosQtd } from '@/lib/utils/equipmentParser';
+import { getTotalKwp, getTotalModulosQtd, getAllInversores } from '@/lib/utils/equipmentParser';
 
 interface DiagramaUnifilarPDFProps {
   projectData?: Record<string, any>;
@@ -160,6 +160,21 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const djCaPolos        = fv(pd.disjuntor_ca_polos, '2');
   const d2Tipo           = djCaPolos === '3' ? 'Tripolar' : djCaPolos === '1' ? 'Monopolar' : 'Bipolar';
   const dpsLabel         = isRedeMono ? '2x DPS CA' : '4x DPS CA';
+
+  const physicalInvDisj = (() => {
+    const invsList = getAllInversores(pd);
+    const result: Array<{ corrente: string; tipo: string }> = [];
+    for (const inv of invsList) {
+      const qty = parseInt(String(inv.quantidade || '1')) || 1;
+      for (let u = 0; u < qty; u++) {
+        const corrente = inv.disjuntor_ca_corrente_a || fv(pd.disjuntor_ca_corrente_a, djCorr);
+        const polos = inv.disjuntor_ca_polos || djCaPolos;
+        const tipo = polos === '3' ? 'Tripolar' : polos === '1' ? 'Monopolar' : 'Bipolar';
+        result.push({ corrente, tipo });
+      }
+    }
+    return result;
+  })();
 
   const owner      = fv(pd.nomeClienteFinal,    'NOME DO PROPRIETARIO');
   const endereco   = fv(pd.endereco_local,       'ENDERECO DA OBRA');
@@ -486,6 +501,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
               const cBX = miColBX(i);
               const cBR = cBX + miColW;
               const dpsX = cCX - 50;
+              const invDisj = physicalInvDisj[i] || { corrente: djCorr, tipo: d2Tipo };
               return (
                 <>
                   {/* Independente: QD CA individual */}
@@ -510,7 +526,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                     <PDFTerra key={`dpsca-t-${i}`} x={dpsX} y={450} />
                     <PDFDisjuntor key={`d2-${i}`} x={cCX} y={415} />
                     <Text key={`d2-lbl-${i}`} x={cCX + 15} y={413} fontSize={6.5} fill="#000">{`D${i + 2}`}</Text>
-                    <Text key={`d2-typ-${i}`} x={cCX + 15} y={423} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
+                    <Text key={`d2-typ-${i}`} x={cCX + 15} y={423} fontSize={5.5} fill="#000">{`${invDisj.tipo} - ${invDisj.corrente} A / ${djTensao} Vca`}</Text>
                     <Line key={`qca-v2-${i}`} x1={cCX} y1={422} x2={cCX} y2={480} stroke="#000" strokeWidth={1} />
                   </>)}
 
@@ -519,7 +535,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                     <Line key={`agr-v1-${i}`} x1={cCX} y1={465} x2={cCX} y2={483} stroke="#000" strokeWidth={1} />
                     <PDFDisjuntor key={`agr-d-${i}`} x={cCX} y={490} />
                     <Text key={`agr-dlbl-${i}`} x={cCX + 22} y={488} fontSize={6.5} fill="#000">{`D${i + 3}`}</Text>
-                    <Text key={`agr-dtyp-${i}`} x={cCX + 22} y={498} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
+                    <Text key={`agr-dtyp-${i}`} x={cCX + 22} y={498} fontSize={5.5} fill="#000">{`${invDisj.tipo} - ${invDisj.corrente} A / ${djTensao} Vca`}</Text>
                     <Line key={`agr-v2-${i}`} x1={cCX} y1={498} x2={cCX} y2={543} stroke="#000" strokeWidth={1} />
                   </>)}
 

@@ -207,8 +207,8 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
             <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
               {Array.from({ length: numInversores }).map((_, i) => {
                 const unit = physicalInvData[i];
-                const uFab = unit?.fabricante ?? fabricante;
-                const uPot = unit?.potencia ?? invPotencia;
+                const uFab = unit?.fabricante ?? '___';
+                const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
                 return (
@@ -283,8 +283,8 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
             <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
               {Array.from({ length: numInversores }).map((_, i) => {
                 const unit = physicalInvData[i];
-                const uFab = unit?.fabricante ?? fabricante;
-                const uPot = unit?.potencia ?? invPotencia;
+                const uFab = unit?.fabricante ?? '___';
+                const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
                 return (
