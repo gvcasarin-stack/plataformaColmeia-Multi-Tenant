@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import { getTotalKwp, getTotalModulosQtd } from '@/lib/utils/equipmentParser';
+import { getTotalKwp, getTotalModulosQtd, getAllModulos, getAllInversores, parseStringsModulos } from '@/lib/utils/equipmentParser';
 
 interface DiagramaBlocosPDFProps {
   projectData?: Record<string, any>;
@@ -171,6 +171,32 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
   const fabricante = pd?.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
   const invPotencia = fmt2(pd?.inversores_potencia);
 
+  // Per-physical-unit data for multi-inverter columns
+  const modulosListFull = getAllModulos(pd);
+  const inversoresListFull = getAllInversores(pd);
+  const physicalInvData: Array<{ fabricante: string; potencia: string; moduloWp: number; moduloQtd: number }> = [];
+  for (const inv of inversoresListFull) {
+    const qty = parseInt(String(inv.quantidade || '1')) || 1;
+    for (let u = 0; u < qty; u++) {
+      const cfg = inv.units_config?.[u];
+      let moduloWp = modulosWp;
+      let moduloQtd = 0;
+      if (cfg) {
+        const modIdx = cfg.modulo_idx ?? 0;
+        const mod = modulosListFull[modIdx];
+        if (mod) moduloWp = parseFloat(String(mod.potencia_wp || '0')) || 0;
+        const strings = parseStringsModulos(cfg.strings_modulos || '[]', modIdx);
+        moduloQtd = strings.reduce((acc, s) => acc + s.quantidade, 0);
+      }
+      physicalInvData.push({
+        fabricante: String(inv.fabricante || '').toUpperCase() || '___',
+        potencia: fmt2(inv.potencia),
+        moduloWp,
+        moduloQtd,
+      });
+    }
+  }
+
   const hasStringbox = !!(pd?.setup_quadro_cc && pd.setup_quadro_cc !== 'nao');
   const stringboxLabel = pd?.setup_quadro_cc === 'dps_chave_seccionadora' ? 'DPS e Chave Seccionadora'
     : pd?.setup_quadro_cc === 'dps_disjuntor_cc' ? 'DPS e Disjuntor CC'
@@ -276,31 +302,38 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
         ) : configuracaoSaidas === 'agrupadas' ? (
           <>
             <View style={{ width: pdfSectionW, flexDirection: 'row', justifyContent: 'space-between' }}>
-              {Array.from({ length: numInversores }).map((_, i) => (
-                <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
-                  <View style={[s.box, { width: pdfColW }]}>
-                    <Text style={s.boldLine}>Módulos Fotovoltaicos</Text>
-                    <Text style={s.normalLine}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</Text>
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const unit = physicalInvData[i];
+                const uFab = unit?.fabricante ?? fabricante;
+                const uPot = unit?.potencia ?? invPotencia;
+                const uWp = unit?.moduloWp ?? modulosWp;
+                const uQtd = unit?.moduloQtd ?? 0;
+                return (
+                  <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
+                    <View style={[s.box, { width: pdfColW }]}>
+                      <Text style={s.boldLine}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</Text>
+                      <Text style={s.normalLine}>de {uWp > 0 ? uWp : '___'} Wp cada</Text>
+                    </View>
+                    <View style={s.vLine} />
+                    {hasStringbox && (
+                      <>
+                        <View style={[s.box, { width: pdfColW }]}>
+                          <Text style={s.boldLine}>Quadro de Proteção CC (Stringbox):</Text>
+                          <Text style={s.normalLine}>{stringboxLabel}</Text>
+                        </View>
+                        <View style={s.vLine} />
+                      </>
+                    )}
+                    <View style={[s.box, { width: pdfColW }]}>
+                      <Text style={s.boldLine}>Inversor Fotovoltaico {i + 1}:</Text>
+                      <Text style={s.boldLine}>{uFab} {uPot}kW</Text>
+                      <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
+                      <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
+                    </View>
+                    <View style={s.vLine} />
                   </View>
-                  <View style={s.vLine} />
-                  {hasStringbox && (
-                    <>
-                      <View style={[s.box, { width: pdfColW }]}>
-                        <Text style={s.boldLine}>Quadro de Proteção CC (Stringbox):</Text>
-                        <Text style={s.normalLine}>{stringboxLabel}</Text>
-                      </View>
-                      <View style={s.vLine} />
-                    </>
-                  )}
-                  <View style={[s.box, { width: pdfColW }]}>
-                    <Text style={s.boldLine}>Inversor Fotovoltaico {i + 1}:</Text>
-                    <Text style={s.boldLine}>{fabricante} {invPotencia}kW</Text>
-                    <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
-                    <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
-                  </View>
-                  <View style={s.vLine} />
-                </View>
-              ))}
+                );
+              })}
             </View>
             {renderFunnel()}
             <View style={{ borderWidth: 1, borderColor: BC, width: pdfSectionW, paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' }}>
@@ -326,36 +359,43 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
         ) : (
           <>
             <View style={{ width: pdfSectionW, flexDirection: 'row', justifyContent: 'space-between' }}>
-              {Array.from({ length: numInversores }).map((_, i) => (
-                <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
-                  <View style={[s.box, { width: pdfColW }]}>
-                    <Text style={s.boldLine}>Módulos Fotovoltaicos</Text>
-                    <Text style={s.normalLine}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</Text>
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const unit = physicalInvData[i];
+                const uFab = unit?.fabricante ?? fabricante;
+                const uPot = unit?.potencia ?? invPotencia;
+                const uWp = unit?.moduloWp ?? modulosWp;
+                const uQtd = unit?.moduloQtd ?? 0;
+                return (
+                  <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
+                    <View style={[s.box, { width: pdfColW }]}>
+                      <Text style={s.boldLine}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</Text>
+                      <Text style={s.normalLine}>de {uWp > 0 ? uWp : '___'} Wp cada</Text>
+                    </View>
+                    <View style={s.vLine} />
+                    {hasStringbox && (
+                      <>
+                        <View style={[s.box, { width: pdfColW }]}>
+                          <Text style={s.boldLine}>Quadro de Proteção CC (Stringbox):</Text>
+                          <Text style={s.normalLine}>{stringboxLabel}</Text>
+                        </View>
+                        <View style={s.vLine} />
+                      </>
+                    )}
+                    <View style={[s.box, { width: pdfColW }]}>
+                      <Text style={s.boldLine}>Inversor Fotovoltaico {i + 1}:</Text>
+                      <Text style={s.boldLine}>{uFab} {uPot}kW</Text>
+                      <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
+                      <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
+                    </View>
+                    <View style={s.vLine} />
+                    <View style={[s.box, { width: pdfColW }]}>
+                      <Text style={s.boldLine}>Quadro de Proteção CA:</Text>
+                      <Text style={s.normalLine}>DPS e Disjuntor</Text>
+                    </View>
+                    <View style={s.vLine} />
                   </View>
-                  <View style={s.vLine} />
-                  {hasStringbox && (
-                    <>
-                      <View style={[s.box, { width: pdfColW }]}>
-                        <Text style={s.boldLine}>Quadro de Proteção CC (Stringbox):</Text>
-                        <Text style={s.normalLine}>{stringboxLabel}</Text>
-                      </View>
-                      <View style={s.vLine} />
-                    </>
-                  )}
-                  <View style={[s.box, { width: pdfColW }]}>
-                    <Text style={s.boldLine}>Inversor Fotovoltaico {i + 1}:</Text>
-                    <Text style={s.boldLine}>{fabricante} {invPotencia}kW</Text>
-                    <Text style={s.normalLine}>Proteções do Inversor: (27), (59),</Text>
-                    <Text style={s.normalLine}>(25) e 78 (anti-ilhamento)</Text>
-                  </View>
-                  <View style={s.vLine} />
-                  <View style={[s.box, { width: pdfColW }]}>
-                    <Text style={s.boldLine}>Quadro de Proteção CA:</Text>
-                    <Text style={s.normalLine}>DPS e Disjuntor</Text>
-                  </View>
-                  <View style={s.vLine} />
-                </View>
-              ))}
+                );
+              })}
             </View>
             {renderFunnel()}
             <View style={{ width: pdfSectionW, position: 'relative' }}>

@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
 } from '@react-pdf/renderer';
+import { getAllModulos, getAllInversores } from '@/lib/utils/equipmentParser';
 
 interface MemorialDescritivoPDFProps {
   projectData?: Record<string, any>;
@@ -876,67 +877,97 @@ export function MemorialDescritivoPDF({
         </View>
 
         {/* ==================== 7. DIMENSIONAMENTO DO GERADOR ==================== */}
-        <View style={styles.sectionBreak}>
-          <SH2>7. DIMENSIONAMENTO DO GERADOR</SH2>
-          <Text style={{ marginBottom: 6 }}>Características técnicas dos módulos fotovoltaicos:</Text>
-          <Text style={[styles.italic, { marginBottom: 8 }]}>Tabela 4 – Características técnicas dos módulos fotovoltaicos</Text>
-          <View style={styles.tableContainer}>
-            <InfoRow label="Fabricante" value={v('modulos_fabricante', projectData)} />
-            <InfoRow label="Modelo" value={v('modulos_modelo', projectData)} />
-            <InfoRow label="Potência nominal – Pn [W]" value={v('modulos_potencia_wp', projectData)} />
-            <InfoRow label="Tensão de circuito aberto – Voc [V]" value={v('modulos_voc', projectData)} />
-            <InfoRow label="Corrente de curto-circuito – Isc [A]" value={v('modulos_isc', projectData)} />
-            <InfoRow label="Tensão de máxima potência – Vpmp [V]" value={v('modulos_vpmp', projectData)} />
-            <InfoRow label="Corrente de máxima potência – Ipmp [A]" value={v('modulos_ipmp', projectData)} />
-            <InfoRow label="Eficiência [%]" value={v('modulos_eficiencia', projectData)} />
-            <InfoRow label="Comprimento [m]" value={v('modulos_comprimento_m', projectData)} />
-            <InfoRow label="Largura [m]" value={v('modulos_largura_m', projectData)} />
-            <InfoRow label="Área [m²]" value={v('modulos_area_unitaria_m2', projectData)} />
-            <InfoRow label="Peso [kg]" value={v('modulos_peso_kg', projectData)} />
-            <InfoRow label="Quantidade" value={v('modulos_quantidade', projectData)} />
-            <InfoRow
-              label="Potência total instalada"
-              value={`${v('modulos_quantidade', projectData)} × ${v('modulos_potencia_wp', projectData)} Wp = ${potencia} kWp`}
-              isLast
-            />
-          </View>
-        </View>
+        {(() => {
+          const modulosList = getAllModulos(projectData);
+          const hasMulti = modulosList.length > 1;
+          if (modulosList.length === 0) return null;
+          return modulosList.map((m, idx) => {
+            const letter = hasMulti ? String.fromCharCode(97 + idx) : '';
+            const tableLabel = `4${letter}`;
+            const wp = parseFloat(String(m.potencia_wp || '0')) || 0;
+            const qty = parseInt(String(m.quantidade || '0')) || 0;
+            const kwp = wp > 0 && qty > 0 ? ((wp * qty) / 1000).toFixed(2).replace('.', ',') : '___';
+            const kwpLabel = hasMulti ? 'Potência parcial (este modelo)' : 'Potência total instalada';
+            return (
+              <View key={idx} style={styles.sectionBreak}>
+                {idx === 0 && <SH2>7. DIMENSIONAMENTO DO GERADOR</SH2>}
+                <Text style={{ marginBottom: 6 }}>
+                  {`Características técnicas dos módulos fotovoltaicos${hasMulti ? ` – Modelo ${idx + 1}` : ''}:`}
+                </Text>
+                <Text style={[styles.italic, { marginBottom: 8 }]}>
+                  {`Tabela ${tableLabel} – Características técnicas dos módulos fotovoltaicos${hasMulti ? ` (Modelo ${idx + 1})` : ''}`}
+                </Text>
+                <View style={styles.tableContainer}>
+                  <InfoRow label="Fabricante" value={m.fabricante || '—'} />
+                  <InfoRow label="Modelo" value={m.modelo || '—'} />
+                  <InfoRow label="Potência nominal – Pn [W]" value={m.potencia_wp || '—'} />
+                  <InfoRow label="Tensão de circuito aberto – Voc [V]" value={m.voc || '—'} />
+                  <InfoRow label="Corrente de curto-circuito – Isc [A]" value={m.isc || '—'} />
+                  <InfoRow label="Tensão de máxima potência – Vpmp [V]" value={m.vpmp || '—'} />
+                  <InfoRow label="Corrente de máxima potência – Ipmp [A]" value={m.ipmp || '—'} />
+                  <InfoRow label="Eficiência [%]" value={m.eficiencia || '—'} />
+                  <InfoRow label="Comprimento [m]" value={m.comprimento_m || '—'} />
+                  <InfoRow label="Largura [m]" value={m.largura_m || '—'} />
+                  <InfoRow label="Área [m²]" value={m.area_unitaria_m2 || '—'} />
+                  <InfoRow label="Peso [kg]" value={m.peso_kg || '—'} />
+                  <InfoRow label="Quantidade" value={m.quantidade || '—'} />
+                  <InfoRow label={kwpLabel} value={`${qty} × ${wp} Wp = ${kwp} kWp`} isLast />
+                </View>
+              </View>
+            );
+          });
+        })()}
 
         {/* ==================== 8. DIMENSIONAMENTO DO INVERSOR ==================== */}
-        <View style={{ marginBottom: 20 }}>
-          <SH2>8. DIMENSIONAMENTO DO INVERSOR</SH2>
-          <Text style={{ marginBottom: 6 }}>Características técnicas do inversor:</Text>
-          <Text style={[styles.italic, { marginBottom: 8 }]}>Tabela 5 – Características técnicas do inversor</Text>
-          <View style={styles.tableContainer}>
-            <InfoRow label="Fabricante" value={v('inversores_fabricante', projectData)} />
-            <InfoRow label="Modelo" value={v('inversores_modelo', projectData)} />
-            <InfoRow label="Quantidade" value={v('inversores_quantidade', projectData)} />
-            <View style={styles.tableRow} wrap={false}>
-              <Text style={[styles.tdLabel, styles.bold, { flex: 1 }]}>Entrada</Text>
-            </View>
-            <InfoRow label="Máxima tensão CC – Vcc-máx [V]" value={v('inversores_vcc_max', projectData)} />
-            <InfoRow label="Máxima corrente CC – Icc-máx [A]" value={v('inversores_icc_max', projectData)} />
-            <InfoRow label="Máxima tensão MPPT – Vpmp-máx [V]" value={v('inversores_vpmp_max', projectData)} />
-            <InfoRow label="Mínima tensão MPPT – Vpmp-min [V]" value={v('inversores_vpmp_min', projectData)} />
-            <InfoRow label="Tensão CC de partida – Vcc-part [V]" value={v('inversores_vcc_partida', projectData)} />
-            <InfoRow label="Quantidade de MPPTs" value={v('inversores_quantidade_mppt', projectData)} />
-            <InfoRow label="Quantidade de entradas por MPPT" value={v('inversores_entradas_por_mppt', projectData)} />
-            <View style={styles.tableRow} wrap={false}>
-              <Text style={[styles.tdLabel, styles.bold, { flex: 1 }]}>Saída</Text>
-            </View>
-            <InfoRow label="Potência nominal – Pn [kW]" value={v('inversores_potencia', projectData)} />
-            <InfoRow label="Máxima potência na saída CA – Pca-máx [kW]" value={v('inversores_potencia_max_saida', projectData)} />
-            <InfoRow label="Tensão nominal CA [V]" value={v('inversores_tensao', projectData)} />
-            <InfoRow label="Máxima tensão CA – Vca-máx [V]" value={v('inversores_tensao_max_ca', projectData)} />
-            <InfoRow label="Mínima tensão CA – Vca-min [V]" value={v('inversores_tensao_min_ca', projectData)} />
-            <InfoRow label="Corrente máxima CA [A]" value={v('inversores_corrente_nominal', projectData)} />
-            <InfoRow label="Frequência [Hz]" value="60" />
-            <InfoRow label="THD de corrente [%]" value={v('inversores_dht_corrente', projectData)} />
-            <InfoRow label="Fator de potência" value={v('inversores_fator_potencia', projectData)} />
-            <InfoRow label="Tipo de conexão" value={v('inversores_tipo_conexao_saida', projectData)} />
-            <InfoRow label="Eficiência máxima [%]" value={v('inversores_rendimento', projectData)} isLast />
-          </View>
-        </View>
+        {(() => {
+          const inversoresList = getAllInversores(projectData);
+          const hasMulti = inversoresList.length > 1;
+          if (inversoresList.length === 0) return null;
+          return inversoresList.map((inv, idx) => {
+            const letter = hasMulti ? String.fromCharCode(97 + idx) : '';
+            const tableLabel = `5${letter}`;
+            return (
+              <View key={idx} style={{ marginBottom: 20 }}>
+                {idx === 0 && <SH2>8. DIMENSIONAMENTO DO INVERSOR</SH2>}
+                <Text style={{ marginBottom: 6 }}>
+                  {`Características técnicas do inversor${hasMulti ? ` – Modelo ${idx + 1}` : ''}:`}
+                </Text>
+                <Text style={[styles.italic, { marginBottom: 8 }]}>
+                  {`Tabela ${tableLabel} – Características técnicas do inversor${hasMulti ? ` (Modelo ${idx + 1})` : ''}`}
+                </Text>
+                <View style={styles.tableContainer}>
+                  <InfoRow label="Fabricante" value={inv.fabricante || '—'} />
+                  <InfoRow label="Modelo" value={inv.modelo || '—'} />
+                  <InfoRow label="Quantidade" value={inv.quantidade || '—'} />
+                  <View style={styles.tableRow} wrap={false}>
+                    <Text style={[styles.tdLabel, styles.bold, { flex: 1 }]}>Entrada</Text>
+                  </View>
+                  <InfoRow label="Máxima tensão CC – Vcc-máx [V]" value={inv.vcc_max || '—'} />
+                  <InfoRow label="Máxima corrente CC – Icc-máx [A]" value={inv.icc_max || '—'} />
+                  <InfoRow label="Máxima tensão MPPT – Vpmp-máx [V]" value={inv.vpmp_max || '—'} />
+                  <InfoRow label="Mínima tensão MPPT – Vpmp-min [V]" value={inv.vpmp_min || '—'} />
+                  <InfoRow label="Tensão CC de partida – Vcc-part [V]" value={inv.vcc_partida || '—'} />
+                  <InfoRow label="Quantidade de MPPTs" value={inv.quantidade_mppt || '—'} />
+                  <InfoRow label="Quantidade de entradas por MPPT" value={inv.entradas_por_mppt || '—'} />
+                  <View style={styles.tableRow} wrap={false}>
+                    <Text style={[styles.tdLabel, styles.bold, { flex: 1 }]}>Saída</Text>
+                  </View>
+                  <InfoRow label="Potência nominal – Pn [kW]" value={inv.potencia || '—'} />
+                  <InfoRow label="Máxima potência na saída CA – Pca-máx [kW]" value={inv.potencia_max_saida || '—'} />
+                  <InfoRow label="Tensão nominal CA [V]" value={inv.tensao || '—'} />
+                  <InfoRow label="Máxima tensão CA – Vca-máx [V]" value={inv.tensao_max_ca || '—'} />
+                  <InfoRow label="Mínima tensão CA – Vca-min [V]" value={inv.tensao_min_ca || '—'} />
+                  <InfoRow label="Corrente máxima CA [A]" value={inv.corrente_nominal || '—'} />
+                  <InfoRow label="Frequência [Hz]" value="60" />
+                  <InfoRow label="THD de corrente [%]" value={inv.dht_corrente || '—'} />
+                  <InfoRow label="Fator de potência" value={inv.fator_potencia || '—'} />
+                  <InfoRow label="Tipo de conexão" value={inv.tipo_conexao_saida || '—'} />
+                  <InfoRow label="Eficiência máxima [%]" value={inv.rendimento || '—'} isLast />
+                </View>
+              </View>
+            );
+          });
+        })()}
 
         {/* ==================== 9. DIMENSIONAMENTO DA PROTEÇÃO ==================== */}
         <View break style={styles.sectionBreak}>

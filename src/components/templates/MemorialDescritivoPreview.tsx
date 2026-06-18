@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { getAllModulos, getAllInversores } from '@/lib/utils/equipmentParser';
 
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2, Plus, Minus, RotateCcw } from 'lucide-react';
@@ -850,63 +851,91 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
 
       <PageBreakIndicator id="dim-gerador" spacing={spacings['dim-gerador'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 7. DIMENSIONAMENTO DO GERADOR ==================== */}
-      <div className={`${sectionClass} ${PAGE_BREAK}`}>
-        <h2 className={h2Class}>7. DIMENSIONAMENTO DO GERADOR</h2>
-        <p className="mb-3">Características técnicas dos módulos fotovoltaicos:</p>
-        <p className="mb-3 italic">Tabela 4 – Características técnicas dos módulos fotovoltaicos</p>
-        <table className={tableClass}>
-          <tbody>
-            <tr><td className={tdLabelClass + " w-2/5"}>Fabricante</td><td className={tdClass}><V>{`{{modulos_fabricante}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Modelo</td><td className={tdClass}><V>{`{{modulos_modelo}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Potência nominal – Pn [W]</td><td className={tdClass}><V>{`{{modulos_potencia_wp}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Tensão de circuito aberto – Voc [V]</td><td className={tdClass}><V>{`{{modulos_voc}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Corrente de curto-circuito – Isc [A]</td><td className={tdClass}><V>{`{{modulos_isc}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Tensão de máxima potência – Vpmp [V]</td><td className={tdClass}><V>{`{{modulos_vpmp}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Corrente de máxima potência – Ipmp [A]</td><td className={tdClass}><V>{`{{modulos_ipmp}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Eficiência [%]</td><td className={tdClass}><V>{`{{modulos_eficiencia}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Comprimento [m]</td><td className={tdClass}><V>{`{{modulos_comprimento_m}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Largura [m]</td><td className={tdClass}><V>{`{{modulos_largura_m}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Área [m²]</td><td className={tdClass}><V>{`{{modulos_area_unitaria_m2}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Peso [kg]</td><td className={tdClass}><V>{`{{modulos_peso_kg}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Quantidade</td><td className={tdClass}><V>{`{{modulos_quantidade}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}><strong>Potência total instalada</strong></td><td className={tdClass}><V>{`{{modulos_quantidade}}`}</V> × <V>{`{{modulos_potencia_wp}}`}</V> Wp = <strong><V>{`{{potencia}}`}</V> kWp</strong></td></tr>
-          </tbody>
-        </table>
-      </div>
+      {(() => {
+        const modulosList = getAllModulos(projectData);
+        const hasMulti = modulosList.length > 1;
+        if (modulosList.length === 0) return null;
+        return modulosList.map((m, idx) => {
+          const letter = hasMulti ? String.fromCharCode(97 + idx) : '';
+          const tableLabel = `4${letter}`;
+          const wp = parseFloat(String(m.potencia_wp || '0')) || 0;
+          const qty = parseInt(String(m.quantidade || '0')) || 0;
+          const kwp = wp > 0 && qty > 0 ? ((wp * qty) / 1000).toFixed(2).replace('.', ',') : '___';
+          return (
+            <div key={idx} className={`${sectionClass}${idx === 0 ? ` ${PAGE_BREAK}` : ''}`}>
+              {idx === 0 && <h2 className={h2Class}>7. DIMENSIONAMENTO DO GERADOR</h2>}
+              <p className="mb-3">Características técnicas dos módulos fotovoltaicos{hasMulti ? ` – Modelo ${idx + 1}` : ''}:</p>
+              <p className="mb-3 italic">Tabela {tableLabel} – Características técnicas dos módulos fotovoltaicos{hasMulti ? ` (Modelo ${idx + 1})` : ''}</p>
+              <table className={tableClass}>
+                <tbody>
+                  <tr><td className={tdLabelClass + ' w-2/5'}>Fabricante</td><td className={tdClass}>{m.fabricante || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Modelo</td><td className={tdClass}>{m.modelo || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Potência nominal – Pn [W]</td><td className={tdClass}>{m.potencia_wp || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Tensão de circuito aberto – Voc [V]</td><td className={tdClass}>{m.voc || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Corrente de curto-circuito – Isc [A]</td><td className={tdClass}>{m.isc || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Tensão de máxima potência – Vpmp [V]</td><td className={tdClass}>{m.vpmp || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Corrente de máxima potência – Ipmp [A]</td><td className={tdClass}>{m.ipmp || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Eficiência [%]</td><td className={tdClass}>{m.eficiencia || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Comprimento [m]</td><td className={tdClass}>{m.comprimento_m || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Largura [m]</td><td className={tdClass}>{m.largura_m || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Área [m²]</td><td className={tdClass}>{m.area_unitaria_m2 || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Peso [kg]</td><td className={tdClass}>{m.peso_kg || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Quantidade</td><td className={tdClass}>{m.quantidade || '—'}</td></tr>
+                  <tr>
+                    <td className={tdLabelClass}><strong>{hasMulti ? 'Potência parcial (este modelo)' : 'Potência total instalada'}</strong></td>
+                    <td className={tdClass}>{qty} × {wp} Wp = <strong>{kwp} kWp</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        });
+      })()}
 
       {/* ==================== 8. DIMENSIONAMENTO DO INVERSOR ==================== */}
-      <div className={sectionClass}>
-        <h2 className={h2Class}>8. DIMENSIONAMENTO DO INVERSOR</h2>
-        <p className="mb-3">Características técnicas do inversor:</p>
-        <p className="mb-3 italic">Tabela 5 – Características técnicas do inversor</p>
-        <table className={tableClass}>
-          <tbody>
-            <tr><td className={tdLabelClass + " w-2/5"}>Fabricante</td><td className={tdClass}><V>{`{{inversores_fabricante}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Modelo</td><td className={tdClass}><V>{`{{inversores_modelo}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Quantidade</td><td className={tdClass}><V>{`{{inversores_quantidade}}`}</V></td></tr>
-            <tr><td className={tdLabelClass} colSpan={2}><strong>Entrada</strong></td></tr>
-            <tr><td className={tdLabelClass}>Máxima tensão CC – Vcc-máx [V]</td><td className={tdClass}><V>{`{{inversores_vcc_max}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Máxima corrente CC – Icc-máx [A]</td><td className={tdClass}><V>{`{{inversores_icc_max}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Máxima tensão MPPT – Vpmp-máx [V]</td><td className={tdClass}><V>{`{{inversores_vpmp_max}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Mínima tensão MPPT – Vpmp-min [V]</td><td className={tdClass}><V>{`{{inversores_vpmp_min}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Tensão CC de partida – Vcc-part [V]</td><td className={tdClass}><V>{`{{inversores_vcc_partida}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Quantidade de MPPTs</td><td className={tdClass}><V>{`{{inversores_quantidade_mppt}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Quantidade de entradas por MPPT</td><td className={tdClass}><V>{`{{inversores_entradas_por_mppt}}`}</V></td></tr>
-            <tr><td className={tdLabelClass} colSpan={2}><strong>Saída</strong></td></tr>
-            <tr><td className={tdLabelClass}>Potência nominal – Pn [kW]</td><td className={tdClass}><V>{`{{inversores_potencia}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Máxima potência na saída CA – Pca-máx [kW]</td><td className={tdClass}><V>{`{{inversores_potencia_max_saida}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Tensão nominal CA [V]</td><td className={tdClass}><V>{`{{inversores_tensao}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Máxima tensão CA – Vca-máx [V]</td><td className={tdClass}><V>{`{{inversores_tensao_max_ca}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Mínima tensão CA – Vca-min [V]</td><td className={tdClass}><V>{`{{inversores_tensao_min_ca}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Corrente máxima CA [A]</td><td className={tdClass}><V>{`{{inversores_corrente_nominal}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Frequência [Hz]</td><td className={tdClass}>60</td></tr>
-            <tr><td className={tdLabelClass}>THD de corrente [%]</td><td className={tdClass}><V>{`{{inversores_dht_corrente}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Fator de potência</td><td className={tdClass}><V>{`{{inversores_fator_potencia}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Tipo de conexão</td><td className={tdClass}><V>{`{{inversores_tipo_conexao_saida}}`}</V></td></tr>
-            <tr><td className={tdLabelClass}>Eficiência máxima [%]</td><td className={tdClass}><V>{`{{inversores_rendimento}}`}</V></td></tr>
-          </tbody>
-        </table>
-      </div>
+      {(() => {
+        const inversoresList = getAllInversores(projectData);
+        const hasMulti = inversoresList.length > 1;
+        if (inversoresList.length === 0) return null;
+        return inversoresList.map((inv, idx) => {
+          const letter = hasMulti ? String.fromCharCode(97 + idx) : '';
+          const tableLabel = `5${letter}`;
+          return (
+            <div key={idx} className={sectionClass}>
+              {idx === 0 && <h2 className={h2Class}>8. DIMENSIONAMENTO DO INVERSOR</h2>}
+              <p className="mb-3">Características técnicas do inversor{hasMulti ? ` – Modelo ${idx + 1}` : ''}:</p>
+              <p className="mb-3 italic">Tabela {tableLabel} – Características técnicas do inversor{hasMulti ? ` (Modelo ${idx + 1})` : ''}</p>
+              <table className={tableClass}>
+                <tbody>
+                  <tr><td className={tdLabelClass + ' w-2/5'}>Fabricante</td><td className={tdClass}>{inv.fabricante || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Modelo</td><td className={tdClass}>{inv.modelo || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Quantidade</td><td className={tdClass}>{inv.quantidade || '—'}</td></tr>
+                  <tr><td className={tdLabelClass} colSpan={2}><strong>Entrada</strong></td></tr>
+                  <tr><td className={tdLabelClass}>Máxima tensão CC – Vcc-máx [V]</td><td className={tdClass}>{inv.vcc_max || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Máxima corrente CC – Icc-máx [A]</td><td className={tdClass}>{inv.icc_max || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Máxima tensão MPPT – Vpmp-máx [V]</td><td className={tdClass}>{inv.vpmp_max || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Mínima tensão MPPT – Vpmp-min [V]</td><td className={tdClass}>{inv.vpmp_min || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Tensão CC de partida – Vcc-part [V]</td><td className={tdClass}>{inv.vcc_partida || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Quantidade de MPPTs</td><td className={tdClass}>{inv.quantidade_mppt || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Quantidade de entradas por MPPT</td><td className={tdClass}>{inv.entradas_por_mppt || '—'}</td></tr>
+                  <tr><td className={tdLabelClass} colSpan={2}><strong>Saída</strong></td></tr>
+                  <tr><td className={tdLabelClass}>Potência nominal – Pn [kW]</td><td className={tdClass}>{inv.potencia || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Máxima potência na saída CA – Pca-máx [kW]</td><td className={tdClass}>{inv.potencia_max_saida || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Tensão nominal CA [V]</td><td className={tdClass}>{inv.tensao || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Máxima tensão CA – Vca-máx [V]</td><td className={tdClass}>{inv.tensao_max_ca || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Mínima tensão CA – Vca-min [V]</td><td className={tdClass}>{inv.tensao_min_ca || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Corrente máxima CA [A]</td><td className={tdClass}>{inv.corrente_nominal || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Frequência [Hz]</td><td className={tdClass}>60</td></tr>
+                  <tr><td className={tdLabelClass}>THD de corrente [%]</td><td className={tdClass}>{inv.dht_corrente || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Fator de potência</td><td className={tdClass}>{inv.fator_potencia || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Tipo de conexão</td><td className={tdClass}>{inv.tipo_conexao_saida || '—'}</td></tr>
+                  <tr><td className={tdLabelClass}>Eficiência máxima [%]</td><td className={tdClass}>{inv.rendimento || '—'}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        });
+      })()}
 
       <PageBreakIndicator id="dim-protecao" spacing={spacings['dim-protecao'] || 0} onSpacingChange={handleSpacingChange} />
       {/* ==================== 9. DIMENSIONAMENTO DA PROTEÇÃO ==================== */}

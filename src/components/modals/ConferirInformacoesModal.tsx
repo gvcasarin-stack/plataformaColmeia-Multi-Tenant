@@ -1239,7 +1239,11 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           {Array.from(groups.entries()).map(([groupName, groupFields]) => {
             const isMod = groupName === 'Módulos Fotovoltaicos';
             const isInv = groupName === 'Inversores Fotovoltaicos';
-            const setupInvQty = isInv ? (parseInt(String(fields.inversores_quantidade || '0')) || 0) : 0;
+            const setupInvQty = isInv ? (
+              fields.setup_mais_de_um_inversor === 'sim'
+                ? (parseInt(String(fields.setup_total_inversores || '2')) || 2)
+                : 1
+            ) : 0;
             const missingInv = setupInvQty > 0 ? Math.max(0, setupInvQty - invStringsStats.totalUnits) : 0;
             // Campos do grupo que ainda são mostrados (os gerenciados pelo editor são ocultados)
             const visibleFields = isMod

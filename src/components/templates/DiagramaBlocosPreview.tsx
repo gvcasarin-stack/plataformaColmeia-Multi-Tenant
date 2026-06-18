@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
-import { getTotalKwp, getTotalModulosQtd } from '@/lib/utils/equipmentParser';
+import { getTotalKwp, getTotalModulosQtd, getAllModulos, getAllInversores, parseStringsModulos } from '@/lib/utils/equipmentParser';
 
 interface DiagramaBlocosPreviewProps {
   projectData?: Record<string, any>;
@@ -76,6 +76,32 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
 
   const fabricante = pd?.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
   const invPotencia = fmt2(pd?.inversores_potencia);
+
+  // Per-physical-unit data for multi-inverter columns
+  const modulosListFull = getAllModulos(pd);
+  const inversoresListFull = getAllInversores(pd);
+  const physicalInvData: Array<{ fabricante: string; potencia: string; moduloWp: number; moduloQtd: number }> = [];
+  for (const inv of inversoresListFull) {
+    const qty = parseInt(String(inv.quantidade || '1')) || 1;
+    for (let u = 0; u < qty; u++) {
+      const cfg = inv.units_config?.[u];
+      let moduloWp = modulosWp;
+      let moduloQtd = 0;
+      if (cfg) {
+        const modIdx = cfg.modulo_idx ?? 0;
+        const mod = modulosListFull[modIdx];
+        if (mod) moduloWp = parseFloat(String(mod.potencia_wp || '0')) || 0;
+        const strings = parseStringsModulos(cfg.strings_modulos || '[]', modIdx);
+        moduloQtd = strings.reduce((acc, s) => acc + s.quantidade, 0);
+      }
+      physicalInvData.push({
+        fabricante: String(inv.fabricante || '').toUpperCase() || '___',
+        potencia: fmt2(inv.potencia),
+        moduloWp,
+        moduloQtd,
+      });
+    }
+  }
 
   const hasStringbox = !!(pd?.setup_quadro_cc && pd.setup_quadro_cc !== 'nao');
   const stringboxLabel = pd?.setup_quadro_cc === 'dps_chave_seccionadora' ? 'DPS e Chave Seccionadora'
@@ -179,31 +205,38 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           <>
             {/* Multi-inversor agrupadas: colunas → barramento centro-a-centro → Quadro CA único → QGBT */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
-              {Array.from({ length: numInversores }).map((_, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={BOX}>
-                    <div style={BOLD}>Módulos Fotovoltaicos</div>
-                    <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const unit = physicalInvData[i];
+                const uFab = unit?.fabricante ?? fabricante;
+                const uPot = unit?.potencia ?? invPotencia;
+                const uWp = unit?.moduloWp ?? modulosWp;
+                const uQtd = unit?.moduloQtd ?? 0;
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={BOX}>
+                      <div style={BOLD}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</div>
+                      <div style={NORMAL}>de {uWp > 0 ? uWp : '___'} Wp cada</div>
+                    </div>
+                    <div style={V_LINE} />
+                    {hasStringbox && (
+                      <>
+                        <div style={BOX}>
+                          <div style={BOLD}>Quadro de Proteção CC (Stringbox):</div>
+                          <div style={NORMAL}>{stringboxLabel}</div>
+                        </div>
+                        <div style={V_LINE} />
+                      </>
+                    )}
+                    <div style={BOX}>
+                      <div style={BOLD}>Inversor Fotovoltaico {i + 1}:</div>
+                      <div style={BOLD}>{uFab} {uPot}kW</div>
+                      <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
+                      <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
+                    </div>
+                    <div style={V_LINE} />
                   </div>
-                  <div style={V_LINE} />
-                  {hasStringbox && (
-                    <>
-                      <div style={BOX}>
-                        <div style={BOLD}>Quadro de Proteção CC (Stringbox):</div>
-                        <div style={NORMAL}>{stringboxLabel}</div>
-                      </div>
-                      <div style={V_LINE} />
-                    </>
-                  )}
-                  <div style={BOX}>
-                    <div style={BOLD}>Inversor Fotovoltaico {i + 1}:</div>
-                    <div style={BOLD}>{fabricante} {invPotencia}kW</div>
-                    <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
-                    <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
-                  </div>
-                  <div style={V_LINE} />
-                </div>
-              ))}
+                );
+              })}
             </div>
             {/* Funil simétrico — mesmo padrão das saídas independentes */}
             <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '22px' }}>
@@ -248,36 +281,43 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           <>
             {/* Multi-inversor independentes: colunas → barramento centro-a-centro → N linhas independentes → QGBT largo */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
-              {Array.from({ length: numInversores }).map((_, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={BOX}>
-                    <div style={BOLD}>Módulos Fotovoltaicos</div>
-                    <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
+              {Array.from({ length: numInversores }).map((_, i) => {
+                const unit = physicalInvData[i];
+                const uFab = unit?.fabricante ?? fabricante;
+                const uPot = unit?.potencia ?? invPotencia;
+                const uWp = unit?.moduloWp ?? modulosWp;
+                const uQtd = unit?.moduloQtd ?? 0;
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={BOX}>
+                      <div style={BOLD}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</div>
+                      <div style={NORMAL}>de {uWp > 0 ? uWp : '___'} Wp cada</div>
+                    </div>
+                    <div style={V_LINE} />
+                    {hasStringbox && (
+                      <>
+                        <div style={BOX}>
+                          <div style={BOLD}>Quadro de Proteção CC (Stringbox):</div>
+                          <div style={NORMAL}>{stringboxLabel}</div>
+                        </div>
+                        <div style={V_LINE} />
+                      </>
+                    )}
+                    <div style={BOX}>
+                      <div style={BOLD}>Inversor Fotovoltaico {i + 1}:</div>
+                      <div style={BOLD}>{uFab} {uPot}kW</div>
+                      <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
+                      <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
+                    </div>
+                    <div style={V_LINE} />
+                    <div style={BOX}>
+                      <div style={BOLD}>Quadro de Proteção CA:</div>
+                      <div style={NORMAL}>DPS e Disjuntor</div>
+                    </div>
+                    <div style={V_LINE} />
                   </div>
-                  <div style={V_LINE} />
-                  {hasStringbox && (
-                    <>
-                      <div style={BOX}>
-                        <div style={BOLD}>Quadro de Proteção CC (Stringbox):</div>
-                        <div style={NORMAL}>{stringboxLabel}</div>
-                      </div>
-                      <div style={V_LINE} />
-                    </>
-                  )}
-                  <div style={BOX}>
-                    <div style={BOLD}>Inversor Fotovoltaico {i + 1}:</div>
-                    <div style={BOLD}>{fabricante} {invPotencia}kW</div>
-                    <div style={NORMAL}>Proteções do Inversor: (27), (59),</div>
-                    <div style={NORMAL}>(25) e 78 (anti-ilhamento)</div>
-                  </div>
-                  <div style={V_LINE} />
-                  <div style={BOX}>
-                    <div style={BOLD}>Quadro de Proteção CA:</div>
-                    <div style={NORMAL}>DPS e Disjuntor</div>
-                  </div>
-                  <div style={V_LINE} />
-                </div>
-              ))}
+                );
+              })}
             </div>
             {/* Funil simétrico: blocos à esquerda do centro → linha vai à direita; à direita → vai à esquerda */}
             <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px`, height: '22px' }}>
