@@ -593,7 +593,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   <text x={cCX + 15} y={isSaidaAgrupada ? 592 : 519} fontSize="5.5">{`1 #${caboCA}mm² (T)`}</text>
 
                   {/* INVERSOR */}
-                  <text x={cBR} y={551 + miInvShift} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
+                  <text x={cBR + 15} y={551 + miInvShift} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>
                   <rect x={cBX} y={554 + miInvShift} width={miColW} height={55} fill="white" stroke="#000" strokeWidth="1.2" />
                   <line x1={cBX} y1={554 + miInvShift} x2={cBR} y2={609 + miInvShift} stroke="#000" strokeWidth="0.9" />
                   <path d={`M${cBX + 4},${598 + miInvShift} Q${cBX + 8},${591 + miInvShift} ${cBX + 12},${598 + miInvShift} Q${cBX + 16},${605 + miInvShift} ${cBX + 20},${598 + miInvShift}`} stroke="#000" strokeWidth="0.9" fill="none" />

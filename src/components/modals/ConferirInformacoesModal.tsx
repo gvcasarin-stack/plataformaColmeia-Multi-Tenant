@@ -1386,6 +1386,26 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                       </p>
                     </div>
                   )}
+                  {fields.setup_configuracao_saidas === 'agrupadas' && isMultiInv && (
+                    <div className={`mb-3 rounded-md border p-3 ${
+                      (localFields.disjuntor_quadro_ca_corrente_a && localFields.disjuntor_quadro_ca_polos)
+                        ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20'
+                        : 'border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'
+                    }`}>
+                      <p className={`text-xs ${
+                        (localFields.disjuntor_quadro_ca_corrente_a && localFields.disjuntor_quadro_ca_polos)
+                          ? 'text-green-700 dark:text-green-400'
+                          : 'text-amber-700 dark:text-amber-400'
+                      }`}>
+                        <Info className="h-3.5 w-3.5 inline mr-1" />
+                        Disjuntor Geral do Quadro CA:{' '}
+                        {(localFields.disjuntor_quadro_ca_corrente_a && localFields.disjuntor_quadro_ca_polos)
+                          ? <><strong>{localFields.disjuntor_quadro_ca_corrente_a} A — {localFields.disjuntor_quadro_ca_polos} polo(s)</strong></>
+                          : <><strong>não definido</strong> — preencha abaixo após a lista de inversores.</>
+                        }
+                      </p>
+                    </div>
+                  )}
                   <EquipamentoListEditor
                     tipo="inversor"
                     items={inversoresList}
@@ -1393,6 +1413,56 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                     modulosList={modulosList}
                     onAfterCatalogSave={handleAfterCatalogSave}
                   />
+                  {/* Disjuntor CA Geral do Quadro de Proteção CA — apenas quando saídas agrupadas */}
+                  {fields.setup_configuracao_saidas === 'agrupadas' && (
+                    <div className="mt-4 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20 p-4">
+                      <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5" />
+                        Disjuntor CA Geral — Quadro de Proteção CA
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+                        As saídas estão agrupadas em um único Quadro CA. Informe o disjuntor geral desse quadro.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+                            Corrente [A] <span className="text-red-500">*</span>
+                          </Label>
+                          <Select
+                            value={localFields.disjuntor_quadro_ca_corrente_a || ''}
+                            onValueChange={(v) => setLocalFields(prev => ({ ...prev, disjuntor_quadro_ca_corrente_a: v }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {['10','16','20','25','30','32','40','50','60','63','70','80','100','125','150','175','200','250'].map(v => (
+                                <SelectItem key={v} value={v}>{v} A</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+                            Nº de Polos <span className="text-red-500">*</span>
+                          </Label>
+                          <Select
+                            value={localFields.disjuntor_quadro_ca_polos || ''}
+                            onValueChange={(v) => setLocalFields(prev => ({ ...prev, disjuntor_quadro_ca_polos: v }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1</SelectItem>
+                              <SelectItem value="2">2</SelectItem>
+                              <SelectItem value="3">3</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -534,7 +534,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
                   <Text key={`ca2-t3-${i}`} x={cCX + 15} y={isSaidaAgrupada ? 592 : 519} fontSize={5.5} fill="#000">{`1 #${caboCA}mm² (T)`}</Text>
 
                   {/* INVERSOR */}
-                  <Text key={`inv-lbl-${i}`} x={cBR} y={551 + miInvShift} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
+                  <Text key={`inv-lbl-${i}`} x={cBR + 15} y={551 + miInvShift} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">{`INVERSOR ${i + 1}`}</Text>
                   <Rect key={`inv-r-${i}`} x={cBX} y={554 + miInvShift} width={miColW} height={62} fill="white" stroke="#000" strokeWidth={1.2} />
                   <Line key={`inv-diag-${i}`} x1={cBX} y1={554 + miInvShift} x2={cBR} y2={616 + miInvShift} stroke="#000" strokeWidth={0.9} />
                   <Path key={`inv-ac-${i}`} d={`M${cBX + 4} ${598 + miInvShift} Q${cBX + 8} ${591 + miInvShift} ${cBX + 12} ${598 + miInvShift} Q${cBX + 16} ${605 + miInvShift} ${cBX + 20} ${598 + miInvShift}`} stroke="#000" strokeWidth={0.9} fill="none" />
