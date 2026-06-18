@@ -706,77 +706,6 @@ export function EquipamentoListItem(props: Props) {
                   <Field label="Entradas/MPPT" value={inv.entradas_por_mppt || ''} onChange={v => updateField('entradas_por_mppt', v)} placeholder="2" />
                 </div>
               </div>
-              <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Saída CA</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Pot. máx. saída (kW)" value={inv.potencia_max_saida || ''} onChange={v => updateField('potencia_max_saida', v)} suffix="kW" />
-                  <SelectField
-                    label="Tensão nom. CA (V) *"
-                    value={inv.tensao || ''}
-                    onChange={v => updateField('tensao', v)}
-                    options={TENSAO_OPTIONS}
-                    placeholder="Selecione"
-                  />
-                  <Field label="Tensão máx. CA (V)" value={inv.tensao_max_ca || ''} onChange={v => updateField('tensao_max_ca', v)} suffix="V" placeholder="253" />
-                  <Field label="Tensão mín. CA (V)" value={inv.tensao_min_ca || ''} onChange={v => updateField('tensao_min_ca', v)} suffix="V" placeholder="180" />
-                  <Field label="Faixa de tensão" value={inv.faixa_tensao || ''} onChange={v => updateField('faixa_tensao', v)} placeholder="200-500" />
-                  <Field label="Corrente nom. (A)" value={inv.corrente_nominal || ''} onChange={v => updateField('corrente_nominal', v)} suffix="A" placeholder="22,8" />
-                  <SelectField
-                    label="Nº de Fases + Neutro + Terra *"
-                    value={inv.tipo_conexao_saida || ''}
-                    onChange={v => updateField('tipo_conexao_saida', v)}
-                    options={TIPO_CONEXAO_OPTIONS}
-                    placeholder="Selecione"
-                  />
-                  <SelectField
-                    label="Tipo de Conexão *"
-                    value={inv.tipo_conexao_rede_ca || ''}
-                    onChange={v => updateField('tipo_conexao_rede_ca', v)}
-                    options={[{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Trifásico', label: 'Trifásico' }]}
-                    placeholder="Selecione"
-                  />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Proteção CA</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <SelectField
-                    label="Disjuntor CA — Corrente (A) *"
-                    value={inv.disjuntor_ca_corrente_a || ''}
-                    onChange={v => updateField('disjuntor_ca_corrente_a', v)}
-                    options={DISJUNTOR_CORRENTE_OPTIONS}
-                    placeholder="Auto"
-                  />
-                  <SelectField
-                    label="Disjuntor CA — Nº de Polos"
-                    value={inv.disjuntor_ca_polos || ''}
-                    onChange={v => updateField('disjuntor_ca_polos', v)}
-                    options={DISJUNTOR_POLOS_OPTIONS}
-                    placeholder="Polos"
-                  />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Cabeamento CA</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Seção Transversal (mm²)" value={inv.cabo_ca_secao_mm2 || ''} onChange={v => updateField('cabo_ca_secao_mm2', v)} suffix="mm²" placeholder="Ex: 6" />
-                  <Field label="Cap. de Corrente (A)" value={inv.cabo_ca_capacidade_corrente_a || ''} onChange={v => updateField('cabo_ca_capacidade_corrente_a', v)} suffix="A" placeholder="Ex: 41" />
-                  <SelectField
-                    label="Fator de Temperatura"
-                    value={inv.cabo_ca_fator_temperatura || ''}
-                    onChange={v => updateField('cabo_ca_fator_temperatura', v)}
-                    options={TEMP_FATOR_OPTIONS}
-                    placeholder="Selecione"
-                  />
-                  <SelectField
-                    label="Fator de Agrupamento"
-                    value={inv.cabo_ca_fator_agrupamento || ''}
-                    onChange={v => updateField('cabo_ca_fator_agrupamento', v)}
-                    options={AGRUPAMENTO_OPTIONS}
-                    placeholder="Selecione"
-                  />
-                </div>
-              </div>
 
               {/* Arranjo Fotovoltaico — strings e módulos por unidade */}
               <div>
@@ -903,6 +832,78 @@ export function EquipamentoListItem(props: Props) {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Saída CA</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Pot. máx. saída (kW)" value={inv.potencia_max_saida || ''} onChange={v => updateField('potencia_max_saida', v)} suffix="kW" />
+                  <SelectField
+                    label="Tensão nom. CA (V) *"
+                    value={inv.tensao || ''}
+                    onChange={v => updateField('tensao', v)}
+                    options={TENSAO_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <Field label="Tensão máx. CA (V)" value={inv.tensao_max_ca || ''} onChange={v => updateField('tensao_max_ca', v)} suffix="V" placeholder="253" />
+                  <Field label="Tensão mín. CA (V)" value={inv.tensao_min_ca || ''} onChange={v => updateField('tensao_min_ca', v)} suffix="V" placeholder="180" />
+                  <Field label="Faixa de tensão" value={inv.faixa_tensao || ''} onChange={v => updateField('faixa_tensao', v)} placeholder="200-500" />
+                  <Field label="Corrente nom. (A)" value={inv.corrente_nominal || ''} onChange={v => updateField('corrente_nominal', v)} suffix="A" placeholder="22,8" />
+                  <SelectField
+                    label="Nº de Fases + Neutro + Terra *"
+                    value={inv.tipo_conexao_saida || ''}
+                    onChange={v => updateField('tipo_conexao_saida', v)}
+                    options={TIPO_CONEXAO_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Tipo de Conexão *"
+                    value={inv.tipo_conexao_rede_ca || ''}
+                    onChange={v => updateField('tipo_conexao_rede_ca', v)}
+                    options={[{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Trifásico', label: 'Trifásico' }]}
+                    placeholder="Selecione"
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Proteção CA</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <SelectField
+                    label="Disjuntor CA — Corrente (A) *"
+                    value={inv.disjuntor_ca_corrente_a || ''}
+                    onChange={v => updateField('disjuntor_ca_corrente_a', v)}
+                    options={DISJUNTOR_CORRENTE_OPTIONS}
+                    placeholder="Auto"
+                  />
+                  <SelectField
+                    label="Disjuntor CA — Nº de Polos"
+                    value={inv.disjuntor_ca_polos || ''}
+                    onChange={v => updateField('disjuntor_ca_polos', v)}
+                    options={DISJUNTOR_POLOS_OPTIONS}
+                    placeholder="Polos"
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Cabeamento CA</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Seção Transversal (mm²)" value={inv.cabo_ca_secao_mm2 || ''} onChange={v => updateField('cabo_ca_secao_mm2', v)} suffix="mm²" placeholder="Ex: 6" />
+                  <Field label="Cap. de Corrente (A)" value={inv.cabo_ca_capacidade_corrente_a || ''} onChange={v => updateField('cabo_ca_capacidade_corrente_a', v)} suffix="A" placeholder="Ex: 41" />
+                  <SelectField
+                    label="Fator de Temperatura"
+                    value={inv.cabo_ca_fator_temperatura || ''}
+                    onChange={v => updateField('cabo_ca_fator_temperatura', v)}
+                    options={TEMP_FATOR_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Fator de Agrupamento"
+                    value={inv.cabo_ca_fator_agrupamento || ''}
+                    onChange={v => updateField('cabo_ca_fator_agrupamento', v)}
+                    options={AGRUPAMENTO_OPTIONS}
+                    placeholder="Selecione"
+                  />
                 </div>
               </div>
             </>

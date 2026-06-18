@@ -1137,19 +1137,70 @@ export function MemorialDescritivoPDF({
             <Li>Capacidade final do cabo (A) = aguardando preenchimento dos dados</Li>
           )}
 
-          <Text style={[styles.bold, { marginBottom: 6, marginTop: 10 }]}>Cabos CA:</Text>
-          <Li>Isolação: PVC</Li>
-          <Li>Isolamento: 1,0 kV</Li>
-          <Li>{`Seção Transversal [mm²]: ${v('cabo_ca_secao_mm2', projectData)}`}</Li>
-          <Li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</Li>
-          <Li>{`Capacidade de corrente básica do cabo: ${v('cabo_ca_capacidade_corrente_a', projectData)} A`}</Li>
-          <Li>{`Fator de correção por temperatura: ${v('cabo_ca_fator_temperatura', projectData)}`}</Li>
-          <Li>{`Fator de Agrupamento: ${v('cabo_ca_fator_agrupamento', projectData)}`}</Li>
-          {caboCAFinal ? (
-            <Li>{`Capacidade final do cabo (A) = ${caboCACapacidade} × ${caboCAFatorTemp.toFixed(2).replace('.', ',')} × ${caboCAFatorAgrup.toFixed(2).replace('.', ',')} = ${caboCAFinal} A`}</Li>
-          ) : (
-            <Li>Capacidade final do cabo (A) = aguardando preenchimento dos dados</Li>
-          )}
+          {(() => {
+            const inversList = getAllInversores(projectData);
+            const totalUnits = inversList.reduce((acc, inv) => acc + (parseInt(String(inv.quantidade || '1')) || 1), 0);
+            const isAgrupadas = String(projectData?.setup_configuracao_saidas || '') === 'agrupadas';
+            const units: Array<{ n: number; secao: string; cap: number; ft: number; fa: number }> = [];
+            inversList.forEach(inv => {
+              const qty = parseInt(String(inv.quantidade || '1')) || 1;
+              for (let u = 0; u < qty; u++) {
+                units.push({
+                  n: units.length + 1,
+                  secao: String(inv.cabo_ca_secao_mm2 || projectData?.cabo_ca_secao_mm2 || ''),
+                  cap: parseFloat(String(inv.cabo_ca_capacidade_corrente_a || projectData?.cabo_ca_capacidade_corrente_a || '0')) || 0,
+                  ft: parseFloat(String(inv.cabo_ca_fator_temperatura || projectData?.cabo_ca_fator_temperatura || '1')) || 1,
+                  fa: parseFloat(String(inv.cabo_ca_fator_agrupamento || projectData?.cabo_ca_fator_agrupamento || '1')) || 1,
+                });
+              }
+            });
+            if (units.length === 0) {
+              units.push({ n: 1, secao: String(projectData?.cabo_ca_secao_mm2 || ''), cap: caboCACapacidade, ft: caboCAFatorTemp, fa: caboCAFatorAgrup });
+            }
+            const qSecao = String(projectData?.cabo_quadro_ca_secao_mm2 || '');
+            const qCap = parseFloat(String(projectData?.cabo_quadro_ca_capacidade_corrente_a || '0')) || 0;
+            const qFt = parseFloat(String(projectData?.cabo_quadro_ca_fator_temperatura || '1')) || 1;
+            const qFa = parseFloat(String(projectData?.cabo_quadro_ca_fator_agrupamento || '1')) || 1;
+            const qFinal = qCap > 0 ? (qCap * qFt * qFa).toFixed(2).replace('.', ',') : null;
+            return (
+              <>
+                {units.map(({ n, secao, cap, ft, fa }) => {
+                  const final = cap > 0 ? (cap * ft * fa).toFixed(2).replace('.', ',') : null;
+                  const label = totalUnits <= 1 ? 'Cabos CA' : `Cabos CA — Inversor ${n}`;
+                  return (
+                    <View key={n}>
+                      <Text style={[styles.bold, { marginBottom: 6, marginTop: 10 }]}>{label}:</Text>
+                      <Li>Isolação: PVC</Li>
+                      <Li>Isolamento: 1,0 kV</Li>
+                      <Li>{`Seção Transversal [mm²]: ${secao || v('cabo_ca_secao_mm2', projectData)}`}</Li>
+                      <Li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</Li>
+                      <Li>{`Capacidade de corrente básica do cabo: ${cap > 0 ? cap : v('cabo_ca_capacidade_corrente_a', projectData)} A`}</Li>
+                      <Li>{`Fator de correção por temperatura: ${cap > 0 ? ft.toFixed(2).replace('.', ',') : v('cabo_ca_fator_temperatura', projectData)}`}</Li>
+                      <Li>{`Fator de Agrupamento: ${cap > 0 ? fa.toFixed(2).replace('.', ',') : v('cabo_ca_fator_agrupamento', projectData)}`}</Li>
+                      {final ? (
+                        <Li>{`Capacidade final do cabo (A) = ${cap} × ${ft.toFixed(2).replace('.', ',')} × ${fa.toFixed(2).replace('.', ',')} = ${final} A`}</Li>
+                      ) : (
+                        <Li>Capacidade final do cabo (A) = aguardando preenchimento dos dados</Li>
+                      )}
+                    </View>
+                  );
+                })}
+                {isAgrupadas && (qSecao || qCap > 0) && (
+                  <View>
+                    <Text style={[styles.bold, { marginBottom: 6, marginTop: 10 }]}>Cabeamento Geral — Quadro CA → QGBT:</Text>
+                    <Li>Isolação: PVC</Li>
+                    <Li>Isolamento: 1,0 kV</Li>
+                    {qSecao ? <Li>{`Seção Transversal [mm²]: ${qSecao}`}</Li> : null}
+                    <Li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</Li>
+                    {qCap > 0 ? <Li>{`Capacidade de corrente básica do cabo: ${qCap} A`}</Li> : null}
+                    {qCap > 0 ? <Li>{`Fator de correção por temperatura: ${qFt.toFixed(2).replace('.', ',')}`}</Li> : null}
+                    {qCap > 0 ? <Li>{`Fator de Agrupamento: ${qFa.toFixed(2).replace('.', ',')}`}</Li> : null}
+                    {qFinal ? <Li>{`Capacidade final do cabo (A) = ${qCap} × ${qFt.toFixed(2).replace('.', ',')} × ${qFa.toFixed(2).replace('.', ',')} = ${qFinal} A`}</Li> : null}
+                  </View>
+                )}
+              </>
+            );
+          })()}
         </View>
 
         {/* ==================== 11. PLACA DE ADVERTÊNCIA ==================== */}

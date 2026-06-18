@@ -1132,23 +1132,76 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
           )}
         </ul>
 
-        <p className="mb-2"><strong>Cabos CA:</strong></p>
-        <ul className="list-disc list-inside mb-4">
-          <li>Isolação: PVC</li>
-          <li>Isolamento: 1,0 kV</li>
-          <li>Seção Transversal [mm²]: <V>{`{{cabo_ca_secao_mm2}}`}</V></li>
-          <li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</li>
-          <li>Capacidade de corrente básica do cabo: <V>{`{{cabo_ca_capacidade_corrente_a}}`}</V> A</li>
-          <li>Fator de correção por temperatura: <V>{`{{cabo_ca_fator_temperatura}}`}</V></li>
-          <li>Fator de Agrupamento: <V>{`{{cabo_ca_fator_agrupamento}}`}</V></li>
-          {caboCAFinal ? (
-            <li>
-              Capacidade final do cabo (A) = {caboCACapacidade} × {caboCAFatorTemp.toFixed(2).replace('.', ',')} × {caboCAFatorAgrup.toFixed(2).replace('.', ',')} = <strong>{caboCAFinal} A</strong>
-            </li>
-          ) : (
-            <li className="text-gray-400 italic">Capacidade final do cabo (A) = aguardando preenchimento dos dados</li>
-          )}
-        </ul>
+        {(() => {
+          const inversList = getAllInversores(projectData);
+          const totalUnits = inversList.reduce((acc, inv) => acc + (parseInt(String(inv.quantidade || '1')) || 1), 0);
+          const isAgrupadas = String(projectData?.setup_configuracao_saidas || '') === 'agrupadas';
+          const units: Array<{ n: number; secao: string; cap: number; ft: number; fa: number }> = [];
+          inversList.forEach(inv => {
+            const qty = parseInt(String(inv.quantidade || '1')) || 1;
+            for (let u = 0; u < qty; u++) {
+              units.push({
+                n: units.length + 1,
+                secao: String(inv.cabo_ca_secao_mm2 || projectData?.cabo_ca_secao_mm2 || ''),
+                cap: parseFloat(String(inv.cabo_ca_capacidade_corrente_a || projectData?.cabo_ca_capacidade_corrente_a || '0')) || 0,
+                ft: parseFloat(String(inv.cabo_ca_fator_temperatura || projectData?.cabo_ca_fator_temperatura || '1')) || 1,
+                fa: parseFloat(String(inv.cabo_ca_fator_agrupamento || projectData?.cabo_ca_fator_agrupamento || '1')) || 1,
+              });
+            }
+          });
+          if (units.length === 0) {
+            units.push({ n: 1, secao: String(projectData?.cabo_ca_secao_mm2 || ''), cap: caboCACapacidade, ft: caboCAFatorTemp, fa: caboCAFatorAgrup });
+          }
+          const qSecao = String(projectData?.cabo_quadro_ca_secao_mm2 || '');
+          const qCap = parseFloat(String(projectData?.cabo_quadro_ca_capacidade_corrente_a || '0')) || 0;
+          const qFt = parseFloat(String(projectData?.cabo_quadro_ca_fator_temperatura || '1')) || 1;
+          const qFa = parseFloat(String(projectData?.cabo_quadro_ca_fator_agrupamento || '1')) || 1;
+          const qFinal = qCap > 0 ? (qCap * qFt * qFa).toFixed(2).replace('.', ',') : null;
+          return (
+            <>
+              {units.map(({ n, secao, cap, ft, fa }) => {
+                const final = cap > 0 ? (cap * ft * fa).toFixed(2).replace('.', ',') : null;
+                const label = totalUnits <= 1 ? 'Cabos CA' : `Cabos CA — Inversor ${n}`;
+                return (
+                  <div key={n}>
+                    <p className="mb-2"><strong>{label}:</strong></p>
+                    <ul className="list-disc list-inside mb-4">
+                      <li>Isolação: PVC</li>
+                      <li>Isolamento: 1,0 kV</li>
+                      <li>Seção Transversal [mm²]: {secao ? <V>{secao}</V> : <V>{`{{cabo_ca_secao_mm2}}`}</V>}</li>
+                      <li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</li>
+                      <li>Capacidade de corrente básica do cabo: {cap > 0 ? cap : <V>{`{{cabo_ca_capacidade_corrente_a}}`}</V>} A</li>
+                      <li>Fator de correção por temperatura: {cap > 0 ? ft.toFixed(2).replace('.', ',') : <V>{`{{cabo_ca_fator_temperatura}}`}</V>}</li>
+                      <li>Fator de Agrupamento: {cap > 0 ? fa.toFixed(2).replace('.', ',') : <V>{`{{cabo_ca_fator_agrupamento}}`}</V>}</li>
+                      {final ? (
+                        <li>Capacidade final do cabo (A) = {cap} × {ft.toFixed(2).replace('.', ',')} × {fa.toFixed(2).replace('.', ',')} = <strong>{final} A</strong></li>
+                      ) : (
+                        <li className="text-gray-400 italic">Capacidade final do cabo (A) = aguardando preenchimento dos dados</li>
+                      )}
+                    </ul>
+                  </div>
+                );
+              })}
+              {isAgrupadas && (qSecao || qCap > 0) && (
+                <>
+                  <p className="mb-2"><strong>Cabeamento Geral — Quadro CA → QGBT:</strong></p>
+                  <ul className="list-disc list-inside mb-4">
+                    <li>Isolação: PVC</li>
+                    <li>Isolamento: 1,0 kV</li>
+                    {qSecao && <li>Seção Transversal [mm²]: {qSecao}</li>}
+                    <li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</li>
+                    {qCap > 0 && <li>Capacidade de corrente básica do cabo: {qCap} A</li>}
+                    {qCap > 0 && <li>Fator de correção por temperatura: {qFt.toFixed(2).replace('.', ',')}</li>}
+                    {qCap > 0 && <li>Fator de Agrupamento: {qFa.toFixed(2).replace('.', ',')}</li>}
+                    {qFinal ? (
+                      <li>Capacidade final do cabo (A) = {qCap} × {qFt.toFixed(2).replace('.', ',')} × {qFa.toFixed(2).replace('.', ',')} = <strong>{qFinal} A</strong></li>
+                    ) : null}
+                  </ul>
+                </>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <PageBreakIndicator id="placa-advertencia" spacing={spacings['placa-advertencia'] || 0} onSpacingChange={handleSpacingChange} />
