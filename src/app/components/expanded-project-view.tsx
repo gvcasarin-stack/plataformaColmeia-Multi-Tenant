@@ -541,6 +541,8 @@ export const ExpandedProjectView = ({
     inversores_rendimento: (project as any).inversores_rendimento || '',
     inversores_dht_corrente: (project as any).inversores_dht_corrente || '',
     disjuntor_ca_corrente_a: (project as any).disjuntor_ca_corrente_a || '',
+    disjuntor_quadro_ca_corrente_a: (project as any).disjuntor_quadro_ca_corrente_a || '',
+    disjuntor_quadro_ca_polos: (project as any).disjuntor_quadro_ca_polos || '',
     // Campos de inversores adicionados recentemente
     inversores_quantidade_mppt: (project as any).inversores_quantidade_mppt || '',
     inversores_entradas_por_mppt: (project as any).inversores_entradas_por_mppt || '',
