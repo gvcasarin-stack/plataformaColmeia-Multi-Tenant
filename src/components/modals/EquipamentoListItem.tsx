@@ -11,7 +11,8 @@ import {
 import {
   ChevronDown, ChevronRight, Trash2, Loader2, CheckCircle2, Plus, X,
 } from 'lucide-react';
-import type { ModuloItem, InversorItem, InversorUnitConfig } from '@/lib/utils/equipmentParser';
+import { parseStringsModulos } from '@/lib/utils/equipmentParser';
+import type { ModuloItem, InversorItem, InversorUnitConfig, StringConfig } from '@/lib/utils/equipmentParser';
 import type { EquipmentCatalogItem } from '@/lib/services/equipmentCatalogService';
 
 type Tipo = 'modulo' | 'inversor';
@@ -733,15 +734,15 @@ export function EquipamentoListItem(props: Props) {
                     const qty = parseInt(String(inv.quantidade || '1')) || 1;
                     const currentConfigs = inv.units_config || [];
                     const cfg: InversorUnitConfig = currentConfigs[unitIdx] ?? { modulo_idx: 0, total_strings: 0, strings_modulos: '[]' };
-                    const unitTotalStrings = cfg.total_strings || 0;
-                    let unitStringsModulos: string[] = [];
-                    try { unitStringsModulos = JSON.parse(cfg.strings_modulos || '[]'); } catch {}
-                    const selectedMod = modulosListProp[cfg.modulo_idx ?? 0];
-                    const modPotWp = parseFloat(String(selectedMod?.potencia_wp || '').replace(',', '.'));
-                    const unitTotalMods = unitStringsModulos.reduce((s, n) => s + (parseInt(String(n)) || 0), 0);
-                    const unitKwpText = !isNaN(modPotWp) && modPotWp > 0 && unitTotalMods > 0
-                      ? ((modPotWp * unitTotalMods) / 1000).toFixed(2).replace('.', ',')
-                      : null;
+                    const unitStrings: StringConfig[] = parseStringsModulos(cfg.strings_modulos || '[]', cfg.modulo_idx ?? 0);
+
+                    const unitTotalMods = unitStrings.reduce((s, c) => s + (c.quantidade || 0), 0);
+                    const unitKwp = unitStrings.reduce((sum, c) => {
+                      const mod = modulosListProp[c.modulo_idx ?? 0];
+                      const potWp = parseFloat(String(mod?.potencia_wp || '').replace(',', '.'));
+                      return sum + (isNaN(potWp) || potWp <= 0 ? 0 : (potWp * (c.quantidade || 0)) / 1000);
+                    }, 0);
+                    const unitKwpText = unitKwp > 0 ? unitKwp.toFixed(2).replace('.', ',') : null;
 
                     function updateUnit(newCfg: InversorUnitConfig) {
                       const base = Array.from({ length: qty }, (_, i) =>
@@ -749,6 +750,24 @@ export function EquipamentoListItem(props: Props) {
                       );
                       base[unitIdx] = newCfg;
                       updateUnitsConfig(base);
+                    }
+
+                    function updateStringItem(si: number, updated: StringConfig) {
+                      const newStrings = unitStrings.map((s, i) => i === si ? updated : s);
+                      updateUnit({ ...cfg, total_strings: newStrings.length, strings_modulos: JSON.stringify(newStrings) });
+                    }
+
+                    function removeStringItem(si: number) {
+                      const newStrings = unitStrings.filter((_, i) => i !== si);
+                      updateUnit({ ...cfg, total_strings: newStrings.length, strings_modulos: JSON.stringify(newStrings) });
+                    }
+
+                    function addStringItem() {
+                      const defaultIdx = unitStrings.length > 0
+                        ? unitStrings[unitStrings.length - 1].modulo_idx
+                        : (cfg.modulo_idx ?? 0);
+                      const newStrings: StringConfig[] = [...unitStrings, { modulo_idx: defaultIdx, quantidade: 0 }];
+                      updateUnit({ ...cfg, total_strings: newStrings.length, strings_modulos: JSON.stringify(newStrings) });
                     }
 
                     return (
@@ -759,7 +778,6 @@ export function EquipamentoListItem(props: Props) {
                           </p>
                         )}
 
-                        {/* Módulo conectado */}
                         {modulosListProp.length === 0 && (
                           <p className="text-[11px] text-amber-500 italic mb-2">Configure os módulos fotovoltaicos primeiro.</p>
                         )}
@@ -771,34 +789,36 @@ export function EquipamentoListItem(props: Props) {
                             </span>
                           </p>
                         )}
-                        {modulosListProp.length > 1 && (
-                          <SelectField
-                            label="Módulo conectado"
-                            value={String(cfg.modulo_idx ?? 0)}
-                            onChange={v => updateUnit({ ...cfg, modulo_idx: parseInt(v) || 0 })}
-                            options={modulosListProp.map((mm, mi) => ({
-                              value: String(mi),
-                              label: `${mm.fabricante} ${mm.modelo}${mm.potencia_wp ? ` (${mm.potencia_wp} Wp)` : ''}`,
-                            }))}
-                          />
-                        )}
 
-                        {/* Strings dinâmicas */}
-                        <div className="mt-2 space-y-1">
-                          {unitStringsModulos.map((count, si) => (
+                        {/* Strings — cada uma com seletor de modelo quando há mais de um tipo de módulo */}
+                        <div className="mt-1 space-y-1">
+                          {unitStrings.map((strCfg, si) => (
                             <div key={si} className="flex items-center gap-1.5">
                               <span className="text-[10px] text-gray-400 shrink-0 w-16">String {si + 1}</span>
+                              {modulosListProp.length > 1 && (
+                                <Select
+                                  value={String(strCfg.modulo_idx ?? 0)}
+                                  onValueChange={v => updateStringItem(si, { ...strCfg, modulo_idx: parseInt(v) || 0 })}
+                                >
+                                  <SelectTrigger className="h-7 text-xs flex-1 min-w-0">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {modulosListProp.map((mm, mi) => (
+                                      <SelectItem key={mi} value={String(mi)}>
+                                        {mm.fabricante} {mm.modelo}{mm.potencia_wp ? ` (${mm.potencia_wp} Wp)` : ''}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
                               <Input
                                 type="number"
                                 min="1"
-                                value={String(count) || ''}
-                                onChange={e => {
-                                  const arr = [...unitStringsModulos];
-                                  arr[si] = e.target.value;
-                                  updateUnit({ ...cfg, total_strings: arr.length, strings_modulos: JSON.stringify(arr) });
-                                }}
+                                value={strCfg.quantidade > 0 ? String(strCfg.quantidade) : ''}
+                                onChange={e => updateStringItem(si, { ...strCfg, quantidade: parseInt(e.target.value) || 0 })}
                                 placeholder="Módulos"
-                                className="h-7 text-xs flex-1"
+                                className="h-7 text-xs w-20 shrink-0"
                               />
                               <span className="text-[10px] text-gray-400 shrink-0">mód.</span>
                               <Button
@@ -806,10 +826,7 @@ export function EquipamentoListItem(props: Props) {
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 shrink-0"
-                                onClick={() => {
-                                  const arr = unitStringsModulos.filter((_, i) => i !== si);
-                                  updateUnit({ ...cfg, total_strings: arr.length, strings_modulos: JSON.stringify(arr) });
-                                }}
+                                onClick={() => removeStringItem(si)}
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>
@@ -819,10 +836,7 @@ export function EquipamentoListItem(props: Props) {
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              const arr = [...unitStringsModulos, ''];
-                              updateUnit({ ...cfg, total_strings: arr.length, strings_modulos: JSON.stringify(arr) });
-                            }}
+                            onClick={addStringItem}
                             className="w-full mt-0.5 border-dashed text-gray-500 hover:text-gray-700 hover:border-gray-400"
                           >
                             <Plus className="h-3.5 w-3.5 mr-1" />

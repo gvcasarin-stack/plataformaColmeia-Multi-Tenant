@@ -15,7 +15,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { EquipamentoListEditor } from './EquipamentoListEditor';
-import { getAllModulos, getAllInversores } from '@/lib/utils/equipmentParser';
+import { getAllModulos, getAllInversores, parseStringsModulos } from '@/lib/utils/equipmentParser';
 import type { ModuloItem, InversorItem, InversorUnitConfig } from '@/lib/utils/equipmentParser';
 
 const DISTRIBUIDORAS = [
@@ -338,12 +338,10 @@ function computeStringsGlobals(invList: InversorItem[]): { modulos_total_strings
       if (!cfg || !cfg.total_strings) continue;
       hasData = true;
       total += cfg.total_strings;
-      try {
-        const sm: (string | number)[] = JSON.parse(cfg.strings_modulos || '[]');
-        for (const n of sm) {
-          if (n !== '' && n !== null && n !== undefined) modules.push(Number(n));
-        }
-      } catch {}
+      const strings = parseStringsModulos(cfg.strings_modulos || '[]', cfg.modulo_idx ?? 0);
+      for (const s of strings) {
+        if (s.quantidade > 0) modules.push(s.quantidade);
+      }
     }
   }
   if (!hasData) return null;
@@ -627,6 +625,27 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       }
     }
     return { totalUnits, configured };
+  }, [inversoresList]);
+
+  const modulosDefinidos = useMemo(() => {
+    return modulosList.reduce((acc, m) => acc + (parseInt(String(m.quantidade || '1')) || 1), 0);
+  }, [modulosList]);
+
+  const modulosAlocados = useMemo(() => {
+    let total = 0;
+    for (const inv of inversoresList) {
+      const qty = parseInt(String(inv.quantidade || '1')) || 1;
+      const configs = inv.units_config || [];
+      for (let u = 0; u < qty; u++) {
+        const cfg = configs[u];
+        if (!cfg) continue;
+        const strings = parseStringsModulos(cfg.strings_modulos || '[]', cfg.modulo_idx ?? 0);
+        for (const s of strings) {
+          total += s.quantidade;
+        }
+      }
+    }
+    return total;
   }, [inversoresList]);
 
   // Sincroniza o primeiro item da lista de módulos de volta para os campos antigos (backward compat)
@@ -1348,7 +1367,18 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                     <div className="mb-3 rounded-md border border-blue-100 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
                       <p className="text-xs text-blue-600 dark:text-blue-400">
                         <Info className="h-3.5 w-3.5 inline mr-1" />
-                        Arranjo: <strong>{invStringsStats.configured}</strong> de <strong>{invStringsStats.totalUnits}</strong> {invStringsStats.totalUnits === 1 ? 'inversor configurado' : 'inversores configurados'}
+                        Inversor: <strong>{invStringsStats.configured}</strong> de <strong>{invStringsStats.totalUnits}</strong> {invStringsStats.totalUnits === 1 ? 'inversor configurado' : 'inversores configurados'}
+                      </p>
+                    </div>
+                  )}
+                  {modulosDefinidos > 0 && (
+                    <div className={`mb-3 rounded-md border p-3 ${modulosDefinidos === modulosAlocados ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 'border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'}`}>
+                      <p className={`text-xs ${modulosDefinidos === modulosAlocados ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                        <Info className="h-3.5 w-3.5 inline mr-1" />
+                        Módulos definidos: <strong>{modulosDefinidos}</strong> | Alocados nas strings: <strong>{modulosAlocados}</strong>
+                        {modulosDefinidos !== modulosAlocados && (
+                          <> | Diferença: <strong>{modulosAlocados > modulosDefinidos ? '+' : ''}{modulosAlocados - modulosDefinidos}</strong></>
+                        )}
                       </p>
                     </div>
                   )}

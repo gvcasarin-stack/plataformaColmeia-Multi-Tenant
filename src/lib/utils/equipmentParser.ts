@@ -20,11 +20,36 @@ export interface ModuloItem {
   is_microinversor?: string;
 }
 
+// Config de uma string individual (modelo de módulo + quantidade)
+export interface StringConfig {
+  modulo_idx: number;  // índice em modulosList (0-based)
+  quantidade: number;  // módulos nesta string
+}
+
 // Config de arranjo para cada unidade física de um inversor
 export interface InversorUnitConfig {
-  modulo_idx: number;      // índice em modulos_lista (0-based)
+  modulo_idx: number;      // índice padrão / fallback para migração
   total_strings: number;
-  strings_modulos: string; // JSON de number[]
+  strings_modulos: string; // JSON de StringConfig[] (novo) ou number[] (legado)
+}
+
+// Parseia strings_modulos suportando formato antigo (number[]) e novo (StringConfig[])
+export function parseStringsModulos(raw: string, defaultModuloIdx = 0): StringConfig[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return [];
+    if (typeof parsed[0] === 'object' && parsed[0] !== null && 'quantidade' in parsed[0]) {
+      return parsed as StringConfig[];
+    }
+    // Formato legado: number[] ou string[] — migra para StringConfig[]
+    return parsed.map((n: any) => ({
+      modulo_idx: defaultModuloIdx,
+      quantidade: parseInt(String(n)) || 0,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export interface InversorItem {
