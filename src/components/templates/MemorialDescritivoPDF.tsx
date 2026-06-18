@@ -976,13 +976,61 @@ export function MemorialDescritivoPDF({
           <SH3>9.1. Chaves Seccionadoras e Disjuntores</SH3>
           <Text style={[styles.bold, { marginBottom: 4 }]}>Chave Seccionadora CC:</Text>
           <Li>Acoplado ao Inversor Fotovoltaico.</Li>
-          <Text style={[styles.bold, { marginBottom: 4, marginTop: 6 }]}>Disjuntor CA:</Text>
-          <Li>{`Número de polos: ${v('disjuntor_polos', projectData)}`}</Li>
-          <Li>{`Tensão nominal CA [V]: ${v('tensao_atendimento', projectData)}`}</Li>
-          <Li>{`Corrente Nominal [A]: ${v('disjuntor_ca_corrente_a', projectData)}`}</Li>
-          <Li>Frequência [Hz]: 60</Li>
-          <Li>Capacidade máxima de interrupção [kA]: 3,0</Li>
-          <Li>Curva de atuação: C</Li>
+          {(() => {
+            const inversList = getAllInversores(projectData);
+            const totalUnits = inversList.reduce((acc, inv) => acc + (parseInt(String(inv.quantidade || '1')) || 1), 0);
+            const isAgrupadas = String(projectData?.setup_configuracao_saidas || '') === 'agrupadas';
+            if (totalUnits <= 1) {
+              return (
+                <>
+                  <Text style={[styles.bold, { marginBottom: 4, marginTop: 6 }]}>Disjuntor CA:</Text>
+                  <Li>{`Número de polos: ${v('disjuntor_polos', projectData)}`}</Li>
+                  <Li>{`Tensão nominal CA [V]: ${v('tensao_atendimento', projectData)}`}</Li>
+                  <Li>{`Corrente Nominal [A]: ${v('disjuntor_ca_corrente_a', projectData)}`}</Li>
+                  <Li>Frequência [Hz]: 60</Li>
+                  <Li>Capacidade máxima de interrupção [kA]: 3,0</Li>
+                  <Li>Curva de atuação: C</Li>
+                </>
+              );
+            }
+            const units: Array<{ n: number; corrente: string; polos: string }> = [];
+            inversList.forEach((inv) => {
+              const qty = parseInt(String(inv.quantidade || '1')) || 1;
+              for (let u = 0; u < qty; u++) {
+                units.push({
+                  n: units.length + 1,
+                  corrente: inv.disjuntor_ca_corrente_a || String(projectData?.disjuntor_ca_corrente_a || projectData?.disjuntor_corrente_a || '—'),
+                  polos: inv.disjuntor_ca_polos || String(projectData?.disjuntor_ca_polos || '—'),
+                });
+              }
+            });
+            return (
+              <>
+                {units.map(({ n, corrente, polos }) => (
+                  <View key={`disj-inv-${n}`}>
+                    <Text style={[styles.bold, { marginBottom: 4, marginTop: 6 }]}>{`Disjuntor CA — Inversor ${n}:`}</Text>
+                    <Li>{`Número de polos: ${polos}`}</Li>
+                    <Li>{`Tensão nominal CA [V]: ${v('tensao_atendimento', projectData)}`}</Li>
+                    <Li>{`Corrente Nominal [A]: ${corrente}`}</Li>
+                    <Li>Frequência [Hz]: 60</Li>
+                    <Li>Capacidade máxima de interrupção [kA]: 3,0</Li>
+                    <Li>Curva de atuação: C</Li>
+                  </View>
+                ))}
+                {isAgrupadas && (
+                  <View>
+                    <Text style={[styles.bold, { marginBottom: 4, marginTop: 6 }]}>Disjuntor CA Geral — Quadro de Proteção CA:</Text>
+                    <Li>{`Número de polos: ${String(projectData?.disjuntor_quadro_ca_polos || '—')}`}</Li>
+                    <Li>{`Tensão nominal CA [V]: ${v('tensao_atendimento', projectData)}`}</Li>
+                    <Li>{`Corrente Nominal [A]: ${String(projectData?.disjuntor_quadro_ca_corrente_a || '—')}`}</Li>
+                    <Li>Frequência [Hz]: 60</Li>
+                    <Li>Capacidade máxima de interrupção [kA]: 3,0</Li>
+                    <Li>Curva de atuação: C</Li>
+                  </View>
+                )}
+              </>
+            );
+          })()}
 
           <SH3>9.2. DPS</SH3>
           <Text style={[styles.bold, { marginBottom: 4, marginTop: 4 }]}>Tipo CC:</Text>

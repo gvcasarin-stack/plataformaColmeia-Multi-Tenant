@@ -945,15 +945,67 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
         <h3 className={h3Class}>9.1. Chaves Seccionadoras e Disjuntores</h3>
         <p className="mb-2"><strong>Chave Seccionadora CC:</strong></p>
         <ul className="list-disc list-inside mb-4"><li>Acoplado ao Inversor Fotovoltaico.</li></ul>
-        <p className="mb-2"><strong>Disjuntor CA:</strong></p>
-        <ul className="list-disc list-inside mb-4">
-          <li>Número de polos: <V>{`{{disjuntor_polos}}`}</V></li>
-          <li>Tensão nominal CA [V]: <V>{`{{tensao_atendimento}}`}</V></li>
-          <li>Corrente Nominal [A]: <V>{`{{disjuntor_ca_corrente_a}}`}</V></li>
-          <li>Frequência [Hz]: 60</li>
-          <li>Capacidade máxima de interrupção [kA]: 3,0</li>
-          <li>Curva de atuação: C</li>
-        </ul>
+        {(() => {
+          const inversList = getAllInversores(projectData);
+          const totalUnits = inversList.reduce((acc, inv) => acc + (parseInt(String(inv.quantidade || '1')) || 1), 0);
+          const isAgrupadas = String(projectData?.setup_configuracao_saidas || '') === 'agrupadas';
+          if (totalUnits <= 1) {
+            return (
+              <>
+                <p className="mb-2"><strong>Disjuntor CA:</strong></p>
+                <ul className="list-disc list-inside mb-4">
+                  <li>Número de polos: <V>{`{{disjuntor_polos}}`}</V></li>
+                  <li>Tensão nominal CA [V]: <V>{`{{tensao_atendimento}}`}</V></li>
+                  <li>Corrente Nominal [A]: <V>{`{{disjuntor_ca_corrente_a}}`}</V></li>
+                  <li>Frequência [Hz]: 60</li>
+                  <li>Capacidade máxima de interrupção [kA]: 3,0</li>
+                  <li>Curva de atuação: C</li>
+                </ul>
+              </>
+            );
+          }
+          const units: Array<{ n: number; corrente: string; polos: string }> = [];
+          inversList.forEach((inv) => {
+            const qty = parseInt(String(inv.quantidade || '1')) || 1;
+            for (let u = 0; u < qty; u++) {
+              units.push({
+                n: units.length + 1,
+                corrente: inv.disjuntor_ca_corrente_a || String(projectData?.disjuntor_ca_corrente_a || projectData?.disjuntor_corrente_a || '—'),
+                polos: inv.disjuntor_ca_polos || String(projectData?.disjuntor_ca_polos || '—'),
+              });
+            }
+          });
+          return (
+            <>
+              {units.map(({ n, corrente, polos }) => (
+                <div key={`disj-inv-${n}`}>
+                  <p className="mb-2"><strong>Disjuntor CA — Inversor {n}:</strong></p>
+                  <ul className="list-disc list-inside mb-4">
+                    <li>Número de polos: {polos}</li>
+                    <li>Tensão nominal CA [V]: <V>{`{{tensao_atendimento}}`}</V></li>
+                    <li>Corrente Nominal [A]: {corrente}</li>
+                    <li>Frequência [Hz]: 60</li>
+                    <li>Capacidade máxima de interrupção [kA]: 3,0</li>
+                    <li>Curva de atuação: C</li>
+                  </ul>
+                </div>
+              ))}
+              {isAgrupadas && (
+                <>
+                  <p className="mb-2"><strong>Disjuntor CA Geral — Quadro de Proteção CA:</strong></p>
+                  <ul className="list-disc list-inside mb-4">
+                    <li>Número de polos: {String(projectData?.disjuntor_quadro_ca_polos || '—')}</li>
+                    <li>Tensão nominal CA [V]: <V>{`{{tensao_atendimento}}`}</V></li>
+                    <li>Corrente Nominal [A]: {String(projectData?.disjuntor_quadro_ca_corrente_a || '—')}</li>
+                    <li>Frequência [Hz]: 60</li>
+                    <li>Capacidade máxima de interrupção [kA]: 3,0</li>
+                    <li>Curva de atuação: C</li>
+                  </ul>
+                </>
+              )}
+            </>
+          );
+        })()}
 
         <h3 className={h3Class}>9.2. DPS</h3>
         <p className="mb-2"><strong>Tipo CC:</strong></p>

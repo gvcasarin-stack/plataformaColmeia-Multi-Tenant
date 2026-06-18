@@ -160,6 +160,9 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const djCaPolos        = fv(pd.disjuntor_ca_polos, '2');
   const d2Tipo           = djCaPolos === '3' ? 'Tripolar' : djCaPolos === '1' ? 'Monopolar' : 'Bipolar';
   const dpsLabel         = isRedeMono ? '2x DPS CA' : '4x DPS CA';
+  const djGeralCorr      = fv(pd.disjuntor_quadro_ca_corrente_a, djCorr);
+  const djGeralPolos     = fv(pd.disjuntor_quadro_ca_polos, djCaPolos);
+  const djGeralTipo      = djGeralPolos === '3' ? 'Tripolar' : djGeralPolos === '1' ? 'Monopolar' : 'Bipolar';
 
   const physicalInvDisj = (() => {
     const invsList = getAllInversores(pd);
@@ -491,7 +494,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
               <PDFTerra x={topCX - 80} y={428} />
               <PDFDisjuntor x={topCX} y={408} />
               <Text x={topCX + 15} y={406} fontSize={6.5} fill="#000">D2</Text>
-              <Text x={topCX + 15} y={416} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
+              <Text x={topCX + 15} y={416} fontSize={5.5} fill="#000">{`${djGeralTipo} - ${djGeralCorr} A / ${djTensao} Vca`}</Text>
               <Text x={topCX + 15} y={425} fontSize={5} fill="#000">GERAL</Text>
               <Line x1={miColCX(0)} y1={465} x2={miColCX(numInversores - 1)} y2={465} stroke="#000" strokeWidth={1} />
             </>)}
