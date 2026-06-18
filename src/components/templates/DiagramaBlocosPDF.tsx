@@ -50,7 +50,7 @@ const s = StyleSheet.create({
   },
   hLine: {
     height: 1,
-    width: 22,
+    width: 28,
     backgroundColor: BC,
   },
   row: {
@@ -206,7 +206,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
     : 1;
   const configuracaoSaidas = String(pd?.setup_configuracao_saidas || 'independentes');
 
-  const PDF_GAP = 10;
+  const PDF_GAP = 12;
   const pdfColW = numInversores === 1 ? BOX_W
     : Math.min(BOX_W, Math.floor((475 - PDF_GAP * (numInversores - 1)) / numInversores));
   const pdfStep = pdfColW + PDF_GAP;
@@ -247,7 +247,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
 
   return (
     <Document>
-      <Page size="A4" style={s.page}>
+      <Page size={numInversores >= 4 ? 'A1' : 'A4'} style={s.page}>
         {numInversores === 1 ? (
           <>
             {/* 1. Módulos */}
@@ -411,7 +411,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
                 </View>
               </View>
             </View>
-            <View style={s.vLine} />
+            <View style={[s.vLine, { marginLeft: -20 }]} />
           </>
         )}
 
@@ -450,7 +450,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
               <View style={s.sealSubLeft}>
                 <View style={s.sealSubRow}><Text style={s.sealSubLabel}>DATA</Text><Text style={s.sealSubValue}>{dataDoc}</Text></View>
                 <View style={s.sealSubRow}><Text style={s.sealSubLabel}>ESCALA</Text><Text style={s.sealSubValue}>S/ ESCALA</Text></View>
-                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>TAMANHO</Text><Text style={s.sealSubValue}>A3</Text></View>
+                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>TAMANHO</Text><Text style={s.sealSubValue}>{numInversores >= 4 ? 'A1' : 'A3'}</Text></View>
                 <View style={s.sealSubRow}><Text style={s.sealSubLabel}>FOLHA</Text><Text style={s.sealSubValue}>1/1</Text></View>
                 <View style={s.sealSubRowLast}><Text style={s.sealSubLabel}>REVISAO</Text><Text style={s.sealSubValue}>R0</Text></View>
               </View>
