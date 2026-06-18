@@ -543,6 +543,10 @@ export const ExpandedProjectView = ({
     disjuntor_ca_corrente_a: (project as any).disjuntor_ca_corrente_a || '',
     disjuntor_quadro_ca_corrente_a: (project as any).disjuntor_quadro_ca_corrente_a || '',
     disjuntor_quadro_ca_polos: (project as any).disjuntor_quadro_ca_polos || '',
+    cabo_quadro_ca_secao_mm2: (project as any).cabo_quadro_ca_secao_mm2 || '',
+    cabo_quadro_ca_capacidade_corrente_a: (project as any).cabo_quadro_ca_capacidade_corrente_a || '',
+    cabo_quadro_ca_fator_temperatura: (project as any).cabo_quadro_ca_fator_temperatura || '',
+    cabo_quadro_ca_fator_agrupamento: (project as any).cabo_quadro_ca_fator_agrupamento || '',
     // Campos de inversores adicionados recentemente
     inversores_quantidade_mppt: (project as any).inversores_quantidade_mppt || '',
     inversores_entradas_por_mppt: (project as any).inversores_entradas_por_mppt || '',

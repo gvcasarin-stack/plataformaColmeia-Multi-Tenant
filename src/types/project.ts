@@ -237,6 +237,12 @@ export interface Project {
   disjuntor_ca_corrente_a?: string;
   disjuntor_quadro_ca_corrente_a?: string;
   disjuntor_quadro_ca_polos?: string;
+
+  // ✅ Cabeamento CA por inversor e cabeamento geral (agrupadas)
+  cabo_quadro_ca_secao_mm2?: string;
+  cabo_quadro_ca_capacidade_corrente_a?: string;
+  cabo_quadro_ca_fator_temperatura?: string;
+  cabo_quadro_ca_fator_agrupamento?: string;
   secao_fase_mm2?: string;
   secao_neutro_mm2?: string;
   disjuntor_polos?: number;

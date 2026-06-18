@@ -223,10 +223,6 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos' },
   { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_secao_mm2', label: 'CA — Seção Transversal (mm²)', type: 'text', required: true, placeholder: 'Ex: 6', suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_capacidade_corrente_a', label: 'CA — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 41', suffix: 'A', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_fator_temperatura', label: 'CA — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_ca_fator_agrupamento', label: 'CA — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
 ];
 
 interface ConferirInformacoesModalProps {
@@ -1457,6 +1453,65 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                               <SelectItem value="1">1</SelectItem>
                               <SelectItem value="2">2</SelectItem>
                               <SelectItem value="3">3</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-4 mb-2">Cabeamento — Quadro CA → QGBT</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Seção Transversal (mm²)</Label>
+                          <Input
+                            className="h-8 text-xs"
+                            placeholder="Ex: 10"
+                            value={localFields.cabo_quadro_ca_secao_mm2 || ''}
+                            onChange={e => setLocalFields(prev => ({ ...prev, cabo_quadro_ca_secao_mm2: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Cap. de Corrente (A)</Label>
+                          <Input
+                            className="h-8 text-xs"
+                            placeholder="Ex: 54"
+                            value={localFields.cabo_quadro_ca_capacidade_corrente_a || ''}
+                            onChange={e => setLocalFields(prev => ({ ...prev, cabo_quadro_ca_capacidade_corrente_a: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Fator de Temperatura</Label>
+                          <Select
+                            value={localFields.cabo_quadro_ca_fator_temperatura || ''}
+                            onValueChange={(v) => setLocalFields(prev => ({ ...prev, cabo_quadro_ca_fator_temperatura: v }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[
+                                { value: '1,06', label: '1,06 (PVC 25ºC)' },
+                                { value: '1,04', label: '1,04 (EPR 25ºC)' },
+                                { value: '0,96', label: '0,96 (EPR 35ºC)' },
+                                { value: '0,94', label: '0,94 (PVC 35ºC)' },
+                                { value: '0,91', label: '0,91 (EPR 40ºC)' },
+                                { value: '0,87', label: '0,87 (PVC/EPR 45ºC)' },
+                                { value: '0,82', label: '0,82 (EPR 50ºC)' },
+                                { value: '0,79', label: '0,79 (PVC 45ºC)' },
+                                { value: '0,71', label: '0,71 (PVC 50ºC)' },
+                              ].map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Fator de Agrupamento</Label>
+                          <Select
+                            value={localFields.cabo_quadro_ca_fator_agrupamento || ''}
+                            onValueChange={(v) => setLocalFields(prev => ({ ...prev, cabo_quadro_ca_fator_agrupamento: v }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {AGRUPAMENTO_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>

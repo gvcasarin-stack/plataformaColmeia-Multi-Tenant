@@ -78,6 +78,10 @@ export interface InversorItem {
   disjuntor_ca_corrente_a?: string;
   disjuntor_ca_polos?: string;
   tipo_conexao_rede_ca?: string;
+  cabo_ca_secao_mm2?: string;
+  cabo_ca_capacidade_corrente_a?: string;
+  cabo_ca_fator_temperatura?: string;
+  cabo_ca_fator_agrupamento?: string;
   units_config?: InversorUnitConfig[]; // config por unidade física
 }
 

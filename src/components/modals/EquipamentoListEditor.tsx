@@ -42,6 +42,8 @@ const EMPTY_INVERSOR: InversorItem = {
   tipo_conexao_saida: '', fator_potencia: '', rendimento: '', dht_corrente: '',
   disjuntor_ca_corrente_a: '', disjuntor_ca_polos: '',
   tipo_conexao_rede_ca: '',
+  cabo_ca_secao_mm2: '', cabo_ca_capacidade_corrente_a: '',
+  cabo_ca_fator_temperatura: '', cabo_ca_fator_agrupamento: '',
 };
 
 export function EquipamentoListEditor(props: Props) {

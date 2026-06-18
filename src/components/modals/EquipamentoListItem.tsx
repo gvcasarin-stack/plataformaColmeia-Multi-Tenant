@@ -102,6 +102,33 @@ const DISJUNTOR_POLOS_OPTIONS = [
   { value: '3', label: '3' },
 ];
 
+const AGRUPAMENTO_OPTIONS = [
+  { value: '1', label: '1 (sem agrupamento)' },
+  { value: '0,8', label: '0,8 (2 circuitos)' },
+  { value: '0,7', label: '0,7 (3 circuitos)' },
+  { value: '0,65', label: '0,65 (4 circuitos)' },
+  { value: '0,6', label: '0,6 (5 circuitos)' },
+  { value: '0,57', label: '0,57 (6 circuitos)' },
+  { value: '0,54', label: '0,54 (7 circuitos)' },
+  { value: '0,52', label: '0,52 (8 circuitos)' },
+  { value: '0,5', label: '0,5 (9–11 circuitos)' },
+  { value: '0,45', label: '0,45 (12–15 circuitos)' },
+  { value: '0,41', label: '0,41 (16–19 circuitos)' },
+  { value: '0,38', label: '0,38 (≥ 20 circuitos)' },
+];
+
+const TEMP_FATOR_OPTIONS = [
+  { value: '1,06', label: '1,06 (PVC 25ºC)' },
+  { value: '1,04', label: '1,04 (EPR 25ºC)' },
+  { value: '0,96', label: '0,96 (EPR 35ºC)' },
+  { value: '0,94', label: '0,94 (PVC 35ºC)' },
+  { value: '0,91', label: '0,91 (EPR 40ºC)' },
+  { value: '0,87', label: '0,87 (PVC/EPR 45ºC)' },
+  { value: '0,82', label: '0,82 (EPR 50ºC)' },
+  { value: '0,79', label: '0,79 (PVC 45ºC)' },
+  { value: '0,71', label: '0,71 (PVC 50ºC)' },
+];
+
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface EquipamentoListItemModuloProps {
@@ -234,9 +261,13 @@ export function EquipamentoListItem(props: Props) {
         fator_potencia: s2s(cat.fator_potencia),
         rendimento: n2s(cat.rendimento),
         dht_corrente: n2s(cat.dht_corrente),
-        // Mantém campos de proteção do item atual
+        // Mantém campos de proteção e cabeamento do item atual
         disjuntor_ca_corrente_a: (props.item as InversorItem).disjuntor_ca_corrente_a || '',
         disjuntor_ca_polos: (props.item as InversorItem).disjuntor_ca_polos || '',
+        cabo_ca_secao_mm2: (props.item as InversorItem).cabo_ca_secao_mm2 || '',
+        cabo_ca_capacidade_corrente_a: (props.item as InversorItem).cabo_ca_capacidade_corrente_a || '',
+        cabo_ca_fator_temperatura: (props.item as InversorItem).cabo_ca_fator_temperatura || '',
+        cabo_ca_fator_agrupamento: (props.item as InversorItem).cabo_ca_fator_agrupamento || '',
       };
       (props as EquipamentoListItemInversorProps).onUpdate(updated);
     }
@@ -656,6 +687,14 @@ export function EquipamentoListItem(props: Props) {
           {tipo === 'inversor' && (
             <>
               <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Qualidade</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Rendimento (%)" value={inv.rendimento || ''} onChange={v => updateField('rendimento', v)} suffix="%" placeholder="98" />
+                  <Field label="DHT corrente (%)" value={inv.dht_corrente || ''} onChange={v => updateField('dht_corrente', v)} suffix="%" placeholder="3" />
+                  <Field label="Fator de potência" value={inv.fator_potencia || ''} onChange={v => updateField('fator_potencia', v)} placeholder="1" />
+                </div>
+              </div>
+              <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Entrada CC</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="Vcc máx. (V)" value={inv.vcc_max || ''} onChange={v => updateField('vcc_max', v)} suffix="V" placeholder="600" />
@@ -718,11 +757,24 @@ export function EquipamentoListItem(props: Props) {
                 </div>
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Qualidade</p>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Cabeamento CA</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="Rendimento (%)" value={inv.rendimento || ''} onChange={v => updateField('rendimento', v)} suffix="%" placeholder="98" />
-                  <Field label="DHT corrente (%)" value={inv.dht_corrente || ''} onChange={v => updateField('dht_corrente', v)} suffix="%" placeholder="3" />
-                  <Field label="Fator de potência" value={inv.fator_potencia || ''} onChange={v => updateField('fator_potencia', v)} placeholder="1" />
+                  <Field label="Seção Transversal (mm²)" value={inv.cabo_ca_secao_mm2 || ''} onChange={v => updateField('cabo_ca_secao_mm2', v)} suffix="mm²" placeholder="Ex: 6" />
+                  <Field label="Cap. de Corrente (A)" value={inv.cabo_ca_capacidade_corrente_a || ''} onChange={v => updateField('cabo_ca_capacidade_corrente_a', v)} suffix="A" placeholder="Ex: 41" />
+                  <SelectField
+                    label="Fator de Temperatura"
+                    value={inv.cabo_ca_fator_temperatura || ''}
+                    onChange={v => updateField('cabo_ca_fator_temperatura', v)}
+                    options={TEMP_FATOR_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Fator de Agrupamento"
+                    value={inv.cabo_ca_fator_agrupamento || ''}
+                    onChange={v => updateField('cabo_ca_fator_agrupamento', v)}
+                    options={AGRUPAMENTO_OPTIONS}
+                    placeholder="Selecione"
+                  />
                 </div>
               </div>
 
