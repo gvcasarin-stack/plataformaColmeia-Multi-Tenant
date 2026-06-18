@@ -178,7 +178,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
-  const MI_GAP = numInversores >= 3 ? 156 : 312;
+  const MI_GAP = numInversores >= 4 ? 187 : (numInversores >= 3 ? 156 : 312);
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -190,8 +190,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
-  const legendX = isMultiInv ? 810 : 650;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
+  const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
   const miInvShift = isSaidaAgrupada ? 75 : 0;
   const miQccShift = isSaidaAgrupada ? 75 : 0;
@@ -201,8 +201,8 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
   return (
     <Document>
-      <Page size={numInversores >= 3 ? 'A2' : 'A3'} style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={numInversores >= 3 ? 1160 : 812} height={numInversores >= 3 ? 1385 : 992} viewBox={numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295"}>
+      <Page size={numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A3')} style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
+        <Svg width={numInversores >= 4 ? 1280 : (numInversores >= 3 ? 1160 : 812)} height={numInversores >= 4 ? 1385 : (numInversores >= 3 ? 1385 : 992)} viewBox={numInversores >= 4 ? "-100 -25 1200 1295" : (numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295")}>
 
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line
@@ -704,7 +704,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
 
           {/* TAMANHO  (row 3: y=1190–1206) */}
           <Text x={8}   y={1197} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">TAMANHO</Text>
-          <Text x={62}  y={1204} fontSize={6}   textAnchor="middle" fill="#000">A3</Text>
+          <Text x={62}  y={1204} fontSize={6}   textAnchor="middle" fill="#000">{numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A3')}</Text>
           <Text x={148} y={1201} fontSize={5.5} textAnchor="middle" fill="#000">R3:</Text>
 
           {/* FOLHA  (row 4: y=1206–1222) */}

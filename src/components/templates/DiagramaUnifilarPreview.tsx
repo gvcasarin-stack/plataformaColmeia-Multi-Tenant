@@ -72,7 +72,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
   const isMultiInv = numInversores > 1;
   const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
-  const MI_GAP = numInversores >= 3 ? 156 : 312;
+  const MI_GAP = numInversores >= 4 ? 187 : (numInversores >= 3 ? 156 : 312);
   const MI_MAX_COL_W = 130;
   const miColW = Math.min(MI_MAX_COL_W, Math.floor((840 - MI_GAP * (numInversores - 1)) / numInversores));
   const miColStep = miColW + MI_GAP;
@@ -185,8 +185,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topCX = isMultiInv ? 450 : CX;
   const topBX = topCX - 120;
   const topBR = topCX + 120;
-  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 3 ? 64 : 100) : 195;
-  const legendX = isMultiInv ? 810 : 650;
+  const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
+  const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
   const miQccShift = isSaidaAgrupada ? 75 : 0;
 
@@ -218,9 +218,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox={numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295"}
+          viewBox={numInversores >= 4 ? "-100 -25 1200 1295" : (numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295")}
           width="100%"
-          style={{ maxWidth: numInversores >= 3 ? 1085 : 1060, display: 'block', margin: '0 auto' }}
+          style={{ maxWidth: numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060), display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >
@@ -768,7 +768,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* TAMANHO  (row 3: y=1190–1206) */}
           <text x="8"  y="1197" fontSize="5.5" fontWeight="bold">TAMANHO</text>
-          <text x="62" y="1204" fontSize="6"   textAnchor="middle">A3</text>
+          <text x="62" y="1204" fontSize="6"   textAnchor="middle">{numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A3')}</text>
           <text x="148" y="1201" fontSize="5.5" textAnchor="middle">R3:</text>
 
           {/* FOLHA  (row 4: y=1206–1222) */}
