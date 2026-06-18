@@ -2540,6 +2540,8 @@ export async function getProjectAction(projectId: string): Promise<{
       inversores_rendimento: data.inversores_rendimento || undefined,
       inversores_dht_corrente: data.inversores_dht_corrente || undefined,
       disjuntor_ca_corrente_a: data.disjuntor_ca_corrente_a || undefined,
+      disjuntor_quadro_ca_corrente_a: data.disjuntor_quadro_ca_corrente_a || undefined,
+      disjuntor_quadro_ca_polos: data.disjuntor_quadro_ca_polos || undefined,
       inversores_entradas_por_mppt: data.inversores_entradas_por_mppt || undefined,
       inversores_quantidade_mppt: data.inversores_quantidade_mppt || undefined,
       inversores_potencia_max_saida: data.inversores_potencia_max_saida || undefined,
