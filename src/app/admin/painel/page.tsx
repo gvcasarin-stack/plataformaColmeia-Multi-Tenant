@@ -249,105 +249,97 @@ export default function AdminPainelPage() {
 
 
   useEffect(() => {
-    if (allProjects.length > 0) {
-      devLog.log('[AdminPainelPage] Processing allProjects (', allProjects.length, 'items)')
-      
-      const totalP = allProjects.reduce((sum, project) => sum + (project.potencia || 0), 0)
-      setTotalPower(totalP)
-
-      const currentMonthProjs = allProjects.filter(isProjectFromCurrentMonth)
-      setCurrentMonthProjectsCount(currentMonthProjs.length)
-      setNewProjectsThisMonth(currentMonthProjs.length)
-
-      const currentMonthRev = currentMonthProjs.reduce((sum, project) => {
-        const potencia = typeof project.potencia === 'number' ? project.potencia : 0
-        const projectCost = calculateProjectCost(potencia)
-        return sum + (projectCost || 0)
-      }, 0)
-      setMonthlyRevenue(currentMonthRev)
-
-      // ✅ REMOVIDO: Lógica conflitante - agora usa apenas billingProjects para consistência
-
-      const endDate = new Date()
-      const startDate = subMonths(endDate, 5)
-      const monthsInterval = eachMonthOfInterval({ start: startDate, end: endDate })
-
-      const monthlyProjectsChartData = monthsInterval.map(month => ({
-        name: format(month, 'MMM', { locale: ptBR }),
-        projetos: filterProjectsByMonth(allProjects, month).length,
-      }))
-      setMonthlyProjectsData(monthlyProjectsChartData)
-
-      const monthlyRevenueChartDataCalc = monthsInterval.map(month => ({
-        name: format(month, 'MMM', { locale: ptBR }),
-        receita: filterProjectsByMonth(allProjects, month).reduce((sum, p) => {
-          const cost = p.valorProjeto || calculateProjectCost(typeof p.potencia === 'number' ? p.potencia : 0);
-          return sum + (cost || 0)
-        }, 0),
-      }))
-      setMonthlyRevenueData(monthlyRevenueChartDataCalc)
-
-      // Contar projetos por status usando slugs e mapear para nomes dinâmicos
-      const statusCounts: { [key: string]: number } = {}
-      allProjects.forEach(p => {
-        const statusSlug = p.status || 'indefinido'
-        statusCounts[statusSlug] = (statusCounts[statusSlug] || 0) + 1
-      })
-
-      const projectsByStatusChartDataCalc = Object.entries(statusCounts)
-        .map(([statusSlug, value]) => {
-          // Encontrar o status correspondente para obter o nome correto
-          const statusInfo = availableStatuses.find(s => s.slug === statusSlug);
-          return {
-            name: statusInfo?.name || statusSlug,
-            value,
-            color: statusInfo?.color || '#8884d8'
-          };
-        })
-        .sort((a, b) => b.value - a.value)
-      setProjectsByStatusData(projectsByStatusChartDataCalc)
-
-      const monthlyPowerChartDataCalc = monthsInterval.map(month => ({
-        name: format(month, 'MMM', { locale: ptBR }),
-        potenciaInstalada: filterProjectsByMonth(allProjects, month).reduce((sum, p) => {
-          return sum + (typeof p.potencia === 'number' ? p.potencia : 0)
-        }, 0),
-      }))
-      setMonthlyPowerData(monthlyPowerChartDataCalc)
-
-      const powerRanges = [
-        { name: '0-10 kWp', min: 0, max: 10 },
-        { name: '10.01-50 kWp', min: 10.01, max: 50 },
-        { name: '50.01-100 kWp', min: 50.01, max: 100 },
-        { name: '>100 kWp', min: 100.01, max: Infinity },
-      ]
-      const powerDistData = powerRanges.map(range => ({
-        name: range.name,
-        value: allProjects.filter(p => {
-          const potencia = typeof p.potencia === 'number' ? p.potencia : 0
-          return potencia > range.min && potencia <= range.max
-        }).length,
-      }))
-      setPowerDistributionData(powerDistData)
-
-      const sortedProjects = [...allProjects].sort((a, b) =>
-        (toSafeDate(b.createdAt)?.getTime() || 0) - (toSafeDate(a.createdAt)?.getTime() || 0)
-      )
-      setRecentProjects(sortedProjects.slice(0, 5))
-    } else {
+    if (allProjects.length === 0) {
       setTotalPower(0)
       setCurrentMonthProjectsCount(0)
       setNewProjectsThisMonth(0)
       setMonthlyRevenue(0)
-      // ✅ REMOVIDO: setHistoricalPaidAmount(0) - agora controlado apenas por billingProjects
       setMonthlyProjectsData([])
       setMonthlyRevenueData([])
       setProjectsByStatusData([])
       setPowerDistributionData([])
       setMonthlyPowerData([])
       setRecentProjects([])
+      return
     }
-  }, [allProjects])
+
+    devLog.log('[AdminPainelPage] Processing allProjects (', allProjects.length, 'items)')
+
+    const endDate = new Date()
+    const startDate = subMonths(endDate, 5)
+    const monthsInterval = eachMonthOfInterval({ start: startDate, end: endDate })
+    const monthLabels = monthsInterval.map(m => format(m, 'MMM', { locale: ptBR }))
+
+    // Acumuladores para single-pass (evita iterar allProjects 8x separadamente)
+    let totalP = 0
+    let currentMonthCount = 0
+    let currentMonthRev = 0
+    const monthlyProjectCounts = new Array(monthsInterval.length).fill(0)
+    const monthlyRevenueArr = new Array(monthsInterval.length).fill(0)
+    const monthlyPowerArr = new Array(monthsInterval.length).fill(0)
+    const powerRangeCounts = [0, 0, 0, 0] // 0-10, 10.01-50, 50.01-100, >100.01
+    const statusCounts: { [key: string]: number } = {}
+
+    for (const project of allProjects) {
+      const potencia = typeof project.potencia === 'number' ? project.potencia : 0
+      totalP += potencia
+
+      // Distribuição de potência (mesma lógica do original: > min && <= max)
+      if (potencia > 0 && potencia <= 10) powerRangeCounts[0]++
+      else if (potencia > 10.01 && potencia <= 50) powerRangeCounts[1]++
+      else if (potencia > 50.01 && potencia <= 100) powerRangeCounts[2]++
+      else if (potencia > 100.01) powerRangeCounts[3]++
+
+      // Contagem por status
+      const statusSlug = project.status || 'indefinido'
+      statusCounts[statusSlug] = (statusCounts[statusSlug] || 0) + 1
+
+      // Mês atual
+      if (isProjectFromCurrentMonth(project)) {
+        currentMonthCount++
+        currentMonthRev += calculateProjectCost(potencia) || 0
+      }
+
+      // Buckets mensais
+      for (let i = 0; i < monthsInterval.length; i++) {
+        if (isDateFromMonth(project.createdAt, monthsInterval[i])) {
+          monthlyProjectCounts[i]++
+          const cost = project.valorProjeto || calculateProjectCost(potencia)
+          monthlyRevenueArr[i] += cost || 0
+          monthlyPowerArr[i] += potencia
+          break
+        }
+      }
+    }
+
+    setTotalPower(totalP)
+    setCurrentMonthProjectsCount(currentMonthCount)
+    setNewProjectsThisMonth(currentMonthCount)
+    setMonthlyRevenue(currentMonthRev)
+
+    setMonthlyProjectsData(monthLabels.map((name, i) => ({ name, projetos: monthlyProjectCounts[i] })))
+    setMonthlyRevenueData(monthLabels.map((name, i) => ({ name, receita: monthlyRevenueArr[i] })))
+    setMonthlyPowerData(monthLabels.map((name, i) => ({ name, potenciaInstalada: monthlyPowerArr[i] })))
+    setPowerDistributionData([
+      { name: '0-10 kWp', value: powerRangeCounts[0] },
+      { name: '10.01-50 kWp', value: powerRangeCounts[1] },
+      { name: '50.01-100 kWp', value: powerRangeCounts[2] },
+      { name: '>100 kWp', value: powerRangeCounts[3] },
+    ])
+
+    const projectsByStatusChartData = Object.entries(statusCounts)
+      .map(([statusSlug, value]) => {
+        const statusInfo = availableStatuses.find(s => s.slug === statusSlug)
+        return { name: statusInfo?.name || statusSlug, value, color: statusInfo?.color || '#8884d8' }
+      })
+      .sort((a, b) => b.value - a.value)
+    setProjectsByStatusData(projectsByStatusChartData)
+
+    const sortedProjects = [...allProjects].sort((a, b) =>
+      (toSafeDate(b.createdAt)?.getTime() || 0) - (toSafeDate(a.createdAt)?.getTime() || 0)
+    )
+    setRecentProjects(sortedProjects.slice(0, 5))
+  }, [allProjects, availableStatuses])
   
   useEffect(() => {
     if (!user?.id) return

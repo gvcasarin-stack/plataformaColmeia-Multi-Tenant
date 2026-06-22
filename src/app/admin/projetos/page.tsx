@@ -50,6 +50,7 @@ export default function ProjetosPage() {
   const { user } = useAuth()
   const { projects, updateProject } = useProjects()
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [organization, setOrganization] = useState<any>(null)
   const [isTrialExpired, setIsTrialExpired] = useState(false)
@@ -90,18 +91,19 @@ export default function ProjetosPage() {
 
   const viewKanbanRef = React.useRef<{ reloadColumnTitles: () => Promise<boolean> }>(null)
 
-  // Verificar status do trial ao carregar a página
+  // Verificar trial e carregar preferências em um único efeito (elimina render extra entre os dois)
   useEffect(() => {
-    const checkTrialStatus = async () => {
+    const init = async () => {
       if (!user?.id) {
         setLoading(false)
+        setPreferencesLoaded(true)
         return
       }
 
       try {
         const { createTenantHeaders } = await import('@/lib/utils/tenant-helper')
         const headers = await createTenantHeaders(user.id)
-        
+
         const response = await fetch('/api/tenant/organization', {
           method: 'GET',
           headers,
@@ -112,57 +114,48 @@ export default function ProjetosPage() {
           if (result.success) {
             const orgData = result.data
             setOrganization(orgData)
-            
-            // Verificar se trial expirou (usando campo padronizado)
+
             const now = new Date()
             const trialEnd = new Date(orgData.trial_end_date)
             const isExpired = orgData.is_trial && now > trialEnd
-            
+
             setIsTrialExpired(isExpired && orgData.subscription_status !== 'active')
-            
+
             devLog.log('[ProjetosPage] Status do trial:', {
               isTrialExpired: isExpired,
               subscriptionStatus: orgData.subscription_status,
               trialEndsAt: orgData.trial_end_date
             })
+
+            // Carregar preferências com orgData em mãos (sem aguardar re-render)
+            if (orgData?.id) {
+              try {
+                const savedPreferences = await getProjectFilters(user.id, orgData.id)
+                if (savedPreferences) {
+                  devLog.log('[ProjetosPage] Preferências carregadas:', savedPreferences)
+                  setFilterType(savedPreferences.filterType || 'todos')
+                  setSelectedResponsible(savedPreferences.selectedResponsible || '')
+                  setSortBy(savedPreferences.sortBy || 'manual')
+                  if (savedPreferences.viewMode) {
+                    setViewMode(savedPreferences.viewMode)
+                  }
+                }
+              } catch (prefError) {
+                devLog.error('[ProjetosPage] Erro ao carregar preferências:', prefError)
+              }
+            }
           }
         }
       } catch (error) {
         devLog.error('[ProjetosPage] Erro ao verificar trial:', error)
       } finally {
         setLoading(false)
-      }
-    }
-
-    checkTrialStatus()
-  }, [user?.id])
-
-  // 🆕 Carregar preferências salvas ao montar o componente
-  useEffect(() => {
-    const loadPreferences = async () => {
-      if (!user?.id || !organization?.id) return
-
-      try {
-        const savedPreferences = await getProjectFilters(user.id, organization.id)
-
-        if (savedPreferences) {
-          devLog.log('[ProjetosPage] Preferências carregadas:', savedPreferences)
-          setFilterType(savedPreferences.filterType || 'todos')
-          setSelectedResponsible(savedPreferences.selectedResponsible || '')
-          setSortBy(savedPreferences.sortBy || 'manual')
-          if (savedPreferences.viewMode) {
-            setViewMode(savedPreferences.viewMode)
-          }
-        }
-      } catch (error) {
-        devLog.error('[ProjetosPage] Erro ao carregar preferências:', error)
-      } finally {
         setPreferencesLoaded(true)
       }
     }
 
-    loadPreferences()
-  }, [user?.id, organization?.id])
+    init()
+  }, [user?.id])
 
   // ✅ Buscar membros da equipe para o filtro
   useEffect(() => {
@@ -192,6 +185,12 @@ export default function ProjetosPage() {
     fetchTeamMembers()
   }, [user])
 
+  // Debounce 300ms para evitar filtrar a cada keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
   // ✅ Filtrar projetos com base em busca + filtro de responsável
   const filteredProjects = useMemo(() => {
     let result = projects;
@@ -209,8 +208,8 @@ export default function ProjetosPage() {
     }
 
     // 2. Aplicar busca textual (projetos, comentários, materiais, etc.)
-    if (searchQuery.trim()) {
-      const searchLower = searchQuery.toLowerCase();
+    if (debouncedSearchQuery.trim()) {
+      const searchLower = debouncedSearchQuery.toLowerCase();
       result = result.filter(project => {
         // Busca nos campos principais do projeto
         const matchesBasicFields =
@@ -231,7 +230,7 @@ export default function ProjetosPage() {
     }
 
     return result;
-  }, [projects, searchQuery, filterType, selectedResponsible, user?.id]);
+  }, [projects, debouncedSearchQuery, filterType, selectedResponsible, user?.id]);
 
   // ✅ Calcular contadores para os chips
   const filterCounts = useMemo(() => ({
