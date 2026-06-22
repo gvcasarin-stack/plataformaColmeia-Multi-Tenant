@@ -159,6 +159,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   const caboCaMidLabel   = (is127_220 && isRedeMono) ? '(F)' : '(N)';
   const djCaPolos        = fv(pd.disjuntor_ca_polos, '2');
   const d2Tipo           = djCaPolos === '3' ? 'Tripolar' : djCaPolos === '1' ? 'Monopolar' : 'Bipolar';
+  const d2Corr           = fv(pd.disjuntor_ca_corrente_a, djCorr);
   const dpsLabel         = isRedeMono ? '2x DPS CA' : '4x DPS CA';
   const djGeralCorr      = fv(pd.disjuntor_quadro_ca_corrente_a, djCorr);
   const djGeralPolos     = fv(pd.disjuntor_quadro_ca_polos, djCaPolos);
@@ -347,7 +348,7 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           {/* D2 — moved slightly lower to center in box */}
           <PDFDisjuntor x={CX} y={415} />
           <Text x={CX + 15} y={413} fontSize={6.5} fill="#000">D2</Text>
-          <Text x={CX + 15} y={423} fontSize={5.5} fill="#000">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</Text>
+          <Text x={CX + 15} y={423} fontSize={5.5} fill="#000">{`${d2Tipo} - ${d2Corr} A / ${djTensao} Vca`}</Text>
           <Line x1={CX} y1={422} x2={CX} y2={554} stroke="#000" strokeWidth={1} />
 
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}

@@ -480,11 +480,18 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   }, [open]);
 
   // Auto-preenche Disjuntor — Nº de Polos baseado no Tipo de Conexão
+  // Também limpa tensao_atendimento se mudar para Monofásico com valor bifásico/trifásico (ex: "127/220")
   useEffect(() => {
     const tipoConexao = localFields.tipo_conexao;
     if (!tipoConexao) return;
     const polos = tipoConexao === 'Trifásico' ? 3 : tipoConexao === 'Bifásico' ? 2 : 1;
-    setLocalFields(prev => ({ ...prev, disjuntor_polos: polos }));
+    setLocalFields(prev => {
+      const updates: Record<string, any> = { disjuntor_polos: polos };
+      if (tipoConexao === 'Monofásico' && String(prev.tensao_atendimento || '').includes('/')) {
+        updates.tensao_atendimento = '';
+      }
+      return { ...prev, ...updates };
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localFields.tipo_conexao]);
 
@@ -889,6 +896,10 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     }
 
     if (field.type === 'select') {
+      const selectOptions =
+        field.key === 'tensao_atendimento' && localFields.tipo_conexao === 'Monofásico'
+          ? [{ value: '127', label: '127 V' }, { value: '220', label: '220 V' }]
+          : field.options;
       return (
         <Select
           value={value}
@@ -907,7 +918,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             <SelectValue placeholder="Selecione" />
           </SelectTrigger>
           <SelectContent position="popper" side="bottom" className="max-h-60">
-            {field.options?.map(opt => (
+            {selectOptions?.map(opt => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
           </SelectContent>

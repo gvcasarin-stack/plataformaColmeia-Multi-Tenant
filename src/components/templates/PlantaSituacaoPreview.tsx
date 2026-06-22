@@ -16,7 +16,7 @@ function utmToLatLng(easting: number, northing: number, zone: number): { lat: nu
     const e2 = 0.00669437999014;
 
     const x = easting - 500000.0;
-    const y = northing - 10000000.0; // hemisfério sul
+    const y = northing - 10000000.0;
 
     const lon0 = ((zone - 1) * 6 - 180 + 3) * (Math.PI / 180);
 
@@ -80,20 +80,22 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
       : null;
 
   const clientName = String(pd.nomeClienteFinal || '');
-  const address = String(pd.endereco_local || '');
-  const uc = String(pd.conta_contrato || pd.numero_uc || '');
-  const respNome = String(pd.responsavel_nome || '');
-  const respCrea = String(pd.responsavel_registro || '');
-  const cidade = String(pd.client_city || '');
-  const estado = String(pd.client_state || '');
-  const potencia = String(pd.potencia || '');
-  const dataDoc = String(
+  const address    = String(pd.endereco_local || '');
+  const uc         = String(pd.conta_contrato || pd.numero_uc || '');
+  const respNome   = String(pd.responsavel_nome || '');
+  const respCft    = String(pd.responsavel_registro || '');
+  const cidade     = String(pd.client_city || '');
+  const estado     = String(pd.client_state || '');
+  const cep        = String(pd.cliente_cep || '');
+  const potencia   = String(pd.potencia || '');
+  const logoUrl    = String(pd.logo_empresa_url || '');
+  const dataDoc    = String(
     pd.data_documento ||
       new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
   );
 
   const hasCoords = !!(utmX && utmY);
-  const hasToken = !!mapboxToken;
+  const hasToken  = !!mapboxToken;
 
   const handleGeneratePdf = async () => {
     if (!previewRef.current) return;
@@ -119,13 +121,14 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
 
   return (
     <>
+      {/* Avisos — fora da área impressa */}
       {!hasToken && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-sm text-amber-800">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>
             Token Mapbox não configurado. Adicione{' '}
-            <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_MAPBOX_TOKEN</code> no{' '}
-            <code className="bg-amber-100 px-1 rounded">.env.local</code> para exibir a imagem de satélite.
+            <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_MAPBOX_TOKEN</code> nas variáveis de
+            ambiente para exibir a imagem de satélite.
           </span>
         </div>
       )}
@@ -139,18 +142,7 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
         </div>
       )}
 
-      <div className="flex justify-end mb-4">
-        <Button onClick={handleGeneratePdf} disabled={generating} size="sm" variant="outline">
-          {generating ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <FileDown className="h-4 w-4 mr-2" />
-          )}
-          {generating ? 'Gerando PDF...' : 'Baixar PDF'}
-        </Button>
-      </div>
-
-      {/* A4 page preview */}
+      {/* ═══ Prancha A4 ═══ */}
       <div
         ref={previewRef}
         style={{
@@ -161,55 +153,22 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
           fontSize: '10pt',
           color: '#000000',
           margin: '0 auto',
-          padding: '10mm 12mm',
+          padding: '8mm 10mm 0 10mm',
           boxSizing: 'border-box',
-          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        {/* Cabeçalho */}
-        <div
-          style={{
-            borderBottom: '2px solid #000',
-            paddingBottom: '8px',
-            marginBottom: '10px',
-          }}
-        >
-          <div
-            style={{
-              textAlign: 'center',
-              fontWeight: 'bold',
-              fontSize: '14pt',
-              letterSpacing: '3px',
-              marginBottom: '8px',
-            }}
-          >
-            PLANTA DE SITUAÇÃO
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9pt', gap: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <strong>Cliente:</strong> {clientName || '______________________________'}
-            </div>
-            <div>
-              <strong>N° UC / Contrato:</strong> {uc || '______________________'}
-            </div>
-          </div>
-          <div style={{ fontSize: '9pt', marginTop: '4px' }}>
-            <strong>Endereço:</strong>{' '}
-            {[address, cidade, estado].filter(Boolean).join(', ') || '______________________________'}
-          </div>
-        </div>
-
         {/* Área do mapa */}
         <div
           style={{
             border: '1px solid #333',
             width: '100%',
-            height: '170mm',
+            flex: 1,
+            minHeight: '185mm',
             position: 'relative',
             overflow: 'hidden',
             backgroundColor: '#c8d8c8',
-            marginBottom: '6px',
           }}
         >
           {mapImageUrl ? (
@@ -243,21 +202,16 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
                   ? 'Preencha as coordenadas UTM para posicionar o mapa'
                   : 'Carregando mapa de satélite...'}
               </span>
-              {hasCoords && coords && (
-                <span style={{ fontSize: '8pt', color: '#777' }}>
-                  Lat: {coords.lat.toFixed(6)}° | Lon: {coords.lng.toFixed(6)}°
-                </span>
-              )}
             </div>
           )}
 
-          {/* Seta Norte */}
+          {/* Seta Norte — canto superior direito */}
           <div
             style={{
               position: 'absolute',
               top: '10px',
               right: '10px',
-              backgroundColor: 'rgba(255,255,255,0.90)',
+              backgroundColor: 'rgba(255,255,255,0.92)',
               border: '1.5px solid #333',
               borderRadius: '4px',
               padding: '4px 7px',
@@ -269,33 +223,64 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
             <div style={{ fontWeight: 'bold', fontSize: '9pt' }}>N</div>
           </div>
 
-          {/* Marcador central (visível apenas quando há imagem) */}
-          {mapImageUrl && (
+          {/* PIN central */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -100%)',
+              fontSize: '24pt',
+              lineHeight: '1',
+              color: '#e53e3e',
+              textShadow: '0 1px 4px rgba(0,0,0,0.9)',
+              pointerEvents: 'none',
+            }}
+          >
+            ▼
+          </div>
+
+          {/* Caixinha de identificação — à esquerda do PIN */}
+          {(hasCoords || clientName || uc) && (
             <div
               style={{
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
-                transform: 'translate(-50%, -100%)',
-                fontSize: '24pt',
-                lineHeight: '1',
-                color: '#e53e3e',
-                textShadow: '0 1px 4px rgba(0,0,0,0.9)',
+                transform: 'translate(calc(-100% - 16px), -50%)',
+                backgroundColor: 'rgba(255,255,255,0.92)',
+                border: '1.5px solid #333',
+                borderRadius: '4px',
+                padding: '5px 8px',
+                fontSize: '7pt',
+                lineHeight: '1.6',
+                whiteSpace: 'nowrap',
                 pointerEvents: 'none',
               }}
             >
-              ▼
+              {clientName && (
+                <div><strong>Cliente:</strong> {clientName}</div>
+              )}
+              {uc && (
+                <div><strong>UC:</strong> {uc}</div>
+              )}
+              {hasCoords && (
+                <>
+                  <div><strong>E:</strong> {utmX?.toFixed(0)} | <strong>N:</strong> {utmY?.toFixed(0)}</div>
+                  <div><strong>Fuso:</strong> {utmZone}S (SIRGAS 2000)</div>
+                </>
+              )}
             </div>
           )}
 
-          {/* Barra de escala */}
+          {/* Escala — canto inferior esquerdo */}
           {mapImageUrl && (
             <div
               style={{
                 position: 'absolute',
                 bottom: '10px',
                 left: '10px',
-                backgroundColor: 'rgba(255,255,255,0.85)',
+                backgroundColor: 'rgba(255,255,255,0.87)',
                 border: '1px solid #444',
                 borderRadius: '3px',
                 padding: '3px 8px',
@@ -307,53 +292,87 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
           )}
         </div>
 
-        {/* Coordenadas */}
-        {hasCoords && (
-          <div style={{ fontSize: '8pt', color: '#333', marginBottom: '8px' }}>
-            <strong>Coordenadas UTM (SIRGAS 2000):</strong> E {utmX?.toFixed(2)} | N {utmY?.toFixed(2)} | Fuso{' '}
-            {utmZone}S
-            {coords && (
-              <span>
-                {' '}
-                &nbsp;|&nbsp; <strong>WGS84:</strong> {coords.lat.toFixed(6)}°, {coords.lng.toFixed(6)}°
-              </span>
-            )}
-          </div>
-        )}
+        {/* ═══ SELO ═══ */}
+        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', width: '100%', fontFamily: 'Arial, sans-serif', height: '120px', boxSizing: 'border-box', overflow: 'hidden', borderTop: 'none' }}>
 
-        {/* Rodapé — bloco de assinatura */}
-        <div
-          style={{
-            borderTop: '1px solid #000',
-            paddingTop: '8px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            marginTop: '8px',
-          }}
-        >
-          <div style={{ fontSize: '8.5pt' }}>
-            <div>
-              <strong>Sistema Fotovoltaico{potencia ? ` — ${potencia} kWp` : ''}</strong>
+          {/* LEFT COLUMN */}
+          <div style={{ width: '28%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
+            {/* PRODUTO */}
+            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 4px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>PRODUTO</div>
+              <div style={{ fontSize: '9px', fontWeight: 'bold', textAlign: 'center' }}>GFV {potencia ? `${potencia} kWp` : '___'}</div>
             </div>
-            <div style={{ marginTop: '2px' }}>Geração Distribuída — Microgeração Solar Fotovoltaica</div>
-            <div style={{ marginTop: '2px', color: '#555' }}>{dataDoc}</div>
-          </div>
-
-          <div style={{ textAlign: 'center', fontSize: '8.5pt' }}>
-            <div
-              style={{
-                borderTop: '1px solid #000',
-                width: '200px',
-                paddingTop: '5px',
-                textAlign: 'center',
-              }}
-            >
-              <div>{respNome || 'Responsável Técnico'}</div>
-              {respCrea && <div>CREA/CFT Nº {respCrea}</div>}
+            {/* Sub-cols */}
+            <div style={{ display: 'flex', flexDirection: 'row', height: '90px' }}>
+              <div style={{ flex: 1, borderRight: '0.6px solid #000', display: 'flex', flexDirection: 'column' }}>
+                {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((label, i) => {
+                  const values = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
+                  const h = i < 4 ? '16px' : '26px';
+                  return (
+                    <div key={label} style={{ height: h, borderBottom: i < 4 ? '0.5px solid #000' : undefined, padding: '1px 3px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: i < 4 ? 'space-between' : 'center', gap: i >= 4 ? '2px' : undefined, overflow: 'hidden' }}>
+                      <span style={{ fontSize: '5px', fontWeight: 'bold', lineHeight: 1 }}>{label}</span>
+                      <span style={{ fontSize: '5.5px', textAlign: 'center', lineHeight: 1 }}>{values[i]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
+                {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
+                  <div key={r} style={{ height: i < 4 ? '16px' : '26px', borderBottom: i < 4 ? '0.5px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5.5px', boxSizing: 'border-box' }}>{r}</div>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* MIDDLE COLUMN */}
+          <div style={{ flex: 1, borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
+            {/* Título */}
+            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold', alignSelf: 'flex-start' }}>TÍTULO</div>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.1 }}>PLANTA DE SITUAÇÃO</div>
+            </div>
+            {/* Proprietário */}
+            <div style={{ height: '48px', borderBottom: '0.5px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>Nome: {clientName || '___'}</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>Endereço: {address || '___'}</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>Cidade: {estado ? `${cidade} - ${estado}` : cidade || '___'}</div>
+              <div style={{ fontSize: '6px', lineHeight: 1 }}>CEP: {cep || '___'}</div>
+            </div>
+            {/* Responsável */}
+            <div style={{ height: '42px', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
+              <div style={{ fontSize: '6px', fontWeight: 'bold', lineHeight: 1 }}>{respNome || '___'}</div>
+              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
+              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>CFT: {respCft || '___'}</div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN — Logo */}
+          <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', height: '120px', boxSizing: 'border-box' }}>
+            {logoUrl
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              : null}
+          </div>
+
         </div>
+      </div>
+
+      {/* Botão PDF — fora da área impressa */}
+      <div className="mt-6 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={generating}
+          size="lg"
+          className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {generating ? (
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
+          ) : (
+            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação</>
+          )}
+        </Button>
       </div>
     </>
   );

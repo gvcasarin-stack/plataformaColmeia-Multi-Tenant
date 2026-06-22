@@ -164,6 +164,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const caboCaMidLabel   = (is127_220 && isRedeMono) ? '(F)' : '(N)';
   const djCaPolos        = fv(pd.disjuntor_ca_polos, '2');
   const d2Tipo           = djCaPolos === '3' ? 'Tripolar' : djCaPolos === '1' ? 'Monopolar' : 'Bipolar';
+  const d2Corr           = fv(pd.disjuntor_ca_corrente_a, djCorr);
   const dpsLabel         = isRedeMono ? '2x DPS CA' : '4x DPS CA';
   const djGeralCorr      = fv(pd.disjuntor_quadro_ca_corrente_a, djCorr);
   const djGeralPolos     = fv(pd.disjuntor_quadro_ca_polos, djCaPolos);
@@ -372,7 +373,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* D2 — moved slightly lower to center in box */}
           <Disjuntor x={CX} y={415} />
           <text x={CX + 15} y="413" fontSize="6.5">D2</text>
-          <text x={CX + 15} y="423" fontSize="5.5">{`${d2Tipo} - ${djCorr} A / ${djTensao} Vca`}</text>
+          <text x={CX + 15} y="423" fontSize="5.5">{`${d2Tipo} - ${d2Corr} A / ${djTensao} Vca`}</text>
           <line x1={CX} y1="422" x2={CX} y2="480" stroke="#000" strokeWidth="1" />
 
           {/* Wire → INVERSOR */}
