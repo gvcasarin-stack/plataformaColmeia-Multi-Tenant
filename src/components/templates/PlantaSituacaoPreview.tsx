@@ -70,7 +70,8 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
 
   const utmX = parseFloat(String(pd.coord_utm_x || '').replace(',', '.')) || null;
   const utmY = parseFloat(String(pd.coord_utm_y || '').replace(',', '.')) || null;
-  const utmZone = parseInt(String(pd.coord_utm_fuso || '22')) || 22;
+  const utmFusoRaw = String(pd.coord_utm_fuso || '');
+  const utmZone = parseInt(utmFusoRaw) || 22;
 
   const coords = utmX && utmY ? utmToLatLng(utmX, utmY, utmZone) : null;
 
@@ -164,8 +165,7 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
           style={{
             border: '1px solid #333',
             width: '100%',
-            flex: 1,
-            minHeight: '185mm',
+            height: '162mm',
             position: 'relative',
             overflow: 'hidden',
             backgroundColor: '#c8d8c8',
@@ -266,8 +266,8 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
               )}
               {hasCoords && (
                 <>
-                  <div><strong>E:</strong> {utmX?.toFixed(0)} | <strong>N:</strong> {utmY?.toFixed(0)}</div>
-                  <div><strong>Fuso:</strong> {utmZone}S (SIRGAS 2000)</div>
+                  <div><strong>X:</strong> {utmX?.toFixed(0)} | <strong>Y:</strong> {utmY?.toFixed(0)}</div>
+                  <div><strong>Fuso:</strong> {utmFusoRaw || utmZone}</div>
                 </>
               )}
             </div>
@@ -293,7 +293,7 @@ export function PlantaSituacaoPreview({ projectData }: PlantaSituacaoPreviewProp
         </div>
 
         {/* ═══ SELO ═══ */}
-        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', width: '100%', fontFamily: 'Arial, sans-serif', height: '120px', boxSizing: 'border-box', overflow: 'hidden', borderTop: 'none' }}>
+        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', width: '100%', fontFamily: 'Arial, sans-serif', height: '120px', boxSizing: 'border-box', overflow: 'hidden', marginTop: '6mm' }}>
 
           {/* LEFT COLUMN */}
           <div style={{ width: '28%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
