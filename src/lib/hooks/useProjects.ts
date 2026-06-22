@@ -35,60 +35,56 @@ export function useProjects() {
     }
 
     const fetchProjects = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        logger.debug('Starting to fetch projects for user via action:', user.id);
-        
-        // ✅ OTIMIZAÇÃO - Timeout de 8 segundos para busca de projetos
-        // ✅ SUPABASE - Remover lógica isAdmin, a action verifica o role diretamente
-        const fetchPromise = getProjectsForUserAction({ userId: user.id });
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Projects fetch timeout')), 8000);
-        });
+      setLoading(true);
+      setError(null);
+      logger.debug('Starting to fetch projects for user via action:', user.id);
 
-        const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      let result: any = null;
 
-        if (result.error) {
-          logger.error('Error fetching projects via action:', result.error);
-          setError(result.error);
-          setProjects([]);
-        } else if (result.projects) {
-          logger.debug('Successfully fetched projects via action:', result.projects.length);
-          // Ensure dates are consistently formatted if needed, though action should ideally handle this
-          const formattedProjects = result.projects.map(p => ({
-            ...p,
-            createdAt: formatDate(p.createdAt),
-            updatedAt: formatDate(p.updatedAt),
-          }));
-          setProjects(formattedProjects);
-          setError(null);
-
-          // Count projects by status
-          const statusCounts = formattedProjects.reduce((acc, project) => {
-            acc[project.status] = (acc[project.status] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          logger.debug(`[useProjects] Projects by status:`, statusCounts);
-
-        } else {
-          logger.warn('No projects data and no error from getProjectsForUserAction');
-          setProjects([]);
-          setError(null);
+      // Até 3 tentativas com backoff exponencial (1s, 2s) para lidar com instabilidades de rede
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const fetchPromise = getProjectsForUserAction({ userId: user.id });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Projects fetch timeout')), 20000)
+          );
+          result = await Promise.race([fetchPromise, timeoutPromise]) as any;
+          if (!result?.error) break; // sucesso — sair do loop de retry
+        } catch (err: any) {
+          result = { error: err.message || 'Erro ao buscar projetos' };
         }
 
-      } catch (finalError: any) {
-        if (finalError.message === 'Projects fetch timeout') {
-          logger.error('Projects fetch timed out after 8 seconds');
-          setError('Timeout ao carregar projetos. Tente novamente.');
-        } else {
-          logger.error('Failed to fetch projects via action with error:', finalError);
-          setError(finalError.message || 'Failed to fetch projects');
+        if (attempt < 3) {
+          logger.warn(`[useProjects] Tentativa ${attempt} falhou, aguardando ${attempt}s antes de tentar novamente`);
+          await new Promise(r => setTimeout(r, 1000 * attempt));
         }
-        setProjects([]);
-      } finally {
-        setLoading(false);
       }
+
+      if (result?.projects) {
+        logger.debug('Successfully fetched projects via action:', result.projects.length);
+        const formattedProjects = result.projects.map((p: any) => ({
+          ...p,
+          createdAt: formatDate(p.createdAt),
+          updatedAt: formatDate(p.updatedAt),
+        }));
+        setProjects(formattedProjects);
+        setError(null);
+        const statusCounts = formattedProjects.reduce((acc: Record<string, number>, project: any) => {
+          acc[project.status] = (acc[project.status] || 0) + 1;
+          return acc;
+        }, {});
+        logger.debug(`[useProjects] Projects by status:`, statusCounts);
+      } else if (result && !result.error && !result.projects) {
+        logger.warn('No projects data and no error from getProjectsForUserAction');
+        setProjects([]);
+        setError(null);
+      } else {
+        logger.error('[useProjects] Falha ao buscar projetos após 3 tentativas:', result?.error);
+        setError(result?.error || 'Falha ao carregar projetos');
+        setProjects([]);
+      }
+
+      setLoading(false);
     };
 
     // ✅ CORREÇÃO: Remover debounce que estava causando race condition

@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 // ❌ FIREBASE - REMOVIDO: import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 // ❌ FIREBASE - REMOVIDO: import { getStorage } from 'firebase-admin/storage';
 // ❌ FIREBASE - REMOVIDO: import { getOrCreateFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -2338,62 +2339,83 @@ export async function getAdminDashboardDataAction(userId: string): Promise<{
       return { error: 'User ID é obrigatório' };
     }
 
-    // ✅ SEGURANÇA MULTI-TENANT: Obter tenant_id do usuário
     const supabase = createSupabaseServiceRoleClient();
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('tenant_id, role')
-      .eq('id', userId)
-      .single();
 
-    if (userError || !userData?.tenant_id) {
-      logger.error('[getAdminDashboardDataAction] Erro ao obter tenant do usuário:', userError);
-      return { error: 'Usuário não encontrado ou sem organização' };
+    // Tentar obter tenant_id via header do middleware (fast path — evita query extra ao banco)
+    let tenantId: string | null = null;
+    try {
+      const hdrs = headers();
+      tenantId = hdrs.get('x-tenant-id');
+    } catch (_) {
+      // headers() pode não estar disponível em todos os contextos de chamada
     }
 
-    // ✅ CORRIGIDO: Buscar APENAS projetos do tenant do usuário
-    const allProjects = await getProjectsWithFilters({ 
-      tenantId: userData.tenant_id,
-      limit: 1000 
-    });
-    const projectCount = allProjects.length;
+    // Fallback: buscar tenant_id na tabela users se o header não estiver disponível
+    if (!tenantId) {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('tenant_id')
+        .eq('id', userId)
+        .single();
 
-    // Log detalhado dos primeiros 2 projetos (ou menos, se houver menos)
-    if (allProjects && allProjects.length > 0) {
-      const sampleProjects = allProjects.slice(0, 2);
-      logger.info('[getAdminDashboardDataAction] Amostra de dados dos projetos recebidos (raw)', { sampleProjects: JSON.stringify(sampleProjects, null, 2) });
-      
-      // Log específico dos campos de data para a amostra
-      sampleProjects.forEach((p, index) => {
-        logger.info(`[getAdminDashboardDataAction] Projeto Amostra ${index} - createdAt: ${p.createdAt}, updatedAt: ${p.updatedAt}, dataEntrega: ${p.dataEntrega}`);
-        if (p.comments && p.comments.length > 0) {
-          logger.info(`[getAdminDashboardDataAction] Projeto Amostra ${index} - Primeiro Comentário createdAt: ${p.comments[0].createdAt}`);
-        }
-        if (p.timelineEvents && p.timelineEvents.length > 0) {
-          logger.info(`[getAdminDashboardDataAction] Projeto Amostra ${index} - Primeiro TimelineEvent timestamp: ${p.timelineEvents[0].timestamp}`);
-        }
-        if (p.lastUpdateBy) {
-          logger.info(`[getAdminDashboardDataAction] Projeto Amostra ${index} - lastUpdateBy timestamp: ${p.lastUpdateBy.timestamp}`);
-        }
-      });
+      if (userError || !userData?.tenant_id) {
+        logger.error('[getAdminDashboardDataAction] Erro ao obter tenant do usuário:', userError);
+        return { error: 'Usuário não encontrado ou sem organização' };
+      }
+      tenantId = userData.tenant_id;
     }
 
-    logger.info(`[getAdminDashboardDataAction] ${projectCount} projetos encontrados.`);
+    // Query leve: apenas os campos necessários para KPIs e gráficos do painel
+    // (evita buscar 60+ campos + JSONB pesados que o painel não usa)
+    const { data, error: queryError } = await supabase
+      .from('projects')
+      .select('id, potencia, status, created_at, updated_at, valor_projeto, nome_cliente_final')
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(1000);
 
-    return { 
+    if (queryError) {
+      logger.error('[getAdminDashboardDataAction] Erro ao buscar projetos:', queryError);
+      return { error: queryError.message };
+    }
+
+    // Mapear para o shape esperado pelo painel (apenas campos que ele realmente lê)
+    const allProjects = (data || []).map(item => ({
+      id: item.id,
+      potencia: item.potencia || 0,
+      status: item.status || 'indefinido',
+      createdAt: item.created_at || new Date().toISOString(),
+      updatedAt: item.updated_at || new Date().toISOString(),
+      valorProjeto: item.valor_projeto || null,
+      nomeClienteFinal: item.nome_cliente_final || '',
+      // Campos obrigatórios do tipo Project com defaults seguros
+      number: '',
+      userId: '',
+      nome_cliente_final: item.nome_cliente_final || '',
+      empresaIntegradora: '',
+      distribuidora: '',
+      dataEntrega: '',
+      prioridade: 'Baixa' as const,
+      billing_mode: 'avulso' as const,
+      billing_snapshot: null,
+      timelineEvents: [],
+      documents: [],
+      files: [],
+      comments: [],
+      history: [],
+    } as Project));
+
+    logger.info(`[getAdminDashboardDataAction] ${allProjects.length} projetos encontrados.`);
+
+    return {
       projects: allProjects,
-      projectCount: projectCount,
+      projectCount: allProjects.length,
       message: 'Admin dashboard data fetched successfully.',
     };
   } catch (error) {
-    logger.error('[getAdminDashboardDataAction] Erro ao buscar dados para o painel de admin', {
-      error
-    });
-    let errorMessage = 'Failed to fetch admin dashboard data.';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-    return { error: errorMessage };
+    logger.error('[getAdminDashboardDataAction] Erro ao buscar dados para o painel de admin', { error });
+    return { error: error instanceof Error ? error.message : 'Failed to fetch admin dashboard data.' };
   }
 }
 

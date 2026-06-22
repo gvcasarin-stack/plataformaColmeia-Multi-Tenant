@@ -184,6 +184,7 @@ export default function AdminPainelPage() {
           devLog.error("Error fetching admin dashboard data:", dashboardData.error)
           setProjectCount(0)
           setAllProjects([])
+          fetchedDashboardDataRef.current = false // Permite retry automático no próximo render
         } else {
           setProjectCount(dashboardData.projectCount || 0)
           const fetchedProjects = dashboardData.projects || []
@@ -192,6 +193,7 @@ export default function AdminPainelPage() {
         // ✅ Billing data já processado na função fetchBillingData
       }).catch(error => {
         devLog.error('Failed to fetch dashboard data:', error)
+        fetchedDashboardDataRef.current = false // Permite retry automático no próximo render
       }).finally(() => {
         setIsLoading(false)
       })
