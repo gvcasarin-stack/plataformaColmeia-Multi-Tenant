@@ -69,6 +69,7 @@ import { FormularioRegistroANEELPreview } from '@/components/templates/Formulari
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
+import { PlantaSituacaoPreview } from '@/components/templates/PlantaSituacaoPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
 import { SetupProjetoModal, SETUP_DEFAULTS } from '@/components/modals/SetupProjetoModal'
 import type { SetupProjetoData } from '@/components/modals/SetupProjetoModal'
@@ -3217,6 +3218,33 @@ export const ExpandedProjectView = ({
                                 </CardContent>
                               </Card>
 
+                              <Card
+                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'planta-situacao' ? null : 'planta-situacao')}
+                                className={`border cursor-pointer group transition-all duration-200 ${
+                                  activeTemplatePreview === 'planta-situacao'
+                                    ? 'border-teal-500 dark:border-teal-400 shadow-md ring-2 ring-teal-200 dark:ring-teal-800'
+                                    : 'border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-md'
+                                }`}
+                              >
+                                <CardContent className="p-5">
+                                  <div className="flex items-start gap-3">
+                                    <div className={`p-2 rounded-lg transition-colors ${
+                                      activeTemplatePreview === 'planta-situacao'
+                                        ? 'bg-teal-100 dark:bg-teal-900/50'
+                                        : 'bg-teal-50 dark:bg-teal-900/30 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50'
+                                    }`}>
+                                      <MapPin className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Planta de Situação</h4>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Mapa de satélite com localização da instalação.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+
                               {(['Autoconsumo Remoto', 'Geração Compartilhada'].includes(gerarProjetoFields.modalidade_compensacao)) && (
                                 <Card className="border border-gray-200 dark:border-gray-700 opacity-70 cursor-not-allowed">
                                   <CardContent className="p-5">
@@ -3328,6 +3356,20 @@ export const ExpandedProjectView = ({
                               <div className="rounded-md border border-indigo-200 dark:border-indigo-700 p-4 max-h-[900px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                                   <DiagramaUnifilarPreview projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTemplatePreview === 'planta-situacao' && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-teal-500" />
+                                Pré-visualização — Planta de Situação
+                              </h3>
+                              <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <PlantaSituacaoPreview projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>
