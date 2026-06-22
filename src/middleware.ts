@@ -147,8 +147,27 @@ async function safeCore(request: NextRequest) {
     return response;
   }
 
-  // 9. TENANT DETECTION - SUPORTE A TODOS OS NOVOS TENANTS
-  if (hostname.includes('goias-solar.gerenciamentofotovoltaico.com.br')) {
+  // 9. DOMÍNIO CUSTOMIZADO - Colmeia Solar (app.colmeiasolar.com)
+  if (hostname === 'app.colmeiasolar.com') {
+    const tenantId = '061ff77b-8b3a-4732-9158-a574c1f1690a';
+    const tenantSlug = 'solar-tech';
+    const tenantName = 'Colmeia Solar';
+
+    requestHeaders.set('x-tenant-id', tenantId);
+    requestHeaders.set('x-tenant-slug', tenantSlug);
+    requestHeaders.set('x-tenant-name', tenantName);
+    requestHeaders.set('x-tenant-trial', 'false');
+
+    response = NextResponse.next({ request: { headers: requestHeaders } });
+
+    response.headers.set('x-tenant-id', tenantId);
+    response.headers.set('x-tenant-slug', tenantSlug);
+    response.headers.set('x-tenant-name', tenantName);
+    response.headers.set('x-tenant-trial', 'false');
+  }
+
+  // 10. TENANT DETECTION - SUPORTE A TODOS OS NOVOS TENANTS
+  else if (hostname.includes('goias-solar.gerenciamentofotovoltaico.com.br')) {
     devLog.log(`[Middleware] Goias Solar tenant detected`);
 
     // Headers fixos para goias-solar
