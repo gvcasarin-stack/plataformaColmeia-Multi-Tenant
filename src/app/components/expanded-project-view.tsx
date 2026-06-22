@@ -3369,7 +3369,16 @@ export const ExpandedProjectView = ({
                               </h3>
                               <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                                  <PlantaSituacaoPreview projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }} />
+                                  <PlantaSituacaoPreview
+                                    projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }}
+                                    onSaveConfig={async (config) => {
+                                      await fetch(`/api/projects/${project.id}/conferir-info`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ fields: { planta_situacao_config: JSON.stringify(config) } }),
+                                      });
+                                    }}
+                                  />
                                 </div>
                               </div>
                             </div>
