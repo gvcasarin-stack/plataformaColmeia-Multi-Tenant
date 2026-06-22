@@ -5,6 +5,9 @@
 - **Repositório:** https://github.com/gvcasarin-stack/plataformaColmeia-Multi-Tenant.git
 - **Remote configurado como:** `multi-tenant`
 - **Deploy Vercel:** https://vercel.com/gvcasarin-gmailcoms-projects/sgv-sistema-codigo
+- **⚠️ IMPORTANTE:** Sempre usar `vercel link --project sgv-sistema-codigo` antes de fazer deploy manual via CLI
+- **Token Vercel:** usar `--token` com o token da conta `gvcasarin-gmailcoms-projects`
+- **Deploy CLI correto:** `npx vercel --prod --yes --token SEU_TOKEN` (após linkar ao projeto correto)
 
 ## ⚠️ NÃO USAR - BRANCHES DE OUTROS PROJETOS
 - **`main`** - Branch de outro projeto (plataformaColmeiav0.4) - **NÃO TOCAR!**

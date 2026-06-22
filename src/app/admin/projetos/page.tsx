@@ -214,9 +214,9 @@ export default function ProjetosPage() {
       result = result.filter(project => {
         // Busca nos campos principais do projeto
         const matchesBasicFields =
-          project.number.toLowerCase().includes(searchLower) ||
-          project.nomeClienteFinal.toLowerCase().includes(searchLower) ||
-          project.empresaIntegradora.toLowerCase().includes(searchLower);
+          (project.number || '').toLowerCase().includes(searchLower) ||
+          (project.nomeClienteFinal || '').toLowerCase().includes(searchLower) ||
+          (project.empresaIntegradora || '').toLowerCase().includes(searchLower);
 
         // Busca na lista de materiais
         const matchesMaterials = project.listaMateriais?.toLowerCase().includes(searchLower);
