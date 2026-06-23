@@ -32,13 +32,14 @@ const CORRENTE_MAXIMA_BATERIA = 200; // A
 export function calcularSistemaOnGrid(
   consumoMensal: number, // kWh
   irradiacao: number, // HSP (horas de sol pico)
-  potenciaModulo: number = 550 // W
+  potenciaModulo: number = 550, // W
+  fatorDesempenho: number = 0.85 // PR — Performance Ratio (0–1)
 ): SistemaFV {
   // Consumo diário
   const consumoDiario = consumoMensal / 30;
 
-  // Potência necessária do sistema (kWp)
-  const potenciaNecessaria = consumoDiario / irradiacao;
+  // Potência necessária do sistema (kWp), já descontando o PR
+  const potenciaNecessaria = consumoDiario / (irradiacao * fatorDesempenho);
 
   // Número de módulos
   const potenciaModuloKw = potenciaModulo / 1000;
@@ -47,14 +48,42 @@ export function calcularSistemaOnGrid(
   // Área necessária
   const areaTotal = numeroModulos * AREA_POR_MODULO;
 
-  // Geração diária estimada
-  const geracaoDiaria = numeroModulos * potenciaModuloKw * irradiacao * EFICIENCIA_SISTEMA;
+  // Geração diária e mensal estimadas
+  const geracaoDiaria = numeroModulos * potenciaModuloKw * irradiacao * fatorDesempenho;
+  const geracaoMensal = geracaoDiaria * 30;
 
   return {
     potencia: parseFloat((numeroModulos * potenciaModuloKw).toFixed(2)),
     modulos: numeroModulos,
     area: parseFloat(areaTotal.toFixed(2)),
     geracaoDiaria: parseFloat(geracaoDiaria.toFixed(2)),
+    geracaoMensal: parseFloat(geracaoMensal.toFixed(1)),
+  };
+}
+
+// =====================================================
+// CÁLCULO INVERSO: a partir da potência desejada (kWp)
+// =====================================================
+
+export function calcularPorPotenciaKwp(
+  potenciaDesejadaKwp: number, // kWp que o usuário quer instalar
+  irradiacao: number, // HSP
+  potenciaModulo: number = 550, // W
+  fatorDesempenho: number = 0.85
+): SistemaFV {
+  const potenciaModuloKw = potenciaModulo / 1000;
+  const numeroModulos = Math.ceil(potenciaDesejadaKwp / potenciaModuloKw);
+  const potenciaReal = numeroModulos * potenciaModuloKw;
+  const areaTotal = numeroModulos * AREA_POR_MODULO;
+  const geracaoDiaria = potenciaReal * irradiacao * fatorDesempenho;
+  const geracaoMensal = geracaoDiaria * 30;
+
+  return {
+    potencia: parseFloat(potenciaReal.toFixed(2)),
+    modulos: numeroModulos,
+    area: parseFloat(areaTotal.toFixed(2)),
+    geracaoDiaria: parseFloat(geracaoDiaria.toFixed(2)),
+    geracaoMensal: parseFloat(geracaoMensal.toFixed(1)),
   };
 }
 
@@ -146,9 +175,9 @@ export function calcularInversorHibrido(
 
   // Tipo de inversor baseado na ligação
   let tipoInversor = 'Monofásico';
-  if (tipoLigacao === 'trifasica') {
+  if (tipoLigacao === 'trifasica' || tipoLigacao === 'trifasica-127') {
     tipoInversor = 'Trifásico';
-  } else if (tipoLigacao === 'bifasica') {
+  } else if (tipoLigacao === 'bifasica' || tipoLigacao === 'bifasica-127') {
     tipoInversor = 'Bifásico';
   }
 
@@ -170,12 +199,13 @@ export function calcularSistemaHibrido(
   autonomiaHoras: number, // horas
   potenciaModulo: number = 550, // W
   tipoLigacao?: TipoLigacao,
-  cargas?: Carga[]
+  cargas?: Carga[],
+  fatorDesempenho: number = 0.85
 ) {
   const consumoDiario = consumoMensal / 30;
 
   // 1. Dimensionar sistema fotovoltaico para consumo normal
-  const sistemaFV = calcularSistemaOnGrid(consumoMensal, irradiacao, potenciaModulo);
+  const sistemaFV = calcularSistemaOnGrid(consumoMensal, irradiacao, potenciaModulo, fatorDesempenho);
 
   // 2. Dimensionar baterias para autonomia desejada
   const cargasPrioritarias = cargas?.filter(c => c.prioritaria);
@@ -252,13 +282,14 @@ export function calcularSistemaOffGrid(
   autonomiaDias: number = 2, // dias (típico para off-grid)
   potenciaModulo: number = 550, // W
   tipoLigacao?: TipoLigacao,
-  cargas?: Carga[]
+  cargas?: Carga[],
+  fatorDesempenho: number = 0.85
 ) {
   const consumoDiario = consumoMensal / 30;
 
   // 1. Dimensionar sistema FV com margem maior (20% extra para perdas e dias nublados)
   const consumoAjustado = consumoMensal * 1.2;
-  const sistemaFV = calcularSistemaOnGrid(consumoAjustado, irradiacao, potenciaModulo);
+  const sistemaFV = calcularSistemaOnGrid(consumoAjustado, irradiacao, potenciaModulo, fatorDesempenho);
 
   // 2. Dimensionar baterias para autonomia de X dias
   const sistemaBaterias = calcularSistemaBaterias(
@@ -300,6 +331,7 @@ export function calcularDimensionamento(params: {
   backupComFV?: boolean;
   tipoLigacao?: TipoLigacao;
   cargas?: Carga[];
+  fatorDesempenho?: number;
 }) {
   const {
     tipoSistema,
@@ -310,11 +342,12 @@ export function calcularDimensionamento(params: {
     backupComFV = true,
     tipoLigacao,
     cargas,
+    fatorDesempenho = 0.85,
   } = params;
 
   switch (tipoSistema) {
     case 'on-grid':
-      const sistemaFV = calcularSistemaOnGrid(consumoMensal, irradiacao, potenciaModulo);
+      const sistemaFV = calcularSistemaOnGrid(consumoMensal, irradiacao, potenciaModulo, fatorDesempenho);
       return {
         sistema_fv: sistemaFV,
         economia_mensal: parseFloat((consumoMensal * 0.85).toFixed(2)),
@@ -328,7 +361,8 @@ export function calcularDimensionamento(params: {
           autonomiaHoras,
           potenciaModulo,
           tipoLigacao,
-          cargas
+          cargas,
+          fatorDesempenho
         );
       } else {
         return calcularSistemaHibridoSemFV(
@@ -343,10 +377,11 @@ export function calcularDimensionamento(params: {
       return calcularSistemaOffGrid(
         consumoMensal,
         irradiacao,
-        2, // 2 dias de autonomia padrão
+        2,
         potenciaModulo,
         tipoLigacao,
-        cargas
+        cargas,
+        fatorDesempenho
       );
 
     default:

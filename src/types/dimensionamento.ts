@@ -10,7 +10,7 @@
 export type TipoSistema = 'on-grid' | 'hibrido' | 'off-grid';
 export type TipoConsumidor = 'residencial' | 'comercial';
 export type ObjetivoBateria = 'backup' | 'inversao-fluxo';
-export type TipoLigacao = 'monofasica-127' | 'monofasica-220' | 'bifasica' | 'trifasica';
+export type TipoLigacao = 'monofasica-127' | 'monofasica-220' | 'bifasica-127' | 'bifasica' | 'trifasica-127' | 'trifasica';
 
 // =====================================================
 // CARGA ELÉTRICA
@@ -34,6 +34,7 @@ export interface SistemaFV {
   modulos: number;
   area: number; // m²
   geracaoDiaria: number; // kWh/dia
+  geracaoMensal?: number; // kWh/mês (calculado)
 }
 
 export interface SistemaBaterias {
@@ -77,6 +78,7 @@ export interface Dimensionamento {
   irradiacao: number; // HSP
   autonomia_desejada?: number; // horas
   potencia_modulo?: number; // W
+  fator_desempenho?: number; // PR 0–1 (ex: 0.85)
   
   // Cargas elétricas
   cargas?: Carga[];
@@ -109,6 +111,7 @@ export interface DimensionamentoInput {
   irradiacao: number;
   autonomia_desejada?: number;
   potencia_modulo?: number;
+  fator_desempenho?: number;
   cargas?: Carga[];
 }
 
@@ -135,7 +138,9 @@ export const LABELS_OBJETIVO_BATERIA: Record<ObjetivoBateria, string> = {
 export const LABELS_TIPO_LIGACAO: Record<TipoLigacao, string> = {
   'monofasica-127': 'Monofásica 127V (Sistema 127/220V)',
   'monofasica-220': 'Monofásica 220V (Sistema 220/380V)',
+  'bifasica-127': 'Bifásica (127V/220V)',
   'bifasica': 'Bifásica (220V/380V)',
+  'trifasica-127': 'Trifásica (127V/220V)',
   'trifasica': 'Trifásica (220V/380V)',
 };
 

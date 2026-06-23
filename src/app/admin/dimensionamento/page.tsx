@@ -38,7 +38,7 @@ import {
   LABELS_TIPO_LIGACAO,
   APARELHOS_PRE_DEFINIDOS,
 } from '@/types/dimensionamento'
-import { calcularDimensionamento } from '@/lib/utils/dimensionamentoCalculos'
+import { calcularDimensionamento, calcularPorPotenciaKwp } from '@/lib/utils/dimensionamentoCalculos'
 import {
   createDimensionamento,
   getDimensionamentos
@@ -111,11 +111,14 @@ export default function DimensionamentoPage() {
   const [tipoLigacao, setTipoLigacao] = useState<TipoLigacao | ''>('')
   
   // Etapa 5: Dados do Consumo
+  const [modoCalculo, setModoCalculo] = useState<'consumo' | 'potencia'>('consumo')
   const [consumoMensal, setConsumoMensal] = useState("")
+  const [potenciaDesejadaKwp, setPotenciaDesejadaKwp] = useState("")
   const [estado, setEstado] = useState("")
   const [irradiacao, setIrradiacao] = useState<number>(4.2)
   const [autonomiaHoras, setAutonomiaHoras] = useState("24")
   const [potenciaModulo, setPotenciaModulo] = useState("550")
+  const [fatorDesempenho, setFatorDesempenho] = useState(0.85)
   
   // Etapa 6: Cargas Elétricas (opcional)
   const [mostrarCargas, setMostrarCargas] = useState(false)
@@ -177,10 +180,12 @@ export default function DimensionamentoPage() {
       return true;
     }
     if (step === 5) {
-      // Validar dados do consumo
-      const consumoValido = parseFloat(consumoMensal) > 0;
       const estadoValido = estado !== '';
       const autonomiaValida = (tipoSistema === 'on-grid') || parseFloat(autonomiaHoras) > 0;
+      if (modoCalculo === 'potencia') {
+        return parseFloat(potenciaDesejadaKwp) > 0 && estadoValido;
+      }
+      const consumoValido = parseFloat(consumoMensal) > 0;
       return consumoValido && estadoValido && autonomiaValida;
     }
     return true;
@@ -228,6 +233,9 @@ export default function DimensionamentoPage() {
     setCargas([]);
     setMostrarCargas(false);
     setResultado(null);
+    setModoCalculo('consumo');
+    setPotenciaDesejadaKwp('');
+    setFatorDesempenho(0.85);
   };
 
   // =====================================================
@@ -237,34 +245,34 @@ export default function DimensionamentoPage() {
   const calcular = () => {
     try {
       if (!tipoSistema || !tipoConsumidor) {
-        toast({
-          title: "Dados incompletos",
-          description: "Por favor, preencha todos os campos obrigatórios",
-          variant: "destructive",
-        });
+        toast({ title: "Dados incompletos", description: "Preencha todos os campos obrigatórios", variant: "destructive" });
         return;
       }
 
-      const consumo = parseFloat(consumoMensal);
-      const potencia = parseFloat(potenciaModulo);
+      const potencia = parseFloat(potenciaModulo) || 550;
       const autonomia = parseFloat(autonomiaHoras);
 
-      if (isNaN(consumo) || consumo <= 0) {
-        toast({
-          title: "Consumo inválido",
-          description: "Por favor, informe um consumo mensal válido",
-          variant: "destructive",
-        });
+      // Modo: calcular a partir do kWp desejado
+      if (modoCalculo === 'potencia') {
+        const kwp = parseFloat(potenciaDesejadaKwp);
+        if (isNaN(kwp) || kwp <= 0) {
+          toast({ title: "Potência inválida", description: "Informe uma potência em kWp válida", variant: "destructive" });
+          return;
+        }
+        const sistemaFV = calcularPorPotenciaKwp(kwp, irradiacao, potencia, fatorDesempenho);
+        setResultado({ sistema_fv: sistemaFV, economia_mensal: null });
+        toast({ title: "Cálculo por potência concluído!", description: `Sistema de ${sistemaFV.potencia} kWp dimensionado` });
         return;
       }
 
-      devLog.log('[dimensionamento] Calculando:', {
-        tipoSistema,
-        consumo,
-        irradiacao,
-        potencia,
-        autonomia,
-      });
+      // Modo padrão: calcular a partir do consumo
+      const consumo = parseFloat(consumoMensal);
+      if (isNaN(consumo) || consumo <= 0) {
+        toast({ title: "Consumo inválido", description: "Informe um consumo mensal válido", variant: "destructive" });
+        return;
+      }
+
+      devLog.log('[dimensionamento] Calculando:', { tipoSistema, consumo, irradiacao, potencia, autonomia, fatorDesempenho });
 
       const resultadoCalculo = calcularDimensionamento({
         tipoSistema: tipoSistema as TipoSistema,
@@ -272,25 +280,18 @@ export default function DimensionamentoPage() {
         irradiacao,
         potenciaModulo: potencia,
         autonomiaHoras: autonomia,
-        backupComFV: backupComFV,
+        backupComFV,
         tipoLigacao: tipoLigacao as TipoLigacao,
         cargas: cargas.length > 0 ? cargas : undefined,
+        fatorDesempenho,
       });
 
       setResultado(resultadoCalculo);
-      
-      toast({
-        title: "Dimensionamento calculado!",
-        description: "Os resultados foram gerados com sucesso",
-      });
+      toast({ title: "Dimensionamento calculado!", description: "Os resultados foram gerados com sucesso" });
 
     } catch (error) {
       devLog.error('[dimensionamento] Erro ao calcular:', error);
-      toast({
-        title: "Erro ao calcular",
-        description: "Ocorreu um erro ao calcular o dimensionamento",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao calcular", description: "Ocorreu um erro ao calcular o dimensionamento", variant: "destructive" });
     }
   };
 
@@ -325,6 +326,7 @@ export default function DimensionamentoPage() {
           irradiacao,
           autonomia_desejada: parseFloat(autonomiaHoras) || undefined,
           potencia_modulo: parseFloat(potenciaModulo),
+          fator_desempenho: fatorDesempenho,
           cargas: cargas.length > 0 ? cargas : undefined,
         },
         user.id,
@@ -384,6 +386,7 @@ export default function DimensionamentoPage() {
     setIrradiacao(dim.irradiacao);
     setAutonomiaHoras(dim.autonomia_desejada?.toString() || '24');
     setPotenciaModulo(dim.potencia_modulo?.toString() || '550');
+    setFatorDesempenho(dim.fator_desempenho || 0.85);
     setCargas(dim.cargas || []);
     
     // Recriar resultado
@@ -775,7 +778,7 @@ export default function DimensionamentoPage() {
             {step === 4 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
-                  {(['monofasica-127', 'monofasica-220', 'bifasica', 'trifasica'] as TipoLigacao[]).map((tipo) => (
+                  {(['monofasica-127', 'monofasica-220', 'bifasica-127', 'bifasica', 'trifasica-127', 'trifasica'] as TipoLigacao[]).map((tipo) => (
                     <button
                       key={tipo}
                       onClick={() => setTipoLigacao(tipo)}
@@ -809,95 +812,91 @@ export default function DimensionamentoPage() {
               </div>
             )}
 
-            {/* ETAPA 5: Dados do Consumo */}
+            {/* ETAPA 5: Dados para Cálculo */}
             {step === 5 && (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="consumo">Consumo Mensal (kWh) *</Label>
-                  <Input
-                    id="consumo"
-                    type="number"
-                    value={consumoMensal}
-                    onChange={(e) => setConsumoMensal(e.target.value)}
-                    placeholder="Ex: 500"
-                    className="focus-visible:ring-amber-500"
-                  />
+
+                {/* Toggle: modo de cálculo */}
+                <div>
+                  <Label className="mb-2 block">Modo de Cálculo</Label>
+                  <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => setModoCalculo('consumo')}
+                      className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                        modoCalculo === 'consumo'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      Por Consumo (kWh/mês)
+                    </button>
+                    <button
+                      onClick={() => setModoCalculo('potencia')}
+                      className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                        modoCalculo === 'potencia'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      Por Potência (kWp)
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {modoCalculo === 'consumo'
+                      ? 'Informe o consumo e o sistema calcula o kWp necessário'
+                      : 'Informe o kWp desejado e veja quantas placas e qual geração'}
+                  </p>
                 </div>
 
+                {/* Campo principal conforme modo */}
+                {modoCalculo === 'consumo' ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="consumo">Consumo Mensal (kWh) *</Label>
+                    <Input
+                      id="consumo"
+                      type="number"
+                      value={consumoMensal}
+                      onChange={(e) => setConsumoMensal(e.target.value)}
+                      placeholder="Ex: 500"
+                      className="focus-visible:ring-amber-500"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="kwp">Potência do Sistema (kWp) *</Label>
+                    <Input
+                      id="kwp"
+                      type="number"
+                      step="0.05"
+                      value={potenciaDesejadaKwp}
+                      onChange={(e) => setPotenciaDesejadaKwp(e.target.value)}
+                      placeholder="Ex: 3.85"
+                      className="focus-visible:ring-amber-500"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      O sistema calculará módulos necessários e geração estimada
+                    </p>
+                  </div>
+                )}
+
+                {/* Estado */}
                 <div className="space-y-2">
                   <Label htmlFor="estado">Estado *</Label>
-                  <Select 
-                    value={estado} 
-                    onValueChange={setEstado}
-                  >
+                  <Select value={estado} onValueChange={setEstado}>
                     <SelectTrigger id="estado" className="focus-visible:ring-amber-500">
                       <SelectValue placeholder="Selecione o estado" />
                     </SelectTrigger>
                     <SelectContent position="item-aligned" align="start" side="bottom" className="max-h-[300px] overflow-y-auto">
-                      {/* Norte */}
-                      <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-gray-500 bg-gray-50">
-                        Região Norte
-                      </div>
-                      {estadosIrradiacao
-                        .filter(e => e.regiao === 'Norte')
-                        .map(est => (
-                          <SelectItem key={est.uf} value={est.uf}>
-                            {est.nome}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      {/* Nordeste */}
-                      <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-gray-500 bg-gray-50">
-                        Região Nordeste
-                      </div>
-                      {estadosIrradiacao
-                        .filter(e => e.regiao === 'Nordeste')
-                        .map(est => (
-                          <SelectItem key={est.uf} value={est.uf}>
-                            {est.nome}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      {/* Centro-Oeste */}
-                      <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-gray-500 bg-gray-50">
-                        Região Centro-Oeste
-                      </div>
-                      {estadosIrradiacao
-                        .filter(e => e.regiao === 'Centro-Oeste')
-                        .map(est => (
-                          <SelectItem key={est.uf} value={est.uf}>
-                            {est.nome}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      {/* Sudeste */}
-                      <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-gray-500 bg-gray-50">
-                        Região Sudeste
-                      </div>
-                      {estadosIrradiacao
-                        .filter(e => e.regiao === 'Sudeste')
-                        .map(est => (
-                          <SelectItem key={est.uf} value={est.uf}>
-                            {est.nome}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      {/* Sul */}
-                      <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-gray-500 bg-gray-50">
-                        Região Sul
-                      </div>
-                      {estadosIrradiacao
-                        .filter(e => e.regiao === 'Sul')
-                        .map(est => (
-                          <SelectItem key={est.uf} value={est.uf}>
-                            {est.nome}
-                          </SelectItem>
-                        ))
-                      }
+                      {['Norte','Nordeste','Centro-Oeste','Sudeste','Sul'].map(regiao => (
+                        <React.Fragment key={regiao}>
+                          <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-gray-500 bg-gray-50">
+                            Região {regiao}
+                          </div>
+                          {estadosIrradiacao.filter(e => e.regiao === regiao).map(est => (
+                            <SelectItem key={est.uf} value={est.uf}>{est.nome}</SelectItem>
+                          ))}
+                        </React.Fragment>
+                      ))}
                     </SelectContent>
                   </Select>
                   {estado && (
@@ -907,7 +906,8 @@ export default function DimensionamentoPage() {
                   )}
                 </div>
 
-                {(tipoSistema === 'hibrido' || tipoSistema === 'off-grid') && (
+                {/* Autonomia — apenas para híbrido/off-grid no modo consumo */}
+                {modoCalculo === 'consumo' && (tipoSistema === 'hibrido' || tipoSistema === 'off-grid') && (
                   <div className="space-y-2">
                     <Label htmlFor="autonomia">Autonomia Desejada (horas) *</Label>
                     <Input
@@ -924,10 +924,11 @@ export default function DimensionamentoPage() {
                   </div>
                 )}
 
+                {/* Potência do módulo */}
                 <div className="space-y-2">
-                  <Label htmlFor="potencia">Potência do Módulo (W)</Label>
+                  <Label htmlFor="potenciaModulo">Potência do Módulo (W)</Label>
                   <Input
-                    id="potencia"
+                    id="potenciaModulo"
                     type="number"
                     value={potenciaModulo}
                     onChange={(e) => setPotenciaModulo(e.target.value)}
@@ -936,22 +937,40 @@ export default function DimensionamentoPage() {
                   />
                 </div>
 
+                {/* Fator de Desempenho (PR) — slider */}
+                <div className="space-y-2 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-800">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Fator de Desempenho (PR)</Label>
+                    <span className="text-base font-bold text-amber-600">
+                      {Math.round(fatorDesempenho * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={60}
+                    max={100}
+                    step={1}
+                    value={Math.round(fatorDesempenho * 100)}
+                    onChange={(e) => setFatorDesempenho(Number(e.target.value) / 100)}
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-amber-500 bg-amber-200"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>60% (perdas altas)</span>
+                    <span className="font-medium text-amber-600">85% típico</span>
+                    <span>100% ideal</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Considera perdas por temperatura, sombreamento, cabeamento e eficiência do inversor.
+                  </p>
+                </div>
+
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={voltarEtapa} 
-                    variant="outline"
-                    className="flex-1"
-                  >
+                  <Button onClick={voltarEtapa} variant="outline" className="flex-1">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Voltar
                   </Button>
-                  <Button 
-                    onClick={() => {
-                      if (podeAvancar()) {
-                        calcular();
-                        setStep(6);
-                      }
-                    }} 
+                  <Button
+                    onClick={() => { if (podeAvancar()) { calcular(); setStep(6); } }}
                     disabled={!podeAvancar()}
                     className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
                   >
@@ -1096,15 +1115,17 @@ export default function DimensionamentoPage() {
                             ...resultado,
                             tipo_sistema: tipoSistema as TipoSistema,
                             tipo_consumidor: tipoConsumidor as TipoConsumidor,
-                            consumo_mensal: parseFloat(consumoMensal),
+                            consumo_mensal: parseFloat(consumoMensal) || 0,
                             estado,
                             irradiacao,
                             autonomia_desejada: parseFloat(autonomiaHoras) || undefined,
                             potencia_modulo: parseFloat(potenciaModulo),
+                            fator_desempenho: fatorDesempenho,
                             cargas: cargas.length > 0 ? cargas : undefined,
                           },
                           getNomeEstado(estado),
-                          (user as any)?.company_name || 'SGF - Sistema de Gerenciamento Fotovoltaico'
+                          (user as any)?.company_name || 'SGF - Sistema de Gerenciamento Fotovoltaico',
+                          fatorDesempenho
                         );
                         
                         if (sucesso) {
@@ -1181,9 +1202,15 @@ export default function DimensionamentoPage() {
                         <p className="text-2xl font-bold">{resultado.sistema_fv.area} <span className="text-sm font-normal">m²</span></p>
                       </div>
                       <div className="p-3 border rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-1">Geração</p>
+                        <p className="text-sm text-muted-foreground mb-1">Geração Diária</p>
                         <p className="text-2xl font-bold">{resultado.sistema_fv.geracaoDiaria.toFixed(1)} <span className="text-sm font-normal">kWh/dia</span></p>
                       </div>
+                      {resultado.sistema_fv.geracaoMensal && (
+                        <div className="p-3 border border-green-200 rounded-lg bg-green-50 dark:bg-green-900/10 col-span-2 md:col-span-4">
+                          <p className="text-sm text-muted-foreground mb-1">Geração Mensal Estimada</p>
+                          <p className="text-2xl font-bold text-green-700 dark:text-green-400">{resultado.sistema_fv.geracaoMensal.toFixed(0)} <span className="text-sm font-normal">kWh/mês</span></p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

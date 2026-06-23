@@ -96,6 +96,14 @@ export async function POST(req: NextRequest) {
       if (org && org.id) resolvedTenantId = org.id;
       if (orgErr) devLog.warn('[PreRegister] Falha ao resolver tenant por slug', { tenant_slug, error: orgErr.message });
     }
+    // Fallback: ler x-tenant-id injetado pelo middleware (cobre domínios customizados como app.colmeiasolar.com)
+    if (!resolvedTenantId) {
+      const headerTenantId = req.headers.get('x-tenant-id');
+      if (headerTenantId) {
+        resolvedTenantId = headerTenantId;
+        devLog.log('[PreRegister] tenant_id resolvido via header x-tenant-id:', resolvedTenantId);
+      }
+    }
 
     // Inserir novo usuário (não fazer upsert pois já verificamos que email não existe)
     const insert = {

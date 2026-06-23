@@ -4,66 +4,21 @@
  * @file pdfGeneratorDimensionamento.ts
  * @description Utilitário EXCLUSIVO para gerar PDFs de DIMENSIONAMENTO
  *
- * HISTÓRICO:
- * - Este arquivo foi separado do pdfGenerator.ts para evitar conflitos
- * - pdfGenerator.ts = FATURAS (invoices)
- * - pdfGeneratorDimensionamento.ts = DIMENSIONAMENTO (este arquivo)
- *
- * ⚠️ ATENÇÃO: Mantenha este arquivo separado do pdfGenerator.ts
- * Cada arquivo tem uma responsabilidade única e específica.
- *
- * Nota: Implementação básica usando HTML2Canvas + jsPDF
- * Para produção, considerar usar bibliotecas mais robustas
+ * pdfGenerator.ts = FATURAS (invoices)
+ * pdfGeneratorDimensionamento.ts = DIMENSIONAMENTO (este arquivo)
  */
 
 import { Dimensionamento } from '@/types/dimensionamento';
 
 // =====================================================
-// GERAÇÃO DE PDF PARA DIMENSIONAMENTO
-// =====================================================
-
-export async function gerarPDFDimensionamento(
-  dimensionamento: Dimensionamento,
-  nomeEstado: string,
-  nomeEmpresa?: string
-): Promise<Blob | null> {
-  try {
-    // Implementação futura com jsPDF ou react-pdf
-    // Por ora, retornamos uma mensagem indicativa
-
-    console.log('[gerarPDFDimensionamento] Dados recebidos:', {
-      tipo_sistema: dimensionamento.tipo_sistema,
-      consumo_mensal: dimensionamento.consumo_mensal,
-      estado: nomeEstado,
-    });
-
-    // TODO: Implementar geração real de PDF
-    // Opções:
-    // 1. jsPDF + html2canvas (client-side)
-    // 2. @react-pdf/renderer (React components)
-    // 3. puppeteer (server-side)
-
-    // Placeholder: gerar PDF simples em memória
-    const conteudoPDF = gerarConteudoHTML(dimensionamento, nomeEstado, nomeEmpresa);
-
-    // Converter HTML para Blob (simulação)
-    const blob = new Blob([conteudoPDF], { type: 'text/html' });
-
-    return blob;
-  } catch (error) {
-    console.error('[gerarPDFDimensionamento] Erro ao gerar PDF:', error);
-    return null;
-  }
-}
-
-// =====================================================
-// GERAÇÃO DE CONTEÚDO HTML PARA PDF
+// GERAÇÃO DE CONTEÚDO HTML
 // =====================================================
 
 function gerarConteudoHTML(
   dim: Dimensionamento,
   nomeEstado: string,
-  nomeEmpresa?: string
+  nomeEmpresa?: string,
+  fatorDesempenho?: number
 ): string {
   const dataGeracao = new Date().toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -73,123 +28,72 @@ function gerarConteudoHTML(
     minute: '2-digit'
   });
 
+  const pr = fatorDesempenho ?? dim.fator_desempenho ?? 0.85;
+  const prPercent = Math.round(pr * 100);
+
+  const labelLigacao: Record<string, string> = {
+    'monofasica-127': 'Monofásica 127V (127/220V)',
+    'monofasica-220': 'Monofásica 220V (220/380V)',
+    'bifasica-127':   'Bifásica (127V/220V)',
+    'bifasica':       'Bifásica (220V/380V)',
+    'trifasica-127':  'Trifásica (127V/220V)',
+    'trifasica':      'Trifásica (220V/380V)',
+  };
+
   return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dimensionamento - ${dim.tipo_sistema}</title>
+  <title>Dimensionamento - ${dim.tipo_sistema?.toUpperCase()}</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      color: #333;
-      background: white;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-      border-bottom: 3px solid #f59e0b;
-    }
-
-    .header h1 {
-      color: #f59e0b;
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-
-    .header p {
-      color: #666;
-      font-size: 14px;
-    }
-
-    .section {
-      margin-bottom: 30px;
-      page-break-inside: avoid;
-    }
-
-    .section-title {
-      font-size: 18px;
-      color: #f59e0b;
-      margin-bottom: 15px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #fef3c7;
-    }
-
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .info-item {
-      padding: 12px;
-      background: #f9fafb;
-      border-left: 4px solid #f59e0b;
-    }
-
-    .info-label {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 4px;
-    }
-
-    .info-value {
-      font-size: 16px;
-      font-weight: bold;
-      color: #111;
-    }
-
-    .resultado-box {
-      background: #fef3c7;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-
-    .footer {
-      margin-top: 50px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
-      text-align: center;
-      color: #666;
-      font-size: 12px;
-    }
-
-    @media print {
-      body {
-        padding: 20px;
-      }
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 32px; color: #333; background: white; font-size: 13px; }
+    .header { text-align: center; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 3px solid #f59e0b; }
+    .header h1 { color: #d97706; font-size: 22px; margin-bottom: 6px; }
+    .header p { color: #666; font-size: 12px; }
+    .section { margin-bottom: 22px; page-break-inside: avoid; }
+    .section-title { font-size: 14px; font-weight: bold; color: #d97706; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #fef3c7; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .info-item { padding: 10px 12px; background: #f9fafb; border-left: 3px solid #f59e0b; }
+    .info-label { font-size: 10px; color: #888; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .info-value { font-size: 14px; font-weight: bold; color: #111; }
+    .highlight-box { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 16px; text-align: center; margin: 12px 0; }
+    .highlight-box .big { font-size: 28px; font-weight: bold; color: #047857; }
+    .highlight-box .sub { font-size: 12px; color: #666; margin-top: 4px; }
+    .pr-bar { background: #e5e7eb; border-radius: 4px; height: 8px; margin: 6px 0; overflow: hidden; }
+    .pr-fill { background: #f59e0b; height: 100%; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    th { background: #f9fafb; border-bottom: 2px solid #f59e0b; padding: 8px 10px; text-align: left; }
+    td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
+    tfoot td { background: #fef3c7; font-weight: bold; }
+    .footer { margin-top: 30px; padding-top: 14px; border-top: 1px solid #e5e7eb; color: #888; font-size: 10px; text-align: center; }
+    @media print { body { padding: 16px; } }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>Relatório de Dimensionamento</h1>
+    <h1>Relatório de Dimensionamento Fotovoltaico</h1>
     <p>${nomeEmpresa || 'Sistema de Gerenciamento Fotovoltaico'}</p>
     <p>Gerado em: ${dataGeracao}</p>
   </div>
 
+  <!-- Resumo -->
   <div class="section">
-    <h2 class="section-title">📊 Resumo do Sistema</h2>
-    <div class="info-grid">
+    <div class="section-title">📊 Resumo do Sistema</div>
+    <div class="grid-3">
       <div class="info-item">
         <div class="info-label">Tipo de Sistema</div>
-        <div class="info-value">${dim.tipo_sistema.toUpperCase()}</div>
+        <div class="info-value">${(dim.tipo_sistema || '').toUpperCase()}</div>
       </div>
       <div class="info-item">
         <div class="info-label">Tipo de Consumidor</div>
-        <div class="info-value">${dim.tipo_consumidor.toUpperCase()}</div>
+        <div class="info-value">${(dim.tipo_consumidor || '').toUpperCase()}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Tipo de Ligação</div>
+        <div class="info-value">${dim.tipo_ligacao ? (labelLigacao[dim.tipo_ligacao] || dim.tipo_ligacao) : '—'}</div>
       </div>
       <div class="info-item">
         <div class="info-label">Consumo Mensal</div>
@@ -207,15 +111,35 @@ function gerarConteudoHTML(
       <div class="info-item">
         <div class="info-label">Autonomia Desejada</div>
         <div class="info-value">${dim.autonomia_desejada} horas</div>
+      </div>` : ''}
+      <div class="info-item">
+        <div class="info-label">Potência do Módulo</div>
+        <div class="info-value">${dim.potencia_modulo || 550} W</div>
       </div>
-      ` : ''}
     </div>
   </div>
 
+  <!-- Fator de Desempenho -->
+  <div class="section">
+    <div class="section-title">⚙️ Fator de Desempenho (PR)</div>
+    <div class="info-item" style="padding: 12px 14px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+        <span style="font-size: 12px; color: #555;">Performance Ratio considerado</span>
+        <span style="font-weight: bold; color: #d97706; font-size: 14px;">${prPercent}%</span>
+      </div>
+      <div class="pr-bar"><div class="pr-fill" style="width: ${prPercent}%;"></div></div>
+      <p style="font-size: 10px; color: #888; margin-top: 5px;">
+        Considera perdas por temperatura, sombreamento, cabeamento e eficiência do inversor.
+        Valor típico: 75%–90%.
+      </p>
+    </div>
+  </div>
+
+  <!-- Sistema FV -->
   ${dim.sistema_fv ? `
   <div class="section">
-    <h2 class="section-title">⚡ Sistema Fotovoltaico</h2>
-    <div class="info-grid">
+    <div class="section-title">⚡ Sistema Fotovoltaico</div>
+    <div class="grid-2">
       <div class="info-item">
         <div class="info-label">Potência do Sistema</div>
         <div class="info-value">${dim.sistema_fv.potencia} kWp</div>
@@ -232,14 +156,19 @@ function gerarConteudoHTML(
         <div class="info-label">Geração Diária</div>
         <div class="info-value">${dim.sistema_fv.geracaoDiaria.toFixed(1)} kWh/dia</div>
       </div>
+      ${dim.sistema_fv.geracaoMensal ? `
+      <div class="info-item" style="grid-column: span 2;">
+        <div class="info-label">Geração Mensal Estimada</div>
+        <div class="info-value" style="color: #047857;">${dim.sistema_fv.geracaoMensal.toFixed(0)} kWh/mês</div>
+      </div>` : ''}
     </div>
-  </div>
-  ` : ''}
+  </div>` : ''}
 
+  <!-- Baterias -->
   ${dim.sistema_baterias ? `
   <div class="section">
-    <h2 class="section-title">🔋 Sistema de Baterias</h2>
-    <div class="info-grid">
+    <div class="section-title">🔋 Sistema de Baterias</div>
+    <div class="grid-3">
       <div class="info-item">
         <div class="info-label">Capacidade Útil</div>
         <div class="info-value">${dim.sistema_baterias.capacidadeUtil} kWh</div>
@@ -249,7 +178,7 @@ function gerarConteudoHTML(
         <div class="info-value">${dim.sistema_baterias.capacidadeTotal} kWh</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Número de Módulos</div>
+        <div class="info-label">Módulos de Bateria</div>
         <div class="info-value">${dim.sistema_baterias.modulos} unidades</div>
       </div>
       <div class="info-item">
@@ -265,102 +194,92 @@ function gerarConteudoHTML(
         <div class="info-value">${dim.sistema_baterias.autonomiaReal.toFixed(1)} horas</div>
       </div>
     </div>
-  </div>
-  ` : ''}
+  </div>` : ''}
 
+  <!-- Inversor -->
   ${dim.sistema_inversor ? `
   <div class="section">
-    <h2 class="section-title">🔌 Inversor</h2>
-    <div class="info-grid">
+    <div class="section-title">🔌 Inversor Recomendado</div>
+    <div class="grid-2">
       <div class="info-item">
         <div class="info-label">Potência Mínima</div>
-        <div class="info-value">≥${dim.sistema_inversor.potenciaMinima} kW</div>
+        <div class="info-value">≥ ${dim.sistema_inversor.potenciaMinima} kW</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Tipo de Inversor</div>
+        <div class="info-label">Tipo</div>
         <div class="info-value">${dim.sistema_inversor.tipo}</div>
       </div>
       ${dim.sistema_inversor.entradaFV ? `
       <div class="info-item">
         <div class="info-label">Entrada FV</div>
         <div class="info-value">${dim.sistema_inversor.entradaFV} kWp</div>
-      </div>
-      ` : ''}
+      </div>` : ''}
       ${dim.sistema_inversor.entradaBaterias ? `
       <div class="info-item">
         <div class="info-label">Entrada Baterias</div>
         <div class="info-value">${dim.sistema_inversor.entradaBaterias} V</div>
-      </div>
-      ` : ''}
+      </div>` : ''}
     </div>
-  </div>
-  ` : ''}
+  </div>` : ''}
 
+  <!-- Economia -->
   ${dim.economia_mensal && dim.economia_mensal > 0 ? `
-  <div class="resultado-box">
-    <h2 class="section-title">💰 Economia Estimada</h2>
-    <p style="font-size: 24px; font-weight: bold; color: #047857; text-align: center;">
-      ${dim.economia_mensal.toFixed(0)} kWh/mês
-    </p>
-    <p style="text-align: center; color: #666; margin-top: 10px;">
-      ${dim.tipo_sistema === 'on-grid' ? 'Aproximadamente 85% do consumo mensal' :
-        dim.tipo_sistema === 'off-grid' ? '100% do consumo suprido pelo sistema' :
+  <div class="highlight-box">
+    <div style="font-size: 12px; color: #555; margin-bottom: 4px;">💰 Economia / Geração Estimada</div>
+    <div class="big">${dim.economia_mensal.toFixed(0)} kWh/mês</div>
+    <div class="sub">
+      ${dim.tipo_sistema === 'on-grid' ? 'Aproximadamente 85% do consumo mensal injetado/compensado' :
+        dim.tipo_sistema === 'off-grid' ? '100% do consumo suprido pelo sistema isolado' :
         'Redução significativa na conta de energia'}
-    </p>
-  </div>
-  ` : ''}
+    </div>
+  </div>` : ''}
 
+  <!-- Cargas -->
   ${dim.cargas && dim.cargas.length > 0 ? `
   <div class="section">
-    <h2 class="section-title">💡 Cargas Elétricas</h2>
-    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <div class="section-title">💡 Levantamento de Cargas Elétricas</div>
+    <table>
       <thead>
-        <tr style="background: #f9fafb; border-bottom: 2px solid #f59e0b;">
-          <th style="padding: 10px; text-align: left;">Aparelho</th>
-          <th style="padding: 10px; text-align: center;">Potência (W)</th>
-          <th style="padding: 10px; text-align: center;">Qtd</th>
-          <th style="padding: 10px; text-align: center;">Horas/dia</th>
-          <th style="padding: 10px; text-align: right;">Consumo (kWh/dia)</th>
+        <tr>
+          <th>Aparelho</th>
+          <th style="text-align:center;">Potência (W)</th>
+          <th style="text-align:center;">Qtd</th>
+          <th style="text-align:center;">Horas/dia</th>
+          <th style="text-align:right;">Consumo (kWh/dia)</th>
         </tr>
       </thead>
       <tbody>
-        ${dim.cargas.map(carga => `
-        <tr style="border-bottom: 1px solid #e5e7eb;">
-          <td style="padding: 10px;">${carga.nome}</td>
-          <td style="padding: 10px; text-align: center;">${carga.potencia}</td>
-          <td style="padding: 10px; text-align: center;">${carga.quantidade}</td>
-          <td style="padding: 10px; text-align: center;">${carga.horasDia}</td>
-          <td style="padding: 10px; text-align: right; font-weight: bold;">${carga.consumoDiario.toFixed(2)}</td>
-        </tr>
-        `).join('')}
+        ${dim.cargas.map(c => `
+        <tr>
+          <td>${c.nome || '—'}</td>
+          <td style="text-align:center;">${c.potencia}</td>
+          <td style="text-align:center;">${c.quantidade}</td>
+          <td style="text-align:center;">${c.horasDia}</td>
+          <td style="text-align:right; font-weight:bold;">${c.consumoDiario.toFixed(2)}</td>
+        </tr>`).join('')}
       </tbody>
       <tfoot>
-        <tr style="background: #fef3c7; font-weight: bold;">
-          <td colspan="4" style="padding: 10px; text-align: right;">Total:</td>
-          <td style="padding: 10px; text-align: right;">
-            ${dim.cargas.reduce((total, c) => total + c.consumoDiario, 0).toFixed(2)} kWh/dia
-          </td>
+        <tr>
+          <td colspan="4" style="text-align:right;">Total:</td>
+          <td style="text-align:right;">${dim.cargas.reduce((t, c) => t + c.consumoDiario, 0).toFixed(2)} kWh/dia</td>
         </tr>
       </tfoot>
     </table>
-  </div>
-  ` : ''}
+  </div>` : ''}
 
   <div class="footer">
-    <p><strong>Observações Importantes:</strong></p>
-    <p>Este dimensionamento é uma estimativa baseada nos dados fornecidos. Recomenda-se sempre consultar um profissional qualificado para validação final e projeto executivo.</p>
+    <p><strong>Observações:</strong> Este dimensionamento é uma estimativa baseada nos dados fornecidos. Recomenda-se a validação por profissional qualificado.</p>
     <p>Os valores de geração podem variar conforme condições climáticas, sombreamento e orientação dos módulos.</p>
   </div>
 </body>
-</html>
-  `;
+</html>`;
 }
 
 // =====================================================
-// DOWNLOAD DE PDF
+// DOWNLOAD (mantido para retrocompatibilidade interna)
 // =====================================================
 
-export function downloadPDF(blob: Blob, nomeArquivo: string) {
+function downloadBlob(blob: Blob, nomeArquivo: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -372,25 +291,51 @@ export function downloadPDF(blob: Blob, nomeArquivo: string) {
 }
 
 // =====================================================
-// GERAÇÃO E DOWNLOAD (Função Completa)
+// GERAÇÃO E DOWNLOAD — usa html2pdf para PDF real
 // =====================================================
 
 export async function gerarEBaixarPDF(
   dimensionamento: Dimensionamento,
   nomeEstado: string,
-  nomeEmpresa?: string
+  nomeEmpresa?: string,
+  fatorDesempenho?: number
 ): Promise<boolean> {
   try {
-    const blob = await gerarPDFDimensionamento(dimensionamento, nomeEstado, nomeEmpresa);
+    const html = gerarConteudoHTML(dimensionamento, nomeEstado, nomeEmpresa, fatorDesempenho);
 
-    if (!blob) {
-      throw new Error('Falha ao gerar PDF');
+    // Tentar gerar PDF real com html2pdf
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '210mm';
+      container.innerHTML = html;
+      document.body.appendChild(container);
+
+      const nomeArquivo = `dimensionamento-${dimensionamento.tipo_sistema}-${Date.now()}.pdf`;
+
+      await html2pdf().set({
+        margin: [8, 10, 8, 10],
+        filename: nomeArquivo,
+        image: { type: 'jpeg', quality: 0.97 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(container).save();
+
+      document.body.removeChild(container);
+      return true;
+
+    } catch {
+      // Fallback: baixar como HTML formatado
+      const blob = new Blob([html], { type: 'text/html' });
+      const nomeArquivo = `dimensionamento-${dimensionamento.tipo_sistema}-${Date.now()}.html`;
+      downloadBlob(blob, nomeArquivo);
+      return true;
     }
 
-    const nomeArquivo = `dimensionamento-${dimensionamento.tipo_sistema}-${new Date().getTime()}.html`;
-    downloadPDF(blob, nomeArquivo);
-
-    return true;
   } catch (error) {
     console.error('[gerarEBaixarPDF] Erro:', error);
     return false;
