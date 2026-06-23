@@ -490,7 +490,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Tag identificação (cliente/UC/coords) — arrastável + rotacionável */}
           {(hasCoords || clientName || uc) && (
             <div
-              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '6px 7px 6px', fontSize: '10px', lineHeight: '14px', whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
+              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '10px 7px 2px', fontSize: '11px', lineHeight: '14px', whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
               onMouseDown={handleInfoMouseDown}
             >
               {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
