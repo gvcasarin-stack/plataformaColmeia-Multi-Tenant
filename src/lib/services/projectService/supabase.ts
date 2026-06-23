@@ -393,6 +393,21 @@ export const getProjectsWithFilters = async (filters: {
     };
 
     // Mapear dados do Supabase para o formato Project
+    // Normaliza status legado (nome de exibição) para slug — garante que projetos antigos
+    // com 'Não Iniciado' (display name) apareçam no Kanban que usa slugs.
+    const STATUS_TO_SLUG: Record<string, string> = {
+      'Não Iniciado':                  'nao-iniciado',
+      'Em Desenvolvimento':            'em-desenvolvimento',
+      'Aguardando Assinaturas':        'aguardando-assinaturas',
+      'Em Homologação':                'em-homologacao',
+      'Projeto Aprovado':              'projeto-aprovado',
+      'Aguardando Solicitar Vistoria': 'aguardando-solicitar-vistoria',
+      'Projeto Pausado':               'projeto-pausado',
+      'Em Vistoria':                   'em-vistoria',
+      'Finalizado':                    'finalizado',
+      'Cancelado':                     'cancelado',
+    };
+
     const projects: Project[] = data.map(item => {
       // 🆕 CORREÇÃO: Calcular empresaIntegradora dinamicamente APENAS se owner_id existir
       // Para projetos antigos (sem owner_id), manter valor do banco
@@ -413,7 +428,7 @@ export const getProjectsWithFilters = async (filters: {
         distribuidora: item.distribuidora || '',
         potencia: item.potencia || 0,
         dataEntrega: item.data_entrega || '',
-        status: item.status || 'Não Iniciado',
+        status: STATUS_TO_SLUG[item.status] ?? item.status ?? 'nao-iniciado',
         prioridade: item.prioridade || 'Baixa',
         valorProjeto: item.valor_projeto || null,
         pagamento: item.pagamento || undefined,
