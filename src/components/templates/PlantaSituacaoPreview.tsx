@@ -12,7 +12,8 @@ interface RectConfig {
 interface PlantaConfig {
   rect?: RectConfig | null;
   labelPos?: { x: number; y: number; rotation?: number };
-  infoPos?: { x: number; y: number };
+  infoPos?: { x: number; y: number; rotation?: number };
+  mapZoom?: number;
 }
 interface PlantaSituacaoPreviewProps {
   projectData?: Record<string, any>;
@@ -68,9 +69,13 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const [labelRotation, setLabelRotation] = useState(0);
   const [labelDrag, setLabelDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
 
-  // Tag de identificação (cliente/UC) — arrastável
+  // Tag de identificação (cliente/UC) — arrastável + rotacionável
   const [infoPos, setInfoPos] = useState({ x: 32, y: 50 });
+  const [infoRotation, setInfoRotation] = useState(0);
   const [infoDrag, setInfoDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
+
+  // Zoom do mapa
+  const [mapZoom, setMapZoom] = useState(19);
 
   const previewRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -83,7 +88,8 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
       const cfg: PlantaConfig = JSON.parse(String(pd.planta_situacao_config));
       if (cfg.rect) { setRect(cfg.rect); setRectColor(cfg.rect.color || '#e53e3e'); setRectThickness(cfg.rect.thickness || 2.5); }
       if (cfg.labelPos) { setLabelPos({ x: cfg.labelPos.x, y: cfg.labelPos.y }); if (cfg.labelPos.rotation !== undefined) setLabelRotation(cfg.labelPos.rotation); }
-      if (cfg.infoPos) setInfoPos(cfg.infoPos);
+      if (cfg.infoPos) { setInfoPos({ x: cfg.infoPos.x, y: cfg.infoPos.y }); if (cfg.infoPos.rotation !== undefined) setInfoRotation(cfg.infoPos.rotation); }
+      if (cfg.mapZoom) setMapZoom(cfg.mapZoom);
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pd.planta_situacao_config]);
@@ -96,7 +102,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const utmZone = parseInt(utmFusoRaw) || 22;
   const coords = utmX && utmY ? utmToLatLng(utmX, utmY, utmZone) : null;
   const mapImageUrl = mapboxToken && coords
-    ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${coords.lng.toFixed(6)},${coords.lat.toFixed(6)},17,0/800x520@2x?access_token=${mapboxToken}`
+    ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${coords.lng.toFixed(6)},${coords.lat.toFixed(6)},${mapZoom},0/800x520@2x?access_token=${mapboxToken}`
     : null;
 
   const clientName = String(pd.nomeClienteFinal || '');
@@ -191,7 +197,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
     if (!onSaveConfig) return;
     setSaving(true);
     try {
-      await onSaveConfig({ rect, labelPos: { ...labelPos, rotation: labelRotation }, infoPos });
+      await onSaveConfig({ rect, labelPos: { ...labelPos, rotation: labelRotation }, infoPos: { ...infoPos, rotation: infoRotation }, mapZoom });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) { console.error('Erro ao salvar config planta:', err); }
@@ -277,12 +283,40 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Separador */}
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
-          {/* Rotação da tarja */}
+          {/* Zoom do mapa */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500">Zoom:</span>
+            <select
+              value={mapZoom}
+              onChange={e => setMapZoom(Number(e.target.value))}
+              className="text-xs border border-gray-300 rounded px-1.5 py-0.5 bg-white"
+            >
+              {[15, 16, 17, 18, 19, 20, 21].map(z => (
+                <option key={z} value={z}>{z}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Separador */}
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+
+          {/* Rotação da tarja (rua) */}
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">Rot. rua:</span>
-            <button onClick={() => setLabelRotation(r => r - 15)} className="text-xs px-1.5 py-0.5 rounded border bg-white border-gray-300">-15°</button>
+            <button onClick={() => setLabelRotation(r => r - 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
             <span className="text-xs w-8 text-center font-mono">{labelRotation}°</span>
-            <button onClick={() => setLabelRotation(r => r + 15)} className="text-xs px-1.5 py-0.5 rounded border bg-white border-gray-300">+15°</button>
+            <button onClick={() => setLabelRotation(r => r + 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+          </div>
+
+          {/* Separador */}
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+
+          {/* Rotação da tag de propriedade */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">Rot. prop.:</span>
+            <button onClick={() => setInfoRotation(r => r - 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+            <span className="text-xs w-8 text-center font-mono">{infoRotation}°</span>
+            <button onClick={() => setInfoRotation(r => r + 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
           </div>
 
           {/* Separador */}
@@ -347,9 +381,11 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           )}
 
           {/* Seta Norte — canto superior direito */}
-          <div style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '3px 7px 4px', textAlign: 'center', lineHeight: 1 }}>
-            <div style={{ fontWeight: 'bold', fontSize: '15pt', lineHeight: 1, color: '#c00', display: 'block' }}>↑</div>
-            <div style={{ fontWeight: 'bold', fontSize: '8pt', lineHeight: 1, marginTop: 2, display: 'block' }}>N</div>
+          <div style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '5px 8px 4px', textAlign: 'center', pointerEvents: 'none', lineHeight: 1 }}>
+            <svg width="14" height="18" viewBox="0 0 14 18" style={{ display: 'block', margin: '0 auto' }}>
+              <polygon points="7,0 2,9 5,7 5,18 9,18 9,7 12,9" fill="#cc0000" />
+            </svg>
+            <div style={{ fontWeight: 'bold', fontSize: '8pt', lineHeight: 1, marginTop: 3 }}>N</div>
           </div>
 
           {/* PIN estilo Google Maps */}
@@ -361,7 +397,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Tag identificação (cliente/UC/coords) — arrastável */}
           {(hasCoords || clientName || uc) && (
             <div
-              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: 'translate(-50%, -50%)', backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '4px 8px', fontSize: '7pt', lineHeight: 1.6, whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
+              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '4px 8px', fontSize: '7pt', lineHeight: 1.6, whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
               onMouseDown={handleInfoMouseDown}
             >
               {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
@@ -398,62 +434,64 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
         {/* Espaço que empurra o selo para o final da folha */}
         <div style={{ flex: 1 }} />
 
-        {/* ═══ SELO ═══ */}
-        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', width: '100%', height: '120px', boxSizing: 'border-box', overflow: 'hidden', flexShrink: 0 }}>
+        {/* ═══ SELO ═══ — scale(0.5) para contornar fonte mínima do browser em html2canvas */}
+        <div style={{ position: 'relative', width: '100%', height: '120px', flexShrink: 0, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: 'scale(0.5)', width: '200%', height: '240px', border: '2.4px solid #000', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', overflow: 'hidden', backgroundColor: '#fff' }}>
 
-          {/* LEFT — produto / data / escala */}
-          <div style={{ width: '28%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
-            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 4px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>PRODUTO</div>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', textAlign: 'center' }}>GFV {potencia ? `${potencia} kWp` : '___'}</div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'row', height: '90px' }}>
-              <div style={{ flex: 1, borderRight: '0.6px solid #000', display: 'flex', flexDirection: 'column' }}>
-                {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((lbl, i) => {
-                  const vals = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
-                  return (
-                    <div key={lbl} style={{ height: i < 4 ? '16px' : '26px', borderBottom: i < 4 ? '0.5px solid #000' : undefined, padding: '1px 3px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: i < 4 ? 'space-between' : 'center', overflow: 'hidden' }}>
-                      <span style={{ fontSize: '5px', fontWeight: 'bold', lineHeight: 1 }}>{lbl}</span>
-                      <span style={{ fontSize: '5.5px', textAlign: 'center', lineHeight: 1 }}>{vals[i]}</span>
-                    </div>
-                  );
-                })}
+            {/* LEFT COLUMN */}
+            <div style={{ width: '28%', borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '240px', boxSizing: 'border-box' }}>
+              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold' }}>PRODUTO</div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'center' }}>GFV {potencia ? `${potencia} kWp` : '___'}</div>
               </div>
-              <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
-                {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
-                  <div key={r} style={{ height: i < 4 ? '16px' : '26px', borderBottom: i < 4 ? '0.5px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5.5px', boxSizing: 'border-box' }}>{r}</div>
-                ))}
+              <div style={{ display: 'flex', flexDirection: 'row', height: '180px' }}>
+                <div style={{ flex: 1, borderRight: '1.2px solid #000', display: 'flex', flexDirection: 'column' }}>
+                  {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((lbl, i) => {
+                    const vals = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
+                    return (
+                      <div key={lbl} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: i < 4 ? 'space-between' : 'center', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', lineHeight: 1 }}>{lbl}</span>
+                        <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1 }}>{vals[i]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
+                  {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
+                    <div key={r} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', boxSizing: 'border-box' }}>{r}</div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* MIDDLE — título / proprietário / responsável */}
-          <div style={{ flex: 1, borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
-            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold', alignSelf: 'flex-start' }}>TÍTULO</div>
-              <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.1 }}>PLANTA DE SITUAÇÃO</div>
+            {/* MIDDLE COLUMN */}
+            <div style={{ flex: 1, borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '240px', boxSizing: 'border-box' }}>
+              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', alignSelf: 'flex-start' }}>TÍTULO</div>
+                <div style={{ fontSize: '22px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.1 }}>PLANTA DE SITUAÇÃO</div>
+              </div>
+              <div style={{ height: '96px', borderBottom: '1px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
+                <div style={{ fontSize: '12px', lineHeight: 1 }}>Nome: {clientName || '___'}</div>
+                <div style={{ fontSize: '12px', lineHeight: 1 }}>Endereço: {address || '___'}</div>
+                <div style={{ fontSize: '12px', lineHeight: 1 }}>Cidade: {estado ? `${cidade} - ${estado}` : cidade || '___'}</div>
+                <div style={{ fontSize: '12px', lineHeight: 1 }}>CEP: {cep || '___'}</div>
+              </div>
+              <div style={{ height: '84px', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1 }}>{respNome || '___'}</div>
+                <div style={{ fontSize: '11px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
+                <div style={{ fontSize: '11px', lineHeight: 1 }}>CFT: {respCft || '___'}</div>
+              </div>
             </div>
-            <div style={{ height: '48px', borderBottom: '0.5px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>Nome: {clientName || '___'}</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>Endereço: {address || '___'}</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>Cidade: {estado ? `${cidade} - ${estado}` : cidade || '___'}</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>CEP: {cep || '___'}</div>
-            </div>
-            <div style={{ height: '42px', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
-              <div style={{ fontSize: '6px', fontWeight: 'bold', lineHeight: 1 }}>{respNome || '___'}</div>
-              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
-              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>CFT: {respCft || '___'}</div>
-            </div>
-          </div>
 
-          {/* RIGHT — Logo */}
-          <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', height: '120px', boxSizing: 'border-box' }}>
-            {logoUrl
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-              : null}
+            {/* RIGHT COLUMN — Logo */}
+            <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', height: '240px', boxSizing: 'border-box' }}>
+              {logoUrl
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                : null}
+            </div>
           </div>
         </div>
       </div>
