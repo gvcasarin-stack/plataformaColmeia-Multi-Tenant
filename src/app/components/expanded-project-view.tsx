@@ -602,6 +602,7 @@ export const ExpandedProjectView = ({
     setup_concluido: (project as any).setup_concluido || '',
     modulos_lista: (project as any).modulos_lista || '',
     inversores_lista: (project as any).inversores_lista || '',
+    planta_situacao_config: (project as any).planta_situacao_config || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);
   const [numBeneficiarias, setNumBeneficiarias] = useState(2);
@@ -3372,11 +3373,13 @@ export const ExpandedProjectView = ({
                                   <PlantaSituacaoPreview
                                     projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }}
                                     onSaveConfig={async (config) => {
+                                      const serialized = JSON.stringify(config);
                                       await fetch(`/api/projects/${project.id}/conferir-info`, {
                                         method: 'PUT',
                                         headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ fields: { planta_situacao_config: JSON.stringify(config) } }),
+                                        body: JSON.stringify({ fields: { planta_situacao_config: serialized } }),
                                       });
+                                      setGerarProjetoFields(prev => ({ ...prev, planta_situacao_config: serialized }));
                                     }}
                                   />
                                 </div>
