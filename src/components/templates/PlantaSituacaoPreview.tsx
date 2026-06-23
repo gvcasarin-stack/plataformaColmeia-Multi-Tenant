@@ -8,6 +8,7 @@ import { FileDown, Loader2, MapPin, AlertCircle, Square, Trash2, Save, Check } f
 interface RectConfig {
   x1: number; y1: number; x2: number; y2: number;
   color: string; thickness: number;
+  rotation?: number;
 }
 interface PlantaConfig {
   rect?: RectConfig | null;
@@ -58,11 +59,12 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<'view' | 'draw'>('view');
 
-  // Retângulo
+  // Retângulo — arrastável + rotacionável
   const [rect, setRect] = useState<RectConfig | null>(null);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
   const [rectColor, setRectColor] = useState('#e53e3e');
   const [rectThickness, setRectThickness] = useState(2.5);
+  const [rectDrag, setRectDrag] = useState<{ isDragging: boolean; startX: number; startY: number; origRect: RectConfig | null }>({ isDragging: false, startX: 0, startY: 0, origRect: null });
 
   // Tarja de endereço (arrastável + rotacionável)
   const [labelPos, setLabelPos] = useState({ x: 50, y: 80 });
@@ -141,7 +143,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
     e.preventDefault();
     const p = getPct(e);
     setDrawStart(p);
-    setRect({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, color: rectColor, thickness: rectThickness });
+    setRect({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, color: rectColor, thickness: rectThickness, rotation: 0 });
   }, [mode, getPct, rectColor, rectThickness]);
 
   const handleMapMouseMove = useCallback((e: React.MouseEvent) => {
@@ -153,6 +155,17 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const handleMapMouseUp = useCallback(() => {
     if (mode === 'draw' && drawStart) { setDrawStart(null); setMode('view'); }
   }, [mode, drawStart]);
+
+  // ── Arrastar retângulo ──
+  const handleRectMouseDown = useCallback((e: React.MouseEvent) => {
+    if (mode === 'draw' || !rect || !mapRef.current) return;
+    e.stopPropagation(); e.preventDefault();
+    const b = mapRef.current.getBoundingClientRect();
+    const startX = ((e.clientX - b.left) / b.width) * 100;
+    const startY = ((e.clientY - b.top) / b.height) * 100;
+    setRectDrag({ isDragging: true, startX, startY, origRect: { ...rect } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, rect]);
 
   // ── Arrastar tarja de endereço ──
   const handleLabelMouseDown = useCallback((e: React.MouseEvent) => {
@@ -182,15 +195,29 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
       if (infoDrag.isDragging) {
         setInfoPos({ x: clamp(((e.clientX - infoDrag.offsetX - b.left) / b.width) * 100), y: clamp(((e.clientY - infoDrag.offsetY - b.top) / b.height) * 100) });
       }
+      if (rectDrag.isDragging && rectDrag.origRect) {
+        const mouseX = ((e.clientX - b.left) / b.width) * 100;
+        const mouseY = ((e.clientY - b.top) / b.height) * 100;
+        const dx = mouseX - rectDrag.startX;
+        const dy = mouseY - rectDrag.startY;
+        setRect({
+          ...rectDrag.origRect,
+          x1: Math.max(0, Math.min(100, rectDrag.origRect.x1 + dx)),
+          y1: Math.max(0, Math.min(100, rectDrag.origRect.y1 + dy)),
+          x2: Math.max(0, Math.min(100, rectDrag.origRect.x2 + dx)),
+          y2: Math.max(0, Math.min(100, rectDrag.origRect.y2 + dy)),
+        });
+      }
     };
     const onUp = () => {
       if (labelDrag.isDragging) setLabelDrag(p => ({ ...p, isDragging: false }));
       if (infoDrag.isDragging) setInfoDrag(p => ({ ...p, isDragging: false }));
+      if (rectDrag.isDragging) setRectDrag(p => ({ ...p, isDragging: false }));
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [labelDrag, infoDrag]);
+  }, [labelDrag, infoDrag, rectDrag]);
 
   // ── Salvar config ──
   const handleSave = async () => {
@@ -221,9 +248,14 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
     finally { setGenerating(false); }
   };
 
-  // ── Atualizar cor/espessura do retângulo existente ──
+  // ── Atualizar atributos do retângulo existente ──
   const applyRectColor = (c: string) => { setRectColor(c); setRect(prev => prev ? { ...prev, color: c } : prev); };
   const applyRectThickness = (t: number) => { setRectThickness(t); setRect(prev => prev ? { ...prev, thickness: t } : prev); };
+  const applyRectRotation = (delta: number) => { setRect(prev => prev ? { ...prev, rotation: ((prev.rotation || 0) + delta + 360) % 360 } : prev); };
+
+  const rectRotation = rect?.rotation || 0;
+  const rectCX = rect ? (rect.x1 + rect.x2) / 2 : 50;
+  const rectCY = rect ? (rect.y1 + rect.y2) / 2 : 50;
 
   return (
     <>
@@ -300,6 +332,17 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Separador */}
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
+          {/* Rotação da propriedade (retângulo) */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">Rot. prop.:</span>
+            <button onClick={() => applyRectRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+            <span className="text-xs w-8 text-center font-mono">{rectRotation}°</span>
+            <button onClick={() => applyRectRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+          </div>
+
+          {/* Separador */}
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+
           {/* Rotação da tarja (rua) */}
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">Rot. rua:</span>
@@ -311,9 +354,9 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Separador */}
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
-          {/* Rotação da tag de propriedade */}
+          {/* Rotação da tag de identificação */}
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Rot. prop.:</span>
+            <span className="text-xs text-gray-500">Rot. tag:</span>
             <button onClick={() => setInfoRotation(r => r - 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
             <span className="text-xs w-8 text-center font-mono">{infoRotation}°</span>
             <button onClick={() => setInfoRotation(r => r + 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
@@ -330,7 +373,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
             {saved ? 'Salvo!' : 'Salvar'}
           </Button>
 
-          <span className="text-xs text-gray-400 ml-1">Arraste as tags para reposicionar</span>
+          <span className="text-xs text-gray-400 ml-1">Arraste as tags e o retângulo para reposicionar</span>
         </div>
       )}
 
@@ -381,23 +424,23 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           )}
 
           {/* Seta Norte — canto superior direito */}
-          <div style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '5px 8px 4px', textAlign: 'center', pointerEvents: 'none', lineHeight: 1 }}>
+          <div style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '5px 8px 9px', textAlign: 'center', pointerEvents: 'none', lineHeight: 1 }}>
             <svg width="14" height="18" viewBox="0 0 14 18" style={{ display: 'block', margin: '0 auto' }}>
               <polygon points="7,0 2,9 5,7 5,18 9,18 9,7 12,9" fill="#cc0000" />
             </svg>
-            <div style={{ fontWeight: 'bold', fontSize: '8pt', lineHeight: 1, marginTop: 3 }}>N</div>
+            <div style={{ fontWeight: 'bold', fontSize: '8pt', lineHeight: 1, marginTop: 5 }}>N</div>
           </div>
 
-          {/* PIN estilo Google Maps */}
-          <svg width="24" height="32" viewBox="0 0 24 32" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', pointerEvents: 'none', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.65))' }}>
+          {/* PIN estilo Google Maps — sem filter para garantir renderização no PDF */}
+          <svg width="24" height="32" viewBox="0 0 24 32" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', pointerEvents: 'none' }}>
             <path d="M12 1C6.5 1 2 5.5 2 11c0 7 10 20 10 20s10-13 10-20C22 5.5 17.5 1 12 1z" fill="#e53e3e" stroke="white" strokeWidth="1.2" />
             <circle cx="12" cy="11" r="4.5" fill="white" />
           </svg>
 
-          {/* Tag identificação (cliente/UC/coords) — arrastável */}
+          {/* Tag identificação (cliente/UC/coords) — arrastável + rotacionável */}
           {(hasCoords || clientName || uc) && (
             <div
-              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '4px 8px', fontSize: '7pt', lineHeight: 1.6, whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
+              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '5px 8px', fontSize: '10px', lineHeight: 1.45, whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
               onMouseDown={handleInfoMouseDown}
             >
               {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
@@ -409,21 +452,34 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
             </div>
           )}
 
-          {/* Retângulo desenhado */}
+          {/* Retângulo desenhado — arrastável + rotacionável via viewBox 0-100 */}
           {rect && (
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-              <rect
-                x={`${Math.min(rect.x1, rect.x2)}%`} y={`${Math.min(rect.y1, rect.y2)}%`}
-                width={`${Math.abs(rect.x2 - rect.x1)}%`} height={`${Math.abs(rect.y2 - rect.y1)}%`}
-                fill={rect.color + '15'} stroke={rect.color} strokeWidth={rect.thickness}
-              />
+            <svg
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: mode === 'draw' ? 'none' : 'all', overflow: 'visible' }}
+            >
+              <g transform={`rotate(${rectRotation}, ${rectCX}, ${rectCY})`}>
+                <rect
+                  x={Math.min(rect.x1, rect.x2)}
+                  y={Math.min(rect.y1, rect.y2)}
+                  width={Math.abs(rect.x2 - rect.x1)}
+                  height={Math.abs(rect.y2 - rect.y1)}
+                  fill={rect.color + '15'}
+                  stroke={rect.color}
+                  strokeWidth={rect.thickness}
+                  vectorEffect="non-scaling-stroke"
+                  style={{ cursor: rectDrag.isDragging ? 'grabbing' : 'grab' }}
+                  onMouseDown={handleRectMouseDown}
+                />
+              </g>
             </svg>
           )}
 
           {/* Tarja de endereço — arrastável + rotacionável */}
           {address && (
             <div
-              style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 3, padding: '2px 8px', fontSize: '7pt', fontWeight: 'bold', lineHeight: 1.2, cursor: labelDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none', whiteSpace: 'nowrap', zIndex: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 3, padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', lineHeight: 1, textAlign: 'center', cursor: labelDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none', whiteSpace: 'nowrap', zIndex: 9 }}
               onMouseDown={handleLabelMouseDown}
             >
               {address}
@@ -440,25 +496,25 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
 
             {/* LEFT COLUMN */}
             <div style={{ width: '28%', borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '240px', boxSizing: 'border-box' }}>
-              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold' }}>PRODUTO</div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'center' }}>GFV {potencia ? `${potencia} kWp` : '___'}</div>
+              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>PRODUTO</div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1 }}>GFV {potencia ? `${potencia} kWp` : '___'}</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'row', height: '180px' }}>
                 <div style={{ flex: 1, borderRight: '1.2px solid #000', display: 'flex', flexDirection: 'column' }}>
                   {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((lbl, i) => {
                     const vals = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
                     return (
-                      <div key={lbl} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: i < 4 ? 'space-between' : 'center', overflow: 'hidden' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', lineHeight: 1 }}>{lbl}</span>
-                        <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1 }}>{vals[i]}</span>
+                      <div key={lbl} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '3px', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', lineHeight: '1', display: 'block' }}>{lbl}</span>
+                        <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: '1', display: 'block' }}>{vals[i]}</span>
                       </div>
                     );
                   })}
                 </div>
                 <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
                   {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
-                    <div key={r} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', boxSizing: 'border-box' }}>{r}</div>
+                    <div key={r} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', lineHeight: 1, boxSizing: 'border-box' }}>{r}</div>
                   ))}
                 </div>
               </div>
@@ -466,18 +522,20 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
 
             {/* MIDDLE COLUMN */}
             <div style={{ flex: 1, borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '240px', boxSizing: 'border-box' }}>
-              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', alignSelf: 'flex-start' }}>TÍTULO</div>
-                <div style={{ fontSize: '22px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.1 }}>PLANTA DE SITUAÇÃO</div>
+              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', alignSelf: 'flex-start', lineHeight: 1 }}>TÍTULO</div>
+                <div style={{ fontSize: '22px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.05 }}>PLANTA DE SITUAÇÃO</div>
               </div>
-              <div style={{ height: '96px', borderBottom: '1px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+              {/* Proprietário — reduzido para dar mais espaço ao responsável */}
+              <div style={{ height: '84px', borderBottom: '1px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
                 <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
                 <div style={{ fontSize: '12px', lineHeight: 1 }}>Nome: {clientName || '___'}</div>
                 <div style={{ fontSize: '12px', lineHeight: 1 }}>Endereço: {address || '___'}</div>
                 <div style={{ fontSize: '12px', lineHeight: 1 }}>Cidade: {estado ? `${cidade} - ${estado}` : cidade || '___'}</div>
                 <div style={{ fontSize: '12px', lineHeight: 1 }}>CEP: {cep || '___'}</div>
               </div>
-              <div style={{ height: '84px', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+              {/* Responsável — aumentado para acomodar os dados */}
+              <div style={{ height: '96px', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
                 <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
                 <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1 }}>{respNome || '___'}</div>
                 <div style={{ fontSize: '11px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
