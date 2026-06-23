@@ -251,6 +251,7 @@ export interface Project {
   tipo_fornecimento?: string;
   modalidade_compensacao?: string;
   planta_situacao_url?: string;
+  planta_situacao_config?: string;
 
   // 🆕 NOVO CAMPO: Proprietário do projeto (quem "possui" o projeto)
   owner_id?: string;

@@ -479,16 +479,18 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
             <div style={{ fontWeight: 'bold', fontSize: '8pt', lineHeight: 1, marginTop: 5 }}>N</div>
           </div>
 
-          {/* PIN estilo Google Maps — sem filter para garantir renderização no PDF */}
-          <svg width="24" height="32" viewBox="0 0 24 32" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', pointerEvents: 'none' }}>
-            <path d="M12 1C6.5 1 2 5.5 2 11c0 7 10 20 10 20s10-13 10-20C22 5.5 17.5 1 12 1z" fill="#e53e3e" stroke="white" strokeWidth="1.2" />
-            <circle cx="12" cy="11" r="4.5" fill="white" />
-          </svg>
+          {/* PIN estilo Google Maps — wrapper div recebe o transform (html2canvas não aplica transform em SVG direto) */}
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -100%)', pointerEvents: 'none', width: 24, height: 32 }}>
+            <svg width="24" height="32" viewBox="0 0 24 32" style={{ display: 'block' }}>
+              <path d="M12 1C6.5 1 2 5.5 2 11c0 7 10 20 10 20s10-13 10-20C22 5.5 17.5 1 12 1z" fill="#e53e3e" stroke="white" strokeWidth="1.2" />
+              <circle cx="12" cy="11" r="4.5" fill="white" />
+            </svg>
+          </div>
 
           {/* Tag identificação (cliente/UC/coords) — arrastável + rotacionável */}
           {(hasCoords || clientName || uc) && (
             <div
-              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '6px 7px', fontSize: '10px', lineHeight: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
+              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '6px 7px 6px', fontSize: '10px', lineHeight: '14px', whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
               onMouseDown={handleInfoMouseDown}
             >
               {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
@@ -577,7 +579,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Tarja de endereço — arrastável + rotacionável */}
           {address && (
             <div
-              style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 3, padding: '5px 10px', fontSize: '12px', fontWeight: 'bold', lineHeight: '16px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: labelDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none', whiteSpace: 'nowrap', zIndex: 9 }}
+              style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 3, padding: '5px 10px 5px', fontSize: '12px', fontWeight: 'bold', lineHeight: '16px', textAlign: 'center', cursor: labelDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none', whiteSpace: 'nowrap', zIndex: 9 }}
               onMouseDown={handleLabelMouseDown}
             >
               {address}
@@ -603,8 +605,8 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
                   {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((lbl, i) => {
                     const vals = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
                     return (
-                      <div key={lbl} style={{ height: i < 4 ? '40px' : '60px', borderBottom: i < 4 ? '1px solid #000' : undefined, padding: '4px 6px 2px', boxSizing: 'border-box', overflow: 'hidden' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1.1, marginBottom: '3px' }}>{lbl}</div>
+                      <div key={lbl} style={{ height: i < 4 ? '40px' : '60px', borderBottom: i < 4 ? '1px solid #000' : undefined, padding: '3px 6px', boxSizing: 'border-box', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1.1 }}>{lbl}</div>
                         <div style={{ fontSize: '13px', textAlign: 'center', lineHeight: 1.1 }}>{vals[i]}</div>
                       </div>
                     );
@@ -620,7 +622,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
 
             {/* MIDDLE COLUMN */}
             <div style={{ flex: 1, borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '280px', boxSizing: 'border-box' }}>
-              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '6px 12px 4px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '4px' }}>
+              <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start', lineHeight: 1 }}>TÍTULO</div>
                 <div style={{ fontSize: '26px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.05 }}>PLANTA DE SITUAÇÃO</div>
               </div>
