@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { FileDown, Loader2, MapPin, AlertCircle, Square, Trash2, Save, Check } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-interface RectConfig {
-  x1: number; y1: number; x2: number; y2: number;
-  color: string; thickness: number;
+interface PolygonConfig {
+  points: Array<{ x: number; y: number }>;
+  color: string;
+  thickness: number;
   rotation?: number;
 }
 interface PlantaConfig {
-  rect?: RectConfig | null;
+  polygon?: PolygonConfig | null;
   labelPos?: { x: number; y: number; rotation?: number };
   infoPos?: { x: number; y: number; rotation?: number };
   mapZoom?: number;
@@ -59,12 +60,13 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<'view' | 'draw'>('view');
 
-  // Retângulo — arrastável + rotacionável
-  const [rect, setRect] = useState<RectConfig | null>(null);
-  const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
-  const [rectColor, setRectColor] = useState('#e53e3e');
-  const [rectThickness, setRectThickness] = useState(2.5);
-  const [rectDrag, setRectDrag] = useState<{ isDragging: boolean; startX: number; startY: number; origRect: RectConfig | null }>({ isDragging: false, startX: 0, startY: 0, origRect: null });
+  // Polígono — pontos clicados, arrastável + rotacionável
+  const [polygon, setPolygon] = useState<PolygonConfig | null>(null);
+  const [drawingPoints, setDrawingPoints] = useState<Array<{ x: number; y: number }>>([]);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const [polyColor, setPolyColor] = useState('#e53e3e');
+  const [polyThickness, setPolyThickness] = useState(2.5);
+  const [polyDrag, setPolyDrag] = useState<{ isDragging: boolean; startX: number; startY: number; origPoints: Array<{ x: number; y: number }> | null }>({ isDragging: false, startX: 0, startY: 0, origPoints: null });
 
   // Tarja de endereço (arrastável + rotacionável)
   const [labelPos, setLabelPos] = useState({ x: 50, y: 80 });
@@ -88,7 +90,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
     if (!pd.planta_situacao_config) return;
     try {
       const cfg: PlantaConfig = JSON.parse(String(pd.planta_situacao_config));
-      if (cfg.rect) { setRect(cfg.rect); setRectColor(cfg.rect.color || '#e53e3e'); setRectThickness(cfg.rect.thickness || 2.5); }
+      if (cfg.polygon) { setPolygon(cfg.polygon); setPolyColor(cfg.polygon.color || '#e53e3e'); setPolyThickness(cfg.polygon.thickness || 2.5); }
       if (cfg.labelPos) { setLabelPos({ x: cfg.labelPos.x, y: cfg.labelPos.y }); if (cfg.labelPos.rotation !== undefined) setLabelRotation(cfg.labelPos.rotation); }
       if (cfg.infoPos) { setInfoPos({ x: cfg.infoPos.x, y: cfg.infoPos.y }); if (cfg.infoPos.rotation !== undefined) setInfoRotation(cfg.infoPos.rotation); }
       if (cfg.mapZoom) setMapZoom(cfg.mapZoom);
@@ -122,7 +124,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const hasToken   = !!mapboxToken;
 
   // ── Helpers de posição ──
-  const getPct = useCallback((e: React.MouseEvent) => {
+  const getPct = useCallback((e: React.MouseEvent | MouseEvent) => {
     if (!mapRef.current) return { x: 0, y: 0 };
     const b = mapRef.current.getBoundingClientRect();
     return {
@@ -137,35 +139,66 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
     return { offsetX: e.clientX - ((pos.x / 100) * b.width + b.left), offsetY: e.clientY - ((pos.y / 100) * b.height + b.top) };
   };
 
-  // ── Desenhar retângulo ──
+  // ── Polígono: centroide para rotação ──
+  const polyCX = polygon ? polygon.points.reduce((s, p) => s + p.x, 0) / polygon.points.length : 50;
+  const polyCY = polygon ? polygon.points.reduce((s, p) => s + p.y, 0) / polygon.points.length : 50;
+  const polyRotation = polygon?.rotation || 0;
+
+  // ── Clique no mapa: adicionar ponto do polígono ──
   const handleMapMouseDown = useCallback((e: React.MouseEvent) => {
     if (mode !== 'draw') return;
     e.preventDefault();
     const p = getPct(e);
-    setDrawStart(p);
-    setRect({ x1: p.x, y1: p.y, x2: p.x, y2: p.y, color: rectColor, thickness: rectThickness, rotation: 0 });
-  }, [mode, getPct, rectColor, rectThickness]);
 
+    setDrawingPoints(prev => {
+      // Se já há >= 3 pontos e clicou perto do primeiro, fecha o polígono
+      if (prev.length >= 3) {
+        const first = prev[0];
+        const dist = Math.sqrt((p.x - first.x) ** 2 + (p.y - first.y) ** 2);
+        if (dist < 5) {
+          setPolygon({ points: prev, color: polyColor, thickness: polyThickness, rotation: 0 });
+          setMousePos(null);
+          setMode('view');
+          return [];
+        }
+      }
+      return [...prev, p];
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, getPct, polyColor, polyThickness]);
+
+  // ── Mouse move: linha fantasma enquanto desenha ──
   const handleMapMouseMove = useCallback((e: React.MouseEvent) => {
-    if (mode !== 'draw' || !drawStart) return;
-    const p = getPct(e);
-    setRect(prev => prev ? { ...prev, x2: p.x, y2: p.y } : null);
-  }, [mode, drawStart, getPct]);
+    if (mode !== 'draw') return;
+    setMousePos(getPct(e));
+  }, [mode, getPct]);
 
-  const handleMapMouseUp = useCallback(() => {
-    if (mode === 'draw' && drawStart) { setDrawStart(null); setMode('view'); }
-  }, [mode, drawStart]);
+  // ── Finalizar polígono via botão ──
+  const finalizePolygon = useCallback(() => {
+    if (drawingPoints.length < 3) return;
+    setPolygon({ points: drawingPoints, color: polyColor, thickness: polyThickness, rotation: 0 });
+    setDrawingPoints([]);
+    setMousePos(null);
+    setMode('view');
+  }, [drawingPoints, polyColor, polyThickness]);
 
-  // ── Arrastar retângulo ──
-  const handleRectMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw' || !rect || !mapRef.current) return;
+  // ── Cancelar desenho ──
+  const cancelDraw = useCallback(() => {
+    setMode('view');
+    setDrawingPoints([]);
+    setMousePos(null);
+  }, []);
+
+  // ── Arrastar polígono ──
+  const handlePolyMouseDown = useCallback((e: React.MouseEvent) => {
+    if (mode === 'draw' || !polygon || !mapRef.current) return;
     e.stopPropagation(); e.preventDefault();
     const b = mapRef.current.getBoundingClientRect();
     const startX = ((e.clientX - b.left) / b.width) * 100;
     const startY = ((e.clientY - b.top) / b.height) * 100;
-    setRectDrag({ isDragging: true, startX, startY, origRect: { ...rect } });
+    setPolyDrag({ isDragging: true, startX, startY, origPoints: polygon.points.map(p => ({ ...p })) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, rect]);
+  }, [mode, polygon]);
 
   // ── Arrastar tarja de endereço ──
   const handleLabelMouseDown = useCallback((e: React.MouseEvent) => {
@@ -195,36 +228,36 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
       if (infoDrag.isDragging) {
         setInfoPos({ x: clamp(((e.clientX - infoDrag.offsetX - b.left) / b.width) * 100), y: clamp(((e.clientY - infoDrag.offsetY - b.top) / b.height) * 100) });
       }
-      if (rectDrag.isDragging && rectDrag.origRect) {
+      if (polyDrag.isDragging && polyDrag.origPoints) {
         const mouseX = ((e.clientX - b.left) / b.width) * 100;
         const mouseY = ((e.clientY - b.top) / b.height) * 100;
-        const dx = mouseX - rectDrag.startX;
-        const dy = mouseY - rectDrag.startY;
-        setRect({
-          ...rectDrag.origRect,
-          x1: Math.max(0, Math.min(100, rectDrag.origRect.x1 + dx)),
-          y1: Math.max(0, Math.min(100, rectDrag.origRect.y1 + dy)),
-          x2: Math.max(0, Math.min(100, rectDrag.origRect.x2 + dx)),
-          y2: Math.max(0, Math.min(100, rectDrag.origRect.y2 + dy)),
-        });
+        const dx = mouseX - polyDrag.startX;
+        const dy = mouseY - polyDrag.startY;
+        setPolygon(prev => prev ? {
+          ...prev,
+          points: polyDrag.origPoints!.map(p => ({
+            x: Math.max(0, Math.min(100, p.x + dx)),
+            y: Math.max(0, Math.min(100, p.y + dy)),
+          })),
+        } : prev);
       }
     };
     const onUp = () => {
       if (labelDrag.isDragging) setLabelDrag(p => ({ ...p, isDragging: false }));
       if (infoDrag.isDragging) setInfoDrag(p => ({ ...p, isDragging: false }));
-      if (rectDrag.isDragging) setRectDrag(p => ({ ...p, isDragging: false }));
+      if (polyDrag.isDragging) setPolyDrag(p => ({ ...p, isDragging: false }));
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [labelDrag, infoDrag, rectDrag]);
+  }, [labelDrag, infoDrag, polyDrag]);
 
   // ── Salvar config ──
   const handleSave = async () => {
     if (!onSaveConfig) return;
     setSaving(true);
     try {
-      await onSaveConfig({ rect, labelPos: { ...labelPos, rotation: labelRotation }, infoPos: { ...infoPos, rotation: infoRotation }, mapZoom });
+      await onSaveConfig({ polygon, labelPos: { ...labelPos, rotation: labelRotation }, infoPos: { ...infoPos, rotation: infoRotation }, mapZoom });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) { console.error('Erro ao salvar config planta:', err); }
@@ -248,14 +281,10 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
     finally { setGenerating(false); }
   };
 
-  // ── Atualizar atributos do retângulo existente ──
-  const applyRectColor = (c: string) => { setRectColor(c); setRect(prev => prev ? { ...prev, color: c } : prev); };
-  const applyRectThickness = (t: number) => { setRectThickness(t); setRect(prev => prev ? { ...prev, thickness: t } : prev); };
-  const applyRectRotation = (delta: number) => { setRect(prev => prev ? { ...prev, rotation: ((prev.rotation || 0) + delta + 360) % 360 } : prev); };
-
-  const rectRotation = rect?.rotation || 0;
-  const rectCX = rect ? (rect.x1 + rect.x2) / 2 : 50;
-  const rectCY = rect ? (rect.y1 + rect.y2) / 2 : 50;
+  // ── Atualizar atributos do polígono existente ──
+  const applyPolyColor = (c: string) => { setPolyColor(c); setPolygon(prev => prev ? { ...prev, color: c } : prev); };
+  const applyPolyThickness = (t: number) => { setPolyThickness(t); setPolygon(prev => prev ? { ...prev, thickness: t } : prev); };
+  const applyPolyRotation = (delta: number) => { setPolygon(prev => prev ? { ...prev, rotation: ((prev.rotation || 0) + delta + 360) % 360 } : prev); };
 
   return (
     <>
@@ -276,15 +305,35 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
       {/* Barra de controles */}
       {onSaveConfig && (
         <div className="flex flex-wrap gap-2 mb-4 items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          {/* Marcar propriedade */}
-          <Button size="sm" variant={mode === 'draw' ? 'default' : 'outline'}
-            onClick={() => setMode(mode === 'draw' ? 'view' : 'draw')}
-            className={mode === 'draw' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}>
-            <Square className="h-3.5 w-3.5 mr-1.5" />
-            {mode === 'draw' ? 'Desenhando... clique e arraste' : 'Marcar Propriedade'}
-          </Button>
-          {rect && (
-            <Button size="sm" variant="outline" onClick={() => setRect(null)}>
+
+          {/* Marcar propriedade / Cancelar */}
+          {mode === 'view' ? (
+            <Button size="sm" variant="outline"
+              onClick={() => setMode('draw')}>
+              <Square className="h-3.5 w-3.5 mr-1.5" />
+              Marcar Propriedade
+            </Button>
+          ) : (
+            <>
+              <span className="text-xs text-red-600 font-medium">
+                {drawingPoints.length === 0
+                  ? 'Clique no mapa para adicionar pontos'
+                  : `${drawingPoints.length} ponto${drawingPoints.length > 1 ? 's' : ''} — clique perto do 1º para fechar`}
+              </span>
+              {drawingPoints.length >= 3 && (
+                <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={finalizePolygon}>
+                  <Check className="h-3.5 w-3.5 mr-1.5" />
+                  Finalizar
+                </Button>
+              )}
+              <Button size="sm" variant="outline" onClick={cancelDraw}>
+                Cancelar
+              </Button>
+            </>
+          )}
+
+          {polygon && mode === 'view' && (
+            <Button size="sm" variant="outline" onClick={() => setPolygon(null)}>
               <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
             </Button>
           )}
@@ -296,8 +345,8 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-500">Cor:</span>
             {COLORS.map(c => (
-              <button key={c} onClick={() => applyRectColor(c)} title={c}
-                style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: rectColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+              <button key={c} onClick={() => applyPolyColor(c)} title={c}
+                style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: polyColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
             ))}
           </div>
 
@@ -305,8 +354,8 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">Esp:</span>
             {THICKNESS_OPTIONS.map(t => (
-              <button key={t} onClick={() => applyRectThickness(t)}
-                className={`text-xs px-1.5 py-0.5 rounded border ${rectThickness === t ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+              <button key={t} onClick={() => applyPolyThickness(t)}
+                className={`text-xs px-1.5 py-0.5 rounded border ${polyThickness === t ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
                 {t}
               </button>
             ))}
@@ -332,12 +381,12 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Separador */}
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
-          {/* Rotação da propriedade (retângulo) */}
+          {/* Rotação da propriedade (polígono) */}
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">Rot. prop.:</span>
-            <button onClick={() => applyRectRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
-            <span className="text-xs w-8 text-center font-mono">{rectRotation}°</span>
-            <button onClick={() => applyRectRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+            <button onClick={() => applyPolyRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+            <span className="text-xs w-8 text-center font-mono">{polyRotation}°</span>
+            <button onClick={() => applyPolyRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
           </div>
 
           {/* Separador */}
@@ -373,7 +422,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
             {saved ? 'Salvo!' : 'Salvar'}
           </Button>
 
-          <span className="text-xs text-gray-400 ml-1">Arraste as tags e o retângulo para reposicionar</span>
+          <span className="text-xs text-gray-400 ml-1">Arraste as tags e o polígono para reposicionar</span>
         </div>
       )}
 
@@ -409,7 +458,6 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           }}
           onMouseDown={handleMapMouseDown}
           onMouseMove={handleMapMouseMove}
-          onMouseUp={handleMapMouseUp}
         >
           {mapImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -440,7 +488,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
           {/* Tag identificação (cliente/UC/coords) — arrastável + rotacionável */}
           {(hasCoords || clientName || uc) && (
             <div
-              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '5px 8px', fontSize: '10px', lineHeight: 1.45, whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
+              style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 4, padding: '3px 7px', fontSize: '10px', lineHeight: 1.3, whiteSpace: 'nowrap', zIndex: 10, cursor: infoDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none' }}
               onMouseDown={handleInfoMouseDown}
             >
               {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
@@ -452,34 +500,84 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
             </div>
           )}
 
-          {/* Retângulo desenhado — arrastável + rotacionável via viewBox 0-100 */}
-          {rect && (
+          {/* Polígono finalizado — arrastável + rotacionável */}
+          {polygon && (
             <svg
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: mode === 'draw' ? 'none' : 'all', overflow: 'visible' }}
             >
-              <g transform={`rotate(${rectRotation}, ${rectCX}, ${rectCY})`}>
-                <rect
-                  x={Math.min(rect.x1, rect.x2)}
-                  y={Math.min(rect.y1, rect.y2)}
-                  width={Math.abs(rect.x2 - rect.x1)}
-                  height={Math.abs(rect.y2 - rect.y1)}
-                  fill={rect.color + '15'}
-                  stroke={rect.color}
-                  strokeWidth={rect.thickness}
+              <g transform={`rotate(${polyRotation}, ${polyCX}, ${polyCY})`}>
+                <polygon
+                  points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
+                  fill={polygon.color + '15'}
+                  stroke={polygon.color}
+                  strokeWidth={polygon.thickness}
                   vectorEffect="non-scaling-stroke"
-                  style={{ cursor: rectDrag.isDragging ? 'grabbing' : 'grab' }}
-                  onMouseDown={handleRectMouseDown}
+                  strokeLinejoin="round"
+                  style={{ cursor: polyDrag.isDragging ? 'grabbing' : 'grab' }}
+                  onMouseDown={handlePolyMouseDown}
                 />
               </g>
             </svg>
           )}
 
+          {/* Preview enquanto desenha — linhas, linha fantasma e pontos */}
+          {mode === 'draw' && drawingPoints.length > 0 && (
+            <>
+              {/* Linhas já traçadas + linha fantasma até o cursor */}
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}
+              >
+                {drawingPoints.length >= 2 && (
+                  <polyline
+                    points={drawingPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                    fill="none"
+                    stroke={polyColor}
+                    strokeWidth={polyThickness}
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+                {mousePos && (
+                  <line
+                    x1={drawingPoints[drawingPoints.length - 1].x}
+                    y1={drawingPoints[drawingPoints.length - 1].y}
+                    x2={mousePos.x}
+                    y2={mousePos.y}
+                    stroke={polyColor}
+                    strokeWidth={polyThickness}
+                    strokeDasharray="3,2"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+              </svg>
+              {/* Pontos sobrepostos via CSS (evita distorção do SVG non-scaling) */}
+              {drawingPoints.map((p, i) => (
+                <div key={i} style={{
+                  position: 'absolute',
+                  left: `${p.x}%`,
+                  top: `${p.y}%`,
+                  width: i === 0 ? 12 : 8,
+                  height: i === 0 ? 12 : 8,
+                  borderRadius: '50%',
+                  backgroundColor: i === 0 ? '#fff' : polyColor,
+                  border: `2px solid ${polyColor}`,
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none',
+                  zIndex: 20,
+                  boxSizing: 'border-box',
+                }} />
+              ))}
+            </>
+          )}
+
           {/* Tarja de endereço — arrastável + rotacionável */}
           {address && (
             <div
-              style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 3, padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', lineHeight: 1, textAlign: 'center', cursor: labelDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none', whiteSpace: 'nowrap', zIndex: 9 }}
+              style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelRotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', border: '1.5px solid #333', borderRadius: 3, padding: '5px 10px', fontSize: '12px', fontWeight: 'bold', lineHeight: '16px', textAlign: 'center', cursor: labelDrag.isDragging ? 'grabbing' : (mode === 'draw' ? 'crosshair' : 'grab'), userSelect: 'none', whiteSpace: 'nowrap', zIndex: 9 }}
               onMouseDown={handleLabelMouseDown}
             >
               {address}
@@ -491,60 +589,60 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
         <div style={{ flex: 1 }} />
 
         {/* ═══ SELO ═══ — scale(0.5) para contornar fonte mínima do browser em html2canvas */}
-        <div style={{ position: 'relative', width: '100%', height: '120px', flexShrink: 0, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: 'scale(0.5)', width: '200%', height: '240px', border: '2.4px solid #000', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', overflow: 'hidden', backgroundColor: '#fff' }}>
+        <div style={{ position: 'relative', width: '100%', height: '140px', flexShrink: 0, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: 'scale(0.5)', width: '200%', height: '280px', border: '2.4px solid #000', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', overflow: 'hidden', backgroundColor: '#fff' }}>
 
             {/* LEFT COLUMN */}
-            <div style={{ width: '28%', borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '240px', boxSizing: 'border-box' }}>
+            <div style={{ width: '28%', borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '280px', boxSizing: 'border-box' }}>
               <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>PRODUTO</div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1 }}>GFV {potencia ? `${potencia} kWp` : '___'}</div>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1 }}>PRODUTO</div>
+                <div style={{ fontSize: '21px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1 }}>GFV {potencia ? `${potencia} kWp` : '___'}</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'row', height: '180px' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', height: '220px' }}>
                 <div style={{ flex: 1, borderRight: '1.2px solid #000', display: 'flex', flexDirection: 'column' }}>
                   {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((lbl, i) => {
                     const vals = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
                     return (
-                      <div key={lbl} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '3px', overflow: 'hidden' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', lineHeight: '1', display: 'block' }}>{lbl}</span>
-                        <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: '1', display: 'block' }}>{vals[i]}</span>
+                      <div key={lbl} style={{ height: i < 4 ? '40px' : '60px', borderBottom: i < 4 ? '1px solid #000' : undefined, padding: '5px 6px 3px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1.1, marginBottom: '3px' }}>{lbl}</div>
+                        <div style={{ fontSize: '13px', textAlign: 'center', lineHeight: 1.1 }}>{vals[i]}</div>
                       </div>
                     );
                   })}
                 </div>
                 <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
                   {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
-                    <div key={r} style={{ height: i < 4 ? '32px' : '52px', borderBottom: i < 4 ? '1px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', lineHeight: 1, boxSizing: 'border-box' }}>{r}</div>
+                    <div key={r} style={{ height: i < 4 ? '40px' : '60px', borderBottom: i < 4 ? '1px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', lineHeight: 1, boxSizing: 'border-box' }}>{r}</div>
                   ))}
                 </div>
               </div>
             </div>
 
             {/* MIDDLE COLUMN */}
-            <div style={{ flex: 1, borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '240px', boxSizing: 'border-box' }}>
+            <div style={{ flex: 1, borderRight: '1.6px solid #000', display: 'flex', flexDirection: 'column', height: '280px', boxSizing: 'border-box' }}>
               <div style={{ height: '60px', borderBottom: '1.4px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', alignSelf: 'flex-start', lineHeight: 1 }}>TÍTULO</div>
-                <div style={{ fontSize: '22px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.05 }}>PLANTA DE SITUAÇÃO</div>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start', lineHeight: 1 }}>TÍTULO</div>
+                <div style={{ fontSize: '26px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.05 }}>PLANTA DE SITUAÇÃO</div>
               </div>
-              {/* Proprietário — reduzido para dar mais espaço ao responsável */}
-              <div style={{ height: '84px', borderBottom: '1px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
-                <div style={{ fontSize: '12px', lineHeight: 1 }}>Nome: {clientName || '___'}</div>
-                <div style={{ fontSize: '12px', lineHeight: 1 }}>Endereço: {address || '___'}</div>
-                <div style={{ fontSize: '12px', lineHeight: 1 }}>Cidade: {estado ? `${cidade} - ${estado}` : cidade || '___'}</div>
-                <div style={{ fontSize: '12px', lineHeight: 1 }}>CEP: {cep || '___'}</div>
+              {/* Proprietário */}
+              <div style={{ height: '100px', borderBottom: '1px solid #000', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
+                <div style={{ fontSize: '13px', lineHeight: 1 }}>Nome: {clientName || '___'}</div>
+                <div style={{ fontSize: '13px', lineHeight: 1 }}>Endereço: {address || '___'}</div>
+                <div style={{ fontSize: '13px', lineHeight: 1 }}>Cidade: {estado ? `${cidade} - ${estado}` : cidade || '___'}</div>
+                <div style={{ fontSize: '13px', lineHeight: 1 }}>CEP: {cep || '___'}</div>
               </div>
-              {/* Responsável — aumentado para acomodar os dados */}
-              <div style={{ height: '96px', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1 }}>{respNome || '___'}</div>
-                <div style={{ fontSize: '11px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
-                <div style={{ fontSize: '11px', lineHeight: 1 }}>CFT: {respCft || '___'}</div>
+              {/* Responsável */}
+              <div style={{ height: '120px', padding: '4px 12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', lineHeight: 1 }}>{respNome || '___'}</div>
+                <div style={{ fontSize: '12px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
+                <div style={{ fontSize: '12px', lineHeight: 1 }}>CFT: {respCft || '___'}</div>
               </div>
             </div>
 
             {/* RIGHT COLUMN — Logo */}
-            <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', height: '240px', boxSizing: 'border-box' }}>
+            <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', height: '280px', boxSizing: 'border-box' }}>
               {logoUrl
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
