@@ -1459,6 +1459,29 @@ export async function createProjectClientAction(
       return { error: 'Erro interno: falha na identificação da organização.' };
     }
 
+    // Buscar admin padrão do tenant para definir responsável inicial
+    let defaultResponsibleId: string | null = null;
+    let defaultResponsibleName: string | null = null;
+    let defaultResponsibleEmail: string | null = null;
+    try {
+      const { data: adminUser } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .eq('tenant_id', tenantInfo.tenant_id)
+        .in('role', ['owner', 'admin'])
+        .eq('status', 'active')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+      if (adminUser) {
+        defaultResponsibleId = adminUser.id;
+        defaultResponsibleName = adminUser.name;
+        defaultResponsibleEmail = adminUser.email;
+      }
+    } catch {
+      // não crítico — projeto é criado sem responsável padrão
+    }
+
     // ✅ SUPABASE - Gerar número único do projeto (versão ultra-robusta)
     let projectNumber: string;
     let numberGenerationMethod = 'sequential'; // Para tracking
@@ -2093,6 +2116,11 @@ export async function createProjectClientAction(
       // 🆕 FIX: FKs para vincular projeto ao pacote/assinatura específico
       cliente_pacote_id: pacoteIdParaVincular, // FK para cliente_pacotes (se modo pacote)
       cliente_assinatura_id: assinaturaIdParaVincular, // FK para cliente_assinaturas (se modo assinatura)
+
+      // Responsável padrão: admin/owner do tenant
+      admin_responsible_id: defaultResponsibleId,
+      admin_responsible_name: defaultResponsibleName,
+      admin_responsible_email: defaultResponsibleEmail,
 
       timeline_events: initialTimelineEvents, // ✅ Agora inclui a checklist inicial
       documents: [],

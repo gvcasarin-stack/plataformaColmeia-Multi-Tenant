@@ -87,7 +87,6 @@ export function AssumeResponsibilityDialog({
   useEffect(() => {
     if (open) {
       fetchTeamMembers()
-      setSelectedMemberId("") // Reset seleção ao abrir
     }
   }, [open])
 
@@ -111,6 +110,7 @@ export function AssumeResponsibilityDialog({
       devLog.log('[AssumeResponsibilityDialog] Membros recebidos:', result.data)
 
       setTeamMembers(result.data || [])
+      setSelectedMemberId(project.adminResponsibleId || "")
     } catch (error) {
       devLog.error('[AssumeResponsibilityDialog] Erro ao buscar membros:', error)
       toast({
