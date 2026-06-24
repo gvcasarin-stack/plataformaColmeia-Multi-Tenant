@@ -1469,11 +1469,11 @@ export async function createProjectClientAction(
         .from('users')
         .select('id, name, email')
         .eq('tenant_id', tenantInfo.tenant_id)
-        .in('role', ['owner', 'admin'])
+        .in('role', ['superadmin', 'owner', 'admin'])
         .eq('status', 'active')
         .order('created_at', { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
       if (adminUser) {
         defaultResponsibleId = adminUser.id;
         defaultResponsibleName = adminUser.name;
