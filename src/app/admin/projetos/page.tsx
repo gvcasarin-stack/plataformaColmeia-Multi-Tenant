@@ -215,7 +215,8 @@ export default function ProjetosPage() {
         const matchesBasicFields =
           String(project.number || '').toLowerCase().includes(searchLower) ||
           (project.nomeClienteFinal || '').toLowerCase().includes(searchLower) ||
-          (project.empresaIntegradora || '').toLowerCase().includes(searchLower);
+          (project.empresaIntegradora || '').toLowerCase().includes(searchLower) ||
+          (project.numero_uc || '').toLowerCase().includes(searchLower);
 
         // Busca na lista de materiais
         const matchesMaterials = typeof project.listaMateriais === 'string'
