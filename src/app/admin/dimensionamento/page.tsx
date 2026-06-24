@@ -601,8 +601,8 @@ export default function DimensionamentoPage() {
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             {[1, 2, 3, 4, 5, 6].map((s) => {
-              // Pular etapa 3 e 6 se for on-grid
-              if (s === 3 && tipoSistema === 'on-grid') return null;
+              // Pular etapa 3 para on-grid e off-grid; pular etapa 6 para on-grid
+              if (s === 3 && (tipoSistema === 'on-grid' || tipoSistema === 'off-grid')) return null;
               if (s === 6 && tipoSistema === 'on-grid') return null;
               
               const isActive = s === step;
@@ -635,7 +635,7 @@ export default function DimensionamentoPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-amber-500" />
-              Etapa {step} de {tipoSistema === 'on-grid' ? 5 : 6}
+              Etapa {step} de {tipoSistema === 'hibrido' ? 6 : 5}
             </CardTitle>
             <CardDescription>
               {step === 1 && 'Selecione o tipo de sistema'}
