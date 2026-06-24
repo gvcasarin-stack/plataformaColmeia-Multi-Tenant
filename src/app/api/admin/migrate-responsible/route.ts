@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
-export async function POST() {
+export async function GET() {
   try {
     const supabase = createSupabaseServiceRoleClient();
 
