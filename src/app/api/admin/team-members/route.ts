@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         updated_at
       `)
       .eq('tenant_id', tenantId)
-      .in('role', ['admin', 'colaborador']) // ✅ Aceita ambos os roles
+      .in('role', ['superadmin', 'owner', 'admin', 'colaborador'])
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
