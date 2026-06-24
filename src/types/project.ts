@@ -113,6 +113,7 @@ export interface Project {
   // ✅ NOVOS CAMPOS: CPF/CNPJ e Endereço (opcionais)
   cpf_cnpj_cliente_final?: string;
   endereco_local?: string;
+  numero_uc?: string;
 
   // ✅ NOVOS CAMPOS: Cidade e Estado do cliente (para procuração)
   client_city?: string;

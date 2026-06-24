@@ -321,6 +321,7 @@ export async function updateProjectAction(
         // Campos do Conferir Informações / Gerar Projeto
         cpf_cnpj_cliente_final: updateData.cpf_cnpj_cliente_final,
         endereco_local: updateData.endereco_local,
+        numero_uc: updateData.numero_uc,
         client_city: updateData.client_city,
         client_state: updateData.client_state,
         lista_materiais: updateData.listaMateriais || updateData.lista_materiais,
@@ -2520,6 +2521,7 @@ export async function getProjectAction(projectId: string): Promise<{
       disjuntorPadraoEntrada: data.disjuntor_padrao_entrada || undefined,
       cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final || undefined,
       endereco_local: data.endereco_local || undefined,
+      numero_uc: data.numero_uc || undefined,
       havera_beneficiarias: data.havera_beneficiarias || false,
       client_city: data.client_city || undefined,
       client_state: data.client_state || undefined,
@@ -3214,6 +3216,7 @@ export async function editProjectAction(
     // Campos do cliente e projeto (aba Gerar Projeto / Conferir Informações)
     if ((updatedProject as any).cpf_cnpj_cliente_final !== undefined) updateData.cpf_cnpj_cliente_final = (updatedProject as any).cpf_cnpj_cliente_final;
     if ((updatedProject as any).endereco_local !== undefined) updateData.endereco_local = (updatedProject as any).endereco_local;
+    if ((updatedProject as any).numero_uc !== undefined) updateData.numero_uc = (updatedProject as any).numero_uc;
     if ((updatedProject as any).client_city !== undefined) updateData.client_city = (updatedProject as any).client_city;
     if ((updatedProject as any).client_state !== undefined) updateData.client_state = (updatedProject as any).client_state;
     if ((updatedProject as any).disjuntorPadraoEntrada !== undefined) updateData.disjuntor_padrao_entrada = (updatedProject as any).disjuntorPadraoEntrada;

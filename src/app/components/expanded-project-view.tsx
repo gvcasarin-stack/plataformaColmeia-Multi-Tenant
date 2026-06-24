@@ -35,6 +35,7 @@ import {
   FileOutput,    // 📄 Para aba Gerar Projeto
   ClipboardCheck, // ✅ Para conferir informações do projeto
   CheckCircle2,  // ✅ Para indicar setup concluído
+  Hash,          // # Para número da UC
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -327,6 +328,7 @@ export const ExpandedProjectView = ({
     disjuntorPadraoEntrada: project.disjuntorPadraoEntrada,
     cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final,
     endereco_local: project.endereco_local,
+    numero_uc: project.numero_uc,
     havera_beneficiarias: project.havera_beneficiarias || false,
 
     // ✅ PROCURAÇÃO: Campos de cidade e estado do cliente
@@ -342,6 +344,7 @@ export const ExpandedProjectView = ({
       client_state: project.client_state,
       cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final,
       endereco_local: project.endereco_local,
+      numero_uc: project.numero_uc,
       distribuidora: project.distribuidora,
       nome_cliente_final: project.nome_cliente_final
     }));
@@ -1814,6 +1817,11 @@ export const ExpandedProjectView = ({
                         <Label htmlFor="cpf_cnpj_cliente_final" className="text-sm font-medium text-gray-700">CPF/CNPJ Cliente Final</Label>
                         <Input id="cpf_cnpj_cliente_final" value={editedProject.cpf_cnpj_cliente_final || ''} onChange={(e) => handleChange('cpf_cnpj_cliente_final', e.target.value)} className="mt-1" placeholder="000.000.000-00" maxLength={20}/>
             </div>
+            {/* CAMPO: Número da UC */}
+            <div>
+                        <Label htmlFor="numero_uc" className="text-sm font-medium text-gray-700">Número da UC</Label>
+                        <Input id="numero_uc" value={(editedProject as any).numero_uc || ''} onChange={(e) => handleChange('numero_uc', e.target.value)} className="mt-1" placeholder="Ex: 1234567890"/>
+            </div>
             {/* ✅ NOVO CAMPO: Endereço */}
             <div>
                         <Label htmlFor="endereco_local" className="text-sm font-medium text-gray-700">Endereço do Local</Label>
@@ -1966,6 +1974,15 @@ export const ExpandedProjectView = ({
                                 <div className="flex items-center gap-3">
                                   <CreditCard className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                                   <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCpfCnpj(editedProject.cpf_cnpj_cliente_final)}</p>
+                                </div>
+                              </div>
+                            )}
+                            {(editedProject as any).numero_uc && (
+                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
+                                <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-2 block">Número da UC</span>
+                                <div className="flex items-center gap-3">
+                                  <Hash className="h-6 w-6 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
+                                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{(editedProject as any).numero_uc}</p>
                                 </div>
                               </div>
                             )}

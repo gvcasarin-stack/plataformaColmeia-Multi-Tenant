@@ -78,6 +78,7 @@ export const getProjectById = async (projectId: string, userId: string): Promise
       disjuntorPadraoEntrada: data.disjuntor_padrao_entrada || undefined,
       cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final || undefined,
       endereco_local: data.endereco_local || undefined,
+      numero_uc: data.numero_uc || undefined,
       havera_beneficiarias: data.havera_beneficiarias || false,
       client_city: data.client_city || undefined,
       client_state: data.client_state || undefined,
@@ -228,6 +229,7 @@ export const getProjectsByUserId = async (userId: string): Promise<Project[]> =>
       // ✅ PROCURAÇÃO: Campos de cidade e estado do cliente
       cpf_cnpj_cliente_final: item.cpf_cnpj_cliente_final || undefined,
       endereco_local: item.endereco_local || undefined,
+      numero_uc: item.numero_uc || undefined,
       client_city: item.client_city || undefined,
       client_state: item.client_state || undefined,
 
@@ -436,6 +438,7 @@ export const getProjectsWithFilters = async (filters: {
         // ✅ PROCURAÇÃO: Campos de cidade e estado do cliente
         cpf_cnpj_cliente_final: item.cpf_cnpj_cliente_final || undefined,
         endereco_local: item.endereco_local || undefined,
+        numero_uc: item.numero_uc || undefined,
         client_city: item.client_city || undefined,
         client_state: item.client_state || undefined,
         havera_beneficiarias: item.havera_beneficiarias || false,
@@ -581,6 +584,7 @@ export const getProject = async (projectId: string): Promise<Project | null> => 
       disjuntorPadraoEntrada: data.disjuntor_padrao_entrada || undefined,
       cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final || undefined,
       endereco_local: data.endereco_local || undefined,
+      numero_uc: data.numero_uc || undefined,
       havera_beneficiarias: data.havera_beneficiarias || false,
       client_city: data.client_city || undefined,
       client_state: data.client_state || undefined,

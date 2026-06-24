@@ -206,7 +206,8 @@ export const KanbanBoard = forwardRef<
         project.nome_cliente_final?.toLowerCase().includes(query) ||
         project.number?.toString().includes(query) ||
         project.nomeClienteFinal?.toLowerCase().includes(query) ||
-        project.empresaIntegradora?.toLowerCase().includes(query)
+        project.empresaIntegradora?.toLowerCase().includes(query) ||
+        project.numero_uc?.toLowerCase().includes(query)
       );
     });
   }, [localProjects, searchQuery]);
