@@ -118,7 +118,7 @@ export default function DimensionamentoPage() {
   const [irradiacao, setIrradiacao] = useState<number>(4.2)
   const [autonomiaHoras, setAutonomiaHoras] = useState("24")
   const [potenciaModulo, setPotenciaModulo] = useState("550")
-  const [fatorDesempenho, setFatorDesempenho] = useState(0.85)
+  const [fatorDesempenho, setFatorDesempenho] = useState(0.80)
   
   // Etapa 6: Cargas Elétricas (opcional)
   const [mostrarCargas, setMostrarCargas] = useState(false)
@@ -235,7 +235,7 @@ export default function DimensionamentoPage() {
     setResultado(null);
     setModoCalculo('consumo');
     setPotenciaDesejadaKwp('');
-    setFatorDesempenho(0.85);
+    setFatorDesempenho(0.80);
   };
 
   // =====================================================
@@ -956,11 +956,11 @@ export default function DimensionamentoPage() {
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>60% (perdas altas)</span>
-                    <span className="font-medium text-amber-600">85% típico</span>
+                    <span className="font-medium text-amber-600">80% padrão</span>
                     <span>100% ideal</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Considera perdas por temperatura, sombreamento, cabeamento e eficiência do inversor.
+                    Valor padrão de 80% considera um sistema real com perdas típicas de temperatura, cabeamento e eficiência do inversor. Ajuste para cima apenas em instalações sem sombreamento, módulos limpos e condições ideais.
                   </p>
                 </div>
 
@@ -1206,9 +1206,15 @@ export default function DimensionamentoPage() {
                         <p className="text-2xl font-bold">{resultado.sistema_fv.geracaoDiaria.toFixed(1)} <span className="text-sm font-normal">kWh/dia</span></p>
                       </div>
                       {resultado.sistema_fv.geracaoMensal && (
-                        <div className="p-3 border border-green-200 rounded-lg bg-green-50 dark:bg-green-900/10 col-span-2 md:col-span-4">
-                          <p className="text-sm text-muted-foreground mb-1">Geração Mensal Estimada</p>
-                          <p className="text-2xl font-bold text-green-700 dark:text-green-400">{resultado.sistema_fv.geracaoMensal.toFixed(0)} <span className="text-sm font-normal">kWh/mês</span></p>
+                        <div className="col-span-2 md:col-span-4 grid grid-cols-2 gap-4">
+                          <div className="p-3 border border-green-200 rounded-lg bg-green-50 dark:bg-green-900/10">
+                            <p className="text-sm text-muted-foreground mb-1">Geração Mensal Estimada</p>
+                            <p className="text-2xl font-bold text-green-700 dark:text-green-400">{resultado.sistema_fv.geracaoMensal.toFixed(0)} <span className="text-sm font-normal">kWh/mês</span></p>
+                          </div>
+                          <div className="p-3 border border-green-200 rounded-lg bg-green-50 dark:bg-green-900/10">
+                            <p className="text-sm text-muted-foreground mb-1">Geração Anual Estimada</p>
+                            <p className="text-2xl font-bold text-green-700 dark:text-green-400">{(resultado.sistema_fv.geracaoMensal * 12).toFixed(0)} <span className="text-sm font-normal">kWh/ano</span></p>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1232,7 +1238,7 @@ export default function DimensionamentoPage() {
                         <p className="text-2xl font-bold">{resultado.sistema_baterias.capacidadeTotal} <span className="text-sm font-normal">kWh</span></p>
                       </div>
                       <div className="p-3 border rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-1">Módulos</p>
+                        <p className="text-sm text-muted-foreground mb-1">Quantidade de Baterias</p>
                         <p className="text-2xl font-bold">{resultado.sistema_baterias.modulos} <span className="text-sm font-normal">un</span></p>
                       </div>
                       <div className="p-3 border rounded-lg">
@@ -1277,18 +1283,6 @@ export default function DimensionamentoPage() {
                   </div>
                 )}
 
-                {/* Economia */}
-                {resultado.economia_mensal !== undefined && resultado.economia_mensal > 0 && (
-                  <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100">
-                    <h3 className="font-medium text-green-800 dark:text-green-300 mb-2">
-                      💰 Estimativa Financeira
-                    </h3>
-                    <p className="text-sm text-green-700 dark:text-green-400">
-                      Economia estimada: <span className="font-bold">{resultado.economia_mensal.toFixed(0)} kWh/mês</span>
-                      {tipoSistema === 'on-grid' && ' (~85% do consumo)'}
-                    </p>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-[400px] text-center">

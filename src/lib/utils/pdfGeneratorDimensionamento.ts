@@ -178,7 +178,7 @@ function gerarConteudoHTML(
         <div class="info-value">${dim.sistema_baterias.capacidadeTotal} kWh</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Módulos de Bateria</div>
+        <div class="info-label">Quantidade de Baterias</div>
         <div class="info-value">${dim.sistema_baterias.modulos} unidades</div>
       </div>
       <div class="info-item">

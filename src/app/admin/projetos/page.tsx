@@ -213,16 +213,17 @@ export default function ProjetosPage() {
       result = result.filter(project => {
         // Busca nos campos principais do projeto
         const matchesBasicFields =
-          (project.number || '').toLowerCase().includes(searchLower) ||
+          String(project.number || '').toLowerCase().includes(searchLower) ||
           (project.nomeClienteFinal || '').toLowerCase().includes(searchLower) ||
           (project.empresaIntegradora || '').toLowerCase().includes(searchLower);
 
         // Busca na lista de materiais
-        const matchesMaterials = project.listaMateriais?.toLowerCase().includes(searchLower);
+        const matchesMaterials = typeof project.listaMateriais === 'string'
+          && project.listaMateriais.toLowerCase().includes(searchLower);
 
         // Busca nos comentários e eventos da timeline
         const matchesTimeline = project.timelineEvents?.some(event =>
-          event.content?.toLowerCase().includes(searchLower)
+          typeof event.content === 'string' && event.content.toLowerCase().includes(searchLower)
         );
 
         return matchesBasicFields || matchesMaterials || matchesTimeline;
