@@ -930,7 +930,11 @@ export default function DimensionamentoPage() {
                   <div className="space-y-3 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800">
                     <div>
                       <Label className="text-sm font-medium">Levantamento de Cargas</Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">Cargas marcadas como prioritárias dimensionam as baterias</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {tipoSistema === 'hibrido'
+                          ? 'Cargas marcadas como prioritárias dimensionam as baterias'
+                          : 'Todas as cargas são consideradas no dimensionamento — não há rede elétrica de apoio'}
+                      </p>
                     </div>
 
                     <Select value={seletorCarga} onValueChange={(val) => { adicionarCargaPreDefinida(val); setSeletorCarga(''); }}>
@@ -963,15 +967,17 @@ export default function DimensionamentoPage() {
                           <div key={index} className="p-2.5 bg-white dark:bg-gray-900 border rounded-lg space-y-1.5">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-sm font-medium truncate flex-1">{carga.nome}</span>
-                              <label className="flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-400 cursor-pointer whitespace-nowrap">
-                                <input
-                                  type="checkbox"
-                                  checked={carga.prioritaria ?? false}
-                                  onChange={(e) => atualizarCarga(index, 'prioritaria', e.target.checked)}
-                                  className="accent-blue-500 cursor-pointer"
-                                />
-                                Prioritária
-                              </label>
+                              {tipoSistema === 'hibrido' && (
+                                <label className="flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-400 cursor-pointer whitespace-nowrap">
+                                  <input
+                                    type="checkbox"
+                                    checked={carga.prioritaria ?? false}
+                                    onChange={(e) => atualizarCarga(index, 'prioritaria', e.target.checked)}
+                                    className="accent-blue-500 cursor-pointer"
+                                  />
+                                  Prioritária
+                                </label>
+                              )}
                               <button onClick={() => removerCarga(index)} className="text-gray-400 hover:text-red-500 transition-colors ml-1">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -992,7 +998,7 @@ export default function DimensionamentoPage() {
                             </div>
                             <p className="text-[10px] text-muted-foreground">
                               {carga.consumoDiario.toFixed(2)} kWh/dia
-                              {carga.prioritaria && <span className="ml-1.5 text-blue-600 dark:text-blue-400 font-medium">★ prioritária</span>}
+                              {tipoSistema === 'hibrido' && carga.prioritaria && <span className="ml-1.5 text-blue-600 dark:text-blue-400 font-medium">★ prioritária</span>}
                             </p>
                           </div>
                         ))}
