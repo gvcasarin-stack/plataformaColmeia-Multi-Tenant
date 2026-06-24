@@ -1013,12 +1013,22 @@ export default function DimensionamentoPage() {
                       type="number"
                       value={autonomiaHoras}
                       onChange={(e) => setAutonomiaHoras(e.target.value)}
-                      placeholder="Ex: 24"
+                      placeholder="Ex: 48"
                       className="focus-visible:ring-amber-500"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Tempo que o sistema deve funcionar sem rede/sol
-                    </p>
+                    {tipoSistema === 'off-grid' ? (
+                      <div className="text-xs space-y-1 p-2.5 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                        <p className="font-medium text-gray-700 dark:text-gray-300">Referência de autonomia para off-grid:</p>
+                        <p className="text-muted-foreground">• <span className="font-medium">24h (1 dia)</span> — Lazer, chácara ou uso esporádico</p>
+                        <p className="text-muted-foreground">• <span className="font-medium text-amber-600">48h (2 dias)</span> — Residencial padrão (recomendado)</p>
+                        <p className="text-muted-foreground">• <span className="font-medium">72h (3 dias)</span> — Residencial em região com baixa irradiação</p>
+                        <p className="text-muted-foreground">• <span className="font-medium">96–120h (4–5 dias)</span> — Sistemas críticos (saúde, segurança, telecom)</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Tempo que as cargas prioritárias devem funcionar sem rede elétrica.
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -1078,95 +1088,24 @@ export default function DimensionamentoPage() {
               </div>
             )}
 
-            {/* ETAPA 6: Cargas Elétricas (Opcional) + Resultados */}
+            {/* ETAPA 6: Resultado calculado */}
             {step === 6 && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Cargas Elétricas (Opcional)</Label>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setMostrarCargas(!mostrarCargas)}
-                  >
-                    {mostrarCargas ? 'Ocultar' : 'Mostrar'}
-                  </Button>
+                <div className="p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800 text-center">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">Dimensionamento concluído</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Veja o resultado completo ao lado</p>
                 </div>
-
-                {mostrarCargas && (
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {cargas.map((carga, index) => (
-                      <div key={index} className="p-3 border rounded-lg space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Input
-                            placeholder="Nome do aparelho"
-                            value={carga.nome}
-                            onChange={(e) => atualizarCarga(index, 'nome', e.target.value)}
-                            className="text-sm"
-                          />
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removerCarga(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Potência (W)"
-                            value={carga.potencia || ''}
-                            onChange={(e) => atualizarCarga(index, 'potencia', parseFloat(e.target.value) || 0)}
-                            className="text-sm"
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Qtd"
-                            value={carga.quantidade || ''}
-                            onChange={(e) => atualizarCarga(index, 'quantidade', parseInt(e.target.value) || 1)}
-                            className="text-sm"
-                          />
-                          <Input
-                            type="number"
-                            placeholder="h/dia"
-                            value={carga.horasDia || ''}
-                            onChange={(e) => atualizarCarga(index, 'horasDia', parseFloat(e.target.value) || 0)}
-                            className="text-sm"
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Consumo: {carga.consumoDiario.toFixed(2)} kWh/dia
-                        </p>
-                      </div>
-                    ))}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={adicionarCarga}
-                      className="w-full"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar Carga
-                    </Button>
-                    {cargas.length > 0 && (
-                      <p className="text-sm font-medium">
-                        Total: {consumoTotalCargas.toFixed(2)} kWh/dia
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={voltarEtapa} 
+                  <Button
+                    onClick={voltarEtapa}
                     variant="outline"
                     className="flex-1"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Voltar
                   </Button>
-                  <Button 
-                    onClick={resetarFormulario} 
+                  <Button
+                    onClick={resetarFormulario}
                     variant="outline"
                     className="flex-1"
                   >
@@ -1380,6 +1319,64 @@ export default function DimensionamentoPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Tabela de cargas consideradas no dimensionamento das baterias */}
+                {resultado.sistema_baterias && cargas.length > 0 && (() => {
+                  const cargasExibidas = tipoSistema === 'hibrido'
+                    ? cargas.filter(c => c.prioritaria)
+                    : cargas;
+                  if (cargasExibidas.length === 0) return null;
+                  const totalDiario = cargasExibidas.reduce((t, c) => t + c.consumoDiario, 0);
+                  const autonomiaReal = resultado.sistema_baterias.autonomiaReal;
+                  return (
+                    <div>
+                      <h3 className="font-medium text-lg mb-1 flex items-center gap-2">
+                        <Battery className="h-5 w-5 text-blue-500" />
+                        {tipoSistema === 'hibrido' ? 'Cargas Prioritárias — Base do Dimensionamento das Baterias' : 'Cargas Consideradas — Base do Dimensionamento das Baterias'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {tipoSistema === 'hibrido'
+                          ? 'As baterias foram dimensionadas para suportar apenas as cargas marcadas como prioritárias durante a autonomia desejada.'
+                          : 'Em sistemas off-grid, todas as cargas são consideradas no dimensionamento das baterias, pois não há rede elétrica de apoio.'}
+                      </p>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-800">
+                              <th className="text-left p-2.5 border-b font-medium text-muted-foreground">Aparelho</th>
+                              <th className="text-center p-2.5 border-b font-medium text-muted-foreground">Potência (W)</th>
+                              <th className="text-center p-2.5 border-b font-medium text-muted-foreground">Qtd</th>
+                              <th className="text-center p-2.5 border-b font-medium text-muted-foreground">h/dia</th>
+                              <th className="text-right p-2.5 border-b font-medium text-muted-foreground">Consumo (kWh/dia)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cargasExibidas.map((c, i) => (
+                              <tr key={i} className="border-b last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td className="p-2.5 font-medium">{c.nome}</td>
+                                <td className="p-2.5 text-center text-muted-foreground">{c.potencia}</td>
+                                <td className="p-2.5 text-center text-muted-foreground">{c.quantidade}</td>
+                                <td className="p-2.5 text-center text-muted-foreground">{c.horasDia}</td>
+                                <td className="p-2.5 text-right font-medium">{c.consumoDiario.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-blue-50 dark:bg-blue-900/10">
+                              <td colSpan={4} className="p-2.5 font-medium text-blue-700 dark:text-blue-400">Total</td>
+                              <td className="p-2.5 text-right font-bold text-blue-700 dark:text-blue-400">{totalDiario.toFixed(2)} kWh/dia</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                          Com a capacidade instalada de {resultado.sistema_baterias.capacidadeUtil} kWh úteis, o sistema suporta estas cargas por aproximadamente <span className="font-bold">{autonomiaReal.toFixed(1)} horas</span>.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
               </div>
             ) : (

@@ -377,7 +377,7 @@ export function calcularDimensionamento(params: {
       return calcularSistemaOffGrid(
         consumoMensal,
         irradiacao,
-        2,
+        autonomiaHoras / 24, // converter horas (formulário) para dias
         potenciaModulo,
         tipoLigacao,
         cargas,
