@@ -123,6 +123,7 @@ export default function DimensionamentoPage() {
   // Etapa 6: Cargas Elétricas (opcional)
   const [mostrarCargas, setMostrarCargas] = useState(false)
   const [cargas, setCargas] = useState<Carga[]>([])
+  const [seletorCarga, setSeletorCarga] = useState('')
   
   // Resultados
   const [resultado, setResultado] = useState<any>(null)
@@ -194,14 +195,11 @@ export default function DimensionamentoPage() {
   // Avançar etapa
   const avancarEtapa = () => {
     if (podeAvancar()) {
-      // Pular etapas condicionais
       let proximaEtapa = step + 1;
-      
-      // Pular etapa 3 se for on-grid
-      if (step === 2 && tipoSistema === 'on-grid') {
+      // Pular etapa 3 para on-grid e off-grid (só híbrido tem objetivo de bateria)
+      if (step === 2 && (tipoSistema === 'on-grid' || tipoSistema === 'off-grid')) {
         proximaEtapa = 4;
       }
-      
       setStep(proximaEtapa);
     }
   };
@@ -209,12 +207,10 @@ export default function DimensionamentoPage() {
   // Voltar etapa
   const voltarEtapa = () => {
     let etapaAnterior = step - 1;
-    
-    // Pular etapa 3 ao voltar se for on-grid
-    if (step === 4 && tipoSistema === 'on-grid') {
+    // Pular etapa 3 ao voltar para on-grid e off-grid
+    if (step === 4 && (tipoSistema === 'on-grid' || tipoSistema === 'off-grid')) {
       etapaAnterior = 2;
     }
-    
     setStep(etapaAnterior);
   };
 
@@ -231,6 +227,7 @@ export default function DimensionamentoPage() {
     setAutonomiaHoras('24');
     setPotenciaModulo('550');
     setCargas([]);
+    setSeletorCarga('');
     setMostrarCargas(false);
     setResultado(null);
     setModoCalculo('consumo');
@@ -423,6 +420,27 @@ export default function DimensionamentoPage() {
     setCargas([...cargas, novaCarga]);
   };
 
+  const adicionarCargaPreDefinida = (nome: string) => {
+    if (nome === '__custom') {
+      adicionarCarga();
+      return;
+    }
+    const aparelho = APARELHOS_PRE_DEFINIDOS.find(a => a.nome === nome);
+    if (!aparelho) return;
+    const horasPadrao = 4;
+    const novaCarga: Carga = {
+      nome: aparelho.nome,
+      potencia: aparelho.potencia,
+      quantidade: 1,
+      horasDia: horasPadrao,
+      consumoDiario: (aparelho.potencia * 1 * horasPadrao) / 1000,
+      prioritaria: true,
+    };
+    setCargas(prev => [...prev, novaCarga]);
+  };
+
+  const categoriasAparelhos = Array.from(new Set(APARELHOS_PRE_DEFINIDOS.map(a => a.categoria)));
+
   const removerCarga = (index: number) => {
     setCargas(cargas.filter((_, i) => i !== index));
   };
@@ -583,8 +601,9 @@ export default function DimensionamentoPage() {
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             {[1, 2, 3, 4, 5, 6].map((s) => {
-              // Pular etapa 3 se for on-grid
+              // Pular etapa 3 e 6 se for on-grid
               if (s === 3 && tipoSistema === 'on-grid') return null;
+              if (s === 6 && tipoSistema === 'on-grid') return null;
               
               const isActive = s === step;
               const isCompleted = s < step;
@@ -616,7 +635,7 @@ export default function DimensionamentoPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-amber-500" />
-              Etapa {step} de 6
+              Etapa {step} de {tipoSistema === 'on-grid' ? 5 : 6}
             </CardTitle>
             <CardDescription>
               {step === 1 && 'Selecione o tipo de sistema'}
@@ -906,6 +925,85 @@ export default function DimensionamentoPage() {
                   )}
                 </div>
 
+                {/* Cargas Elétricas — híbrido/off-grid, antes da autonomia */}
+                {modoCalculo === 'consumo' && (tipoSistema === 'hibrido' || tipoSistema === 'off-grid') && (
+                  <div className="space-y-3 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <div>
+                      <Label className="text-sm font-medium">Levantamento de Cargas</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">Cargas marcadas como prioritárias dimensionam as baterias</p>
+                    </div>
+
+                    <Select value={seletorCarga} onValueChange={(val) => { adicionarCargaPreDefinida(val); setSeletorCarga(''); }}>
+                      <SelectTrigger className="focus-visible:ring-amber-500 bg-white dark:bg-gray-900">
+                        <SelectValue placeholder="Adicionar aparelho..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[250px] overflow-y-auto">
+                        {categoriasAparelhos.map(cat => (
+                          <React.Fragment key={cat}>
+                            <div className="px-2 pt-1 pb-0.5 text-xs font-medium text-gray-500 bg-gray-50 dark:bg-gray-800">
+                              {cat}
+                            </div>
+                            {APARELHOS_PRE_DEFINIDOS.filter(a => a.categoria === cat).map(a => (
+                              <SelectItem key={a.nome} value={a.nome}>
+                                {a.nome} — {a.potencia}W
+                              </SelectItem>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {cargas.length === 0 && (
+                      <p className="text-xs text-center text-muted-foreground py-1">Nenhum aparelho adicionado ainda</p>
+                    )}
+
+                    {cargas.length > 0 && (
+                      <div className="space-y-2 max-h-[240px] overflow-y-auto pr-0.5">
+                        {cargas.map((carga, index) => (
+                          <div key={index} className="p-2.5 bg-white dark:bg-gray-900 border rounded-lg space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium truncate flex-1">{carga.nome}</span>
+                              <label className="flex items-center gap-1.5 text-xs text-blue-700 dark:text-blue-400 cursor-pointer whitespace-nowrap">
+                                <input
+                                  type="checkbox"
+                                  checked={carga.prioritaria ?? false}
+                                  onChange={(e) => atualizarCarga(index, 'prioritaria', e.target.checked)}
+                                  className="accent-blue-500 cursor-pointer"
+                                />
+                                Prioritária
+                              </label>
+                              <button onClick={() => removerCarga(index)} className="text-gray-400 hover:text-red-500 transition-colors ml-1">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              <div>
+                                <p className="text-[10px] text-muted-foreground mb-0.5">Potência (W)</p>
+                                <Input type="number" value={carga.potencia || ''} onChange={(e) => atualizarCarga(index, 'potencia', parseFloat(e.target.value) || 0)} className="h-7 text-xs" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground mb-0.5">Qtd</p>
+                                <Input type="number" value={carga.quantidade || ''} onChange={(e) => atualizarCarga(index, 'quantidade', parseInt(e.target.value) || 1)} className="h-7 text-xs" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground mb-0.5">h/dia</p>
+                                <Input type="number" value={carga.horasDia || ''} onChange={(e) => atualizarCarga(index, 'horasDia', parseFloat(e.target.value) || 0)} className="h-7 text-xs" />
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              {carga.consumoDiario.toFixed(2)} kWh/dia
+                              {carga.prioritaria && <span className="ml-1.5 text-blue-600 dark:text-blue-400 font-medium">★ prioritária</span>}
+                            </p>
+                          </div>
+                        ))}
+                        <p className="text-xs font-medium text-right text-muted-foreground">
+                          Total: <span className="text-foreground">{consumoTotalCargas.toFixed(2)} kWh/dia</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Autonomia — apenas para híbrido/off-grid no modo consumo */}
                 {modoCalculo === 'consumo' && (tipoSistema === 'hibrido' || tipoSistema === 'off-grid') && (
                   <div className="space-y-2">
@@ -970,7 +1068,7 @@ export default function DimensionamentoPage() {
                     Voltar
                   </Button>
                   <Button
-                    onClick={() => { if (podeAvancar()) { calcular(); setStep(6); } }}
+                    onClick={() => { if (podeAvancar()) { calcular(); if (tipoSistema !== 'on-grid') setStep(6); } }}
                     disabled={!podeAvancar()}
                     className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
                   >
