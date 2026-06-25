@@ -1021,6 +1021,16 @@ export const ExpandedProjectView = ({
    * 🎨 Atualizada para exibir imagens inline nos comentários
    */
   const renderEventContent = (content: string, event?: TimelineEvent) => {
+    // Para eventos de mudança de status, reconstruir texto com nomes do tenant (não slugs)
+    if (event?.type === 'status' && (event.oldStatus || event.newStatus)) {
+      const oldName = availableStatuses.find(s => s.slug === event.oldStatus)?.name || event.oldStatus || '';
+      const newName = availableStatuses.find(s => s.slug === event.newStatus)?.name || event.newStatus || '';
+      const slaMatch = content.match(/\(Prazo:\s*\d+\s*dias?\)/i);
+      const slaPart = slaMatch ? ` ${slaMatch[0]}` : '';
+      const statusText = `Status alterado de "${oldName}" para "${newName}"${slaPart}`;
+      return <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{statusText}</p>;
+    }
+
     // Regex para detectar padrão: Arquivo "[Unidade Beneficiaria XX - YY%] nome.pdf" foi enviado
     const regex = /Arquivo\s+"?\[(.*?)\]\s+([^"]+)"?\s+(.*)/;
     const match = content.match(regex);
