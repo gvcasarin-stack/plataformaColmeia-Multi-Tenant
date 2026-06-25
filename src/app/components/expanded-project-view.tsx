@@ -36,6 +36,7 @@ import {
   ClipboardCheck, // ✅ Para conferir informações do projeto
   CheckCircle2,  // ✅ Para indicar setup concluído
   Hash,          // # Para número da UC
+  Eye,           // 👁 Para visualizar arquivo
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -464,7 +465,17 @@ export const ExpandedProjectView = ({
   const [editingComment, setEditingComment] = useState<EditingComment | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState("visao-geral");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem(`project-tab-${project.id}`) || 'visao-geral';
+    }
+    return 'visao-geral';
+  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`project-tab-${project.id}`, activeTab);
+    }
+  }, [activeTab, project.id]);
   const [showAddDocumentSection, setShowAddDocumentSection] = useState(false);
   const [showAddCommentSection, setShowAddCommentSection] = useState(false);
   const [showBeneficiariasUploadSection, setShowBeneficiariasUploadSection] = useState(false);
@@ -2881,6 +2892,15 @@ export const ExpandedProjectView = ({
                                             >
                                               <Download className="mr-1 h-3 w-3" />
                                               Download
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => window.open(event.fileUrl!, '_blank')}
+                                              className="text-xs"
+                                            >
+                                              <Eye className="mr-1 h-3 w-3" />
+                                              Visualizar
                                             </Button>
                                             {isAdminPanel && (
                                               <Button
