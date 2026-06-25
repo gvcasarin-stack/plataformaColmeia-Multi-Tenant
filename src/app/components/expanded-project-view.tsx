@@ -1195,6 +1195,11 @@ export const ExpandedProjectView = ({
             timelineEvents: result.data.timelineEvents || [],
             files: result.data.files || []
           }));
+          // Garantir que permanecemos na aba Linha do Tempo após upload/exclusão de documento
+          setActiveTab('linha-do-tempo');
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem(`project-tab-${project.id}`, 'linha-do-tempo');
+          }
         }
       }
     } catch (error) {
