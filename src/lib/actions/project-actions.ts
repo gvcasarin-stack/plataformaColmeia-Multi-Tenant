@@ -188,34 +188,8 @@ export async function updateProjectAction(
     }
 
     const tenantInfo = accessCheck.tenantInfo!;
-
-    // ❌ FIREBASE - COMENTADO: Initialize admin SDK
-    // getOrCreateFirebaseAdminApp();
-    // const adminDb = getFirestore();
-
-    // ❌ FIREBASE - COMENTADO: Use admin SDK for Firestore operations
-    // const projectRef = adminDb.collection('projects').doc(project.id);
-    // const projectDoc = await projectRef.get();
-    
-    // if (!projectDoc.exists) {
-    //   devLog.error('[updateProjectAction] Project not found');
-    //   return { error: 'Project not found' };
-    // }
-
-    // const currentData = projectDoc.data() as Project;
     const timestamp = new Date().toISOString();
 
-    // Salvar o status antigo e a lista de arquivos antiga para comparação
-    // const oldStatus = currentData.status;
-    // const oldFiles = currentData.files || []; // Garantir que seja um array
-
-    devLog.log('Current project state:', {
-      // currentStatus: currentData.status,
-      newStatus: project.status,
-      // existingEvents: currentData?.timelineEvents?.length || 0
-    });
-
-    // Prepare update data
     const updateData: any = {
       ...project,
       updatedAt: timestamp,
@@ -226,37 +200,6 @@ export async function updateProjectAction(
         timestamp
       }
     };
-
-    // Handle timeline events
-    if (project.timelineEvents) {
-      // const existingEvents = currentData?.timelineEvents || [];
-      const uniqueEvents = new Map();
-      
-      // Add new events first
-      project.timelineEvents.forEach(event => {
-        uniqueEvents.set(event.id, event);
-      });
-      
-      // Add existing events, avoiding duplicates
-      // existingEvents.forEach(event => {
-      //   if (!uniqueEvents.has(event.id)) {
-      //     uniqueEvents.set(event.id, event);
-      //   }
-      // });
-
-      // Convert Map back to array and sort by timestamp
-      updateData.timelineEvents = Array.from(uniqueEvents.values())
-        .sort((a, b) => {
-          const aTime = new Date(a.timestamp);
-          const bTime = new Date(b.timestamp);
-          return bTime.getTime() - aTime.getTime();
-        });
-    }
-
-    devLog.log('Updating project with:', {
-      status: updateData.status,
-      timelineEventsCount: updateData.timelineEvents?.length || 0
-    });
 
     // Declarar finalData no escopo correto
     let finalData: Project;
@@ -281,6 +224,18 @@ export async function updateProjectAction(
       // Salvar dados antigos para comparação
       const oldStatus = currentProject.status;
       const oldFiles = currentProject.files || [];
+
+      // Merge de timeline events — nunca sobrescreve o histórico do banco.
+      // Eventos existentes no banco são preservados; novos eventos (ou edições
+      // de eventos existentes pelo mesmo ID) são mesclados por cima.
+      let mergedTimelineEvents: any[] = currentProject.timeline_events || [];
+      if (updateData.timelineEvents && updateData.timelineEvents.length > 0) {
+        const eventMap = new Map<string, any>();
+        mergedTimelineEvents.forEach((e: any) => { if (e.id) eventMap.set(e.id, e); });
+        updateData.timelineEvents.forEach((e: any) => { if (e.id) eventMap.set(e.id, e); });
+        mergedTimelineEvents = Array.from(eventMap.values())
+          .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      }
 
       // Preparar dados para atualização no Supabase
       const supabaseUpdateData: any = {
@@ -310,7 +265,7 @@ export async function updateProjectAction(
         admin_responsible_name: updateData.adminResponsibleName || updateData.admin_responsible_name,
         admin_responsible_email: updateData.adminResponsibleEmail || updateData.admin_responsible_email,
         admin_responsible_phone: updateData.adminResponsiblePhone || updateData.admin_responsible_phone,
-        timeline_events: updateData.timelineEvents,
+        timeline_events: mergedTimelineEvents,
         documents: updateData.documents,
         files: updateData.files,
         comments: updateData.comments,
