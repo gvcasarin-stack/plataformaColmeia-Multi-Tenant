@@ -1027,7 +1027,7 @@ export const ExpandedProjectView = ({
       const newName = availableStatuses.find(s => s.slug === event.newStatus)?.name || event.newStatus || '';
       const slaMatch = content.match(/\(Prazo:\s*\d+\s*dias?\)/i);
       const slaPart = slaMatch ? ` ${slaMatch[0]}` : '';
-      const statusText = `Status alterado de "${oldName}" para "${newName}"${slaPart}`;
+      const statusText = `Status alterado de ${oldName} para ${newName}${slaPart}`;
       return <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{statusText}</p>;
     }
 
