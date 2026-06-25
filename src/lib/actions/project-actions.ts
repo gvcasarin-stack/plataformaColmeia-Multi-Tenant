@@ -667,14 +667,14 @@ export async function addCommentAction(
       projectId,
       tenantId: userTenantId
     });
-    
+
     const { data: basicProject, error: fetchError} = await supabase
       .from('projects')
-      .select('id, nome_cliente_final, number, created_by, owner_id, comments, timeline_events')
+      .select('id, nome_cliente_final, number, created_by, owner_id, comments')
       .eq('id', projectId)
       .eq('tenant_id', userTenantId)
       .single();
-      
+
     devLog.log('🚨 [CRITICAL DEBUG] Resultado busca projeto comentário:', {
       project: basicProject,
       fetchError: fetchError?.message,
@@ -691,29 +691,46 @@ export async function addCommentAction(
       devLog.error('[addCommentAction] Project not found:', fetchError);
       return { error: 'Project not found' };
     }
-    
+
     devLog.log('🚨 [CRITICAL DEBUG] Projeto encontrado para comentário! Continuando...');
 
-    // Logs removidos por questões de segurança em produção
-    
     const currentComments = basicProject.comments || [];
-    const currentTimelineEvents = basicProject.timeline_events || [];
-    
-    devLog.log('🚨 [CRITICAL DEBUG] Iniciando adição de comentário:', { 
-      projectId, 
+
+    devLog.log('🚨 [CRITICAL DEBUG] Iniciando adição de comentário:', {
+      projectId,
       content: comment.text,
       userId: user.id,
       userRole: user.role,
       currentCommentsCount: currentComments.length,
       tenantId: userTenantId
     });
-    
+
+    // Gravar evento na tabela dedicada (substitui JSONB timeline_events)
+    const { error: timelineInsertError } = await supabase
+      .from('project_timeline_events')
+      .insert({
+        id: newCommentId,
+        project_id: projectId,
+        tenant_id: userTenantId,
+        type: 'comment',
+        user_id: newCommentEntry.userId,
+        user_name: newCommentEntry.userName,
+        content: newTimelineEvent.content || null,
+        comment_id: newCommentId,
+        visibility: visibility,
+        images: (comment.images && comment.images.length > 0) ? comment.images : null,
+        created_at: newCommentEntry.timestamp
+      });
+
+    if (timelineInsertError) {
+      devLog.error('[addCommentAction] Falha ao gravar evento na timeline:', timelineInsertError);
+      return { error: `Failed to add comment timeline event: ${timelineInsertError.message}` };
+    }
+
     const { error: updateError } = await supabase
       .from('projects')
       .update({
         comments: [...currentComments, newCommentEntry],
-        timeline_events: [...currentTimelineEvents, newTimelineEvent]
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
         updated_at: new Date().toISOString(),
         last_update_by: {
           uid: user.id,
@@ -1023,80 +1040,68 @@ export async function deleteCommentAction(
 
     // ✅ SUPABASE - IMPLEMENTAÇÃO: Remover comentário no Supabase
     const supabase = createSupabaseServiceRoleClient();
-    
-    // Primeiro, buscar dados atuais do projeto
-    const { data: currentProject, error: fetchError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', projectId)
-      .single();
 
-    if (fetchError || !currentProject) {
-      devLog.error('[deleteCommentAction] Project not found:', fetchError);
+    // Buscar apenas comments e o evento de timeline para verificação de permissão
+    const [projectResult, timelineEventResult] = await Promise.all([
+      supabase
+        .from('projects')
+        .select('id, comments')
+        .eq('id', projectId)
+        .single(),
+      supabase
+        .from('project_timeline_events')
+        .select('id, user_id, type')
+        .eq('id', commentId)
+        .eq('project_id', projectId)
+        .maybeSingle()
+    ]);
+
+    if (projectResult.error || !projectResult.data) {
+      devLog.error('[deleteCommentAction] Project not found:', projectResult.error);
       return { error: 'Project not found' };
     }
 
-    const currentComments = currentProject.comments || [];
-    const currentTimelineEvents = currentProject.timeline_events || [];
+    const currentComments = projectResult.data.comments || [];
+    const timelineEvent = timelineEventResult.data;
 
-    // Logs detalhados para depuração
-    devLog.log(`[deleteCommentAction] Attempting to find commentId: "${commentId}"`);
-    devLog.log(`[deleteCommentAction] Searching in project.comments (${currentComments.length} items):`);
-    
-    currentComments.forEach((c, idx) => {
-      const contentPreview = c.text ? c.text.substring(0, 30) : 'N/A (text missing or not a string)';
-      devLog.log(`  Comment ${idx}: ID = "${c.id}", Text = "${contentPreview}"`);
-      if (c.id === commentId) {
-        devLog.log(`    MATCH FOUND in project.comments for ID: "${commentId}"`);
-      }
-    });
+    devLog.log(`[deleteCommentAction] commentId: "${commentId}", timelineEventFound: ${!!timelineEvent}`);
 
-    devLog.log(`[deleteCommentAction] Searching in project.timeline_events (${currentTimelineEvents.length} items):`);
-    currentTimelineEvents.forEach((event, idx) => {
-      let eventContentPreview = 'N/A';
-      if (event.content) {
-        eventContentPreview = event.content.substring(0,30);
-      } else if (event.fileName) {
-        eventContentPreview = event.fileName;
-      }
-      devLog.log(`  TimelineEvent ${idx}: ID = "${event.id}", Type = "${event.type}", Content = "${eventContentPreview}"`);
-      if (event.id === commentId && event.type === 'comment') {
-        devLog.log(`    MATCH FOUND in project.timeline_events for ID: "${commentId}" (type: comment)`);
-      }
-    });
+    const commentExistsInProjectComments = currentComments.some((c: any) => c.id === commentId);
+    const timelineEventExists = !!timelineEvent;
 
-    const commentExistsInProjectComments = currentComments.some(c => c.id === commentId);
-    const timelineEventExists = currentTimelineEvents.some(event => event.id === commentId && event.type === 'comment');
-
-    devLog.log(`[deleteCommentAction] Result of checks: commentExistsInProjectComments = ${commentExistsInProjectComments}, timelineEventExists = ${timelineEventExists}`);
-
-    const originalCommentEvent = currentTimelineEvents.find(event => event.id === commentId && event.type === 'comment');
-    const canDelete = user.role === 'admin' || user.role === 'superadmin' || (originalCommentEvent && originalCommentEvent.userId === user.id);
+    const canDelete = user.role === 'admin' || user.role === 'superadmin' ||
+      (timelineEvent && timelineEvent.user_id === user.id);
 
     if (!canDelete) {
-      devLog.error('[deleteCommentAction] User does not have permission to delete this comment.', { commentId, userId: user.id, commentUserId: originalCommentEvent?.userId });
+      devLog.error('[deleteCommentAction] Permissão negada.', { commentId, userId: user.id });
       return { error: 'Você não tem permissão para excluir este comentário.' };
     }
 
     if (!commentExistsInProjectComments && !timelineEventExists) {
-      devLog.warn('[deleteCommentAction] Comment ID not found in project.comments AND not in timeline_events after detailed check. ID:', commentId);
+      devLog.warn('[deleteCommentAction] Comentário não encontrado:', commentId);
       return { message: 'Comentário já removido ou não encontrado.', refresh: true };
     }
 
-    const updatedComments = currentComments.filter(c => c.id !== commentId);
-    const updatedTimelineEvents = currentTimelineEvents.filter(event => event.id !== commentId);
+    // Remover da tabela de eventos
+    if (timelineEventExists) {
+      const { error: tlDeleteError } = await supabase
+        .from('project_timeline_events')
+        .delete()
+        .eq('id', commentId)
+        .eq('project_id', projectId);
 
-    if (updatedComments.length === currentComments.length && updatedTimelineEvents.length === currentTimelineEvents.length) {
-      devLog.warn('[deleteCommentAction] Filtering did not change comment or timeline arrays. Comment ID:', commentId);
-      return { message: 'Comentário não pôde ser removido (não encontrado durante a fase de filtro).', refresh: true };
+      if (tlDeleteError) {
+        devLog.error('[deleteCommentAction] Falha ao deletar evento de timeline:', tlDeleteError);
+      }
     }
 
-    // Atualizar projeto no Supabase
-    const { data: updatedProject, error: updateError } = await supabase
+    // Remover do JSONB comments do projeto
+    const updatedComments = currentComments.filter((c: any) => c.id !== commentId);
+
+    const { error: updateError } = await supabase
       .from('projects')
       .update({
         comments: updatedComments,
-        timeline_events: updatedTimelineEvents,
         updated_at: new Date().toISOString(),
         last_update_by: {
           uid: user.id,
@@ -1105,16 +1110,14 @@ export async function deleteCommentAction(
           timestamp: new Date().toISOString()
         }
       })
-      .eq('id', projectId)
-      .select()
-      .single();
+      .eq('id', projectId);
 
     if (updateError) {
       devLog.error('[deleteCommentAction] Supabase update failed:', updateError);
       return { error: `Failed to delete comment: ${updateError.message}` };
     }
 
-    devLog.log('[deleteCommentAction] Comment deleted successfully from Supabase.', { projectId, commentId });
+    devLog.log('[deleteCommentAction] Comment deleted successfully.', { projectId, commentId });
 
     revalidatePath('/projetos');
     revalidatePath(`/projetos/${projectId}`);
@@ -1188,11 +1191,11 @@ export async function deleteFileAction(
 
     // ✅ SUPABASE - IMPLEMENTAÇÃO: Excluir arquivo no Supabase Storage
     const supabase = createSupabaseServiceRoleClient();
-    
-    // Primeiro, buscar dados do projeto para verificar se existe e obter arquivos
+
+    // Buscar apenas files do projeto (não precisamos de timeline_events)
     const { data: projectData, error: fetchError } = await supabase
       .from('projects')
-      .select('*')
+      .select('id, files')
       .eq('id', projectId)
       .single();
 
@@ -1202,7 +1205,6 @@ export async function deleteFileAction(
     }
 
     const currentFiles = projectData.files || [];
-    const currentTimelineEvents = projectData.timeline_events || [];
 
     // 1. Excluir o arquivo do Supabase Storage
     try {
@@ -1232,35 +1234,30 @@ export async function deleteFileAction(
     }
 
     // 2. Remover referências do banco de dados
-    const updatedFiles = currentFiles.filter(f => f.url !== fileUrl);
-    
-    // ✅ MELHORADO: Remover TODOS os eventos relacionados ao arquivo
-    const updatedTimelineEvents = currentTimelineEvents.filter(event => {
-      // Remover eventos que:
-      // 1. Têm fileUrl igual ao arquivo sendo deletado
-      // 2. São do tipo 'document' ou 'file_upload' e têm fileName igual
-      // 3. Mencionam o arquivo no conteúdo
-      const deletedFile = currentFiles.find(f => f.url === fileUrl);
-      const fileName = deletedFile?.name;
-      
-      return !(
-        event.fileUrl === fileUrl ||
-        (fileName && event.fileName === fileName) ||
-        (fileName && event.content?.includes(fileName))
-      );
-    });
+    const updatedFiles = currentFiles.filter((f: any) => f.url !== fileUrl);
 
-    if (currentFiles.length === updatedFiles.length && currentTimelineEvents.length === updatedTimelineEvents.length) {
-      devLog.warn('[deleteFileAction] File reference or its timeline event not found in database.', { projectId, fileUrl });
-      return { message: 'Referências do arquivo já removidas ou não encontradas.', refresh: true };
+    if (currentFiles.length === updatedFiles.length) {
+      devLog.warn('[deleteFileAction] File reference not found in database.', { projectId, fileUrl });
+      // Mesmo sem referência no JSONB, tenta limpar eventos de timeline
     }
 
-    // Atualizar projeto no Supabase
-    const { data: updatedProject, error: updateError } = await supabase
+    // Remover eventos da tabela dedicada que correspondem ao arquivo
+    const { error: tlDeleteError } = await supabase
+      .from('project_timeline_events')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('file_url', fileUrl);
+
+    if (tlDeleteError) {
+      devLog.error('[deleteFileAction] Falha ao deletar evento de timeline:', tlDeleteError);
+      // Não aborta — continua removendo referência do arquivo
+    }
+
+    // Atualizar projeto (apenas files, sem timeline_events)
+    const { error: updateError } = await supabase
       .from('projects')
       .update({
         files: updatedFiles,
-        timeline_events: updatedTimelineEvents,
         updated_at: new Date().toISOString(),
         last_update_by: {
           uid: userId,
@@ -1269,9 +1266,7 @@ export async function deleteFileAction(
           timestamp: new Date().toISOString()
         }
       })
-      .eq('id', projectId)
-      .select()
-      .single();
+      .eq('id', projectId);
 
     if (updateError) {
       devLog.error('[deleteFileAction] Failed to update project in Supabase:', updateError);
@@ -1280,46 +1275,12 @@ export async function deleteFileAction(
 
     devLog.log('[deleteFileAction] File references deleted from Supabase successfully.', { projectId, fileUrl });
 
-    // Converter dados do Supabase para o formato esperado
-    const finalProjectData: Project = {
-      id: updatedProject.id,
-      userId: updatedProject.created_by,
-      nome_cliente_final: updatedProject.nome_cliente_final,
-      number: updatedProject.number,
-      empresaIntegradora: updatedProject.empresa_integradora,
-      nomeClienteFinal: updatedProject.nome_cliente_final,
-      distribuidora: updatedProject.distribuidora,
-      potencia: updatedProject.potencia,
-      dataEntrega: updatedProject.data_entrega,
-      status: updatedProject.status,
-      prioridade: updatedProject.prioridade,
-      valorProjeto: updatedProject.valor_projeto,
-      pagamento: updatedProject.pagamento,
-      
-      createdAt: updatedProject.created_at,
-      updatedAt: updatedProject.updated_at,
-      adminResponsibleId: updatedProject.admin_responsible_id,
-      adminResponsibleName: updatedProject.admin_responsible_name,
-      adminResponsibleEmail: updatedProject.admin_responsible_email,
-      adminResponsiblePhone: updatedProject.admin_responsible_phone,
-      timelineEvents: updatedProject.timeline_events || [],
-      documents: updatedProject.documents || [],
-      files: updatedProject.files || [],
-      comments: updatedProject.comments || [],
-      history: updatedProject.history || [],
-      lastUpdateBy: updatedProject.last_update_by
-    };
-
     revalidatePath('/projetos');
     revalidatePath(`/projetos/${projectId}`);
 
-    return { 
-      data: {
-        ...finalProjectData,
-        id: projectId
-      },
-      message: 'Arquivo e suas referências removidos com sucesso!', 
-      refresh: true 
+    return {
+      message: 'Arquivo e suas referências removidos com sucesso!',
+      refresh: true
     };
 
   } catch (error) {
@@ -2078,7 +2039,7 @@ export async function createProjectClientAction(
       admin_responsible_name: defaultResponsibleName,
       admin_responsible_email: defaultResponsibleEmail,
 
-      timeline_events: initialTimelineEvents, // ✅ Agora inclui a checklist inicial
+      timeline_events: [], // eventos são gravados na tabela project_timeline_events após inserção
       documents: [],
       files: [],
       comments: [],
@@ -2122,6 +2083,31 @@ export async function createProjectClientAction(
 
       newProject = data;
       logger.info('[createProjectClientAction] Projeto criado com sucesso no Supabase:', { projectId: newProject.id, number: newProject.number });
+
+      // Gravar evento de checklist na tabela dedicada de timeline
+      if (initialTimelineEvents.length > 0) {
+        const checklistEvent = initialTimelineEvents[0];
+        await supabase
+          .from('project_timeline_events')
+          .insert({
+            id: checklistEvent.id,
+            project_id: newProject.id,
+            tenant_id: tenantInfo.tenant_id,
+            type: checklistEvent.type,
+            user_id: checklistEvent.userId,
+            user_name: checklistEvent.user,
+            content: checklistEvent.content,
+            metadata: {
+              isSystemGenerated: checklistEvent.isSystemGenerated,
+              title: checklistEvent.title,
+              fullMessage: checklistEvent.fullMessage
+            },
+            created_at: checklistEvent.timestamp
+          })
+          .then(({ error: tlErr }) => {
+            if (tlErr) logger.warn('[createProjectClientAction] Falha ao gravar checklist na timeline:', tlErr);
+          });
+      }
     } catch (insertError) {
       // Limpar cache em caso de erro para permitir nova tentativa
       const cacheKey = `project_creation_${clientUser.id}`;
@@ -2624,7 +2610,7 @@ export async function getProjectAction(projectId: string): Promise<{
       adminResponsibleName: data.admin_responsible_name,
       adminResponsibleEmail: data.admin_responsible_email,
       adminResponsiblePhone: data.admin_responsible_phone,
-      timelineEvents: data.timeline_events || [],
+      timelineEvents: [], // preenchido abaixo via nova tabela
       documents: data.documents || [],
       files: data.files || [],
       comments: data.comments || [],
@@ -2636,6 +2622,45 @@ export async function getProjectAction(projectId: string): Promise<{
       sla_expires_at: data.sla_expires_at || null,
       sla_expired: data.sla_expired || false,
     };
+
+    // Buscar eventos da nova tabela dedicada (substitui JSONB timeline_events)
+    const { data: timelineRows } = await supabase
+      .from('project_timeline_events')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+
+    if (timelineRows && timelineRows.length > 0) {
+      project.timelineEvents = timelineRows.map((row: any) => {
+        const meta = row.metadata || {};
+        return {
+          id: row.id,
+          type: row.type,
+          userId: row.user_id || 'system',
+          user: row.user_name || 'Sistema',
+          timestamp: row.created_at,
+          content: row.content || undefined,
+          fileName: row.file_name || undefined,
+          fileUrl: row.file_url || undefined,
+          oldStatus: row.old_status || undefined,
+          newStatus: row.new_status || undefined,
+          commentId: row.comment_id || undefined,
+          visibility: row.visibility || 'all',
+          images: row.images || undefined,
+          isSystemGenerated: meta.isSystemGenerated || undefined,
+          title: meta.title || undefined,
+          fullMessage: meta.fullMessage || undefined,
+          isStatusChange: meta.isStatusChange || undefined,
+          userType: meta.userType || undefined,
+          fullName: meta.fullName || undefined,
+          uploadedByName: meta.uploadedByName || undefined,
+          uploadedByRole: meta.uploadedByRole || undefined,
+          clientName: meta.clientName || undefined,
+          edited: meta.edited || undefined,
+          data: meta.data || undefined,
+        };
+      });
+    }
 
     logger.info('[getProjectAction] Projeto encontrado:', { projectId: project.id, projectName: project.nome_cliente_final, userId: project.userId });
     return sanitizeForSerialization({ data: project, message: 'Projeto carregado com sucesso.' });
@@ -2976,21 +3001,26 @@ export async function assumeProjectResponsibilityAction(
       return { error: errorMsg };
     }
 
-    // Criar evento de timeline
-    const responsibilityEvent: TimelineEvent = {
-      id: crypto.randomUUID(),
-      type: 'responsibility',
-      timestamp: new Date().toISOString(),
-      user: adminData.name || adminData.email || 'Admin',
-      userId: adminData.id,
-      content: `${adminData.name || adminData.email} assumiu a responsabilidade pelo projeto.`
-    };
+    // Gravar evento na tabela dedicada (substitui JSONB timeline_events)
+    const responsibilityTimestamp = new Date().toISOString();
+    const { error: timelineInsertError } = await supabase
+      .from('project_timeline_events')
+      .insert({
+        project_id: projectId,
+        tenant_id: currentProject.tenant_id,
+        type: 'responsibility',
+        user_id: adminData.id,
+        user_name: adminData.name || adminData.email || 'Admin',
+        content: `${adminData.name || adminData.email} assumiu a responsabilidade pelo projeto.`,
+        created_at: responsibilityTimestamp
+      });
 
-    // Preparar dados de atualização
-    const currentTimelineEvents = currentProject.timeline_events || [];
-    const updatedTimelineEvents = [responsibilityEvent, ...currentTimelineEvents];
+    if (timelineInsertError) {
+      devLog.error('[assumeProjectResponsibilityAction] Falha ao gravar evento na timeline:', timelineInsertError);
+      // Não aborta a operação principal
+    }
 
-    // ✅ Atualizar projeto diretamente
+    // ✅ Atualizar projeto diretamente (sem timeline_events)
     const { data: updatedProject, error: updateError } = await supabase
       .from('projects')
       .update({
@@ -2998,7 +3028,6 @@ export async function assumeProjectResponsibilityAction(
         admin_responsible_name: adminData.name || adminData.email || 'Admin',
         admin_responsible_email: adminData.email,
         admin_responsible_phone: adminData.phone || '',
-        timeline_events: updatedTimelineEvents,
         updated_at: new Date().toISOString(),
         last_update_by: {
           uid: adminData.id,
@@ -3154,7 +3183,7 @@ export async function editProjectAction(
     if (updatedProject.prioridade !== undefined) updateData.prioridade = updatedProject.prioridade;
     if (updatedProject.valorProjeto !== undefined) updateData.valor_projeto = updatedProject.valorProjeto;
     if (updatedProject.pagamento !== undefined) updateData.pagamento = updatedProject.pagamento;
-    if (updatedProject.timelineEvents !== undefined) updateData.timeline_events = updatedProject.timelineEvents;
+    // timeline_events NÃO é atualizado aqui — eventos são gravados via project_timeline_events
     if (updatedProject.documents !== undefined) updateData.documents = updatedProject.documents;
     if (updatedProject.files !== undefined) updateData.files = updatedProject.files;
     if (updatedProject.comments !== undefined) updateData.comments = updatedProject.comments;

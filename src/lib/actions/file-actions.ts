@@ -277,8 +277,9 @@ export async function uploadProjectFileAction(
     devLog.log('🚨 [CRITICAL DEBUG] Upload bem-sucedido! Continuando...');
 
     // Atualizar projeto com novo arquivo
+    const fileId = crypto.randomUUID();
     const newFile = {
-      id: crypto.randomUUID(),
+      id: fileId,
       name: file.name,
       originalName: file.name,
       fileName: uniqueFileName,
@@ -294,39 +295,45 @@ export async function uploadProjectFileAction(
     // Buscar arquivos atuais do projeto
     const { data: currentProject } = await supabase
       .from('projects')
-      .select('files, timeline_events')
+      .select('files')
       .eq('id', projectId)
       .single();
 
     const currentFiles = currentProject?.files || [];
-    const currentTimeline = currentProject?.timeline_events || [];
 
-    // Criar evento de timeline
-    const timelineEvent = {
-      id: crypto.randomUUID(),
-      type: 'document',
-      timestamp: new Date().toISOString(),
-      user: finalProfile.name || finalProfile.email || 'Usuário',
-      userId: user.id,
-      content: `Arquivo "${file.name}" foi enviado.`,
-      fileName: file.name,
-      fileUrl: newFile.url,
-      fileId: newFile.id
-    };
+    // Gravar evento na tabela dedicada (substitui JSONB timeline_events)
+    const eventTimestamp = new Date().toISOString();
+    const { error: timelineInsertError } = await supabase
+      .from('project_timeline_events')
+      .insert({
+        project_id: projectId,
+        tenant_id: userInfo.tenant_id,
+        type: 'document',
+        user_id: user.id,
+        user_name: finalProfile.name || finalProfile.email || 'Usuário',
+        content: `Arquivo "${file.name}" foi enviado.`,
+        file_name: file.name,
+        file_url: newFile.url,
+        file_id: fileId,
+        created_at: eventTimestamp
+      });
 
-    // Atualizar projeto
+    if (timelineInsertError) {
+      devLog.error('[uploadProjectFileAction] Falha ao gravar evento na timeline:', timelineInsertError);
+      // Não aborta o upload — só registra o erro
+    }
+
+    // Atualizar projeto (apenas files, sem timeline_events)
     devLog.log('🚨 [CRITICAL DEBUG] Atualizando projeto no banco:', {
       projectId,
       newFileName: newFile.name,
-      currentFilesCount: currentFiles.length,
-      currentTimelineCount: currentTimeline.length
+      currentFilesCount: currentFiles.length
     });
-    
+
     const { error: updateError } = await supabase
       .from('projects')
       .update({
         files: [...currentFiles, newFile],
-        timeline_events: [...currentTimeline, timelineEvent],
         updated_at: new Date().toISOString(),
         last_update_by: {
           uid: user.id,
