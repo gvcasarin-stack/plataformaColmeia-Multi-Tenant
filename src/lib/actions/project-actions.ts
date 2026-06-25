@@ -3284,7 +3284,76 @@ export async function editProjectAction(
     }
 
     devLog.log('[SERVER] editProjectAction - SUCESSO!');
-    
+
+    // Gravar/atualizar eventos de timeline na tabela dedicada
+    if (updatedProject.timelineEvents && updatedProject.timelineEvents.length > 0) {
+      try {
+        const incomingEvents = updatedProject.timelineEvents;
+        const incomingIds = incomingEvents.map((e: any) => e.id).filter(Boolean);
+
+        // Descobrir quais IDs já existem na tabela
+        const { data: existingRows } = await supabase
+          .from('project_timeline_events')
+          .select('id')
+          .in('id', incomingIds);
+
+        const existingIdSet = new Set((existingRows || []).map((r: any) => r.id));
+
+        // Novos eventos (ID não existe na tabela) → INSERT
+        const newEvents = incomingEvents.filter((e: any) => e.id && !existingIdSet.has(e.id));
+        if (newEvents.length > 0) {
+          const { error: insertErr } = await supabase
+            .from('project_timeline_events')
+            .insert(newEvents.map((e: any) => ({
+              id: e.id,
+              project_id: updatedProject.id,
+              tenant_id: currentProject.tenant_id,
+              type: e.type || 'general',
+              user_id: e.userId || null,
+              user_name: e.user || null,
+              content: e.content || null,
+              file_name: e.fileName || null,
+              file_url: e.fileUrl || null,
+              old_status: e.oldStatus || e.data?.oldStatus || null,
+              new_status: e.newStatus || e.data?.newStatus || null,
+              comment_id: e.commentId || null,
+              visibility: e.visibility || 'all',
+              images: (e.images && e.images.length > 0) ? e.images : null,
+              metadata: {
+                isSystemGenerated: e.isSystemGenerated,
+                title: e.title,
+                fullMessage: e.fullMessage,
+                isStatusChange: e.isStatusChange,
+                userType: e.userType,
+                fullName: e.fullName,
+                uploadedByName: e.uploadedByName,
+                uploadedByRole: e.uploadedByRole,
+                clientName: e.clientName,
+                data: e.data
+              },
+              created_at: e.timestamp
+            })));
+          if (insertErr) devLog.error('[editProjectAction] Falha ao inserir eventos na timeline:', insertErr);
+        }
+
+        // Eventos editados (ID existe + edited: true) → UPDATE apenas content e metadata
+        const editedEvents = incomingEvents.filter((e: any) => e.id && existingIdSet.has(e.id) && e.edited === true);
+        for (const e of editedEvents) {
+          const { error: updateErr } = await supabase
+            .from('project_timeline_events')
+            .update({
+              content: e.content || null,
+              metadata: { edited: true, data: e.data }
+            })
+            .eq('id', e.id)
+            .eq('project_id', updatedProject.id);
+          if (updateErr) devLog.error('[editProjectAction] Falha ao atualizar evento editado:', updateErr);
+        }
+      } catch (tlError) {
+        devLog.error('[editProjectAction] Erro ao processar timeline events (não crítico):', tlError);
+      }
+    }
+
     // ✅ CRÍTICO: Adicionar notificações como updateProjectAction
     try {
       // Verificar mudança de status para notificações
