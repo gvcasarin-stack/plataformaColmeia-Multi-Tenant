@@ -222,12 +222,7 @@ export default function ProjetosPage() {
         const matchesMaterials = typeof project.listaMateriais === 'string'
           && project.listaMateriais.toLowerCase().includes(searchLower);
 
-        // Busca nos comentários e eventos da timeline
-        const matchesTimeline = project.timelineEvents?.some(event =>
-          typeof event.content === 'string' && event.content.toLowerCase().includes(searchLower)
-        );
-
-        return matchesBasicFields || matchesMaterials || matchesTimeline;
+        return matchesBasicFields || matchesMaterials;
       });
     }
 
@@ -700,6 +695,7 @@ export default function ProjetosPage() {
             projects={filteredProjects}
             onProjectUpdate={updateProject}
             sortBy={sortBy}
+            teamMembers={teamMembers}
             ref={viewKanbanRef}
           />
         )}

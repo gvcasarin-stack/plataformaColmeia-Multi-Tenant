@@ -82,6 +82,7 @@ interface KanbanBoardProps {
   searchQuery?: string;
   sortBy?: string;
   onProjectUpdate?: (updatedProject: any) => Promise<any>;
+  teamMembers?: Array<{ id: string, name: string, email: string }>;
 }
 
 /**
@@ -103,7 +104,7 @@ const priorityStyles = {
 export const KanbanBoard = forwardRef<
   { reloadColumnTitles: () => Promise<boolean> },
   KanbanBoardProps
->(function KanbanBoard({ projects, searchQuery = '', sortBy = 'manual', onProjectUpdate }, ref) {
+>(function KanbanBoard({ projects, searchQuery = '', sortBy = 'manual', onProjectUpdate, teamMembers = [] }, ref) {
   const router = useRouter()
   const { user } = useAuth();
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
@@ -112,10 +113,6 @@ export const KanbanBoard = forwardRef<
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});  // slug -> name
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [columnToDelete, setColumnToDelete] = useState<{ id: string, title: string, isDefault: boolean }>({ id: '', title: '', isDefault: false });
-
-  // 🆕 Estados para membros da equipe (para atribuir responsável)
-  const [teamMembers, setTeamMembers] = useState<Array<{ id: string, name: string, email: string }>>([]);
-  const [loadingTeamMembers, setLoadingTeamMembers] = useState(false);
 
   // 🆕 Estados para modal de arquivar
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
@@ -211,26 +208,6 @@ export const KanbanBoard = forwardRef<
       );
     });
   }, [localProjects, searchQuery]);
-
-  // 🆕 Buscar membros da equipe para ações rápidas
-  useEffect(() => {
-    const fetchTeamMembers = async () => {
-      setLoadingTeamMembers(true);
-      try {
-        const response = await fetch('/api/admin/team-members');
-        if (response.ok) {
-          const result = await response.json();
-          setTeamMembers(result.data || []);
-        }
-      } catch (error) {
-        devLog.error('[KanbanBoard] Erro ao buscar membros:', error);
-      } finally {
-        setLoadingTeamMembers(false);
-      }
-    };
-
-    fetchTeamMembers();
-  }, []);
 
   // 🆕 Funções de ação rápida
   const handleViewProject = (project: Project, e: React.MouseEvent) => {
@@ -1039,9 +1016,7 @@ export const KanbanBoard = forwardRef<
                                           Atribuir Responsável
                                         </DropdownMenuSubTrigger>
                                         <DropdownMenuSubContent>
-                                          {loadingTeamMembers ? (
-                                            <DropdownMenuItem disabled>Carregando...</DropdownMenuItem>
-                                          ) : teamMembers.length === 0 ? (
+                                          {teamMembers.length === 0 ? (
                                             <DropdownMenuItem disabled>Nenhum membro disponível</DropdownMenuItem>
                                           ) : (
                                             teamMembers.map((member) => (
