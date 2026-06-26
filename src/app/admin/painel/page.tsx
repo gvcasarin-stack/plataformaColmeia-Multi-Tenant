@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/hooks/useAuth'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Project, ProjectStatus } from '@/types/project'
 import { calculateProjectCost, getProjectPriceRanges as fetchProjectPriceRanges } from '@/lib/utils/projectUtils'
 import { format } from 'date-fns/format'
@@ -9,7 +9,6 @@ import { subMonths } from 'date-fns/subMonths'
 import { eachMonthOfInterval } from 'date-fns/eachMonthOfInterval'
 import { ptBR } from 'date-fns/locale/pt-BR'
 
-import { getProjectsWithBilling } from '@/lib/services/billingService.api'
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 import {
   BarChart,
@@ -62,16 +61,6 @@ import { useNotifications } from '@/lib/contexts/NotificationContext'
 import { devLog } from "@/lib/utils/productionLogger";
 import { Suspense } from 'react'
 
-// ✅ Interface para projetos com informações de billing
-interface ProjectWithBilling {
-  id: string;
-  pagamento?: 'pendente' | 'parcela1' | 'parcela2' | 'pago';
-  price?: number;
-  potencia?: number;
-  createdAt?: any;
-  [key: string]: any; // Permitir propriedades adicionais
-}
-
 const isProjectFromCurrentMonth = (project: Project): boolean => {
   if (!project || !project.createdAt) {
     return false
@@ -98,8 +87,6 @@ export default function AdminPainelPage() {
   const [allProjects, setAllProjects] = useState<Project[]>([])
   const [recentProjects, setRecentProjects] = useState<Project[]>([])
 
-  const [billingProjects, setBillingProjects] = useState<ProjectWithBilling[]>([])
-
   const [totalPower, setTotalPower] = useState<number>(0)
   const [monthlyRevenue, setMonthlyRevenue] = useState<number>(0)
 
@@ -116,28 +103,8 @@ export default function AdminPainelPage() {
   const [currentMonthProjectsCount, setCurrentMonthProjectsCount] = useState(0)
   const [newProjectsThisMonth, setNewProjectsThisMonth] = useState(0)
   const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([])
-  const [statusLoading, setStatusLoading] = useState(true)
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#AF19FF', '#FF5733']
-
-  // Carregar status dinâmicos do tenant
-  useEffect(() => {
-    const loadStatuses = async () => {
-      try {
-        setStatusLoading(true);
-        const statuses = await getProjectStatuses();
-        setAvailableStatuses(statuses);
-        devLog.log('[AdminPainel] Status carregados:', statuses.length);
-      } catch (error) {
-        devLog.error('[AdminPainel] Erro ao carregar status:', error);
-        setAvailableStatuses([]);
-      } finally {
-        setStatusLoading(false);
-      }
-    };
-
-    loadStatuses();
-  }, []);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -147,104 +114,39 @@ export default function AdminPainelPage() {
     }
   }, [user, authLoading])
 
-  // ✅ CORREÇÃO: Função unificada para buscar dados de billing (igual página financeiro)
-  const fetchBillingData = async (forceRefresh = false) => {
-    try {
-      devLog.log('[AdminPainel] Buscando dados de billing...', { forceRefresh });
-      const billingData = await getProjectsWithBilling();
-      if (billingData && billingData.length > 0) {
-        setBillingProjects(billingData as ProjectWithBilling[]);
-        devLog.log('[AdminPainel] Dados de billing carregados:', billingData.length);
-      } else {
-        setBillingProjects([]);
-      }
-    } catch (error) {
-      devLog.error('[AdminPainel] Erro ao buscar dados de billing:', error);
-      setBillingProjects([]);
-    }
-  };
-
   useEffect(() => {
     if (user && !authLoading && !fetchedDashboardDataRef.current) {
       fetchedDashboardDataRef.current = true
       setIsLoading(true)
-      
-      // ✅ Buscar dados do dashboard e billing em paralelo
+
       if (!user?.id) {
-        setLoading(false);
+        setIsLoading(false);
         return;
       }
 
       Promise.all([
         getAdminDashboardDataAction(user.id),
-        fetchBillingData(false)
-      ]).then(([dashboardData]) => {
-        // Processar dados do dashboard
+        getProjectStatuses().catch(() => [] as ProjectStatusInfo[]),
+        fetch('/api/admin/client-count').then(res => res.json()).catch(() => ({ success: false, count: 0 }))
+      ]).then(([dashboardData, statuses, clientCountData]) => {
         if (dashboardData.error) {
-          devLog.error("Error fetching admin dashboard data:", dashboardData.error)
+          devLog.error('[AdminPainel] Erro ao buscar dados do dashboard:', dashboardData.error)
           setProjectCount(0)
           setAllProjects([])
-          fetchedDashboardDataRef.current = false // Permite retry automático no próximo render
+          fetchedDashboardDataRef.current = false
         } else {
           setProjectCount(dashboardData.projectCount || 0)
-          const fetchedProjects = dashboardData.projects || []
-          setAllProjects(fetchedProjects)
+          setAllProjects(dashboardData.projects || [])
         }
-        // ✅ Billing data já processado na função fetchBillingData
+
+        setAvailableStatuses(statuses || [])
+        setClientCountState(clientCountData?.success ? (clientCountData.count || 0) : 0)
       }).catch(error => {
-        devLog.error('Failed to fetch dashboard data:', error)
-        fetchedDashboardDataRef.current = false // Permite retry automático no próximo render
+        devLog.error('[AdminPainel] Falha ao buscar dados do painel:', error)
+        fetchedDashboardDataRef.current = false
       }).finally(() => {
         setIsLoading(false)
       })
-    }
-  }, [user, authLoading])
-
-  // ✅ CORREÇÃO: Criar contexto de sincronização com página financeiro (sem timer)
-  useEffect(() => {
-    if (!user || authLoading || !fetchedDashboardDataRef.current) return;
-
-    // Escutar eventos de atualização do financeiro
-    const handleFinancialUpdate = (event: CustomEvent) => {
-      devLog.log('[AdminPainel] Detectada atualização financeira, recarregando dados...');
-      fetchBillingData(true);
-    };
-
-    // Escutar quando usuário volta à aba
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        devLog.log('[AdminPainel] Usuário voltou à aba, verificando dados...');
-        fetchBillingData(true);
-      }
-    };
-
-    window.addEventListener('billing-updated', handleFinancialUpdate as EventListener);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('billing-updated', handleFinancialUpdate as EventListener);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, authLoading]);
-
-  useEffect(() => {
-    if (user && !authLoading) {
-      // ✅ CORREÇÃO: Usar API ao invés de chamar Supabase diretamente
-      fetch('/api/admin/client-count')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setClientCountState(data.count || 0);
-          } else {
-            devLog.error("API client-count failed:", data.error);
-            setClientCountState(0);
-          }
-        })
-        .catch(err => {
-          devLog.error("Failed to fetch client count from API", err);
-          // ✅ FALLBACK: Se falhar, definir como 0 para não quebrar a UI
-          setClientCountState(0);
-        });
     }
   }, [user, authLoading])
   

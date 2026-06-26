@@ -3,11 +3,40 @@ import { headers } from 'next/headers';
 import { devLog } from "@/lib/utils/productionLogger";
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 
+const BILLING_SELECT = `
+  id,
+  tenant_id,
+  number,
+  nome_cliente_final,
+  empresa_integradora,
+  distribuidora,
+  status,
+  prioridade,
+  potencia,
+  valor_projeto,
+  pagamento,
+  billing_mode,
+  data_pagamento_parcela1,
+  data_pagamento_integral,
+  created_at,
+  updated_at,
+  created_by,
+  deleted_at,
+  cpf_cnpj_cliente_final,
+  endereco_local,
+  numero_uc,
+  client_city,
+  client_state,
+  havera_beneficiarias,
+  tipo_conexao,
+  tipo_ramal,
+  tensao_atendimento
+`;
+
 export async function GET(request: NextRequest) {
   try {
     devLog.log('[API] [Billing] [Projects] Buscando projetos com informações de cobrança');
 
-    // ✅ PRODUÇÃO - Verificar se estamos em contexto de build
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       devLog.warn('[API] [Billing] [Projects] Service Role Key não disponível (provavelmente em build)');
       return NextResponse.json({
@@ -24,30 +53,11 @@ export async function GET(request: NextRequest) {
       devLog.warn('[API] [Billing] [Projects] Sem x-tenant-id; retornando vazio');
       return NextResponse.json({ success: true, data: [] });
     }
-    
-    // Primeiro, verificar se conseguimos buscar projetos sem join
-    devLog.log('[API] [Billing] [Projects] Verificando tabela projects...');
-    const { data: simpleProjects, error: simpleError } = await supabase
-      .from('projects')
-      .select('id, nome_cliente_final, created_by, created_at')
-      .eq('tenant_id', tenantId)
-      .limit(3);
 
-    if (simpleError) {
-      devLog.warn('[API] [Billing] [Projects] Falha acesso básico (no-op lista vazia):', simpleError);
-      return NextResponse.json({ success: true, data: [] });
-    }
-
-    devLog.log('[API] [Billing] [Projects] Projetos básicos encontrados:', {
-      count: simpleProjects?.length || 0,
-      sample: simpleProjects
-    });
-
-    // Agora tentar com o join
     const { data, error } = await supabase
       .from('projects')
       .select(`
-        *,
+        ${BILLING_SELECT},
         users!projects_created_by_fkey(
           id,
           email,
@@ -58,22 +68,19 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      devLog.warn('[API] [Billing] [Projects] Join falhou (no-op lista vazia):', error);
-      
-      // Fallback: buscar projetos sem join e fazer lookup manual se necessário
-      devLog.log('[API] [Billing] [Projects] Fallback: buscando projetos sem join...');
+      devLog.warn('[API] [Billing] [Projects] Join falhou, tentando sem join:', error);
+
       const { data: projectsOnly, error: projectsError } = await supabase
         .from('projects')
-        .select('*')
+        .select(BILLING_SELECT)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
 
       if (projectsError) {
-        devLog.warn('[API] [Billing] [Projects] Fallback falhou (no-op lista vazia):', projectsError);
+        devLog.warn('[API] [Billing] [Projects] Fallback falhou:', projectsError);
         return NextResponse.json({ success: true, data: [] });
       }
 
-      // Mapear sem informações de usuário
       const projectsWithBilling = projectsOnly?.map(project => ({
         ...project,
         client_id: project.created_by,
@@ -83,50 +90,31 @@ export async function GET(request: NextRequest) {
         nomeClienteFinal: project.nome_cliente_final,
         distribuidora: project.distribuidora,
         potencia: project.potencia,
-        valorProjeto: project.valor_projeto || project.valorProjeto || 0
+        valorProjeto: project.valor_projeto || 0
       })) || [];
 
-      devLog.log('[API] [Billing] [Projects] Projetos mapeados (fallback):', {
-        count: projectsWithBilling.length,
-        totalValue: projectsWithBilling.reduce((sum, p) => sum + (p.valorProjeto || 0), 0)
-      });
-
-      return NextResponse.json({
-        success: true,
-        data: projectsWithBilling
-      });
+      devLog.log('[API] [Billing] [Projects] Projetos mapeados (fallback):', projectsWithBilling.length);
+      return NextResponse.json({ success: true, data: projectsWithBilling });
     }
 
-    devLog.log('[API] [Billing] [Projects] Dados brutos recebidos (com join):', {
-      count: data?.length || 0,
-      sample: data?.slice(0, 2)
-    });
-
-    // Mapear dados para formato esperado
     const projectsWithBilling = data?.map(project => ({
       ...project,
       client_id: project.created_by,
       client_name: project.users?.full_name || project.users?.email || 'Cliente sem nome',
+      client_email: project.users?.email,
       pagamento: project.pagamento || 'pendente',
       empresaIntegradora: project.empresa_integradora,
       nomeClienteFinal: project.nome_cliente_final,
       distribuidora: project.distribuidora,
       potencia: project.potencia,
-      valorProjeto: project.valor_projeto || project.valorProjeto || 0
+      valorProjeto: project.valor_projeto || 0
     })) || [];
 
-    devLog.log('[API] [Billing] [Projects] Projetos mapeados (com join):', {
-      count: projectsWithBilling.length,
-      totalValue: projectsWithBilling.reduce((sum, p) => sum + (p.valorProjeto || 0), 0)
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: projectsWithBilling
-    });
+    devLog.log('[API] [Billing] [Projects] Projetos mapeados:', projectsWithBilling.length);
+    return NextResponse.json({ success: true, data: projectsWithBilling });
 
   } catch (error) {
-    devLog.warn('[API] [Billing] [Projects] Exceção (no-op lista vazia):', error);
+    devLog.warn('[API] [Billing] [Projects] Exceção:', error);
     return NextResponse.json({ success: true, data: [] });
   }
-} 
+}
