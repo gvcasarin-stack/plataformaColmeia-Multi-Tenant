@@ -10,6 +10,7 @@ import { eachMonthOfInterval } from 'date-fns/eachMonthOfInterval'
 import { ptBR } from 'date-fns/locale/pt-BR'
 
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
+import MetricasTab from './metricas-tab'
 import {
   BarChart,
   Bar,
@@ -366,6 +367,7 @@ export default function AdminPainelPage() {
   const userPermissions = user?.permissions || (user?.profile as any)?.permissions || {};
   const isFullAdmin = user?.role === 'admin' || user?.role === 'superadmin' ||
                       user?.profile?.role === 'admin' || user?.profile?.role === 'superadmin';
+  const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
 
   // ✅ NOVO: Verificar se pode ver dados financeiros no painel
   const canViewDashboardFinancials = isFullAdmin || userPermissions.can_view_dashboard_financials === true;
@@ -421,6 +423,18 @@ export default function AdminPainelPage() {
                 <Badge className="ml-2 bg-red-500 text-white">{contextUnreadCount}</Badge>
               )}
             </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => handleTabChange('metricas')}
+                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center ${
+                  activeTab === 'metricas'
+                    ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Métricas
+              </button>
+            )}
           </div>
 
           <TabsContent value="dashboard">
@@ -708,6 +722,16 @@ export default function AdminPainelPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isSuperAdmin && (
+            <TabsContent value="metricas">
+              <MetricasTab
+                allProjects={allProjects}
+                availableStatuses={availableStatuses}
+                isActive={activeTab === 'metricas'}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
