@@ -69,6 +69,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
   const [conclusoes,       setConclusoes]        = useState<ConclusaoEvent[]>([])
   const [loadingConclusoes, setLoadingConclusoes] = useState(false)
   const [conclusionConfigured, setConclusionConfigured] = useState<boolean | null>(null)
+  const [conclusoesLoaded, setConclusoesLoaded] = useState(false)
 
   const [filterPeriod,       setFilterPeriod]       = useState('12m')
   const [filterDistributor,  setFilterDistributor]  = useState('all')
@@ -83,15 +84,16 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
       .catch(() => devLog.warn('[MetricasTab] Falha ao carregar membros'))
   }, [isActive])
 
-  // Conclusões — lazy, só quando a sub-aba Projetos fica ativa
+  // Conclusões — lazy, só quando a sub-aba Projetos fica ativa; recarrega se ainda não carregou
   useEffect(() => {
-    if (!isActive || metricaTab !== 'projetos' || conclusoes.length > 0 || loadingConclusoes || conclusionConfigured !== null) return
+    if (!isActive || metricaTab !== 'projetos' || conclusoesLoaded || loadingConclusoes) return
     setLoadingConclusoes(true)
     fetch('/api/admin/metricas/conclusoes')
       .then(r => r.json())
       .then(d => {
         setConclusoes(d.data || [])
         setConclusionConfigured((d.conclusionSlugs?.length ?? 0) > 0)
+        setConclusoesLoaded(true)
       })
       .catch(() => devLog.warn('[MetricasTab] Falha ao carregar conclusões'))
       .finally(() => setLoadingConclusoes(false))

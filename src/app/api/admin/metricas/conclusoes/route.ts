@@ -5,8 +5,10 @@ import { devLog } from '@/lib/utils/productionLogger'
 
 /**
  * GET /api/admin/metricas/conclusoes
- * Retorna os eventos em que projetos foram movidos para um status marcado como is_conclusion.
- * Usado na aba Métricas para calcular evolução criados x concluídos e backlog acumulado.
+ * Retorna eventos de conclusão de projetos combinando duas fontes:
+ * 1. project_timeline_events — data exata para projetos movidos após criação da tabela
+ * 2. projects com status is_conclusion — fallback de data (status_changed_at || updated_at)
+ *    para projetos históricos sem evento registrado
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient()
 
-    // Buscar quais slugs representam conclusão para este tenant
+    // 1. Buscar slugs de conclusão configurados para este tenant
     const { data: conclusionStatuses, error: statusError } = await supabase
       .from('project_statuses')
       .select('slug')
@@ -42,7 +44,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: [], conclusionSlugs: [] })
     }
 
-    const { data, error } = await supabase
+    // 2. Buscar eventos da timeline (projetos movidos após criação da tabela)
+    const { data: timelineEvents, error: timelineError } = await supabase
       .from('project_timeline_events')
       .select('project_id, created_at, new_status')
       .eq('tenant_id', tenantId)
@@ -50,13 +53,38 @@ export async function GET(request: NextRequest) {
       .in('new_status', conclusionSlugs)
       .order('created_at', { ascending: true })
 
-    if (error) {
-      devLog.warn('[metricas/conclusoes] Erro ao consultar timeline_events:', error)
-      return NextResponse.json({ success: true, data: [], conclusionSlugs })
+    if (timelineError) {
+      devLog.warn('[metricas/conclusoes] Erro ao consultar timeline_events:', timelineError)
     }
 
-    devLog.log('[metricas/conclusoes] Eventos encontrados:', data?.length || 0, 'slugs:', conclusionSlugs)
-    return NextResponse.json({ success: true, data: data || [], conclusionSlugs })
+    const timelineData = timelineEvents || []
+    const projectsWithEvent = new Set(timelineData.map(e => e.project_id))
+
+    // 3. Buscar projetos que já estão em status de conclusão (histórico)
+    const { data: conclusionProjects, error: projectsError } = await supabase
+      .from('projects')
+      .select('id, status, status_changed_at, updated_at')
+      .eq('tenant_id', tenantId)
+      .in('status', conclusionSlugs)
+      .is('deleted_at', null)
+
+    if (projectsError) {
+      devLog.warn('[metricas/conclusoes] Erro ao buscar projetos históricos:', projectsError)
+    }
+
+    // 4. Projetos sem evento na timeline → criar registro sintético com a melhor data disponível
+    const historicalEvents = (conclusionProjects || [])
+      .filter(p => !projectsWithEvent.has(p.id))
+      .map(p => ({
+        project_id: p.id,
+        created_at: p.status_changed_at || p.updated_at,
+        new_status: p.status,
+      }))
+
+    const combined = [...timelineData, ...historicalEvents]
+
+    devLog.log('[metricas/conclusoes] Timeline:', timelineData.length, '| Históricos:', historicalEvents.length, '| Total:', combined.length)
+    return NextResponse.json({ success: true, data: combined, conclusionSlugs })
 
   } catch (err) {
     devLog.warn('[metricas/conclusoes] Exceção:', err)
