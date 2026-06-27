@@ -13,6 +13,7 @@ export interface ProjectStatusInfo {
   projectCount: number;
   slaDays?: number | null;
   slaExcludeWeekends?: boolean;
+  isConclusion?: boolean;
 }
 
 // ✅ NOVO: Buscar status de projetos do tenant atual
@@ -273,7 +274,8 @@ export async function getProjectStatuses(): Promise<ProjectStatusInfo[]> {
         isDefault: status.is_default,
         projectCount: status.project_count || 0,
         slaDays: status.sla_days ?? null,
-        slaExcludeWeekends: status.sla_exclude_weekends !== undefined ? status.sla_exclude_weekends : true
+        slaExcludeWeekends: status.sla_exclude_weekends !== undefined ? status.sla_exclude_weekends : true,
+        isConclusion: status.is_conclusion === true
       }))
       .sort((a, b) => a.order - b.order); // ✅ CORREÇÃO: Ordenar por order_index
 
@@ -308,6 +310,30 @@ export function getDisplayStatus(status: string): string {
   };
 
   return fallbackMap[status] || status;
+}
+
+// Marcar/desmarcar status como "representa conclusão de projeto"
+export async function updateStatusConclusion(statusId: string, isConclusion: boolean): Promise<void> {
+  try {
+    const response = await fetch(`/api/project-statuses/${statusId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_conclusion: isConclusion }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Erro ao atualizar');
+
+    devLog.log('[KanbanService] is_conclusion atualizado:', { statusId, isConclusion });
+  } catch (error) {
+    devLog.error('[KanbanService] Erro ao atualizar is_conclusion:', error);
+    throw error;
+  }
 }
 
 // ✅ NOVO: Atualizar configurações de SLA de um status

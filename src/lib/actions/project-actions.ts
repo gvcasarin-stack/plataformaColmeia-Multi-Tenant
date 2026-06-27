@@ -2339,7 +2339,7 @@ export async function getAdminDashboardDataAction(userId: string): Promise<{
     // (evita buscar 60+ campos + JSONB pesados que o painel não usa)
     const { data, error: queryError } = await supabase
       .from('projects')
-      .select('id, potencia, status, created_at, updated_at, valor_projeto, nome_cliente_final')
+      .select('id, number, potencia, status, created_at, updated_at, valor_projeto, nome_cliente_final, empresa_integradora, distribuidora, billing_mode, created_by')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
       .order('updated_at', { ascending: false })
@@ -2357,17 +2357,21 @@ export async function getAdminDashboardDataAction(userId: string): Promise<{
       status: item.status || 'indefinido',
       createdAt: item.created_at || new Date().toISOString(),
       updatedAt: item.updated_at || new Date().toISOString(),
+      created_at: item.created_at || new Date().toISOString(),
+      updated_at: item.updated_at || new Date().toISOString(),
       valorProjeto: item.valor_projeto || null,
+      valor_projeto: item.valor_projeto || null,
       nomeClienteFinal: item.nome_cliente_final || '',
-      // Campos obrigatórios do tipo Project com defaults seguros
-      number: '',
-      userId: '',
       nome_cliente_final: item.nome_cliente_final || '',
-      empresaIntegradora: '',
-      distribuidora: '',
+      number: item.number || '',
+      userId: item.created_by || '',
+      created_by: item.created_by || '',
+      empresaIntegradora: item.empresa_integradora || '',
+      empresa_integradora: item.empresa_integradora || '',
+      distribuidora: item.distribuidora || '',
+      billing_mode: (item.billing_mode || 'avulso') as 'avulso' | 'pacote' | 'assinatura',
       dataEntrega: '',
       prioridade: 'Baixa' as const,
-      billing_mode: 'avulso' as const,
       billing_snapshot: null,
       timelineEvents: [],
       documents: [],

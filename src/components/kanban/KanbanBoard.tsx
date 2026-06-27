@@ -21,7 +21,8 @@ import {
   Target,
   ArrowRightLeft,
   Link2,
-  Archive
+  Archive,
+  CheckCircle2
 } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Project, TimelineEvent } from "@/types/project"
@@ -29,7 +30,7 @@ import { ProjectStatus } from "@/types/kanban"
 import { cn } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
 import { EditableColumnTitle } from '@/components/kanban'
-import { getKanbanColumnTitles, updateKanbanColumnTitle, getKanbanColumnColors, getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
+import { getKanbanColumnTitles, updateKanbanColumnTitle, getKanbanColumnColors, getProjectStatuses, updateStatusConclusion, ProjectStatusInfo } from '@/lib/services/kanbanService'
 import { toast } from '@/components/ui/use-toast'
 import { DeleteColumnDialog } from '@/components/kanban'
 import { devLog } from "@/lib/utils/productionLogger";
@@ -72,6 +73,7 @@ interface Column {
   projectCount: number;
   slaDays?: number | null;
   slaExcludeWeekends?: boolean;
+  isConclusion?: boolean;
 }
 
 /**
@@ -149,7 +151,8 @@ export const KanbanBoard = forwardRef<
         isDefault: status.isDefault,
         projectCount: status.projectCount,
         slaDays: status.slaDays,
-        slaExcludeWeekends: status.slaExcludeWeekends
+        slaExcludeWeekends: status.slaExcludeWeekends,
+        isConclusion: status.isConclusion
       }));
 
       devLog.log('[KanbanBoard] Mapeando columns:', {
@@ -417,6 +420,25 @@ export const KanbanBoard = forwardRef<
         description: error.message || "Não foi possível arquivar o projeto.",
         variant: "destructive"
       });
+    }
+  };
+
+  // Alternar flag "representa conclusão" de uma coluna
+  const handleToggleConclusion = async (columnId: string, current: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = !current;
+    setColumns(prev => prev.map(c => c.id === columnId ? { ...c, isConclusion: next } : c));
+    try {
+      await updateStatusConclusion(columnId, next);
+      toast({
+        title: next ? 'Status marcado como conclusão' : 'Status desmarcado',
+        description: next
+          ? 'Este status agora representa projetos concluídos nas métricas.'
+          : 'Este status não representa mais conclusão.',
+      });
+    } catch {
+      setColumns(prev => prev.map(c => c.id === columnId ? { ...c, isConclusion: current } : c));
+      toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
     }
   };
 
@@ -928,16 +950,31 @@ export const KanbanBoard = forwardRef<
                       {getColumnProjects(column.slug).length}
                     </span>
                   </div>
-                  <div
-                    className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center",
-                      "bg-gray-100 dark:bg-gray-700",
-                      "text-gray-500 dark:text-gray-400",
-                      "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    )}
-                    onClick={(e) => handleDeleteClick(column.id, column.title, column.isDefault, e)}
-                  >
-                    <X className="h-4 w-4 text-red-500 hover:text-red-700" />
+                  <div className="flex items-center gap-1">
+                    <div
+                      title={column.isConclusion ? 'Representa conclusão (clique para desmarcar)' : 'Marcar como conclusão de projeto'}
+                      className={cn(
+                        "w-7 h-7 rounded-full flex items-center justify-center",
+                        "cursor-pointer transition-colors",
+                        column.isConclusion
+                          ? "bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-900/60"
+                          : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 opacity-40 hover:opacity-70"
+                      )}
+                      onClick={(e) => handleToggleConclusion(column.id, column.isConclusion ?? false, e)}
+                    >
+                      <CheckCircle2 className={cn("h-4 w-4", column.isConclusion ? "text-green-600 dark:text-green-400" : "text-gray-400")} />
+                    </div>
+                    <div
+                      className={cn(
+                        "w-7 h-7 rounded-full flex items-center justify-center",
+                        "bg-gray-100 dark:bg-gray-700",
+                        "text-gray-500 dark:text-gray-400",
+                        "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      )}
+                      onClick={(e) => handleDeleteClick(column.id, column.title, column.isDefault, e)}
+                    >
+                      <X className="h-4 w-4 text-red-500 hover:text-red-700" />
+                    </div>
                   </div>
                 </div>
               </div>

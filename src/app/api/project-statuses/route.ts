@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
           icon,
           is_active,
           sla_days,
-          sla_exclude_weekends
+          sla_exclude_weekends,
+          is_conclusion
         `)
         .eq('tenant_id', tenantId)
         .eq('is_active', true)

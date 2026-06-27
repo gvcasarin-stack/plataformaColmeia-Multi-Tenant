@@ -23,7 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, DollarSign, Layers, ShieldCheck } from 'lucide-react'
+import { TrendingUp, DollarSign, Layers, ShieldCheck, CheckCircle } from 'lucide-react'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -68,6 +68,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
   const [teamMembers,      setTeamMembers]       = useState<TeamMember[]>([])
   const [conclusoes,       setConclusoes]        = useState<ConclusaoEvent[]>([])
   const [loadingConclusoes, setLoadingConclusoes] = useState(false)
+  const [conclusionConfigured, setConclusionConfigured] = useState<boolean | null>(null)
 
   const [filterPeriod,       setFilterPeriod]       = useState('12m')
   const [filterDistributor,  setFilterDistributor]  = useState('all')
@@ -84,11 +85,14 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
 
   // Conclusões — lazy, só quando a sub-aba Projetos fica ativa
   useEffect(() => {
-    if (!isActive || metricaTab !== 'projetos' || conclusoes.length > 0 || loadingConclusoes) return
+    if (!isActive || metricaTab !== 'projetos' || conclusoes.length > 0 || loadingConclusoes || conclusionConfigured !== null) return
     setLoadingConclusoes(true)
     fetch('/api/admin/metricas/conclusoes')
       .then(r => r.json())
-      .then(d => setConclusoes(d.data || []))
+      .then(d => {
+        setConclusoes(d.data || [])
+        setConclusionConfigured((d.conclusionSlugs?.length ?? 0) > 0)
+      })
       .catch(() => devLog.warn('[MetricasTab] Falha ao carregar conclusões'))
       .finally(() => setLoadingConclusoes(false))
   }, [isActive, metricaTab])
@@ -417,6 +421,17 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
       {/* ═══════════════ SUB-ABA: PROJETOS ══════════════════════════════ */}
       {metricaTab === 'projetos' && (
         <div className="space-y-6">
+          {/* Aviso: nenhum status de conclusão configurado */}
+          {conclusionConfigured === false && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Nenhum status do Kanban está configurado como &ldquo;conclusão de projeto&rdquo;. O gráfico de <strong>Concluídos</strong> ficará vazio.
+                {' '}Acesse o <strong>Kanban</strong> e clique no ícone <CheckCircle className="inline h-3.5 w-3.5" /> ao lado de uma coluna para marcá-la.
+              </span>
+            </div>
+          )}
+
           {/* Evolução criados x concluídos */}
           <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader>

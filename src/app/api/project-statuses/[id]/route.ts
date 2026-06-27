@@ -30,7 +30,7 @@ export async function PUT(
 
     // Parse do body
     const body = await request.json();
-    const { name, color, icon, sla_days, sla_exclude_weekends } = body;
+    const { name, color, icon, sla_days, sla_exclude_weekends, is_conclusion } = body;
 
     // Validações
     if (name !== undefined) {
@@ -86,6 +86,7 @@ export async function PUT(
     if (icon !== undefined) updateData.icon = icon || null;
     if (sla_days !== undefined) updateData.sla_days = sla_days;
     if (sla_exclude_weekends !== undefined) updateData.sla_exclude_weekends = sla_exclude_weekends;
+    if (is_conclusion !== undefined) updateData.is_conclusion = Boolean(is_conclusion);
 
     const { data: updatedStatus, error: updateError } = await supabase
       .from('project_statuses')
