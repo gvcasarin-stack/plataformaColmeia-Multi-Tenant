@@ -52,7 +52,6 @@ const PERIOD_OPTIONS = [
 const fmt  = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtS = (v: number) => {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000)     return `R$ ${(v / 1_000).toFixed(0)}k`
   return fmt(v)
 }
 const monthKey  = (d: Date) => format(d, 'yyyy-MM')
@@ -72,6 +71,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
   const [conclusoesLoaded, setConclusoesLoaded] = useState(false)
 
   const [filterPeriod,       setFilterPeriod]       = useState('12m')
+  const [filterYear,         setFilterYear]         = useState('all')
   const [filterDistributor,  setFilterDistributor]  = useState('all')
   const [filterCollaborator, setFilterCollaborator] = useState('all')
 
@@ -106,9 +106,21 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
     [allProjects],
   )
 
+  const availableYears = useMemo(() => {
+    const years = new Set<number>()
+    for (const p of allProjects) {
+      const d = projectDate(p)
+      if (d) years.add(d.getFullYear())
+    }
+    return [...years].sort((a, b) => b - a)
+  }, [allProjects])
+
   const filteredProjects = useMemo(() => {
     let list = allProjects
-    if (filterPeriod !== 'all') {
+    if (filterYear !== 'all') {
+      const y = Number(filterYear)
+      list = list.filter(p => { const d = projectDate(p); return d && d.getFullYear() === y })
+    } else if (filterPeriod !== 'all') {
       const months = PERIOD_OPTIONS.find(o => o.value === filterPeriod)?.months ?? 12
       const cutoff = subMonths(new Date(), months)
       list = list.filter(p => { const d = projectDate(p); return d && d >= cutoff })
@@ -116,17 +128,24 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
     if (filterDistributor  !== 'all') list = list.filter(p => p.distribuidora === filterDistributor)
     if (filterCollaborator !== 'all') list = list.filter(p => projectId(p) === filterCollaborator)
     return list
-  }, [allProjects, filterPeriod, filterDistributor, filterCollaborator])
+  }, [allProjects, filterPeriod, filterYear, filterDistributor, filterCollaborator])
 
   // Range de meses para os gráficos de evolução
   const monthRange = useMemo(() => {
+    if (filterYear !== 'all') {
+      const y = Number(filterYear)
+      return eachMonthOfInterval({
+        start: new Date(y, 0, 1),
+        end:   new Date(Math.min(y, new Date().getFullYear()) === new Date().getFullYear() ? Date.now() : new Date(y, 11, 31).getTime()),
+      })
+    }
     const months = filterPeriod === 'all' ? 23
       : (PERIOD_OPTIONS.find(o => o.value === filterPeriod)?.months ?? 12) - 1
     return eachMonthOfInterval({
       start: startOfMonth(subMonths(new Date(), months)),
       end:   new Date(),
     })
-  }, [filterPeriod])
+  }, [filterPeriod, filterYear])
 
   // ── métricas KPI ─────────────────────────────────────────────────────────
 
@@ -338,9 +357,9 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
               {PERIOD_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setFilterPeriod(opt.value)}
+                  onClick={() => { setFilterPeriod(opt.value); setFilterYear('all') }}
                   className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    filterPeriod === opt.value
+                    filterYear === 'all' && filterPeriod === opt.value
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
@@ -349,6 +368,19 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
                 </button>
               ))}
             </div>
+
+            {availableYears.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Ano:</span>
+                <Select value={filterYear} onValueChange={v => { setFilterYear(v); if (v !== 'all') setFilterPeriod('all') }}>
+                  <SelectTrigger className="h-8 w-28 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {uniqueDistributors.length > 0 && (
               <div className="flex items-center gap-2">
@@ -392,7 +424,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
           { icon: <DollarSign className="h-4 w-4" />, label: 'Receita Total', value: fmtS(kpi.totalRevenue), sub: 'valor total dos projetos' },
           { icon: <TrendingUp className="h-4 w-4" />, label: 'Projetos Ativos', value: kpi.activeCount, sub: 'excluindo finalizados e cancelados' },
           {
-            icon: <ShieldCheck className="h-4 w-4" />, label: 'Compliance SLA',
+            icon: <ShieldCheck className="h-4 w-4" />, label: 'Projetos no Prazo',
             value: kpi.slaPercent !== null
               ? <span className={kpi.slaPercent >= 80 ? 'text-green-600' : kpi.slaPercent >= 60 ? 'text-yellow-600' : 'text-red-600'}>{kpi.slaPercent}%</span>
               : <span className="text-sm text-muted-foreground">Sem SLA config.</span>,
@@ -516,7 +548,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
             {/* SLA */}
             <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader>
-                <CardTitle>Compliance SLA por Etapa</CardTitle>
+                <CardTitle>Projetos no Prazo por Etapa</CardTitle>
                 <CardDescription>
                   Dentro vs. fora do prazo configurado
                   <span className="block text-xs text-muted-foreground/70 mt-0.5">

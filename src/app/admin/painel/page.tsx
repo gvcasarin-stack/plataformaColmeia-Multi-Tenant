@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/hooks/useAuth'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { Project, ProjectStatus } from '@/types/project'
 import { calculateProjectCost, getProjectPriceRanges as fetchProjectPriceRanges } from '@/lib/utils/projectUtils'
 import { format } from 'date-fns/format'
@@ -104,6 +104,12 @@ export default function AdminPainelPage() {
   const [currentMonthProjectsCount, setCurrentMonthProjectsCount] = useState(0)
   const [newProjectsThisMonth, setNewProjectsThisMonth] = useState(0)
   const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([])
+
+  const concludedCount = useMemo(() => {
+    const conclusionSlugs = new Set(availableStatuses.filter(s => s.isConclusion).map(s => s.slug))
+    if (conclusionSlugs.size === 0) return 0
+    return allProjects.filter(p => conclusionSlugs.has(p.status || '')).length
+  }, [allProjects, availableStatuses])
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#AF19FF', '#FF5733']
 
@@ -490,6 +496,22 @@ export default function AdminPainelPage() {
                 </CardContent>
               </Card>
 
+              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-3">
+                    <div className="p-3 bg-emerald-500 rounded-full">
+                      <CheckCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-200">Projetos Concluídos</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{concludedCount}</div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {projectCount > 0 ? Math.round((concludedCount / projectCount) * 100) : 0}% do total
+                  </p>
+                </CardContent>
+              </Card>
 
             </div>
 

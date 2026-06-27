@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         id,
         email,
         name,
+        full_name,
         phone,
         department,
         role,
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
     // Formatar dados para o frontend
     const formattedMembers = (members || []).map(member => ({
       id: member.id,
-      name: member.name || member.email.split('@')[0],
+      name: (member as any).full_name || member.name || member.email.split('@')[0],
       email: member.email,
       role: member.role, // ✅ Retornar role real (admin ou colaborador)
       permissions: member.permissions, // ✅ Incluir permissions
