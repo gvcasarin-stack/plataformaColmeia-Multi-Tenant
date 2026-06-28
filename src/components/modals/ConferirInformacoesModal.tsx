@@ -54,7 +54,7 @@ const ESTADOS_BR = [
   { value: 'TO', label: 'Tocantins (TO)' },
 ];
 
-type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom' | 'temp_fator_select' | 'strings_config';
+type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom' | 'temp_fator_select' | 'strings_config' | 'cpfl_padrao_select';
 
 interface FieldDef {
   key: string;
@@ -68,6 +68,8 @@ interface FieldDef {
   group: string;
   acervoCategoria?: string;
   defaultValue?: string | ((fields: Record<string, any>) => string);
+  onlyForDistribuidoras?: string[];
+  hideForDistribuidoras?: string[];
 }
 
 const PVC_TEMP_OPTIONS = [
@@ -100,6 +102,39 @@ const AGRUPAMENTO_OPTIONS = [
   { value: '0,41', label: '0,41 (de 16 a 19 circuitos)' },
   { value: '0,38', label: '0,38 (>= 20 circuitos)' },
 ];
+
+const CPFL_PADRAO_127_220 = [
+  { value: 'A1', label: 'A1 - GED 13 (Tab. 1A)' },
+  { value: 'A2', label: 'A2 - GED 13 (Tab. 1A)' },
+  { value: 'B1', label: 'B1 – GED 13 (Tab. 1A)' },
+  { value: 'B2', label: 'B2 - GED 13 (Tab. 1A)' },
+  { value: 'C1', label: 'C1 - GED 13 (Tab. 1A)' },
+  { value: 'C2', label: 'C2 - GED 13 (Tab. 1A)' },
+  { value: 'C3', label: 'C3 - GED 13 (Tab. 1A)' },
+  { value: 'C4', label: 'C4 - GED 13 (Tab. 1A)' },
+  { value: 'C5', label: 'C5 - GED 13 (Tab. 1A)' },
+  { value: 'C6', label: 'C6 - GED 13 (Tab. 1A)' },
+];
+
+const CPFL_PADRAO_220_380 = [
+  { value: 'A3', label: 'A3 - GED 13 (Tab. 1B)' },
+  { value: 'A4', label: 'A4 - GED 13 (Tab. 1B)' },
+  { value: 'B3', label: 'B3 – GED 13 (Tab. 1B)' },
+  { value: 'C7',  label: 'C7  - GED 13 (Tab. 1B)' },
+  { value: 'C8',  label: 'C8  - GED 13 (Tab. 1B)' },
+  { value: 'C9',  label: 'C9  - GED 13 (Tab. 1B)' },
+  { value: 'C10', label: 'C10 - GED 13 (Tab. 1B)' },
+  { value: 'C11', label: 'C11 - GED 13 (Tab. 1B)' },
+];
+
+const CPFL_PADRAO_FASES: Record<string, string> = {
+  A1: 'MONOFÁSICO', A2: 'MONOFÁSICO', A3: 'MONOFÁSICO', A4: 'MONOFÁSICO',
+  B1: 'BIFÁSICO',   B2: 'BIFÁSICO',   B3: 'BIFÁSICO',
+  C1: 'TRIFÁSICO',  C2: 'TRIFÁSICO',  C3: 'TRIFÁSICO',
+  C4: 'TRIFÁSICO',  C5: 'TRIFÁSICO',  C6: 'TRIFÁSICO',
+  C7: 'TRIFÁSICO',  C8: 'TRIFÁSICO',  C9: 'TRIFÁSICO',
+  C10: 'TRIFÁSICO', C11: 'TRIFÁSICO',
+};
 
 const FIELD_DEFINITIONS: FieldDef[] = [
   // Dados do Cliente
@@ -191,6 +226,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'tipo_conexao', label: 'Tipo de Conexão', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Bifásico', label: 'Bifásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Padrão de Entrada' },
   { key: 'tipo_ramal', label: 'Tipo de Ramal', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Aéreo', label: 'Aéreo' }, { value: 'Subterrâneo', label: 'Subterrâneo' }], group: 'Padrão de Entrada' },
   { key: 'tensao_atendimento', label: 'Tensão de Atendimento (V)', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '127/220', label: '127/220' }, { value: '220/380', label: '220/380' }], group: 'Padrão de Entrada' },
+  { key: 'padrao_entrada', label: 'Categoria do Padrão de Entrada', icon: <Zap className="h-3.5 w-3.5" />, type: 'cpfl_padrao_select', required: true, group: 'Padrão de Entrada', onlyForDistribuidoras: ['CPFL'] },
 
   // Dados da Unidade Consumidora
   { key: 'conta_contrato', label: 'Nº Conta Contrato', icon: <Building className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados da Unidade Consumidora' },
@@ -198,7 +234,14 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'numero_poste_transformador', label: 'Nº Poste / Transformador', type: 'text', required: false, group: 'Dados da Unidade Consumidora' },
 
   // Padrão de Entrada
-  { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada' },
+  { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada', hideForDistribuidoras: ['CPFL'] },
+  { key: 'cpfl_tipo_poste_padrao', label: 'Caixa de Medição ou Tipo de Poste Padrão', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'select', required: true, options: [
+    { value: 'Anexo A (Multi 100) - GED 14945', label: 'Anexo A (Multi 100) - GED 14945' },
+    { value: 'Anexo B (Multi 100) - GED 14945', label: 'Anexo B (Multi 100) - GED 14945' },
+    { value: 'Caixa Tipo II - GED 4136', label: 'Caixa Tipo II - GED 4136' },
+    { value: 'Caixa Tipo III - GED 4137', label: 'Caixa Tipo III - GED 4137' },
+    { value: 'Caixa de Medição em MT, 800x1200x400mm - GED 2861', label: 'Caixa de Medição em MT, 800x1200x400mm - GED 2861' },
+  ], group: 'Padrão de Entrada', onlyForDistribuidoras: ['CPFL'] },
   { key: 'disjuntor_polos', label: 'Disjuntor — Nº de Polos', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }], group: 'Padrão de Entrada' },
   { key: 'disjuntor_corrente_a', label: 'Disjuntor — Corrente (A)', icon: <Plug className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: '10', label: '10 A' }, { value: '16', label: '16 A' }, { value: '20', label: '20 A' }, { value: '25', label: '25 A' }, { value: '30', label: '30 A' }, { value: '32', label: '32 A' }, { value: '40', label: '40 A' }, { value: '50', label: '50 A' }, { value: '60', label: '60 A' }, { value: '63', label: '63 A' }, { value: '70', label: '70 A' }, { value: '80', label: '80 A' }, { value: '100', label: '100 A' }, { value: '125', label: '125 A' }, { value: '150', label: '150 A' }, { value: '175', label: '175 A' }, { value: '200', label: '200 A' }, { value: '250', label: '250 A' }], group: 'Padrão de Entrada' },
   { key: 'potencia_disponibilizada_kw', label: 'Potência Disponibilizada — PD (kW)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'kW', group: 'Padrão de Entrada' },
@@ -545,7 +588,13 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   }, [open, localFields.distribuidora, fetchAcervoItems]);
 
   const handleFieldChange = (key: string, value: any) => {
-    setLocalFields(prev => ({ ...prev, [key]: value }));
+    setLocalFields(prev => {
+      const updates: Record<string, any> = { [key]: value };
+      if (key === 'padrao_entrada' && typeof value === 'string') {
+        updates.fases_instalacao = CPFL_PADRAO_FASES[value] || '';
+      }
+      return { ...prev, ...updates };
+    });
   };
 
   const toggleSkip = (key: string) => {
@@ -994,6 +1043,29 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       );
     }
 
+    if (field.type === 'cpfl_padrao_select') {
+      const tensao = localFields.tensao_atendimento || ''
+      const options = tensao === '220/380' ? CPFL_PADRAO_220_380 : CPFL_PADRAO_127_220
+      const fases = value ? CPFL_PADRAO_FASES[value] : null
+      return (
+        <div className="space-y-1">
+          <Select value={value || ''} onValueChange={v => handleFieldChange(field.key, v)} disabled={isSkipped}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder={tensao ? 'Selecione a categoria' : 'Selecione a Tensão de Atendimento primeiro'} />
+            </SelectTrigger>
+            <SelectContent position="popper" side="bottom" className="max-h-60">
+              {options.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {fases && (
+            <p className="text-xs text-blue-600 dark:text-blue-400">Item 2.3: <strong>{fases}</strong></p>
+          )}
+        </div>
+      )
+    }
+
     if (field.type === 'default_with_custom') {
       const isOverriding = customOverrides.has(field.key);
       return (
@@ -1253,11 +1325,17 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
             ) : 0;
             const missingInv = setupInvQty > 0 ? Math.max(0, setupInvQty - invStringsStats.totalUnits) : 0;
             // Campos do grupo que ainda são mostrados (os gerenciados pelo editor são ocultados)
-            const visibleFields = isMod
+            const activeDistribuidora = localFields.distribuidora || ''
+            const visibleFields = (isMod
               ? groupFields.filter(f => !MODULOS_MANAGED_FIELDS.has(f.key))
               : isInv
               ? groupFields.filter(f => !INVERSORES_MANAGED_FIELDS.has(f.key))
-              : groupFields;
+              : groupFields
+            ).filter(f => {
+              if (f.onlyForDistribuidoras && !f.onlyForDistribuidoras.includes(activeDistribuidora)) return false
+              if (f.hideForDistribuidoras && f.hideForDistribuidoras.includes(activeDistribuidora)) return false
+              return true
+            });
 
             return (
             <div key={groupName}>
@@ -1267,7 +1345,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                   <span className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-tight">{groupName}</span>
                 </span>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
-                  {groupFields.filter(f => isFieldFilled(f.key)).length}/{groupFields.length}
+                  {visibleFields.filter(f => isFieldFilled(f.key)).length}/{visibleFields.length}
                 </span>
               </h3>
               {groupName === 'Responsável Legal' && (

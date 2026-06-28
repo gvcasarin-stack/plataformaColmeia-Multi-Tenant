@@ -17,6 +17,8 @@ const CONFERIR_FIELDS = [
   'disjuntor_polos', 'disjuntor_corrente_a', 'disjuntor_tensao_v',
   'tipo_fornecimento', 'modalidade_compensacao', 'planta_situacao_url',
   'caixa_medicao_id', 'caixa_medicao_imagem_url', 'caixa_medicao_nome',
+  'cpfl_tipo_poste_padrao',
+  'padrao_entrada', 'fases_instalacao',
   'caixa_medicao_comprimento_mm', 'caixa_medicao_altura_mm', 'caixa_medicao_largura_mm',
   'responsavel_nome', 'responsavel_profissao', 'responsavel_registro',
   'data_documento',
