@@ -13,6 +13,18 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
 
   const get = (key: string) => projectData[key] || '';
 
+  const PADRAO_CABOS: Record<string, string> = {
+    A1: '6 mm²',  A2: '16 mm²', A3: '6 mm²',  A4: '16 mm²',
+    B1: '16 mm²', B2: '25 mm²', B3: '16 mm²',
+    C1: '16 mm²', C2: '25 mm²', C3: '35 mm²',
+    C4: '50 mm²', C5: '70 mm²', C6: '95 mm²',
+    C7: '10 mm²', C8: '16 mm²', C9: '25 mm²',
+    C10: '35 mm²', C11: '50 mm²',
+  };
+
+  const cabosSecao = PADRAO_CABOS[get('padrao_entrada')] || get('cabos_secao') || '';
+  const caixaTipo  = get('cpfl_tipo_poste_padrao') || get('caixa_medicao_tipo') || '';
+
   function decimalToDMS(decimal: string, type: 'lat' | 'lng'): string {
     const num = parseFloat(decimal);
     if (isNaN(num)) return decimal;
@@ -192,12 +204,12 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
           <tr>
             <td style={L}>2.4) Cabos (seção transversal):</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('cabos_secao')}</td>
+            <td style={VC}>{cabosSecao}</td>
           </tr>
           <tr>
             <td style={L}>2.5) Caixa de Medição ou Tipo de Poste Padrão (Caixa tipo / segundo GED 14945):</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('caixa_medicao_tipo')}</td>
+            <td style={VC}>{caixaTipo}</td>
           </tr>
           <tr>
             <td style={L}>2.6) Demanda Disponibilizada (se MT) ou Carga Instalada (se BT):</td>
