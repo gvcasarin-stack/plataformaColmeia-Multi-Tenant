@@ -56,6 +56,7 @@ const fmtS = (v: number) => {
 }
 const monthKey  = (d: Date) => format(d, 'yyyy-MM')
 const projectId = (p: Project) => (p as any).created_by || (p as any).userId || 'unknown'
+const projectResponsible = (p: Project): string => (p as any).admin_responsible_name || (p as any).adminResponsibleName || ''
 const projectRevenue = (p: Project): number => (p as any).valor_projeto || (p as any).valorProjeto || 0
 const projectDate    = (p: Project): Date | null => toSafeDate((p as any).createdAt || (p as any).created_at)
 const projectClient  = (p: Project): string => (p as any).empresaIntegradora || (p as any).empresa_integradora || 'Não informado'
@@ -126,7 +127,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
       list = list.filter(p => { const d = projectDate(p); return d && d >= cutoff })
     }
     if (filterDistributor  !== 'all') list = list.filter(p => p.distribuidora === filterDistributor)
-    if (filterCollaborator !== 'all') list = list.filter(p => projectId(p) === filterCollaborator)
+    if (filterCollaborator !== 'all') list = list.filter(p => projectResponsible(p) === filterCollaborator)
     return list
   }, [allProjects, filterPeriod, filterYear, filterDistributor, filterCollaborator])
 
@@ -250,7 +251,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
     const firstAppearance: Record<string, Date> = {}
     let list = allProjects
     if (filterDistributor  !== 'all') list = list.filter(p => p.distribuidora === filterDistributor)
-    if (filterCollaborator !== 'all') list = list.filter(p => projectId(p) === filterCollaborator)
+    if (filterCollaborator !== 'all') list = list.filter(p => projectResponsible(p) === filterCollaborator)
 
     for (const p of list) {
       const client = projectClient(p)
@@ -299,18 +300,25 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
 
   // ── sub-aba EQUIPE ───────────────────────────────────────────────────────
 
+  const collaboratorNames = useMemo(() => {
+    const names = new Set<string>()
+    for (const p of allProjects) {
+      const name = projectResponsible(p)
+      if (name) names.add(name)
+    }
+    return Array.from(names).sort()
+  }, [allProjects])
+
   const collabData = useMemo(() => {
     const by: Record<string, { name: string; count: number; revenue: number }> = {}
     for (const p of filteredProjects) {
-      const id     = projectId(p)
-      const member = teamMembers.find(m => m.id === id)
-      const name   = member?.name || member?.email || `#${id.slice(-6)}`
-      if (!by[id]) by[id] = { name, count: 0, revenue: 0 }
-      by[id].count++
-      by[id].revenue += projectRevenue(p)
+      const name = projectResponsible(p) || 'Não atribuído'
+      if (!by[name]) by[name] = { name, count: 0, revenue: 0 }
+      by[name].count++
+      by[name].revenue += projectRevenue(p)
     }
     return Object.values(by).sort((a, b) => b.count - a.count).slice(0, 10)
-  }, [filteredProjects, teamMembers])
+  }, [filteredProjects])
 
   const billingData = useMemo(
     () =>
@@ -395,15 +403,15 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
               </div>
             )}
 
-            {teamMembers.length > 0 && (
+            {collaboratorNames.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Colaborador:</span>
                 <Select value={filterCollaborator} onValueChange={setFilterCollaborator}>
                   <SelectTrigger className="h-8 w-48 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
-                    {teamMembers.map(m => (
-                      <SelectItem key={m.id} value={m.id}>{m.name || m.email}</SelectItem>
+                    {collaboratorNames.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

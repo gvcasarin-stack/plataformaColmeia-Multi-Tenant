@@ -2339,7 +2339,7 @@ export async function getAdminDashboardDataAction(userId: string): Promise<{
     // (evita buscar 60+ campos + JSONB pesados que o painel não usa)
     const { data, error: queryError } = await supabase
       .from('projects')
-      .select('id, number, potencia, status, created_at, updated_at, valor_projeto, nome_cliente_final, empresa_integradora, distribuidora, billing_mode, created_by')
+      .select('id, number, potencia, status, created_at, updated_at, valor_projeto, nome_cliente_final, empresa_integradora, distribuidora, billing_mode, created_by, admin_responsible_name, admin_responsible_id')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
       .order('updated_at', { ascending: false })
@@ -2366,6 +2366,10 @@ export async function getAdminDashboardDataAction(userId: string): Promise<{
       number: item.number || '',
       userId: item.created_by || '',
       created_by: item.created_by || '',
+      adminResponsibleName: (item as any).admin_responsible_name || '',
+      admin_responsible_name: (item as any).admin_responsible_name || '',
+      adminResponsibleId: (item as any).admin_responsible_id || '',
+      admin_responsible_id: (item as any).admin_responsible_id || '',
       empresaIntegradora: item.empresa_integradora || '',
       empresa_integradora: item.empresa_integradora || '',
       distribuidora: item.distribuidora || '',

@@ -3014,7 +3014,7 @@ export const ExpandedProjectView = ({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Equatorial">Equatorial</SelectItem>
-                            <SelectItem value="CPFL" disabled>CPFL (Em breve)</SelectItem>
+                            <SelectItem value="CPFL">CPFL (Em breve)</SelectItem>
                             <SelectItem value="RGE" disabled>RGE (Em breve)</SelectItem>
                             <SelectItem value="Energisa" disabled>Energisa (Em breve)</SelectItem>
                           </SelectContent>
