@@ -13,6 +13,18 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
 
   const get = (key: string) => projectData[key] || '';
 
+  function decimalToDMS(decimal: string, type: 'lat' | 'lng'): string {
+    const num = parseFloat(decimal);
+    if (isNaN(num)) return decimal;
+    const abs = Math.abs(num);
+    const deg = Math.floor(abs);
+    const minFull = (abs - deg) * 60;
+    const min = Math.floor(minFull);
+    const sec = ((minFull - min) * 60).toFixed(1);
+    const dir = type === 'lat' ? (num >= 0 ? 'N' : 'S') : (num >= 0 ? 'E' : 'W');
+    return `${deg}°${String(min).padStart(2, '0')}'${String(sec).padStart(4, '0')}"${dir}`;
+  }
+
   const T: React.CSSProperties = {
     width: '100%',
     borderCollapse: 'collapse',
@@ -102,7 +114,7 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
           </tr>
           <tr>
             <td style={L}>1.4) Endereço do titular</td>
-            <td style={V}>{get('endereco_local')}</td>
+            <td style={V}>{get('endereco_local').toUpperCase()}</td>
           </tr>
           <tr>
             <td style={L}>1.5) CEP do titular</td>
@@ -110,15 +122,15 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
           </tr>
           <tr>
             <td style={L}>1.6) Município do titular</td>
-            <td style={V}>{municipio}</td>
+            <td style={V}>{municipio.toUpperCase()}</td>
           </tr>
           <tr>
             <td style={L}>1.7) Latitude (SIRGAS 2000)</td>
-            <td style={V}>{get('latitude')}</td>
+            <td style={V}>{get('latitude') ? decimalToDMS(get('latitude'), 'lat') : ''}</td>
           </tr>
           <tr>
             <td style={L}>1.8) Longitude (SIRGAS 2000)</td>
-            <td style={V}>{get('longitude')}</td>
+            <td style={V}>{get('longitude') ? decimalToDMS(get('longitude'), 'lng') : ''}</td>
           </tr>
           <tr>
             <td style={L}>1.9) Telefone do titular:</td>

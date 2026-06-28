@@ -136,6 +136,17 @@ const CPFL_PADRAO_FASES: Record<string, string> = {
   C10: 'TRIFÁSICO', C11: 'TRIFÁSICO',
 };
 
+const CPFL_PADRAO_CABOS: Record<string, string> = {
+  A1: '6 mm²',  A2: '16 mm²',
+  A3: '6 mm²',  A4: '16 mm²',
+  B1: '16 mm²', B2: '25 mm²',
+  B3: '16 mm²',
+  C1: '16 mm²', C2: '25 mm²', C3: '35 mm²',
+  C4: '50 mm²', C5: '70 mm²', C6: '95 mm²',
+  C7: '10 mm²', C8: '16 mm²', C9: '25 mm²',
+  C10: '35 mm²', C11: '50 mm²',
+};
+
 const FIELD_DEFINITIONS: FieldDef[] = [
   // Dados do Cliente
   { key: 'nomeClienteFinal', label: 'Nome do Cliente Final', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
@@ -252,10 +263,13 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'secao_neutro_mm2', label: 'Ramal de Entrada — Seção Condutor Neutro (mm²)', type: 'select', required: true, suffix: 'mm²', options: [{ value: '1,5', label: '1,5 mm²' }, { value: '2,5', label: '2,5 mm²' }, { value: '4', label: '4 mm²' }, { value: '6', label: '6 mm²' }, { value: '10', label: '10 mm²' }, { value: '16', label: '16 mm²' }, { value: '25', label: '25 mm²' }, { value: '35', label: '35 mm²' }, { value: '50', label: '50 mm²' }, { value: '70', label: '70 mm²' }, { value: '95', label: '95 mm²' }, { value: '120', label: '120 mm²' }, { value: '150', label: '150 mm²' }, { value: '185', label: '185 mm²' }, { value: '240', label: '240 mm²' }, { value: '300', label: '300 mm²' }, { value: '400', label: '400 mm²' }, { value: '500', label: '500 mm²' }], group: 'Padrão de Entrada' },
   { key: 'secao_aterramento_mm2', label: 'Ramal de Entrada — Seção Condutor Aterramento (mm²)', type: 'select', required: true, suffix: 'mm²', options: [{ value: '2,5', label: '2,5 mm²' }, { value: '4', label: '4 mm²' }, { value: '6', label: '6 mm²' }, { value: '10', label: '10 mm²' }, { value: '16', label: '16 mm²' }, { value: '25', label: '25 mm²' }, { value: '35', label: '35 mm²' }, { value: '50', label: '50 mm²' }, { value: '70', label: '70 mm²' }, { value: '95', label: '95 mm²' }], group: 'Padrão de Entrada' },
 
-  // Coordenadas UTM
-  { key: 'coord_utm_fuso', label: 'Fuso UTM', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 23K', group: 'Coordenadas UTM (Padrão de Entrada)' },
-  { key: 'coord_utm_x', label: 'X (Long)', type: 'text', required: true, placeholder: 'Ex: 345678.00', group: 'Coordenadas UTM (Padrão de Entrada)' },
-  { key: 'coord_utm_y', label: 'Y (Lat)', type: 'text', required: true, placeholder: 'Ex: 7654321.00', group: 'Coordenadas UTM (Padrão de Entrada)' },
+  // Coordenadas UTM (oculto para CPFL — usa Lat/Long)
+  { key: 'coord_utm_fuso', label: 'Fuso UTM', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 23K', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
+  { key: 'coord_utm_x', label: 'X (Long)', type: 'text', required: true, placeholder: 'Ex: 345678.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
+  { key: 'coord_utm_y', label: 'Y (Lat)', type: 'text', required: true, placeholder: 'Ex: 7654321.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
+  // Coordenadas Lat/Long — somente CPFL
+  { key: 'latitude', label: 'Latitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -8.050944', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'] },
+  { key: 'longitude', label: 'Longitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -48.491528', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'] },
 
   // Planta de Situação (Imagem)
   { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação' },
@@ -592,6 +606,10 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
       const updates: Record<string, any> = { [key]: value };
       if (key === 'padrao_entrada' && typeof value === 'string') {
         updates.fases_instalacao = CPFL_PADRAO_FASES[value] || '';
+        updates.cabos_secao = CPFL_PADRAO_CABOS[value] || '';
+      }
+      if (key === 'cpfl_tipo_poste_padrao' && typeof value === 'string') {
+        updates.caixa_medicao_tipo = value;
       }
       return { ...prev, ...updates };
     });

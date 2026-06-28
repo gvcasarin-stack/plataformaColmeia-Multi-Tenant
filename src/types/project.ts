@@ -157,6 +157,13 @@ export interface Project {
   caixa_medicao_comprimento_mm?: string;
   caixa_medicao_altura_mm?: string;
   caixa_medicao_largura_mm?: string;
+  cpfl_tipo_poste_padrao?: string;
+  caixa_medicao_tipo?: string;
+  padrao_entrada?: string;
+  fases_instalacao?: string;
+  cabos_secao?: string;
+  latitude?: string;
+  longitude?: string;
   responsavel_nome?: string;
   responsavel_profissao?: string;
   responsavel_registro?: string;

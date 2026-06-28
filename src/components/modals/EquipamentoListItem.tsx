@@ -158,7 +158,7 @@ type Props = EquipamentoListItemModuloProps | EquipamentoListItemInversorProps;
 export function EquipamentoListItem(props: Props) {
   const { tipo, index, onRemove } = props;
   const hideStrings = tipo === 'modulo' ? ((props as EquipamentoListItemModuloProps).hideStrings ?? false) : false;
-  const [expanded, setExpanded] = useState(index === 0);
+  const [expanded, setExpanded] = useState(false);
   const [savingToCatalog, setSavingToCatalog] = useState(false);
   const [catalogSaved, setCatalogSaved] = useState(false);
 
