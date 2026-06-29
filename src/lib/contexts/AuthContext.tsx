@@ -883,6 +883,21 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         logger.warn('Profile not found for user, continuing without profile', { userId: signInData.user.id }, 'Auth');
       }
 
+      // Camada 1: bloquear login de usuários bloqueados
+      if (profile?.is_blocked) {
+        logger.warn('Login bloqueado — usuário com is_blocked=true', { userId: signInData.user.id }, 'Auth');
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setAuthState('unauthenticated');
+        setIsLoading(false);
+        return {
+          error: new Error('Sua conta foi bloqueada. Entre em contato com o suporte.') as AuthError,
+          user: null,
+          session: null
+        };
+      }
+
       const enrichedUser = createSanitizedAuthUser(signInData.user, profile || undefined);
 
       setUser(enrichedUser);

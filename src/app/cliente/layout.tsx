@@ -53,6 +53,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (!isLoading && !user) {
       devLog.log('[ClientLayout] Usuário não autenticado, redirecionando para login');
       router.replace("/cliente/login");
+      return;
+    }
+
+    // Camada 2: usuário bloqueado com sessão ativa → redirecionar para página de bloqueio
+    if (!isLoading && user && (user as any).profile?.is_blocked) {
+      devLog.log('[ClientLayout] Usuário bloqueado, redirecionando para /cliente/bloqueado');
+      router.replace("/cliente/bloqueado");
     }
   }, [user, isLoading, pathname, router]);
 
