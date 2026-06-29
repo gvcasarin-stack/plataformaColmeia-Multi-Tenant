@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
         id,
         email,
         name,
-        full_name,
         phone,
         department,
         role,
