@@ -33,6 +33,12 @@ export interface TimelineEvent {
   
   /** URL do arquivo, se o evento for relacionado a um arquivo */
   fileUrl?: string;
+
+  /** Caminho do arquivo no Supabase Storage (usado para exclusão) */
+  filePath?: string;
+
+  /** ID único do arquivo dentro do array projects.files */
+  fileId?: string;
   
   /** Conteúdo principal do evento */
   content?: string;

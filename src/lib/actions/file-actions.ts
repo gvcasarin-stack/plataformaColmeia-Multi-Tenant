@@ -314,6 +314,7 @@ export async function uploadProjectFileAction(
         content: `Arquivo "${file.name}" foi enviado.`,
         file_name: file.name,
         file_url: newFile.url,
+        file_path: newFile.path,
         file_id: fileId,
         created_at: eventTimestamp
       });

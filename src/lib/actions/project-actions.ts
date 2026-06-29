@@ -1138,8 +1138,8 @@ export async function deleteCommentAction(
 
 export async function deleteFileAction(
   projectId: string,
-  filePath: string, // Caminho do arquivo no Supabase Storage
-  fileUrl: string,  // URL do arquivo, usada para encontrar no array project.files e timelineEvents
+  filePath: string | undefined, // Caminho no Supabase Storage — opcional para arquivos legacy sem path
+  fileUrl: string,              // URL do arquivo, usada para remover referências do banco
   user: { id?: string; email?: string | null; role?: string; profile?: any }
 ): Promise<{ 
   data?: Project & { id: string }; 
@@ -1163,8 +1163,8 @@ export async function deleteFileAction(
 
     const tenantInfo = accessCheck.tenantInfo!;
 
-    if (!projectId || !filePath || !fileUrl) {
-      return { error: 'Project ID, File Path, and File URL are required' };
+    if (!projectId || !fileUrl) {
+      return { error: 'Project ID e File URL são obrigatórios' };
     }
     
     // ✅ CORRIGIDO: Usar apenas id para compatibilidade com Supabase
@@ -1206,31 +1206,29 @@ export async function deleteFileAction(
 
     const currentFiles = projectData.files || [];
 
-    // 1. Excluir o arquivo do Supabase Storage
-    try {
-      devLog.log(`[deleteFileAction] Attempting to delete from Supabase Storage: ${filePath}`);
-      
-      // ✅ CORRIGIDO: Usar o módulo server-storage seguro
-      const { deleteProjectFiles } = await import('@/lib/supabase/server-storage');
-      
-      // Deletar arquivo do storage
-      const deleteResult = await deleteProjectFiles([filePath]);
+    // 1. Excluir o arquivo do Supabase Storage (pular se path não disponível — ex: arquivo legacy)
+    if (filePath) {
+      try {
+        devLog.log(`[deleteFileAction] Attempting to delete from Supabase Storage: ${filePath}`);
+        const { deleteProjectFiles } = await import('@/lib/supabase/server-storage');
+        const deleteResult = await deleteProjectFiles([filePath]);
 
-      if (!deleteResult.success) {
-        devLog.error('[deleteFileAction] Error deleting file from Supabase Storage:', deleteResult.errors);
-        // Continuar mesmo se o arquivo não existir no storage
-        if (deleteResult.errors?.some(e => e.error.includes('not found'))) {
-          devLog.warn('[deleteFileAction] File not found in Supabase Storage, continuing with database cleanup');
+        if (!deleteResult.success) {
+          devLog.error('[deleteFileAction] Error deleting file from Supabase Storage:', deleteResult.errors);
+          if (deleteResult.errors?.some(e => e.error.includes('not found'))) {
+            devLog.warn('[deleteFileAction] File not found in Supabase Storage, continuing with database cleanup');
+          } else {
+            return { error: 'Falha ao remover arquivo do armazenamento.' };
+          }
         } else {
-          return { error: 'Falha ao remover arquivo do armazenamento.' };
+          devLog.log('[deleteFileAction] File deleted from Supabase Storage successfully.', { filePath });
         }
-      } else {
-        devLog.log('[deleteFileAction] File deleted from Supabase Storage successfully.', { filePath });
+      } catch (storageError: any) {
+        devLog.error('[deleteFileAction] Error deleting file from Supabase Storage:', storageError);
+        devLog.warn('[deleteFileAction] Continuing with database cleanup despite storage error');
       }
-    } catch (storageError: any) {
-      devLog.error('[deleteFileAction] Error deleting file from Supabase Storage:', storageError);
-      // Continuar com a limpeza do banco mesmo se houver erro no storage
-      devLog.warn('[deleteFileAction] Continuing with database cleanup despite storage error');
+    } else {
+      devLog.warn('[deleteFileAction] filePath ausente — arquivo legacy sem caminho no Storage. Prosseguindo apenas com limpeza do banco.');
     }
 
     // 2. Remover referências do banco de dados
@@ -2657,6 +2655,8 @@ export async function getProjectAction(projectId: string): Promise<{
           content: row.content || undefined,
           fileName: row.file_name || undefined,
           fileUrl: row.file_url || undefined,
+          filePath: row.file_path || undefined,
+          fileId: row.file_id || undefined,
           oldStatus: row.old_status || undefined,
           newStatus: row.new_status || undefined,
           commentId: row.comment_id || undefined,

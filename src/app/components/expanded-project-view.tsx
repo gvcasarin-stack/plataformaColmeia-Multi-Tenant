@@ -2930,13 +2930,22 @@ export const ExpandedProjectView = ({
                                                 size="sm"
                                                 onClick={() => {
                                                   devLog.log('[Debug EPV] Delete file button clicked. File event:', event);
-                                                  const fileEntry = editedProject.files?.find(f => f.url === event.fileUrl);
-                                                  setItemToDelete({ 
+                                                  // Resolução multi-camada do filePath:
+                                                  // 1. Direto do evento (novos uploads, pós-migração)
+                                                  // 2. Lookup por URL em project.files
+                                                  // 3. Lookup por fileId em project.files
+                                                  // 4. undefined → deleteFileAction faz DB-only cleanup
+                                                  const resolvedFilePath =
+                                                    event.filePath ||
+                                                    editedProject.files?.find(f => f.url === event.fileUrl)?.path ||
+                                                    editedProject.files?.find(f => (f as any).id === event.fileId)?.path ||
+                                                    undefined;
+                                                  setItemToDelete({
                                                     type: 'document',
                                                     eventId: event.id!,
                                                     fileName: event.fileName,
                                                     fileUrl: event.fileUrl,
-                                                    filePath: fileEntry?.path 
+                                                    filePath: resolvedFilePath,
                                                   });
                                                   setIsDeleteDialogOpen(true);
                                                 }}
@@ -3609,9 +3618,9 @@ export const ExpandedProjectView = ({
                       }
 
                     } else if (itemToDelete.type === 'document' && itemToDelete.fileUrl) {
-                      devLog.log('[Debug EPV] Attempting to delete file. ProjectID:', project.id, 'FileUrl:', itemToDelete.fileUrl, 'FilePath:', itemToDelete.filePath);
-                      if (!itemToDelete.filePath) { // Adicionada verificação de filePath
-                        throw new Error("Caminho do arquivo (filePath) não encontrado para exclusão.");
+                      devLog.log('[Debug EPV] Attempting to delete file. ProjectID:', project.id, 'FileUrl:', itemToDelete.fileUrl, 'FilePath:', itemToDelete.filePath || '(legacy — sem path)');
+                      if (!itemToDelete.filePath) {
+                        devLog.warn('[Debug EPV] filePath não resolvido — arquivo legacy. deleteFileAction fará apenas limpeza do banco.');
                       }
                       
                       // ✅ DEBUG COMPLETO: Vamos ver TUDO antes de enviar

@@ -199,7 +199,7 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
           <tr>
             <td style={L}>2.3) Número de Fases da Instalação (Monofásico/Bifásico/Trifásico):</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('fases_instalacao')}</td>
+            <td style={VC}>{get('fases_instalacao') ? String(get('fases_instalacao')).toUpperCase() : ''}</td>
           </tr>
           <tr>
             <td style={L}>2.4) Cabos (seção transversal):</td>
