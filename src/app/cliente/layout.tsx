@@ -57,7 +57,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
 
     // Camada 2: usuário bloqueado com sessão ativa → redirecionar para página de bloqueio
-    if (!isLoading && user && (user as any).profile?.is_blocked) {
+    if (!isLoading && user && (user as any).profile?.isBlocked) {
       devLog.log('[ClientLayout] Usuário bloqueado, redirecionando para /cliente/bloqueado');
       router.replace("/cliente/bloqueado");
     }

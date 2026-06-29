@@ -884,7 +884,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       }
 
       // Camada 1: bloquear login de usuários bloqueados
-      if (profile?.is_blocked) {
+      if (profile?.isBlocked) {
         logger.warn('Login bloqueado — usuário com is_blocked=true', { userId: signInData.user.id }, 'Auth');
         await supabase.auth.signOut();
         setUser(null);
