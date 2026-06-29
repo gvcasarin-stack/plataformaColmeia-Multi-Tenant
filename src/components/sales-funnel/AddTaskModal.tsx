@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { createTenantHeaders } from '@/lib/utils/tenant-helper';
 import {
   Dialog,
   DialogContent,
@@ -70,7 +71,8 @@ export function AddTaskModal({ open, onOpenChange, onSuccess, opportunities }: A
     const fetchTeamMembers = async () => {
       try {
         setLoadingData(true);
-        const response = await fetch('/api/admin/team-members');
+        const tenantHeaders = await createTenantHeaders(user?.id || '')
+        const response = await fetch('/api/admin/team-members', { headers: tenantHeaders });
         const data = await response.json();
 
         if (data.success && data.data) {

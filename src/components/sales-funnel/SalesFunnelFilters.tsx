@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/select';
 import { Filter, X, RotateCcw } from 'lucide-react';
 import { devLog } from '@/lib/utils/productionLogger';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { createTenantHeaders } from '@/lib/utils/tenant-helper';
 
 export interface SalesFunnelFilterOptions {
   responsibleId?: string;
@@ -52,6 +54,7 @@ export function SalesFunnelFilters({
   onApplyFilters,
   activeFiltersCount
 }: SalesFunnelFiltersProps) {
+  const { user } = useAuth();
   const [responsibleId, setResponsibleId] = useState<string>('');
   const [minValue, setMinValue] = useState<string>('');
   const [maxValue, setMaxValue] = useState<string>('');
@@ -74,7 +77,8 @@ export function SalesFunnelFilters({
   const loadTeamMembers = async () => {
     setLoadingTeam(true);
     try {
-      const response = await fetch('/api/admin/team-members');
+      const tenantHeaders = await createTenantHeaders(user?.id || '')
+      const response = await fetch('/api/admin/team-members', { headers: tenantHeaders });
       const data = await response.json();
 
       if (data.success) {

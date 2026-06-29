@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { createTenantHeaders } from '@/lib/utils/tenant-helper';
 import {
   Dialog,
   DialogContent,
@@ -113,7 +114,8 @@ export function EditOpportunityModal({ open, onOpenChange, opportunity, onSucces
       }
 
       // Buscar membros da equipe
-      const teamRes = await fetch('/api/admin/team-members');
+      const tenantHeaders = await createTenantHeaders(user?.id || '')
+      const teamRes = await fetch('/api/admin/team-members', { headers: tenantHeaders });
       const teamData = await teamRes.json();
       if (teamData.success) {
         setTeamMembers(teamData.data || []);

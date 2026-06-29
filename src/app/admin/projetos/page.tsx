@@ -19,6 +19,7 @@ import { devLog } from "@/lib/utils/productionLogger";
 import React from 'react'
 import { TrialExpiredBlocker } from '@/components/security/TrialExpiredBlocker'
 import { canViewProjects, canCreateProjects } from '@/lib/utils/check-permissions'
+import { createTenantHeaders } from '@/lib/utils/tenant-helper'
 import { saveProjectFilters, getProjectFilters, resetProjectFilters, type ProjectFiltersPreference } from '@/lib/services/userPreferencesService'
 
 // ✅ CORREÇÃO: Importar KanbanBoard diretamente (sem lazy loading)
@@ -164,11 +165,10 @@ export default function ProjetosPage() {
 
       setLoadingMembers(true)
       try {
+        const tenantHeaders = await createTenantHeaders(user.id)
         const response = await fetch('/api/admin/team-members', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: tenantHeaders,
         })
 
         if (response.ok) {

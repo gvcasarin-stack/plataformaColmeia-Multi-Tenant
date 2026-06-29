@@ -23,6 +23,7 @@ import { Project } from "@/types/project"
 import { devLog } from "@/lib/utils/productionLogger";
 import { useRouter } from "next/navigation"
 import { assumeProjectResponsibilityAction } from "@/lib/actions/project-actions"
+import { createTenantHeaders } from "@/lib/utils/tenant-helper"
 import { Loader2, User, Shield, Info, CheckCircle2, UserCircle2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -95,11 +96,10 @@ export function AssumeResponsibilityDialog({
     try {
       devLog.log('[AssumeResponsibilityDialog] Buscando membros da equipe...')
 
+      const tenantHeaders = await createTenantHeaders(currentUser.uid)
       const response = await fetch('/api/admin/team-members', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: tenantHeaders,
       })
 
       if (!response.ok) {

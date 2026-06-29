@@ -11,6 +11,8 @@ import { Project } from '@/types/project'
 import { ProjectStatusInfo } from '@/lib/services/kanbanService'
 import { toSafeDate } from '@/lib/utils/dateHelpers'
 import { devLog } from '@/lib/utils/productionLogger'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { createTenantHeaders } from '@/lib/utils/tenant-helper'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
@@ -64,6 +66,7 @@ const projectClient  = (p: Project): string => (p as any).empresaIntegradora || 
 // ─── componente ──────────────────────────────────────────────────────────────
 
 export default function MetricasTab({ allProjects, availableStatuses, isActive }: MetricasTabProps) {
+  const { user } = useAuth()
   const [metricaTab,       setMetricaTab]       = useState<'projetos' | 'clientes' | 'equipe'>('projetos')
   const [teamMembers,      setTeamMembers]       = useState<TeamMember[]>([])
   const [conclusoes,       setConclusoes]        = useState<ConclusaoEvent[]>([])
@@ -79,11 +82,13 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
   // Membros da equipe — lazy, só quando a aba fica ativa
   useEffect(() => {
     if (!isActive || teamMembers.length > 0) return
-    fetch('/api/admin/team-members')
-      .then(r => r.json())
-      .then(d => setTeamMembers(d.data || []))
-      .catch(() => devLog.warn('[MetricasTab] Falha ao carregar membros'))
-  }, [isActive])
+    createTenantHeaders(user?.id || '').then(tenantHeaders =>
+      fetch('/api/admin/team-members', { headers: tenantHeaders })
+        .then(r => r.json())
+        .then(d => setTeamMembers(d.data || []))
+        .catch(() => devLog.warn('[MetricasTab] Falha ao carregar membros'))
+    )
+  }, [isActive, user?.id])
 
   // Conclusões — lazy, só quando a sub-aba Projetos fica ativa; recarrega se ainda não carregou
   useEffect(() => {
