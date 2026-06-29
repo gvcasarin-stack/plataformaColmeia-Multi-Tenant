@@ -42,6 +42,7 @@ export function useBlockUser(): UseBlockUserReturn {
         body: JSON.stringify({
           userId: client.id,
           reason: reason,
+          adminUserId: user.id,
         }),
       });
 
@@ -115,6 +116,7 @@ export function useBlockUser(): UseBlockUserReturn {
         },
         body: JSON.stringify({
           userId: client.id,
+          adminUserId: user.id,
         }),
       });
 
