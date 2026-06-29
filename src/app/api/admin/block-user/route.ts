@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { blockUser } from '@/lib/services/userBlockService';
-import { 
-  createApiSuccess, 
-  createApiError, 
-  handleApiError, 
-  ApiErrorCode 
+import {
+  createApiSuccess,
+  createApiError,
+  handleApiError,
+  ApiErrorCode
 } from '@/lib/utils/apiErrorHandler';
 import logger from '@/lib/utils/logger';
 
@@ -19,10 +20,10 @@ export async function POST(request: NextRequest) {
   try {
     logger.info('[API-BlockUser] Iniciando processo de bloqueio de usuário');
     
-    // Verificar autenticação
-    const supabase = createSupabaseServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    // Verificar autenticação (usa cliente de sessão — não sujeito a RLS)
+    const supabaseAuth = createSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+
     if (authError || !user) {
       logger.error('[API-BlockUser] Erro de autenticação:', authError);
       return createApiError(
@@ -31,7 +32,10 @@ export async function POST(request: NextRequest) {
         401
       );
     }
-    
+
+    // Usar service role para queries no banco (bypassa RLS, padrão dos routes admin)
+    const supabase = createSupabaseServiceRoleClient();
+
     // Buscar dados do usuário atual
     const { data: currentUserData, error: userError } = await supabase
       .from('users')

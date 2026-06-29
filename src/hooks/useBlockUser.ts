@@ -47,7 +47,7 @@ export function useBlockUser(): UseBlockUserReturn {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao bloquear usuário');
+        throw new Error(errorData.error || errorData.message || 'Erro ao bloquear usuário');
       }
 
       // 3. Feedback de sucesso
@@ -120,7 +120,7 @@ export function useBlockUser(): UseBlockUserReturn {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao desbloquear usuário');
+        throw new Error(errorData.error || errorData.message || 'Erro ao desbloquear usuário');
       }
 
       // 3. Feedback de sucesso
