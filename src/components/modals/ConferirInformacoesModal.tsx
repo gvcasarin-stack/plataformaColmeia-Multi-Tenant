@@ -1685,7 +1685,13 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
 
 export function useConferirProgress(fields: Record<string, any>): { filled: number; total: number } {
   return useMemo(() => {
-    const requiredFields = FIELD_DEFINITIONS.filter(f => f.required);
+    const activeDistribuidora = fields.distribuidora || '';
+    const visibleFields = FIELD_DEFINITIONS.filter(f => {
+      if (f.onlyForDistribuidoras && !f.onlyForDistribuidoras.includes(activeDistribuidora)) return false;
+      if (f.hideForDistribuidoras && f.hideForDistribuidoras.includes(activeDistribuidora)) return false;
+      return true;
+    });
+    const requiredFields = visibleFields.filter(f => f.required);
     let filled = 0;
     for (const f of requiredFields) {
       const val = fields[f.key];
