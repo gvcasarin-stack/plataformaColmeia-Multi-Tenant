@@ -2758,7 +2758,7 @@ export const ExpandedProjectView = ({
                             >
                                 Adicionar Comentário
                             </Button>
-                            {isFullAdmin && (
+                            {canGerarProjeto && (
                                 <Button
                                     variant="default"
                                     onClick={() => setShowProcuracaoModal(true)}
