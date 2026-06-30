@@ -658,12 +658,17 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   };
 
   const { filledCount, requiredCount, totalFilledRequired } = useMemo(() => {
-    const requiredFields = FIELD_DEFINITIONS.filter(f => f.required);
-    const requiredFilled = requiredFields.filter(f => isFieldFilled(f.key)).length;
+    const activeDistribuidora = localFields.distribuidora || '';
+    const visibleFields = FIELD_DEFINITIONS.filter(f => {
+      if (f.onlyForDistribuidoras && !f.onlyForDistribuidoras.includes(activeDistribuidora)) return false;
+      if (f.hideForDistribuidoras && f.hideForDistribuidoras.includes(activeDistribuidora)) return false;
+      return true;
+    });
+    const requiredFields = visibleFields.filter(f => f.required);
     return {
-      filledCount: FIELD_DEFINITIONS.filter(f => isFieldFilled(f.key)).length,
+      filledCount: visibleFields.filter(f => isFieldFilled(f.key)).length,
       requiredCount: requiredFields.length,
-      totalFilledRequired: requiredFilled,
+      totalFilledRequired: requiredFields.filter(f => isFieldFilled(f.key)).length,
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localFields, skippedFields, plantaFile]);
