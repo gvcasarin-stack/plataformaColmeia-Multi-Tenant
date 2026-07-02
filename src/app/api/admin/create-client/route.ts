@@ -111,9 +111,11 @@ export async function POST(request: NextRequest) {
     const userId = authData.user.id;
 
     // Atualizar registro na tabela users (gerado pelo trigger) com status ativo e dados completos
+    // role: 'client' (inglês) é o valor esperado pela query de listagem em /api/admin/clients
     const { error: updateError } = await supabase
       .from('users')
       .update({
+        role: 'client',
         status: 'active',
         name: name.trim(),
         phone: cleanPhone,

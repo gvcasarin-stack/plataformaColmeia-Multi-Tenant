@@ -37,6 +37,7 @@ import { EditClientModal } from '@/components/admin/EditClientModal'
 import { ClientBillingModal } from '@/components/admin/ClientBillingModal'
 import { ClientSubscriptionsTab } from '@/components/admin/ClientSubscriptionsTab'
 import { AdminCreateClientModal } from '@/components/modals/AdminCreateClientModal'
+import { invalidateClientsCache } from '@/lib/services/clientService.supabase'
 
 export default function ClientesPage() {
   const { user } = useAuth()
@@ -1020,7 +1021,7 @@ export default function ClientesPage() {
       <AdminCreateClientModal
         open={isCreateClientModalOpen}
         onOpenChange={setIsCreateClientModalOpen}
-        onSuccess={refreshClients}
+        onSuccess={() => { invalidateClientsCache(); refreshClients(); }}
       />
     </div>
   )

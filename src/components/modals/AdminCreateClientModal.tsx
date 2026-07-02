@@ -28,7 +28,7 @@ import {
 interface AdminCreateClientModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (createdClientId?: string, createdClientName?: string, createdClientEmail?: string) => void;
 }
 
 interface FormData {
@@ -48,6 +48,7 @@ interface CreatedInfo {
   password: string;
   tenantName: string;
   phone: string;
+  name: string;
 }
 
 function generateSecurePassword(): string {
@@ -134,7 +135,11 @@ export function AdminCreateClientModal({
   };
 
   const handleClose = () => {
-    if (step === 'success') onSuccess();
+    if (step === 'success' && createdInfo) {
+      onSuccess(createdInfo.userId, createdInfo.name, createdInfo.email);
+    } else if (step === 'success') {
+      onSuccess();
+    }
     handleReset();
     onOpenChange(false);
   };
@@ -190,6 +195,7 @@ export function AdminCreateClientModal({
         password: form.password,
         tenantName: data.data.tenantName,
         phone: form.phone,
+        name: form.name.trim(),
       });
       setStep('success');
       toast({

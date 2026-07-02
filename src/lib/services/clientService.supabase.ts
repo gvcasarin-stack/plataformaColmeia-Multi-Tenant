@@ -83,6 +83,15 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Invalida o cache da lista de clientes para forçar refetch na próxima chamada.
+ * Usar após criar ou remover clientes pelo painel admin.
+ */
+export function invalidateClientsCache(): void {
+  cache.clientsList = null;
+  cache.clientCount = null;
+}
+
+/**
  * ✅ PRODUÇÃO - Busca contagem de clientes registrados
  * ✅ BROWSER CLIENT - Seguro para uso no frontend
  * ✅ MULTI-TENANT - Conta apenas clientes do tenant atual
