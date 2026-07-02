@@ -376,6 +376,33 @@ export const emailTemplates = {
     </div>
   `,
 
+  // ✅ NOVO: Template para boas-vindas de cliente criado pelo admin
+  clientWelcome: (userName: string, tenantName: string, loginEmail: string, password: string, loginUrl: string) => `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #10b981; padding: 20px; text-align: center;">
+        <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
+      </div>
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
+        <h2 style="color: #10b981;">Bem-vindo à Plataforma!</h2>
+        <p>Olá <strong>${userName}</strong>,</p>
+        <p>Seu acesso ao <strong>Sistema de Gerenciamento Fotovoltaico</strong> da empresa <strong>${tenantName}</strong> foi criado com sucesso.</p>
+        <p>Utilize as credenciais abaixo para acessar a plataforma:</p>
+        <div style="background-color: #f3f4f6; padding: 15px; border-radius: 4px; margin: 20px 0;">
+          <p style="margin: 0;"><span style="color: #6b7280;">E-mail:</span> <strong>${loginEmail}</strong></p>
+          <p style="margin: 10px 0 0;"><span style="color: #6b7280;">Senha:</span> <strong style="font-family: monospace;">${password}</strong></p>
+        </div>
+        <p style="color: #ef4444; font-size: 0.9rem;">⚠️ Recomendamos que você altere sua senha após o primeiro acesso.</p>
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="${loginUrl}" style="background-color: #10b981; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Acessar Plataforma</a>
+        </div>
+        <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+          Este é um e-mail automático, por favor não responda.<br>
+          &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
+        </p>
+      </div>
+    </div>
+  `,
+
   // ✅ NOVO: Template para boas-vindas de membro da equipe
   teamMemberWelcome: (userName: string, setPasswordLink: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1340,6 +1367,33 @@ export async function sendTeamMemberWelcomeEmail(
     }
   } catch (error: any) {
     devLog.error(`[EmailService] Erro ao enviar email de boas-vindas para ${email}:`, error);
+    return false;
+  }
+}
+
+/**
+ * ✅ NOVO: Envia email de boas-vindas para cliente criado pelo admin com credenciais de acesso
+ */
+export async function sendClientWelcomeEmail(
+  email: string,
+  name: string,
+  tenantName: string,
+  password: string,
+  loginUrl: string
+): Promise<boolean> {
+  devLog.log(`[EmailService] Enviando email de boas-vindas de cliente para ${email}`);
+  try {
+    const emailHtml = emailTemplates.clientWelcome(name, tenantName, email, password, loginUrl);
+    const subject = `Bem-vindo ao Sistema de Gerenciamento Fotovoltaico – ${tenantName}`;
+    const result = await sendEmail(email, subject, emailHtml);
+    if (result) {
+      devLog.log(`[EmailService] Email de boas-vindas de cliente enviado para ${email}`);
+    } else {
+      devLog.error(`[EmailService] Falha ao enviar email de boas-vindas de cliente para ${email}`);
+    }
+    return result;
+  } catch (error: any) {
+    devLog.error(`[EmailService] Erro ao enviar email de boas-vindas de cliente para ${email}:`, error);
     return false;
   }
 }

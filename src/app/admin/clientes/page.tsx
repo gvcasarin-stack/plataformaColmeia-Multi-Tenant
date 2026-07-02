@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { format } from 'date-fns/format'
 import { ptBR } from 'date-fns/locale'
-import { Building2, Users, Check, X, Shield, Search, Download, LayoutGrid, LayoutList, ChevronDown, ChevronUp, Mail, Phone, Calendar, Edit, DollarSign } from 'lucide-react'
+import { Building2, Users, Check, X, Shield, Search, Download, LayoutGrid, LayoutList, ChevronDown, ChevronUp, Mail, Phone, Calendar, Edit, DollarSign, UserPlus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -36,6 +36,7 @@ import { useBlockUser } from '@/hooks/useBlockUser'
 import { EditClientModal } from '@/components/admin/EditClientModal'
 import { ClientBillingModal } from '@/components/admin/ClientBillingModal'
 import { ClientSubscriptionsTab } from '@/components/admin/ClientSubscriptionsTab'
+import { AdminCreateClientModal } from '@/components/modals/AdminCreateClientModal'
 
 export default function ClientesPage() {
   const { user } = useAuth()
@@ -79,6 +80,9 @@ export default function ClientesPage() {
 
   // Estado para controle de abas
   const [activeTab, setActiveTab] = useState<'cadastros' | 'assinaturas'>('cadastros')
+
+  // Estado para modal de criação de cliente
+  const [isCreateClientModalOpen, setIsCreateClientModalOpen] = useState(false)
 
   const fetchRequests = async () => {
     setLoading(true)
@@ -609,6 +613,16 @@ export default function ClientesPage() {
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">Exportar</span>
                 </Button>
+
+                {/* Novo Cliente */}
+                <Button
+                  size="sm"
+                  onClick={() => setIsCreateClientModalOpen(true)}
+                  className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Novo Cliente</span>
+                </Button>
               </div>
             </div>
 
@@ -1000,6 +1014,13 @@ export default function ClientesPage() {
         onOpenChange={setIsBillingModalOpen}
         clientId={clientForBilling?.id || null}
         clientName={clientForBilling?.name || null}
+      />
+
+      {/* Modal de Criação de Cliente pelo Admin */}
+      <AdminCreateClientModal
+        open={isCreateClientModalOpen}
+        onOpenChange={setIsCreateClientModalOpen}
+        onSuccess={refreshClients}
       />
     </div>
   )
