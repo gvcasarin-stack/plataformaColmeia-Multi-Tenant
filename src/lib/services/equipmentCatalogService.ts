@@ -66,14 +66,53 @@ export async function listEquipment(
   return (data || []) as EquipmentCatalogItem[];
 }
 
+// Normaliza texto para comparação robusta (case, espaços duplicados, trim)
+function normalizeForComparison(value: string | null | undefined): string {
+  return (value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 export async function createEquipment(
   tenantId: string,
   payload: Omit<EquipmentCatalogItem, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>,
 ): Promise<EquipmentCatalogItem> {
   const supabase = createSupabaseServiceRoleClient();
+
+  const normFabricante = normalizeForComparison(payload.fabricante);
+  const normModelo = normalizeForComparison(payload.modelo);
+
+  // Checagem robusta de duplicidade: mesmo tenant + tipo, com fabricante/modelo
+  // comparados ignorando maiúsculas/minúsculas e espaços extras. Busca todos os
+  // candidatos do mesmo tipo (em vez de um único ilike) para não deixar passar
+  // variações óbvias de digitação (espaços duplicados, caixa alta/baixa, etc).
+  const { data: candidates, error: candidatesError } = await supabase
+    .from('equipment_catalog')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('tipo', payload.tipo);
+
+  if (candidatesError) throw candidatesError;
+
+  const existing = (candidates || []).find(
+    (c) =>
+      normalizeForComparison(c.fabricante) === normFabricante &&
+      normalizeForComparison(c.modelo) === normModelo,
+  );
+
+  if (existing) {
+    return existing as EquipmentCatalogItem;
+  }
+
   const { data, error } = await supabase
     .from('equipment_catalog')
-    .insert({ ...payload, tenant_id: tenantId })
+    .insert({
+      ...payload,
+      fabricante: (payload.fabricante || '').trim(),
+      modelo: (payload.modelo || '').trim(),
+      tenant_id: tenantId,
+    })
     .select()
     .single();
   if (error) throw error;

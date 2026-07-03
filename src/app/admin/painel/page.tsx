@@ -416,20 +416,7 @@ export default function AdminPainelPage() {
             >
               <LucideLineChart className="mr-2 h-4 w-4" /> Dashboard
             </button>
-            <button
-              onClick={() => handleTabChange('atividade_recente')}
-              className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center ${
-                activeTab === 'atividade_recente'
-                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              Atividade Recente
-              {contextUnreadCount > 0 && (
-                <Badge className="ml-2 bg-red-500 text-white">{contextUnreadCount}</Badge>
-              )}
-            </button>
-            {isSuperAdmin && (
+            {isFullAdmin && (
               <button
                 onClick={() => handleTabChange('metricas')}
                 className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center ${
@@ -696,56 +683,7 @@ export default function AdminPainelPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="atividade_recente">
-            <Card>
-              <CardHeader>
-                <CardTitle>Atividade Recente</CardTitle>
-                <CardDescription>
-                  Monitore as últimas atualizações dos projetos na plataforma.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <section>
-                  <div className="flex items-center mb-1">
-                    <Lightbulb className="h-6 w-6 mr-2 text-blue-600" />
-                    <h3 className="text-xl font-semibold">Últimas Movimentações de Projeto</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Monitore as últimas atualizações dos projetos na plataforma.
-                  </p>
-                  
-                  {recentProjects.length > 0 ? (
-                    <ScrollArea className="h-[400px]">
-                      <div className="space-y-0">
-                        {recentProjects.map((project, index) => (
-                          <Link key={project.id} href={`/admin/projetos/${project.id}`} passHref>
-                            <div className={`flex items-start p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors ${index < recentProjects.length - 1 ? 'border-b border-gray-200 dark:border-gray-600' : ''}`}>
-                              <Lightbulb className="h-6 w-6 text-blue-500 mr-4 mt-1 flex-shrink-0" />
-                              <div className="flex-grow">
-                                <p className="text-base font-semibold text-gray-800 dark:text-gray-200 truncate mb-0.5">Projeto {project.nomeClienteFinal || 'Cliente Final'}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">
-                                  Atualizado em {project.updatedAt ? format(toSafeDate(project.updatedAt), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR }) : 'N/A'}
-                                  {' • '}
-                                  Potência: {project.potencia || 'N/A'} kWp
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Cliente: {project.nomeClienteFinal || 'N/A'}
-                                </p>
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhum projeto recente encontrado.</p>
-                  )}
-                </section>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {isSuperAdmin && (
+          {isFullAdmin && (
             <TabsContent value="metricas">
               <MetricasTab
                 allProjects={allProjects}

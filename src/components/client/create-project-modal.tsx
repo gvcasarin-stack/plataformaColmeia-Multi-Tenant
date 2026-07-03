@@ -719,11 +719,17 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
         <AdminCreateClientModal
           open={isCreateClientModalOpen}
           onOpenChange={(v) => { if (!v) setIsCreateClientModalOpen(false); }}
-          onSuccess={(clientId, clientName, clientEmail) => {
+          onSuccess={(clientId, clientName, clientEmail, clientIsCompany, clientCompanyName) => {
             if (clientId && clientName && clientEmail) {
               setClients(prev => {
                 if (prev.some(c => c.id === clientId)) return prev;
-                return [...prev, { id: clientId, name: clientName, email: clientEmail }];
+                return [...prev, {
+                  id: clientId,
+                  name: clientName,
+                  email: clientEmail,
+                  isCompany: clientIsCompany || false,
+                  companyName: clientIsCompany ? clientCompanyName : undefined,
+                }];
               });
               setSelectedOwnerId(clientId);
             }
