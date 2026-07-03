@@ -110,11 +110,13 @@ export async function POST(request: NextRequest) {
 
     const userId = authData.user.id;
 
-    // Atualizar registro na tabela users (gerado pelo trigger) com status ativo e dados completos
+    // Criar registro na tabela users (não existe trigger automático — precisa ser inserido explicitamente)
     // role: 'client' (inglês) é o valor esperado pela query de listagem em /api/admin/clients
-    const { error: updateError } = await supabase
+    const { error: insertError } = await supabase
       .from('users')
-      .update({
+      .insert({
+        id: userId,
+        email: cleanEmail,
         role: 'client',
         status: 'active',
         name: name.trim(),
@@ -124,12 +126,30 @@ export async function POST(request: NextRequest) {
         cnpj: isCompany ? cleanCnpj : null,
         cpf: !isCompany ? cleanCpf : null,
         tenant_id: tenantId,
+        auth_provider: 'supabase',
+        pending_approval: false,
+        is_blocked: false,
+        login_count: 0,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+      });
 
-    if (updateError) {
-      logger.warn('[API-CreateClient] Aviso ao atualizar users record:', updateError);
+    if (insertError) {
+      logger.error('[API-CreateClient] Erro ao criar registro em users:', insertError);
+
+      // Cleanup: remover usuário do Auth para não deixar registro órfão
+      try {
+        await supabase.auth.admin.deleteUser(userId);
+        logger.info('[API-CreateClient] Usuário Auth removido após falha ao criar registro em users');
+      } catch (cleanupError) {
+        logger.error('[API-CreateClient] Erro ao limpar usuário Auth:', cleanupError);
+      }
+
+      return createApiError(
+        'Erro ao criar registro do cliente no banco de dados',
+        ApiErrorCode.INTERNAL_SERVER_ERROR,
+        500
+      );
     }
 
     // Enviar e-mail de boas-vindas com credenciais (não-bloqueante)

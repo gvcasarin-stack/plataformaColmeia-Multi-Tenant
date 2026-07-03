@@ -374,7 +374,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
                             autoFocus
                           />
                         </div>
-                        <div className="max-h-[220px] overflow-y-auto py-1">
+                        <div className="max-h-[220px] overflow-y-auto py-1" onWheel={(e) => e.stopPropagation()}>
                           {/* Minha conta */}
                           <button
                             type="button"
