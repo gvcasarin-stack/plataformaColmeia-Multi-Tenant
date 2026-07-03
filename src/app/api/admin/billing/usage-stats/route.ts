@@ -81,26 +81,32 @@ export async function GET(request: NextRequest) {
       api_calls_per_day: planData.api_calls_per_day
     };
 
-    // Calcular uso atual de projetos
+    // ✅ CORREÇÃO: Calcular projetos ATIVOS (excluindo finalizados e cancelados),
+    // mesma lógica usada em "Projetos Ativos" na aba Métricas do painel admin.
+    const TERMINAL_PROJECT_STATUSES = ['finalizado', 'cancelado'];
     const { count: projectsCount, error: projectsError } = await supabase
       .from('projects')
       .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
-      .eq('is_archived', false);
+      .eq('is_archived', false)
+      .not('status', 'in', `(${TERMINAL_PROJECT_STATUSES.join(',')})`);
 
-    // Calcular uso atual de usuários
+    // ✅ CORREÇÃO: "Usuários" deve contar apenas membros da equipe (mesmos
+    // roles usados em /admin/equipe), não clientes.
     const { count: usersCount, error: usersError } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
+      .in('role', ['superadmin', 'owner', 'admin', 'colaborador'])
       .eq('status', 'active');
 
-    // ✅ CORREÇÃO: Calcular clientes reais do tenant (usuários com role 'cliente')
+    // ✅ CORREÇÃO: role de cliente é 'client' (inglês), mesmo valor usado em
+    // /api/admin/clients — antes filtrava por 'cliente' e nunca encontrava nada.
     const { count: clientsCount, error: clientsError } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
-      .eq('role', 'cliente')
+      .eq('role', 'client')
       .eq('status', 'active');
 
     const uniqueClientsCount = clientsCount || 0;
@@ -117,21 +123,27 @@ export async function GET(request: NextRequest) {
 
       if (!filesError && projectFiles) {
         let totalBytes = 0;
-        
+
         projectFiles.forEach(project => {
-          if (project.files && typeof project.files === 'string') {
+          if (!project.files) return;
+
+          // A coluna 'files' é jsonb: o Supabase-js já retorna array/objeto
+          // (nunca string), então precisa tratar os dois formatos possíveis.
+          let files: any = project.files;
+          if (typeof files === 'string') {
             try {
-              const files = JSON.parse(project.files);
-              if (Array.isArray(files)) {
-                files.forEach(file => {
-                  if (file.size && typeof file.size === 'number') {
-                    totalBytes += file.size;
-                  }
-                });
-              }
+              files = JSON.parse(files);
             } catch (parseError) {
-              // Ignorar erros de parse de JSON
+              return;
             }
+          }
+
+          if (Array.isArray(files)) {
+            files.forEach(file => {
+              if (file?.size && typeof file.size === 'number') {
+                totalBytes += file.size;
+              }
+            });
           }
         });
         
@@ -148,40 +160,6 @@ export async function GET(request: NextRequest) {
     } catch (storageError) {
       devLog.error('[API Usage Stats] Erro ao calcular storage:', storageError);
       storageUsed = 0; // Default para 0 em caso de erro
-    }
-
-    // ✅ CORREÇÃO: Calcular API calls reais do tenant (hoje)
-    let apiCallsToday = 0;
-    try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
-
-      // Buscar logs de API calls do tenant hoje (se a tabela existir)
-      const { count: apiCount, error: apiError } = await supabase
-        .from('api_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId)
-        .gte('created_at', startOfDay)
-        .lt('created_at', endOfDay);
-
-      if (!apiError && apiCount !== null) {
-        apiCallsToday = apiCount;
-      } else {
-        // Se não temos logs de API, usar 0 (mais realista para tenant novo)
-        apiCallsToday = 0;
-        devLog.log('[API Usage Stats] Tabela api_logs não encontrada ou sem dados, usando 0');
-      }
-      
-      devLog.log('[API Usage Stats] API calls calculadas:', {
-        tenantId,
-        today: startOfDay,
-        apiCallsToday,
-        apiError: apiError?.message
-      });
-    } catch (apiError) {
-      devLog.error('[API Usage Stats] Erro ao calcular API calls:', apiError);
-      apiCallsToday = 0; // Default para 0 em caso de erro
     }
 
     // Preparar estatísticas de uso
@@ -205,11 +183,6 @@ export async function GET(request: NextRequest) {
         current: storageUsed,
         limit: limits.max_storage_gb || 3,
         percentage: Math.round((storageUsed / (limits.max_storage_gb || 3)) * 100)
-      },
-      apiCalls: {
-        current: apiCallsToday,
-        limit: limits.api_calls_per_day || 2000,
-        percentage: Math.round((apiCallsToday / (limits.api_calls_per_day || 2000)) * 100)
       }
     };
 
@@ -222,8 +195,7 @@ export async function GET(request: NextRequest) {
         projectsCount,
         usersCount,
         clientsCount,
-        storageGB: storageUsed,
-        apiCallsToday
+        storageGB: storageUsed
       },
       usageStats
     });
