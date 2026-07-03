@@ -127,7 +127,6 @@ export async function POST(request: NextRequest) {
         cpf: !isCompany ? cleanCpf : null,
         tenant_id: tenantId,
         auth_provider: 'supabase',
-        pending_approval: false,
         is_blocked: false,
         login_count: 0,
         created_at: new Date().toISOString(),

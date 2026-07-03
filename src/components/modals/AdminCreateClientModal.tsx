@@ -386,6 +386,7 @@ export function AdminCreateClientModal({
                 onChange={(e) => handleChange('phone', formatPhone(e.target.value))}
                 placeholder="(00) 00000-0000"
                 maxLength={15}
+                autoComplete="off"
                 className={errors.phone ? 'border-red-500' : ''}
               />
               {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
@@ -402,6 +403,7 @@ export function AdminCreateClientModal({
                     value={form.password}
                     onChange={(e) => handleChange('password', e.target.value)}
                     placeholder="Senha do cliente"
+                    autoComplete="new-password"
                     className={`pr-10 ${errors.password ? 'border-red-500' : ''}`}
                   />
                   <button

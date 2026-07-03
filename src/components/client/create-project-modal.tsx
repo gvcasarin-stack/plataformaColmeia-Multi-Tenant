@@ -443,8 +443,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
                       onClick={() => setIsCreateClientModalOpen(true)}
                     >
                       <UserPlus className="h-3.5 w-3.5" />
-                      <span className="hidden xs:inline">Novo Cliente</span>
-                      <span className="xs:hidden">Novo</span>
+                      Novo Cliente
                     </Button>
                   </div>
 
