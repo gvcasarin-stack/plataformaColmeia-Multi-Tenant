@@ -728,9 +728,6 @@ export default function AssinaturasPage() {
         </Alert>
       )}
 
-      {/* Separador visual */}
-      <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Plano Atual */}
         <Card className="overflow-hidden border border-emerald-200 dark:border-emerald-800 ring-1 ring-emerald-100 dark:ring-emerald-900/40 shadow-sm">
@@ -817,12 +814,11 @@ export default function AssinaturasPage() {
 
             {organization.subscription_status === 'active' && !organization.is_trial ? (
               // Plano ativo - mostrar informações da assinatura
-              <div className="flex items-center gap-2 text-sm">
-                <span className="flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400 flex-shrink-0">
-                  <CheckCircle className="h-4 w-4" />
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-full px-3 py-1">
+                  <CheckCircle className="h-3.5 w-3.5" />
                   Plano ativo
                 </span>
-                <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
                 <span className="text-gray-500 dark:text-gray-400 text-xs">
                   Próxima cobrança em {organization.next_billing_date
                     ? new Date(organization.next_billing_date).toLocaleDateString('pt-BR')
@@ -951,9 +947,6 @@ export default function AssinaturasPage() {
         </Card>
       </div>
 
-      {/* Separador visual */}
-      <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
-
       {/* Uso dos Recursos */}
       {usageStats && usageStats.projects && usageStats.users && usageStats.clients && usageStats.storage && (
         <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -1056,12 +1049,14 @@ export default function AssinaturasPage() {
                     <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
                     <span>{parts.join(' e ')} — o plano {stripePlans.profissional.name} resolve isso.</span>
                   </p>
-                  <a
-                    href="#upgrade-plan"
-                    className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-md whitespace-nowrap text-center flex-shrink-0"
+                  <button
+                    type="button"
+                    onClick={() => handleUpgrade('profissional')}
+                    disabled={isUpgrading}
+                    className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 px-3 py-1.5 rounded-md whitespace-nowrap text-center flex-shrink-0"
                   >
-                    Ver {stripePlans.profissional.name} →
-                  </a>
+                    {isUpgrading ? 'Processando...' : `Fazer Upgrade para ${stripePlans.profissional.name} →`}
+                  </button>
                 </div>
               );
             })()}
@@ -1069,31 +1064,31 @@ export default function AssinaturasPage() {
         </Card>
       )}
 
-      {/* Separador visual */}
-      <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
-
       {/* Histórico de Faturas */}
-      <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/20 dark:to-gray-900/20 border-b-2 border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Receipt className="h-5 w-5 text-slate-600" />
-              Histórico de Faturas
-            </CardTitle>
+      <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 flex-shrink-0">
+                <Receipt className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100">Histórico de Faturas</h2>
+                <p className="text-[11px] text-gray-400">Pagamentos e cobranças da sua assinatura</p>
+              </div>
+            </div>
             {organization.subscription_status === 'active' && (
               <Button
-                variant="outline"
                 size="sm"
                 onClick={handleOpenPortal}
                 disabled={loadingPortal}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold flex-shrink-0"
               >
                 {loadingPortal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1" />}
                 Gerenciar assinatura
               </Button>
             )}
           </div>
-        </CardHeader>
-        <CardContent className="pt-4">
           {loadingInvoices ? (
             <div className="flex items-center justify-center h-20">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-500" />
@@ -1175,8 +1170,6 @@ export default function AssinaturasPage() {
       {/* Painel Superadmin — visível apenas para superadmin */}
       {isSuperAdmin && (
         <>
-          <div className="border-t-2 border-gray-200 dark:border-gray-700 my-8"></div>
-
           <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 border-slate-200 dark:border-slate-700 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-900/20 dark:to-gray-900/20 border-b-2 border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between flex-wrap gap-3">
