@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale/pt-BR'
 import { Project } from '@/types/project'
 import { ProjectStatusInfo } from '@/lib/services/kanbanService'
 import { toSafeDate } from '@/lib/utils/dateHelpers'
+import { calculateProjectCost } from '@/lib/utils/projectUtils'
 import { devLog } from '@/lib/utils/productionLogger'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { createTenantHeaders } from '@/lib/utils/tenant-helper'
@@ -25,7 +26,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, DollarSign, Layers, ShieldCheck, CheckCircle } from 'lucide-react'
+import { TrendingUp, DollarSign, Layers, ShieldCheck, CheckCircle, Zap, Users2 } from 'lucide-react'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,9 @@ interface MetricasTabProps {
   allProjects: Project[]
   availableStatuses: ProjectStatusInfo[]
   isActive: boolean
+  clientCount: number
+  canViewFinancials: boolean
+  showAdvancedTabs: boolean
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -65,9 +69,9 @@ const projectClient  = (p: Project): string => (p as any).empresaIntegradora || 
 
 // ─── componente ──────────────────────────────────────────────────────────────
 
-export default function MetricasTab({ allProjects, availableStatuses, isActive }: MetricasTabProps) {
+export default function MetricasTab({ allProjects, availableStatuses, isActive, clientCount, canViewFinancials, showAdvancedTabs }: MetricasTabProps) {
   const { user } = useAuth()
-  const [metricaTab,       setMetricaTab]       = useState<'projetos' | 'clientes' | 'equipe'>('projetos')
+  const [metricaTab,       setMetricaTab]       = useState<'visao-geral' | 'projetos' | 'clientes' | 'equipe'>('visao-geral')
   const [teamMembers,      setTeamMembers]       = useState<TeamMember[]>([])
   const [conclusoes,       setConclusoes]        = useState<ConclusaoEvent[]>([])
   const [loadingConclusoes, setLoadingConclusoes] = useState(false)
@@ -182,6 +186,61 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
     return { total: filteredProjects.length, totalRevenue, activeCount, slaPercent }
   }, [filteredProjects, availableStatuses])
 
+  // ── sub-aba VISÃO GERAL ──────────────────────────────────────────────────
+
+  const concludedCount = useMemo(() => {
+    const conclusionSlugs = new Set(availableStatuses.filter(s => (s as any).isConclusion).map(s => s.slug))
+    if (conclusionSlugs.size === 0) return 0
+    return filteredProjects.filter(p => conclusionSlugs.has(p.status || '')).length
+  }, [filteredProjects, availableStatuses])
+
+  const totalPower = useMemo(
+    () => filteredProjects.reduce((sum, p) => sum + (typeof p.potencia === 'number' ? p.potencia : 0), 0),
+    [filteredProjects],
+  )
+
+  const projectsByStatusData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const p of filteredProjects) {
+      const slug = p.status || 'indefinido'
+      counts[slug] = (counts[slug] || 0) + 1
+    }
+    return Object.entries(counts)
+      .map(([slug, value]) => {
+        const info = availableStatuses.find(s => s.slug === slug)
+        return { name: info?.name || slug, value, color: info?.color || '#8884d8' }
+      })
+      .sort((a, b) => b.value - a.value)
+  }, [filteredProjects, availableStatuses])
+
+  const monthlyRevenueData = useMemo(
+    () => monthRange.map(month => {
+      const mk = monthKey(month)
+      const label = format(month, 'MMM/yy', { locale: ptBR })
+      const receita = filteredProjects
+        .filter(p => { const d = projectDate(p); return d && monthKey(d) === mk })
+        .reduce((sum, p) => {
+          const potencia = typeof p.potencia === 'number' ? p.potencia : 0
+          const cost = (p as any).valorProjeto || calculateProjectCost(potencia)
+          return sum + (cost || 0)
+        }, 0)
+      return { name: label, receita }
+    }),
+    [monthRange, filteredProjects],
+  )
+
+  const monthlyPowerData = useMemo(
+    () => monthRange.map(month => {
+      const mk = monthKey(month)
+      const label = format(month, 'MMM/yy', { locale: ptBR })
+      const potenciaInstalada = filteredProjects
+        .filter(p => { const d = projectDate(p); return d && monthKey(d) === mk })
+        .reduce((sum, p) => sum + (typeof p.potencia === 'number' ? p.potencia : 0), 0)
+      return { name: label, potenciaInstalada }
+    }),
+    [monthRange, filteredProjects],
+  )
+
   // ── sub-aba PROJETOS ─────────────────────────────────────────────────────
 
   const monthlyEvolution = useMemo(() => {
@@ -210,22 +269,6 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
       return { month: label, Criados: created, Concluídos: concluded, open }
     })
   }, [monthRange, filteredProjects, conclusoes])
-
-  const funnelData = useMemo(
-    () =>
-      availableStatuses
-        .filter(s => (s as any).is_active !== false)
-        .sort((a, b) =>
-          ((a as any).order ?? (a as any).order_index ?? 0) -
-          ((b as any).order ?? (b as any).order_index ?? 0),
-        )
-        .map(s => ({
-          name:     s.name,
-          projetos: filteredProjects.filter(p => p.status === s.slug).length,
-          color:    s.color || '#8884d8',
-        })),
-    [availableStatuses, filteredProjects],
-  )
 
   const slaData = useMemo(() => {
     const today = new Date()
@@ -459,11 +502,223 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
       </div>
 
       {/* ── Sub-tabs ────────────────────────────────────────────────────── */}
-      <div className="flex gap-2">
-        {tabBtn('projetos', 'Projetos')}
-        {tabBtn('clientes', 'Clientes')}
-        {tabBtn('equipe',   'Equipe')}
+      <div className="flex gap-2 flex-wrap">
+        {tabBtn('visao-geral', 'Visão Geral')}
+        {showAdvancedTabs && tabBtn('projetos', 'Projetos')}
+        {showAdvancedTabs && tabBtn('clientes', 'Clientes')}
+        {showAdvancedTabs && tabBtn('equipe',   'Equipe')}
       </div>
+
+      {/* ═══════════════ SUB-ABA: VISÃO GERAL ════════════════════════════ */}
+      {metricaTab === 'visao-geral' && (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <div className="p-3 bg-green-500 rounded-full">
+                    <Layers className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="text-gray-700 dark:text-gray-200">Total de Projetos</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{kpi.total}</div>
+                <p className="text-sm text-muted-foreground mt-1">no período selecionado</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <div className="p-3 bg-yellow-500 rounded-full">
+                    <Zap className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="text-gray-700 dark:text-gray-200">Potência Total (kWp)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalPower.toFixed(2)}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {kpi.total > 0 ? (totalPower / kpi.total).toFixed(2) : 0} kWp em média
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <div className="p-3 bg-blue-500 rounded-full">
+                    <Users2 className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="text-gray-700 dark:text-gray-200">Clientes Registrados</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{clientCount}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {clientCount > 0 ? (kpi.total / clientCount).toFixed(1) : 0} projetos/cliente
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <div className="p-3 bg-emerald-500 rounded-full">
+                    <CheckCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="text-gray-700 dark:text-gray-200">Projetos Concluídos</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{concludedCount}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {kpi.total > 0 ? Math.round((concludedCount / kpi.total) * 100) : 0}% do total
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+            <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+              <CardHeader>
+                <CardTitle>Projetos por Mês</CardTitle>
+                <CardDescription>Evolução no período selecionado</CardDescription>
+              </CardHeader>
+              <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={monthlyEvolution} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" fontSize={12} tickLine={false} axisLine={true} />
+                    <YAxis fontSize={12} tickLine={false} axisLine={true} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="Criados" fill="#8884d8" radius={[4, 4, 0, 0]} barSize={30} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+              <CardHeader>
+                <CardTitle>Distribuição por Status</CardTitle>
+                <CardDescription>Projetos por estágio</CardDescription>
+              </CardHeader>
+              <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 20 }}>
+                    <Pie
+                      data={projectsByStatusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={false}
+                    >
+                      {projectsByStatusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0];
+                          return (
+                            <div className="bg-background border border-border p-2 rounded shadow-lg">
+                              <p className="font-semibold">{data.payload.name}</p>
+                              <p style={{ color: data.color }}>
+                                Projetos: {data.value}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                      wrapperStyle={{ fontSize: "10px", lineHeight: "1.2" }}
+                      content={({ payload }) => (
+                        <div className="flex flex-wrap justify-center gap-2 mt-2">
+                          {payload?.map((entry, index) => {
+                            const words = entry.value.split(' ');
+                            const shouldBreak = words.length > 3;
+
+                            const totalValue = projectsByStatusData.reduce((sum, item) => sum + item.value, 0);
+                            const currentData = projectsByStatusData.find(item => item.name === entry.value);
+                            const percentage = currentData ? Math.round((currentData.value / totalValue) * 100) : 0;
+
+                            return (
+                              <div key={`legend-${index}`} className="flex items-center gap-1 text-xs">
+                                <div
+                                  className="w-3 h-3 rounded-sm"
+                                  style={{ backgroundColor: projectsByStatusData.find(item => item.name === entry.value)?.color || entry.color }}
+                                ></div>
+                                <span className={shouldBreak ? "text-center leading-tight" : ""}>
+                                  {shouldBreak ? (
+                                    <span>
+                                      {words.slice(0, Math.ceil(words.length / 2)).join(' ')}<br/>
+                                      {words.slice(Math.ceil(words.length / 2)).join(' ')} ({percentage}%)
+                                    </span>
+                                  ) : `${entry.value} (${percentage}%)`}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {canViewFinancials && (
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+              <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+                <CardHeader>
+                  <CardTitle>Faturamento Mensal Estimado</CardTitle>
+                  <CardDescription>Receita estimada (R$)</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={monthlyRevenueData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
+                      <YAxis fontSize={12} tickLine={false} axisLine={true} tickFormatter={(value) => fmtS(value).replace('R$', '')} />
+                      <Tooltip formatter={(value: number) => fmt(value)} />
+                      <Area type="monotone" dataKey="receita" stroke="#22c55e" fill="#86efac" fillOpacity={0.4} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+                <CardHeader>
+                  <CardTitle>Potência Instalada por Mês</CardTitle>
+                  <CardDescription>kWp por mês</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={monthlyPowerData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
+                      <YAxis fontSize={12} tickLine={false} axisLine={true} tickFormatter={(value) => `${value} kWp`} />
+                      <Tooltip formatter={(value: number) => `${value.toFixed(2)} kWp`} />
+                      <Area type="monotone" dataKey="potenciaInstalada" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ═══════════════ SUB-ABA: PROJETOS ══════════════════════════════ */}
       {metricaTab === 'projetos' && (
@@ -532,62 +787,35 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive }
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Funil de conversão */}
-            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-              <CardHeader>
-                <CardTitle>Funil de Conversão</CardTitle>
-                <CardDescription>Distribuição por etapa do pipeline</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {funnelData.every(d => d.projetos === 0)
-                  ? emptyState()
-                  : (
-                    <ResponsiveContainer width="100%" height={Math.max(240, funnelData.length * 34)}>
-                      <BarChart data={funnelData} layout="vertical" margin={{ left: 8, right: 28, top: 4, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" allowDecimals={false} fontSize={11} tickLine={false} />
-                        <YAxis type="category" dataKey="name" width={155} fontSize={10} tickLine={false} />
-                        <Tooltip formatter={(v: number) => [v, 'Projetos']} />
-                        <Bar dataKey="projetos" radius={[0, 4, 4, 0]} barSize={18}>
-                          {funnelData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-              </CardContent>
-            </Card>
-
-            {/* SLA */}
-            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-              <CardHeader>
-                <CardTitle>Projetos no Prazo por Etapa</CardTitle>
-                <CardDescription>
-                  Dentro vs. fora do prazo configurado
-                  <span className="block text-xs text-muted-foreground/70 mt-0.5">
-                    Baseado na última atualização do projeto
-                  </span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {slaData.length === 0
-                  ? emptyState('Nenhuma etapa com SLA configurado no período')
-                  : (
-                    <ResponsiveContainer width="100%" height={Math.max(240, slaData.length * 40)}>
-                      <BarChart data={slaData} layout="vertical" margin={{ left: 8, right: 28, top: 4, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" allowDecimals={false} fontSize={11} tickLine={false} />
-                        <YAxis type="category" dataKey="name" width={155} fontSize={10} tickLine={false} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="No Prazo" stackId="sla" fill="#22c55e" barSize={20} />
-                        <Bar dataKey="Atrasado" stackId="sla" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-              </CardContent>
-            </Card>
-          </div>
+          {/* SLA */}
+          <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+            <CardHeader>
+              <CardTitle>Projetos no Prazo por Etapa</CardTitle>
+              <CardDescription>
+                Dentro vs. fora do prazo configurado
+                <span className="block text-xs text-muted-foreground/70 mt-0.5">
+                  Baseado na última atualização do projeto
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {slaData.length === 0
+                ? emptyState('Nenhuma etapa com SLA configurado no período')
+                : (
+                  <ResponsiveContainer width="100%" height={Math.max(240, slaData.length * 40)}>
+                    <BarChart data={slaData} layout="vertical" margin={{ left: 8, right: 28, top: 4, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" allowDecimals={false} fontSize={11} tickLine={false} />
+                      <YAxis type="category" dataKey="name" width={155} fontSize={10} tickLine={false} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="No Prazo" stackId="sla" fill="#22c55e" barSize={20} />
+                      <Bar dataKey="Atrasado" stackId="sla" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+            </CardContent>
+          </Card>
         </div>
       )}
 

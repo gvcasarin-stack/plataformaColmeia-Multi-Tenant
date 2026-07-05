@@ -11,48 +11,15 @@ import { ptBR } from 'date-fns/locale/pt-BR'
 
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 import MetricasTab from './metricas-tab'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  AreaChart,
-  Pie,
-  PieChart,
-  Cell,
-  Area,
-  ComposedChart,
-  Line,
-} from 'recharts'
 import { useRouter } from 'next/navigation'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card'
 import { getAdminDashboardDataAction } from "@/lib/actions/project-actions"
 import { toSafeDate, isDateFromCurrentMonth, isDateFromMonth } from '@/lib/utils/dateHelpers'
 import {
   Lightbulb,
-  LineChart as LucideLineChart,
   Building2,
   ChevronRight,
-  BarChart3 as LucideBarChart,
-  DollarSign,
-  CheckCircle,
   Users,
-  Users2,
   Bell,
-  Layers,
-  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -98,7 +65,6 @@ export default function AdminPainelPage() {
   const [monthlyPowerData, setMonthlyPowerData] = useState<any[]>([])
 
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('dashboard')
   const [viewedProjects, setViewedProjects] = useState<Set<string>>(new Set())
   const fetchedDashboardDataRef = useRef(false)
   const [currentMonthProjectsCount, setCurrentMonthProjectsCount] = useState(0)
@@ -276,10 +242,6 @@ export default function AdminPainelPage() {
     })
   }
   
-  const handleTabChange = (value: string) => {
-    setActiveTab(value)
-  }
-
   const formatCurrency = (value: number | undefined) => {
     if (value === undefined || value === null) return "R$ 0,00"
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -404,295 +366,14 @@ export default function AdminPainelPage() {
       </header>
 
       <main className="flex-grow bg-white dark:bg-gray-800 shadow-xl rounded-lg border-2 border-gray-200 dark:border-gray-700 p-6 mt-6 mr-6">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <div className="flex space-x-2 mb-6">
-            <button
-              onClick={() => handleTabChange('dashboard')}
-              className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center ${
-                activeTab === 'dashboard'
-                  ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              <LucideLineChart className="mr-2 h-4 w-4" /> Dashboard
-            </button>
-            {isFullAdmin && (
-              <button
-                onClick={() => handleTabChange('metricas')}
-                className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center ${
-                  activeTab === 'metricas'
-                    ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Métricas
-              </button>
-            )}
-          </div>
-
-          <TabsContent value="dashboard">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-3">
-                    <div className="p-3 bg-green-500 rounded-full">
-                      <Layers className="h-6 w-6 text-white" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-200">Total de Projetos</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{projectCount}</div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    +{newProjectsThisMonth} neste mês
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-3">
-                    <div className="p-3 bg-yellow-500 rounded-full">
-                      <Zap className="h-6 w-6 text-white" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-200">Potência Total (kWp)</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalPower.toFixed(2)}</div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {projectCount > 0 ? (totalPower / projectCount).toFixed(2) : 0} kWp em média
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-3">
-                    <div className="p-3 bg-blue-500 rounded-full">
-                      <Users2 className="h-6 w-6 text-white" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-200">Clientes Registrados</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{clientCountState}</div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                     {clientCountState > 0 ? (projectCount / clientCountState).toFixed(1) : 0} projetos/cliente
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-3">
-                    <div className="p-3 bg-emerald-500 rounded-full">
-                      <CheckCircle className="h-6 w-6 text-white" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-200">Projetos Concluídos</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{concludedCount}</div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {projectCount > 0 ? Math.round((concludedCount / projectCount) * 100) : 0}% do total
-                  </p>
-                </CardContent>
-              </Card>
-
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-              <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-                <CardHeader>
-                  <CardTitle>Projetos por Mês</CardTitle>
-                  <CardDescription>Evolução dos últimos 6 meses</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={monthlyProjectsData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
-                      <YAxis fontSize={12} tickLine={false} axisLine={true} allowDecimals={false} />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(200, 200, 200, 0.2)'}}
-                        contentStyle={{
-                          backgroundColor: 'var(--background)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '0.5rem',
-                          padding: '8px',
-                          fontSize: '12px',
-                          color: 'var(--foreground)'
-                        }}
-                      />
-                      <Bar dataKey="projetos" fill="#8884d8" radius={[4, 4, 0, 0]} barSize={30} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-                <CardHeader>
-                  <CardTitle>Distribuição por Status</CardTitle>
-                  <CardDescription>Projetos por estágio</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 20 }}>
-                      <Pie
-                        data={projectsByStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={false}
-                      >
-                        {projectsByStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0];
-                            return (
-                              <div className="bg-background border border-border p-2 rounded shadow-lg">
-                                <p className="font-semibold">{data.payload.name}</p>
-                                <p style={{ color: data.color }}>
-                                  Projetos: {data.value}
-                                </p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                       <Legend
-                         layout="horizontal"
-                         verticalAlign="bottom"
-                         align="center"
-                         wrapperStyle={{fontSize: "10px", lineHeight: "1.2"}}
-                         content={({ payload }) => (
-                           <div className="flex flex-wrap justify-center gap-2 mt-2">
-                             {payload?.map((entry, index) => {
-                               const words = entry.value.split(' ');
-                               const shouldBreak = words.length > 3;
-
-                               // Calcular percentual baseado nos dados do gráfico
-                               const totalValue = projectsByStatusData.reduce((sum, item) => sum + item.value, 0);
-                               const currentData = projectsByStatusData.find(item => item.name === entry.value);
-                               const percentage = currentData ? Math.round((currentData.value / totalValue) * 100) : 0;
-
-                               return (
-                                 <div key={`legend-${index}`} className="flex items-center gap-1 text-xs">
-                                   <div
-                                     className="w-3 h-3 rounded-sm"
-                                     style={{ backgroundColor: projectsByStatusData.find(item => item.name === entry.value)?.color || entry.color }}
-                                   ></div>
-                                   <span className={shouldBreak ? "text-center leading-tight" : ""}>
-                                     {shouldBreak ? (
-                                       <span>
-                                         {words.slice(0, Math.ceil(words.length / 2)).join(' ')}<br/>
-                                         {words.slice(Math.ceil(words.length / 2)).join(' ')} ({percentage}%)
-                                       </span>
-                                     ) : `${entry.value} (${percentage}%)`}
-                                   </span>
-                                 </div>
-                               );
-                             })}
-                           </div>
-                         )}
-                       />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* ✅ NOVO: Seção de gráficos financeiros (só aparece se tiver permissão) */}
-            {canViewDashboardFinancials && (
-              <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 mt-6">
-                <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-                  <CardHeader>
-                    <CardTitle>Faturamento Mensal Estimado</CardTitle>
-                    <CardDescription>Receita estimada (R$)</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={monthlyRevenueData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                        <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
-                        <YAxis
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={true}
-                          tickFormatter={(value) => formatCurrency(value).replace('R$', '')}
-                        />
-                         <Tooltip
-                          formatter={(value: number) => formatCurrency(value)}
-                          contentStyle={{
-                            backgroundColor: 'var(--background)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '0.5rem',
-                            padding: '8px',
-                            fontSize: '12px',
-                            color: 'var(--foreground)'
-                          }}
-                        />
-                        <Area type="monotone" dataKey="receita" stroke="#22c55e" fill="#86efac" fillOpacity={0.4} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-                  <CardHeader>
-                    <CardTitle>Potência Instalada por Mês</CardTitle>
-                    <CardDescription>kWp por mês</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={monthlyPowerData} margin={{ top: 5, right: 10, left: 15, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                        <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={true} />
-                        <YAxis
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={true}
-                          tickFormatter={(value) => `${value} kWp`}
-                        />
-                         <Tooltip
-                          formatter={(value: number) => `${value.toFixed(2)} kWp`}
-                          contentStyle={{
-                            backgroundColor: 'var(--background)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '0.5rem',
-                            padding: '8px',
-                            fontSize: '12px',
-                            color: 'var(--foreground)'
-                          }}
-                        />
-                        <Area type="monotone" dataKey="potenciaInstalada" stroke="#ffc658" fill="#ffc658" fillOpacity={0.3} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </TabsContent>
-
-          {isFullAdmin && (
-            <TabsContent value="metricas">
-              <MetricasTab
-                allProjects={allProjects}
-                availableStatuses={availableStatuses}
-                isActive={activeTab === 'metricas'}
-              />
-            </TabsContent>
-          )}
-        </Tabs>
+        <MetricasTab
+          allProjects={allProjects}
+          availableStatuses={availableStatuses}
+          isActive={true}
+          clientCount={clientCountState}
+          canViewFinancials={canViewDashboardFinancials}
+          showAdvancedTabs={isFullAdmin}
+        />
       </main>
     </div>
   )
