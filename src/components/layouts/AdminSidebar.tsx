@@ -129,21 +129,24 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         href: "/admin/painel",
         label: "Painel",
         icon: LucideIcons.LayoutDashboard,
-        color: "bg-orange-100 text-orange-700 border-orange-200/50 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50",
+        color: "text-orange-700 dark:text-orange-400",
+        group: "Gestão",
         visible: isFullAdmin || userPermissions.can_view_dashboard === true || userPermissions.can_view_dashboard_financials === true // ✅ Visível para ambas as permissões de painel
       },
       {
         href: "/admin/projetos",
         label: "Projetos",
         icon: LucideIcons.Zap,
-        color: "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50",
+        color: "text-amber-700 dark:text-amber-400",
+        group: "Gestão",
         visible: isFullAdmin || userPermissions.can_create_projects === true || userPermissions.can_edit_projects === true // ✅ Visível se pode criar OU editar projetos (visualização é implícita)
       },
       {
         href: "/admin/leads",
         label: "Leads",
         icon: LucideIcons.UserPlus,
-        color: "bg-indigo-50 text-indigo-700 border-indigo-200/50 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50",
+        color: "text-indigo-700 dark:text-indigo-400",
+        group: "Gestão",
         badge: null,
         visible: isFullAdmin // ✅ Apenas admin por enquanto (fase inicial)
       },
@@ -151,22 +154,34 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         href: "/admin/funil-vendas",
         label: "Pipeline",
         icon: LucideIcons.TrendingUp,
-        color: "bg-violet-50 text-violet-700 border-violet-200/50 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800/50",
+        color: "text-violet-700 dark:text-violet-400",
+        group: "Gestão",
         badge: null,
         visible: isFullAdmin // ✅ Apenas admin por enquanto (fase inicial)
+      },
+      {
+        href: "/admin/notificacoes",
+        label: "Notificações",
+        icon: LucideIcons.Bell,
+        badge: totalUnreadNotifications > 0 ? totalUnreadNotifications : null,
+        color: "text-purple-700 dark:text-purple-400",
+        group: "Gestão",
+        visible: true // ✅ Sempre visível (notificações são essenciais)
       },
       {
         href: "/admin/equipe",
         label: "Equipe",
         icon: LucideIcons.Users,
-        color: "bg-teal-50 text-teal-700 border-teal-200/50 dark:bg-teal-900/20 dark:text-teal-400 dark:border-teal-800/50",
+        color: "text-teal-700 dark:text-teal-400",
+        group: "Pessoas",
         visible: isFullAdmin || userPermissions.can_manage_team === true // ✅ Controlado por permissão
       },
       {
         href: "/admin/clientes",
         label: "Clientes",
         icon: LucideIcons.Building2,
-        color: "bg-cyan-50 text-cyan-700 border-cyan-200/50 dark:bg-cyan-900/20 dark:text-cyan-400 dark:border-cyan-800/50",
+        color: "text-cyan-700 dark:text-cyan-400",
+        group: "Pessoas",
         badge: pendingRequests > 0 ? pendingRequests : null,
         visible: isFullAdmin || userPermissions.can_view_clients === true // ✅ Controlado por permissão estrita
       },
@@ -174,50 +189,48 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         href: "/admin/financeiro",
         label: "Financeiro",
         icon: LucideIcons.DollarSign,
-        color: "bg-green-50 text-green-700 border-green-200/50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50",
+        color: "text-green-700 dark:text-green-400",
+        group: "Configurações",
         visible: isFullAdmin || userPermissions.can_view_financials === true // ✅ Controlado por permissão
       },
       {
         href: "/admin/dimensionamento",
         label: "Dimensionamento",
         icon: LucideIcons.Calculator,
-        color: "bg-sky-50 text-sky-700 border-sky-200/50 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800/50",
+        color: "text-sky-700 dark:text-sky-400",
+        group: "Configurações",
         visible: isFullAdmin || userPermissions.can_view_dimensionamento === true // ✅ Controlado por permissão
-      },
-      {
-        href: "/admin/notificacoes",
-        label: "Notificações",
-        icon: LucideIcons.Bell,
-        badge: totalUnreadNotifications > 0 ? totalUnreadNotifications : null,
-        color: "bg-purple-50 text-purple-700 border-purple-200/50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50",
-        visible: true // ✅ Sempre visível (notificações são essenciais)
       },
       {
         href: "/admin/assinaturas",
         label: "Assinaturas",
         icon: LucideIcons.CreditCard,
-        color: "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50",
+        color: "text-emerald-700 dark:text-emerald-400",
+        group: "Configurações",
         visible: isFullAdmin || userPermissions.can_view_assinaturas === true // ✅ Controlado por permissão
       },
       {
         href: "/admin/preferencias",
         label: "Preferências",
         icon: LucideIcons.Settings,
-        color: "bg-rose-50 text-rose-700 border-rose-200/50 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800/50",
+        color: "text-rose-700 dark:text-rose-400",
+        group: "Configurações",
         visible: isFullAdmin || userPermissions.can_edit_preferences === true // ✅ Controlado por permissão
       },
       {
         href: "/admin/arquivados",
         label: "Arquivados",
         icon: LucideIcons.Archive,
-        color: "bg-gray-50 text-gray-700 border-gray-200/50 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/50",
+        color: "text-gray-700 dark:text-gray-400",
+        group: "Configurações",
         visible: isFullAdmin // ✅ Apenas admin e superadmin
       },
       {
         href: "/admin/acervo-tecnico",
         label: "Acervo Técnico",
         icon: LucideIcons.FolderArchive,
-        color: "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50",
+        color: "text-blue-700 dark:text-blue-400",
+        group: "Configurações",
         visible: isFullAdmin
       },
     ];
@@ -225,6 +238,21 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
     // ✅ Filtrar apenas links visíveis
     return allLinks.filter(link => link.visible);
   }, [totalUnreadNotifications, pendingRequests, pathname, userPermissions, isFullAdmin, isSuperAdmin])
+
+  // ✅ Agrupar os links visíveis em seções (Gestão / Pessoas / Configurações),
+  // preservando a ordem original e omitindo seções sem nenhum item visível.
+  const groupedLinks = useMemo(() => {
+    const groupOrder = ["Gestão", "Pessoas", "Configurações"];
+    const map: Record<string, typeof links> = {};
+    links.forEach((link) => {
+      const group = (link as any).group || "Gestão";
+      if (!map[group]) map[group] = [];
+      map[group].push(link);
+    });
+    return groupOrder
+      .map((group) => ({ group, items: map[group] || [] }))
+      .filter((g) => g.items.length > 0);
+  }, [links])
 
   return (
     <>
@@ -280,74 +308,83 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
           </button>
         </div>
 
-        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {links.map((link) => {
-            const isActive = pathname === link.href ||
-                            (link.href === '/admin/projetos' && (pathname?.startsWith('/admin/projetos/') || pathname?.startsWith('/projetos/'))) ||
-                            (link.href === '/admin/clientes' && pathname?.startsWith('/admin/clientes/'));
-            const Icon = link.icon;
-            
-            return (
-              <NextLink
-                key={link.href}
-                href={link.href}
-                passHref
-                legacyBehavior={false}
-                className={cn(
-                  "flex items-center px-3 py-2 rounded-lg transition-all duration-200 group relative",
-                  "hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
-                  isActive
-                    ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm"
-                    : "text-gray-700 dark:text-gray-200",
-                  collapsed && "justify-center"
-                )}
-              >
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-200",
-                  isActive
-                    ? "bg-white/20 text-white border-white/10"
-                    : link.color
-                )}>
-                  <Icon className="h-4 w-4" />
+        <nav className="flex-1 p-2 space-y-3 overflow-y-auto">
+          {groupedLinks.map(({ group, items }) => (
+            <div key={group} className="space-y-1">
+              {!collapsed && (
+                <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  {group}
                 </div>
-                
-                {!collapsed && (
-                  <span className="ml-3 text-sm font-medium">
-                    {link.label}
-                  </span>
-                )}
+              )}
+              {items.map((link) => {
+                const isActive = pathname === link.href ||
+                                (link.href === '/admin/projetos' && (pathname?.startsWith('/admin/projetos/') || pathname?.startsWith('/projetos/'))) ||
+                                (link.href === '/admin/clientes' && pathname?.startsWith('/admin/clientes/'));
+                const Icon = link.icon;
 
-                {!collapsed && (link as any).comingSoon && (
-                  <span className="ml-auto bg-blue-500 text-white text-xs font-semibold h-5 px-2 rounded-full flex items-center justify-center whitespace-nowrap">
-                    Em Breve
-                  </span>
-                )}
-
-                {!collapsed && link.badge && !(link as any).comingSoon && (
-                  <span className="ml-auto bg-red-500 text-white text-xs font-semibold h-5 min-w-[20px] rounded-full flex items-center justify-center px-1">
-                    {link.badge}
-                  </span>
-                )}
-                
-                {collapsed && link.badge && (
-                  <>
-                    <span className="sr-only">{link.label}</span>
-                    <div className="absolute left-full ml-2 hidden group-hover:flex items-center">
-                      <div className="w-2 h-2 rotate-45 bg-gray-900 dark:bg-gray-700"></div>
-                      <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs py-1.5 px-3 rounded ml-[-2px] whitespace-nowrap z-50">
-                        {link.label}
-                        {link.badge && (
-                          <span className="ml-1.5 bg-red-500 text-white text-xs font-semibold h-4 min-w-[16px] rounded-full inline-flex items-center justify-center px-1">
-                            {link.badge}
-                          </span>
-                        )}
-                      </div>
+                return (
+                  <NextLink
+                    key={link.href}
+                    href={link.href}
+                    passHref
+                    legacyBehavior={false}
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-lg transition-all duration-200 group relative",
+                      "hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
+                      isActive
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm"
+                        : "text-gray-700 dark:text-gray-200",
+                      collapsed && "justify-center"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-200",
+                      isActive
+                        ? "bg-white/20 text-white border-white/10"
+                        : "bg-gray-100 dark:bg-gray-700/50 border-transparent"
+                    )}>
+                      <Icon className={cn("h-4 w-4", !isActive && link.color)} />
                     </div>
-                  </>
-                )}
-              </NextLink>
-            );
-          })}
+
+                    {!collapsed && (
+                      <span className="ml-3 text-sm font-medium">
+                        {link.label}
+                      </span>
+                    )}
+
+                    {!collapsed && (link as any).comingSoon && (
+                      <span className="ml-auto bg-blue-500 text-white text-xs font-semibold h-5 px-2 rounded-full flex items-center justify-center whitespace-nowrap">
+                        Em Breve
+                      </span>
+                    )}
+
+                    {!collapsed && link.badge && !(link as any).comingSoon && (
+                      <span className="ml-auto bg-red-500 text-white text-xs font-semibold h-5 min-w-[20px] rounded-full flex items-center justify-center px-1">
+                        {link.badge}
+                      </span>
+                    )}
+
+                    {collapsed && link.badge && (
+                      <>
+                        <span className="sr-only">{link.label}</span>
+                        <div className="absolute left-full ml-2 hidden group-hover:flex items-center">
+                          <div className="w-2 h-2 rotate-45 bg-gray-900 dark:bg-gray-700"></div>
+                          <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs py-1.5 px-3 rounded ml-[-2px] whitespace-nowrap z-50">
+                            {link.label}
+                            {link.badge && (
+                              <span className="ml-1.5 bg-red-500 text-white text-xs font-semibold h-4 min-w-[16px] rounded-full inline-flex items-center justify-center px-1">
+                                {link.badge}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </NextLink>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="p-2 border-t dark:border-gray-700 mt-auto space-y-2 bg-orange-50/30 dark:bg-orange-900/10">
