@@ -370,7 +370,6 @@ export default function AdminPainelPage() {
           allProjects={allProjects}
           availableStatuses={availableStatuses}
           isActive={true}
-          clientCount={clientCountState}
           canViewFinancials={canViewDashboardFinancials}
           showAdvancedTabs={isFullAdmin}
         />

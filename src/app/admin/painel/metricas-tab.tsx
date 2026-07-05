@@ -26,7 +26,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, DollarSign, Layers, ShieldCheck, CheckCircle, Zap, Users2 } from 'lucide-react'
+import { TrendingUp, DollarSign, Layers, ShieldCheck, CheckCircle, Zap } from 'lucide-react'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +37,6 @@ interface MetricasTabProps {
   allProjects: Project[]
   availableStatuses: ProjectStatusInfo[]
   isActive: boolean
-  clientCount: number
   canViewFinancials: boolean
   showAdvancedTabs: boolean
 }
@@ -69,7 +68,7 @@ const projectClient  = (p: Project): string => (p as any).empresaIntegradora || 
 
 // ─── componente ──────────────────────────────────────────────────────────────
 
-export default function MetricasTab({ allProjects, availableStatuses, isActive, clientCount, canViewFinancials, showAdvancedTabs }: MetricasTabProps) {
+export default function MetricasTab({ allProjects, availableStatuses, isActive, canViewFinancials, showAdvancedTabs }: MetricasTabProps) {
   const { user } = useAuth()
   const [metricaTab,       setMetricaTab]       = useState<'visao-geral' | 'projetos' | 'clientes' | 'equipe'>('visao-geral')
   const [teamMembers,      setTeamMembers]       = useState<TeamMember[]>([])
@@ -157,6 +156,23 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
     })
   }, [filterPeriod, filterYear])
 
+  // Rótulo do período ativo (reflete o filtro compartilhado, sem ser um seletor à parte)
+  const periodLabel = useMemo(() => {
+    if (filterYear !== 'all') return `Ano de ${filterYear}`
+    const opt = PERIOD_OPTIONS.find(o => o.value === filterPeriod)
+    if (!opt || opt.value === 'all') return 'Todo o período'
+    return `Últimos ${opt.months} meses`
+  }, [filterYear, filterPeriod])
+
+  // Novos projetos no mês corrente, dentro do recorte já filtrado (distribuidora/colaborador)
+  const newThisMonth = useMemo(() => {
+    const now = new Date()
+    return filteredProjects.filter(p => {
+      const d = projectDate(p)
+      return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    }).length
+  }, [filteredProjects])
+
   // ── métricas KPI ─────────────────────────────────────────────────────────
 
   const kpi = useMemo(() => {
@@ -187,12 +203,6 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
   }, [filteredProjects, availableStatuses])
 
   // ── sub-aba VISÃO GERAL ──────────────────────────────────────────────────
-
-  const concludedCount = useMemo(() => {
-    const conclusionSlugs = new Set(availableStatuses.filter(s => (s as any).isConclusion).map(s => s.slug))
-    if (conclusionSlugs.size === 0) return 0
-    return filteredProjects.filter(p => conclusionSlugs.has(p.status || '')).length
-  }, [filteredProjects, availableStatuses])
 
   const totalPower = useMemo(
     () => filteredProjects.reduce((sum, p) => sum + (typeof p.potencia === 'number' ? p.potencia : 0), 0),
@@ -466,40 +476,12 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
               </div>
             )}
 
-            <span className="ml-auto text-sm text-muted-foreground">
+            <span className="ml-auto text-sm text-muted-foreground font-mono tabular-nums">
               {filteredProjects.length} projeto{filteredProjects.length !== 1 ? 's' : ''}
             </span>
           </div>
         </CardContent>
       </Card>
-
-      {/* ── KPI Cards ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { icon: <Layers className="h-4 w-4" />, label: 'Total de Projetos', value: kpi.total, sub: 'no período' },
-          { icon: <DollarSign className="h-4 w-4" />, label: 'Receita Total', value: fmtS(kpi.totalRevenue), sub: 'valor total dos projetos' },
-          { icon: <TrendingUp className="h-4 w-4" />, label: 'Projetos Ativos', value: kpi.activeCount, sub: 'excluindo finalizados e cancelados' },
-          {
-            icon: <ShieldCheck className="h-4 w-4" />, label: 'Projetos no Prazo',
-            value: kpi.slaPercent !== null
-              ? <span className={kpi.slaPercent >= 80 ? 'text-green-600' : kpi.slaPercent >= 60 ? 'text-yellow-600' : 'text-red-600'}>{kpi.slaPercent}%</span>
-              : <span className="text-sm text-muted-foreground">Sem SLA config.</span>,
-            sub: 'projetos ativos dentro do prazo',
-          },
-        ].map((card, i) => (
-          <Card key={i} className="border-2 border-gray-200 dark:border-gray-700 shadow-md">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                {card.icon} {card.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{card.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* ── Sub-tabs ────────────────────────────────────────────────────── */}
       <div className="flex gap-2 flex-wrap">
@@ -512,79 +494,53 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
       {/* ═══════════════ SUB-ABA: VISÃO GERAL ════════════════════════════ */}
       {metricaTab === 'visao-geral' && (
         <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-3">
-                  <div className="p-3 bg-green-500 rounded-full">
-                    <Layers className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="text-gray-700 dark:text-gray-200">Total de Projetos</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{kpi.total}</div>
-                <p className="text-sm text-muted-foreground mt-1">no período selecionado</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-3">
-                  <div className="p-3 bg-yellow-500 rounded-full">
-                    <Zap className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="text-gray-700 dark:text-gray-200">Potência Total (kWp)</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalPower.toFixed(2)}</div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {kpi.total > 0 ? (totalPower / kpi.total).toFixed(2) : 0} kWp em média
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-3">
-                  <div className="p-3 bg-blue-500 rounded-full">
-                    <Users2 className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="text-gray-700 dark:text-gray-200">Clientes Registrados</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{clientCount}</div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {clientCount > 0 ? (kpi.total / clientCount).toFixed(1) : 0} projetos/cliente
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-md hover:shadow-lg transition-all duration-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-3">
-                  <div className="p-3 bg-emerald-500 rounded-full">
-                    <CheckCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="text-gray-700 dark:text-gray-200">Projetos Concluídos</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{concludedCount}</div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {kpi.total > 0 ? Math.round((concludedCount / kpi.total) * 100) : 0}% do total
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              {
+                icon: <Layers className="h-5 w-5 text-green-600 dark:text-green-400" />,
+                label: 'Total de Projetos', value: kpi.total, caption: `+${newThisMonth} neste mês`,
+              },
+              {
+                icon: <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
+                label: 'Projetos Ativos', value: kpi.activeCount, caption: 'excluindo finalizados e cancelados',
+              },
+              {
+                icon: <Zap className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />,
+                label: 'Potência Total (kWp)', value: totalPower.toFixed(2),
+                caption: `${kpi.total > 0 ? (totalPower / kpi.total).toFixed(2) : 0} kWp em média`,
+              },
+              {
+                icon: <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />,
+                label: 'Receita Total', value: fmtS(kpi.totalRevenue), caption: 'valor total dos projetos',
+              },
+            ].map((card, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3.5"
+              >
+                <div className="w-[42px] h-[42px] rounded-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center flex-shrink-0">
+                  {card.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11.5px] font-semibold text-muted-foreground m-0 truncate">{card.label}</p>
+                  <p className="text-[22px] font-extrabold text-gray-900 dark:text-gray-100 font-mono tabular-nums m-0 mt-0.5">{card.value}</p>
+                  <p className="text-[11px] text-muted-foreground/70 m-0 mt-0.5 truncate">{card.caption}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Operacional</p>
           <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
             <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-              <CardHeader>
-                <CardTitle>Projetos por Mês</CardTitle>
-                <CardDescription>Evolução no período selecionado</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+                <div>
+                  <CardTitle>Projetos por Mês</CardTitle>
+                  <CardDescription>Evolução no período selecionado</CardDescription>
+                </div>
+                <span className="inline-flex items-center text-[11px] text-muted-foreground border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1 whitespace-nowrap mt-1">
+                  {periodLabel}
+                </span>
               </CardHeader>
               <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
                 <ResponsiveContainer width="100%" height={300}>
@@ -602,7 +558,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
             <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader>
                 <CardTitle>Distribuição por Status</CardTitle>
-                <CardDescription>Projetos por estágio</CardDescription>
+                <CardDescription>Projetos por estágio do pipeline (todos os status configurados no Kanban)</CardDescription>
               </CardHeader>
               <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
                 <ResponsiveContainer width="100%" height={300}>
@@ -679,6 +635,8 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
           </div>
 
           {canViewFinancials && (
+            <>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Financeiro</p>
             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
               <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
                 <CardHeader>
@@ -716,6 +674,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
                 </CardContent>
               </Card>
             </div>
+            </>
           )}
         </div>
       )}
