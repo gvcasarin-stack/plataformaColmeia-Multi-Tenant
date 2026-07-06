@@ -11,8 +11,6 @@ import { createProjectClientAction } from "@/lib/actions/project-actions";
 import { calculateProjectCost } from "@/lib/utils/projectUtils";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useProjects } from "@/lib/hooks/useProjects";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import * as Icons from "lucide-react";
 import {
   Table,
@@ -105,10 +103,6 @@ export default function ClientProjects() {
   const { user } = useAuth();
   const { projects: allProjects, loading: projectsLoading, addProject } = useProjects();
   const isMobile = useIsMobile();
-  
-  // Adicionar estado para o modal de diagnóstico
-  const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState<boolean>(false);
-  const [diagnosticInfo, setDiagnosticInfo] = useState<string>("");
   
   // Add debugging logs
   useEffect(() => {
@@ -214,17 +208,13 @@ export default function ClientProjects() {
   
   const handleCreateProject = async (data: any) => {
     const submitId = data._submitId || `page-${Date.now()}-${Math.random()}`;
-    devLog.log(`[${submitId}] handleCreateProject chamado na página de projetos`);
-    
-    let diagnosticLog = `[DIAGNÓSTICO] Início da criação do projeto\n`;
-    diagnosticLog += `- ID da submissão: ${submitId}\n`;
-    diagnosticLog += `- Dados: ${JSON.stringify({
+    devLog.log(`[${submitId}] handleCreateProject chamado na página de projetos`, {
       cliente: data.nomeClienteFinal,
       distribuidora: data.distribuidora,
-      potencia: data.power, // 'power' vem do formulário do modal
-      numero: data.projectNumber 
-    })}\n\n`;
-    
+      potencia: data.power,
+      numero: data.projectNumber
+    });
+
     // Verificação via localStorage para prevenir duplicação
     if (typeof window !== 'undefined' && data.projectNumber) {
       const storageKey = `project_creation_${data.projectNumber}`;
@@ -238,31 +228,24 @@ export default function ClientProjects() {
         // Se o projeto foi criado nos últimos 60 segundos, bloquear duplicação
         if (timeDiff < 60000) {
           devLog.error(`[${submitId}] Bloqueando duplicação via localStorage - projeto ${data.projectNumber} foi criado há ${timeDiff/1000} segundos`);
-          
-          diagnosticLog += `[DIAGNÓSTICO] Bloqueio de duplicação via localStorage\n`;
-          diagnosticLog += `- Projeto ${data.projectNumber} foi criado há ${timeDiff/1000} segundos\n\n`;
-          
+
           toast({
             title: "Ação bloqueada",
             description: `Este projeto já foi criado recentemente. Por favor, aguarde um momento.`,
             variant: "destructive",
           });
-          
-          setDiagnosticInfo(diagnosticLog);
-          setIsDiagnosticModalOpen(true);
+
           return;
         }
       }
-      
+
       // Registrar a criação no localStorage
       localStorage.setItem(storageKey, Date.now().toString());
-      
+
       // Definir expiração após 60 segundos
       setTimeout(() => {
         localStorage.removeItem(storageKey);
       }, 60000);
-      
-      diagnosticLog += `[DIAGNÓSTICO] Registro temporário criado no localStorage\n`;
     }
     
     // CRÍTICO: Verificar se a submissão já foi processada anteriormente
@@ -272,35 +255,21 @@ export default function ClientProjects() {
     
     if (processedIds.includes(submitId)) {
       devLog.log(`[${submitId}] Esta submissão já foi processada anteriormente, ignorando duplicação`);
-      
-      diagnosticLog += `[DIAGNÓSTICO] Submissão já processada anteriormente\n`;
-      diagnosticLog += `- ID de submissão ${submitId} encontrado no histórico\n\n`;
-      
-      setDiagnosticInfo(diagnosticLog);
-      setIsDiagnosticModalOpen(true);
       return;
     }
-    
+
     if (!user) {
       toast({
         title: "Erro",
         description: "Você precisa estar logado para criar um projeto.",
         variant: "destructive",
       });
-      
-      diagnosticLog += `[DIAGNÓSTICO] Erro: usuário não está logado\n\n`;
-      setDiagnosticInfo(diagnosticLog);
-      setIsDiagnosticModalOpen(true);
       return;
     }
-    
+
     // Evitar dupla submissão
     if (isSubmitting.current) {
       devLog.log(`[${submitId}] Submissão em andamento, evitando duplicação`);
-      
-      diagnosticLog += `[DIAGNÓSTICO] Submissão em andamento, evitando duplicação\n\n`;
-      setDiagnosticInfo(diagnosticLog);
-      setIsDiagnosticModalOpen(true);
       return;
     }
     
@@ -313,37 +282,30 @@ export default function ClientProjects() {
         const timeDiff = Date.now() - parseInt(lastProjectTime);
         if (timeDiff < 10000) { // 10 segundos
           devLog.log(`[${submitId}] Usuário criou projeto recentemente, bloqueando duplicação`);
-          
-          diagnosticLog += `[DIAGNÓSTICO] Projeto criado recentemente, bloqueando duplicação\n`;
-          diagnosticLog += `- Último projeto criado há ${timeDiff/1000} segundos\n\n`;
-          
+
           toast({
             title: "Ação bloqueada",
             description: "Você criou um projeto recentemente. Aguarde alguns segundos.",
             variant: "destructive",
           });
-          
-          setDiagnosticInfo(diagnosticLog);
-          setIsDiagnosticModalOpen(true);
+
           return;
         }
       }
-      
+
       // Registrar tentativa atual
       sessionStorage.setItem(recentProjectKey, Date.now().toString());
     }
-    
+
     try {
       // Marcar início da submissão
       isSubmitting.current = true;
       setLoading(true);
-      
+
       // Registrar este ID como já processado para evitar duplicação
       processedIds.push(submitId);
       sessionStorage.setItem('processedSubmissions', JSON.stringify(processedIds));
-      
-      diagnosticLog += `[DIAGNÓSTICO] Submissão registrada como processada\n`;
-      
+
       // Get current date in ISO format
       const currentDate = new Date().toISOString();
       
@@ -458,10 +420,9 @@ export default function ClientProjects() {
       };
 
       devLog.log(`[${submitId}] Chamando createProjectClientAction com:`, { projectDataForAction, clientUserInfo });
-      diagnosticLog += `[DIAGNÓSTICO] Chamando Server Action createProjectClientAction\n`;
 
       const result = await createProjectClientAction(projectDataForAction, clientUserInfo);
-      diagnosticLog += `[DIAGNÓSTICO] Resultado da Server Action: ${JSON.stringify(result)}\n`;
+      devLog.log(`[${submitId}] Resultado da Server Action:`, result);
 
       if (result.error) {
         throw new Error(result.error);
@@ -469,8 +430,7 @@ export default function ClientProjects() {
 
       if (result.data) {
         devLog.log(`[${submitId}] Projeto criado via action: `, result.data);
-        diagnosticLog += `[DIAGNÓSTICO] Projeto criado com sucesso: ID ${result.data.id}, Número ${result.data.number}\n`;
-        
+
         // ✅ PROTEÇÃO: Limpar flags de criação apenas APÓS sucesso
         if (typeof window !== 'undefined') {
           window._isCreatingProject = false;
@@ -486,13 +446,9 @@ export default function ClientProjects() {
 
     } catch (error: any) {
       devLog.error(`[${submitId}] Erro ao criar projeto via action: `, error);
-      diagnosticLog += `[DIAGNÓSTICO] Erro ao criar projeto via action\n`;
-      diagnosticLog += `- Mensagem: ${error.message || 'Erro desconhecido'}\n`;
-      
+
       toast({ title: "Erro na criação", description: `Erro: ${error.message || 'Falha ao criar o projeto'}`, variant: "destructive", });
-      setDiagnosticInfo(diagnosticLog); // Mostrar o log de diagnóstico
-      setIsDiagnosticModalOpen(true); // Abrir o modal de diagnóstico
-      
+
       // Remover este ID dos processados em caso de erro para permitir nova tentativa
       const errorIndex = processedIds.indexOf(submitId);
       if (errorIndex !== -1) {
@@ -952,26 +908,6 @@ export default function ClientProjects() {
         </div>
       )}
 
-      {/* Modal de diagnóstico */}
-      <Dialog open={isDiagnosticModalOpen} onOpenChange={setIsDiagnosticModalOpen}>
-        <DialogContent className="max-w-[80vw] max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Diagnóstico de Criação de Projeto</DialogTitle>
-            <DialogDescription>
-              Detalhes do processo de criação de projeto e possíveis erros
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] rounded-md border p-4">
-            <pre className="whitespace-pre-wrap text-sm font-mono">
-              {diagnosticInfo}
-            </pre>
-          </ScrollArea>
-          <div className="flex justify-end">
-            <Button onClick={() => setIsDiagnosticModalOpen(false)}>Fechar</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
       {/* Project Creation Modal */}
       <LazyClientCreateProjectModal
         open={isCreateModalOpen}

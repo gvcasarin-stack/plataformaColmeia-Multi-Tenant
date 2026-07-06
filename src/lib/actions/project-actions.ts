@@ -128,33 +128,43 @@ const validProjectStatuses = [
   'Cancelado'
 ] as const;
 
+// ✅ Calcula o próximo número de projeto de forma NUMÉRICA (não textual) e
+// isolada por tenant. Corrige o bug em que "FV-2026-1000" < "FV-2026-999"
+// na comparação de texto, o que travava a numeração permanentemente ao
+// cruzar de 3 para 4 dígitos.
+async function getNextProjectNumberForTenant(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  tenantId: string,
+  prefix: string
+): Promise<number> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('number')
+    .eq('tenant_id', tenantId)
+    .like('number', `${prefix}%`);
+
+  if (error) throw error;
+
+  let maxNumber = 0;
+  for (const row of data || []) {
+    const numberPart = (row.number || '').replace(prefix, '');
+    const parsed = parseInt(numberPart, 10);
+    if (!isNaN(parsed) && parsed > maxNumber) {
+      maxNumber = parsed;
+    }
+  }
+  return maxNumber + 1;
+}
+
 // ✅ Função auxiliar para gerar número sequencial quando fallback é necessário
-async function generateFallbackSequentialNumber(): Promise<string> {
+async function generateFallbackSequentialNumber(tenantId: string): Promise<string> {
   const currentYear = new Date().getFullYear();
   const prefix = `FV-${currentYear}-`;
-  
-  try {
-    // Tentar buscar projetos existentes no banco de dados para determinar próximo número
-    const supabase = createSupabaseServiceRoleClient();
-    const { data: projects, error } = await supabase
-      .from('projects')
-      .select('number')
-      .like('number', `${prefix}%`)
-      .order('number', { ascending: false })
-      .limit(1);
 
-    if (!error && projects && projects.length > 0) {
-      const lastNumber = projects[0].number;
-      const numberPart = lastNumber.replace(prefix, '');
-      const parsedNumber = parseInt(numberPart);
-      if (!isNaN(parsedNumber)) {
-        const nextNumber = parsedNumber + 1;
-        return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
-      }
-    }
-    
-    // Se não conseguir buscar ou não houver projetos, começar com 001
-    return `${prefix}001`;
+  try {
+    const supabase = createSupabaseServiceRoleClient();
+    const nextNumber = await getNextProjectNumberForTenant(supabase, tenantId, prefix);
+    return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
   } catch (error) {
     // Em caso de erro total, usar número baseado na data para evitar duplicatas
     const dayOfYear = Math.floor((Date.now() - new Date(currentYear, 0, 0).getTime()) / (1000 * 60 * 60 * 24));
@@ -1425,50 +1435,25 @@ export async function createProjectClientAction(
 
       if (!supabaseHealthy) {
         // Se Supabase não está acessível, usar fallback sequencial
-        projectNumber = await generateFallbackSequentialNumber();
+        projectNumber = await generateFallbackSequentialNumber(tenantInfo.tenant_id);
         numberGenerationMethod = 'fallback_no_connection';
         logger.warn('[createProjectClientAction] Supabase inacessível, usando fallback sequencial', { projectNumber });
       } else {
-        // Buscar o último número usado no ano atual com retry
-        let lastProject = null;
+        // Buscar o próximo número (numérico, isolado por tenant) com retry
+        let nextNumber: number | null = null;
         let retryCount = 0;
         const maxRetries = 3;
         let querySuccessful = false;
-        
+
         while (retryCount < maxRetries && !querySuccessful) {
           try {
-            logger.info(`[createProjectClientAction] Tentativa ${retryCount + 1} de buscar último projeto...`);
-            
-            const { data, error: queryError } = await supabase
-              .from('projects')
-              .select('number')
-              .like('number', `${prefix}%`)
-              .order('number', { ascending: false })
-              .limit(1);
+            logger.info(`[createProjectClientAction] Tentativa ${retryCount + 1} de calcular próximo número...`);
 
-            if (queryError) {
-              logger.warn(`[createProjectClientAction] Tentativa ${retryCount + 1} falhou:`, {
-                error: queryError.message,
-                code: queryError.code,
-                details: queryError.details
-              });
-              
-              if (retryCount === maxRetries - 1) {
-                throw queryError;
-              }
-              retryCount++;
-              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
-              continue;
-            }
-
-            lastProject = data;
+            nextNumber = await getNextProjectNumberForTenant(supabase, tenantInfo.tenant_id, prefix);
             querySuccessful = true;
-            logger.info(`[createProjectClientAction] Query bem-sucedida na tentativa ${retryCount + 1}:`, {
-              projectsFound: data?.length || 0,
-              lastProjectNumber: data?.[0]?.number || 'nenhum'
-            });
+            logger.info(`[createProjectClientAction] Próximo número calculado na tentativa ${retryCount + 1}:`, { nextNumber });
             break;
-            
+
           } catch (retryError) {
             logger.warn(`[createProjectClientAction] Erro na tentativa ${retryCount + 1}:`, {
               error: retryError instanceof Error ? retryError.message : retryError,
@@ -1483,25 +1468,7 @@ export async function createProjectClientAction(
           }
         }
 
-        if (querySuccessful) {
-          let nextNumber = 1;
-          if (lastProject && lastProject.length > 0) {
-            const lastNumber = lastProject[0].number;
-            const numberPart = lastNumber.replace(prefix, '');
-            const parsedNumber = parseInt(numberPart);
-            if (!isNaN(parsedNumber)) {
-              nextNumber = parsedNumber + 1;
-            }
-            logger.info('[createProjectClientAction] Último número encontrado:', {
-              lastNumber,
-              numberPart,
-              parsedNumber,
-              nextNumber
-            });
-          } else {
-            logger.info('[createProjectClientAction] Nenhum projeto encontrado, começando com 001');
-          }
-
+        if (querySuccessful && nextNumber !== null) {
           projectNumber = `${prefix}${nextNumber.toString().padStart(3, '0')}`;
           numberGenerationMethod = 'sequential';
           logger.info('[createProjectClientAction] Número do projeto gerado sequencialmente', { projectNumber });
@@ -1514,9 +1481,9 @@ export async function createProjectClientAction(
         error: numberError instanceof Error ? numberError.message : numberError,
         stack: numberError instanceof Error ? numberError.stack : undefined
       });
-      
+
       // Fallback ultra-robusto: usar numeração sequencial simples
-      projectNumber = await generateFallbackSequentialNumber();
+      projectNumber = await generateFallbackSequentialNumber(tenantInfo.tenant_id);
       numberGenerationMethod = 'fallback_sequential';
       logger.warn('[createProjectClientAction] Usando número de fallback sequencial:', {
         projectNumber,
@@ -2063,68 +2030,108 @@ export async function createProjectClientAction(
       timeline_events_count: initialTimelineEvents.length
     });
 
-    // ✅ SUPABASE - Inserir projeto na tabela
+    // ✅ SUPABASE - Inserir projeto na tabela, com retry automático caso o
+    // número escolhido colida com um já existente (ex: corrida entre duas
+    // submissões). Número de projeto nunca deve travar a criação.
     let newProject;
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert([projectData])
-        .select()
-        .single();
+    const maxInsertAttempts = 5;
+    let insertAttempt = 0;
+    let finalInsertError: unknown = null;
 
-      if (error) {
-        logger.error('[createProjectClientAction] Erro ao inserir projeto no Supabase', {
-          error
-        });
-        throw new Error(`Erro ao criar projeto: ${error.message}`);
-      }
+    while (insertAttempt < maxInsertAttempts && !newProject) {
+      insertAttempt++;
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .insert([{ ...projectData, number: projectNumber }])
+          .select()
+          .single();
 
-      newProject = data;
-      logger.info('[createProjectClientAction] Projeto criado com sucesso no Supabase:', { projectId: newProject.id, number: newProject.number });
-
-      // Gravar evento de checklist na tabela dedicada de timeline
-      if (initialTimelineEvents.length > 0) {
-        const checklistEvent = initialTimelineEvents[0];
-        await supabase
-          .from('project_timeline_events')
-          .insert({
-            id: checklistEvent.id,
-            project_id: newProject.id,
-            tenant_id: tenantInfo.tenant_id,
-            type: checklistEvent.type,
-            user_id: checklistEvent.userId,
-            user_name: checklistEvent.user,
-            content: checklistEvent.content,
-            metadata: {
-              isSystemGenerated: checklistEvent.isSystemGenerated,
-              title: checklistEvent.title,
-              fullMessage: checklistEvent.fullMessage
-            },
-            created_at: checklistEvent.timestamp
-          })
-          .then(({ error: tlErr }) => {
-            if (tlErr) logger.warn('[createProjectClientAction] Falha ao gravar checklist na timeline:', tlErr);
+        if (error) {
+          logger.error('[createProjectClientAction] Erro ao inserir projeto no Supabase', {
+            error,
+            attempt: insertAttempt
           });
+          throw new Error(`Erro ao criar projeto: ${error.message}`);
+        }
+
+        newProject = data;
+        logger.info('[createProjectClientAction] Projeto criado com sucesso no Supabase:', {
+          projectId: newProject.id,
+          number: newProject.number,
+          attempt: insertAttempt
+        });
+
+        // Gravar evento de checklist na tabela dedicada de timeline
+        if (initialTimelineEvents.length > 0) {
+          const checklistEvent = initialTimelineEvents[0];
+          await supabase
+            .from('project_timeline_events')
+            .insert({
+              id: checklistEvent.id,
+              project_id: newProject.id,
+              tenant_id: tenantInfo.tenant_id,
+              type: checklistEvent.type,
+              user_id: checklistEvent.userId,
+              user_name: checklistEvent.user,
+              content: checklistEvent.content,
+              metadata: {
+                isSystemGenerated: checklistEvent.isSystemGenerated,
+                title: checklistEvent.title,
+                fullMessage: checklistEvent.fullMessage
+              },
+              created_at: checklistEvent.timestamp
+            })
+            .then(({ error: tlErr }) => {
+              if (tlErr) logger.warn('[createProjectClientAction] Falha ao gravar checklist na timeline:', tlErr);
+            });
+        }
+      } catch (insertError) {
+        finalInsertError = insertError;
+
+        const isDuplicateNumber = insertError instanceof Error && insertError.message.includes('duplicate key');
+
+        if (isDuplicateNumber && insertAttempt < maxInsertAttempts) {
+          logger.warn(`[createProjectClientAction] Colisão de número na tentativa ${insertAttempt}, recalculando próximo número...`, {
+            projectNumber
+          });
+          try {
+            const currentYear = new Date().getFullYear();
+            const prefix = `FV-${currentYear}-`;
+            const nextNumber = await getNextProjectNumberForTenant(supabase, tenantInfo.tenant_id, prefix);
+            projectNumber = `${prefix}${nextNumber.toString().padStart(3, '0')}`;
+            continue; // tenta novamente com o número recalculado
+          } catch (recalcError) {
+            logger.error('[createProjectClientAction] Falha ao recalcular número após colisão', { recalcError });
+            break;
+          }
+        }
+
+        // Não é colisão de número, ou as tentativas se esgotaram
+        break;
       }
-    } catch (insertError) {
+    }
+
+    if (!newProject) {
       // Limpar cache em caso de erro para permitir nova tentativa
       const cacheKey = `project_creation_${clientUser.id}`;
       creationCache.delete(cacheKey);
-      
-      logger.error('[createProjectClientAction] Erro na inserção do projeto', {
-        insertError
+
+      logger.error('[createProjectClientAction] Erro na inserção do projeto após todas as tentativas', {
+        finalInsertError,
+        attempts: insertAttempt
       });
-      if (insertError instanceof Error) {
-        if (insertError.message.includes('duplicate key')) {
+      if (finalInsertError instanceof Error) {
+        if (finalInsertError.message.includes('duplicate key')) {
           return { error: 'Número de projeto já existe. Tente novamente.' };
         }
-        if (insertError.message.includes('foreign key')) {
+        if (finalInsertError.message.includes('foreign key')) {
           return { error: 'Erro de referência de usuário. Verifique se o usuário está registrado.' };
         }
-        if (insertError.message.includes('Aguarde 10 segundos entre criações')) {
+        if (finalInsertError.message.includes('Aguarde 10 segundos entre criações')) {
           return { error: 'Você está criando projetos muito rapidamente. Aguarde alguns segundos.' };
         }
-        return { error: `Erro ao criar projeto: ${insertError.message}` };
+        return { error: `Erro ao criar projeto: ${finalInsertError.message}` };
       }
       return { error: 'Erro interno ao criar projeto.' };
     }
