@@ -22,12 +22,12 @@ import {
   type ConfiguracaoSistema
 } from '@/lib/services/configService.supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail, Bell, FileUp, MessageSquare, FolderPlus } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail, Bell, FileUp, MessageSquare, FolderPlus, Map, Check } from 'lucide-react';
 import { devLog } from "@/lib/utils/productionLogger";
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { getProjectStatuses, updateStatusSLA, type ProjectStatusInfo } from '@/lib/services/kanbanService';
+import { getProjectStatuses, updateStatusSLA, updateStatusRoadmapVisibility, type ProjectStatusInfo } from '@/lib/services/kanbanService';
 import { PackagesTab } from '@/components/admin/PackagesTab';
 import { SubscriptionPlansTab } from '@/components/admin/SubscriptionPlansTab';
 
@@ -186,6 +186,8 @@ export default function PreferenciasPage() {
   const [slaConfig, setSlaConfig] = useState<Record<string, { sla_days: number | null; sla_exclude_weekends: boolean }>>({});
   const [editandoKanban, setEditandoKanban] = useState(false);
   const [slaConfigOriginal, setSlaConfigOriginal] = useState<Record<string, { sla_days: number | null; sla_exclude_weekends: boolean }>>({});
+  const [roadmapVisibility, setRoadmapVisibility] = useState<Record<string, boolean>>({});
+  const [savingRoadmapStatusId, setSavingRoadmapStatusId] = useState<string | null>(null);
 
   // Estados para Preferências de E-mail
   const [emailPreferences, setEmailPreferences] = useState({
@@ -426,6 +428,13 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
 
       setSlaConfig(initialSlaConfig);
       setSlaConfigOriginal(JSON.parse(JSON.stringify(initialSlaConfig))); // Deep copy
+
+      // Inicializar visibilidade no roadmap com valores do banco
+      const initialRoadmapVisibility: Record<string, boolean> = {};
+      statuses.forEach(status => {
+        initialRoadmapVisibility[status.id] = status.visibleInRoadmap !== undefined ? status.visibleInRoadmap : true;
+      });
+      setRoadmapVisibility(initialRoadmapVisibility);
     } catch (error) {
       devLog.error('Erro ao carregar status do Kanban:', error);
       toast({
@@ -480,6 +489,30 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
   const cancelarEdicaoKanban = () => {
     setSlaConfig(JSON.parse(JSON.stringify(slaConfigOriginal))); // Restaurar valores originais
     setEditandoKanban(false);
+  };
+
+  const handleToggleRoadmapVisibility = async (statusId: string) => {
+    const current = roadmapVisibility[statusId] ?? true;
+    const next = !current;
+
+    // Atualização otimista
+    setRoadmapVisibility(prev => ({ ...prev, [statusId]: next }));
+    setSavingRoadmapStatusId(statusId);
+
+    try {
+      await updateStatusRoadmapVisibility(statusId, next);
+    } catch (error) {
+      devLog.error('Erro ao atualizar visibilidade no roadmap:', error);
+      // Reverter em caso de erro
+      setRoadmapVisibility(prev => ({ ...prev, [statusId]: current }));
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar a visibilidade no roadmap.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingRoadmapStatusId(null);
+    }
   };
 
   // Função para carregar preferências de email
@@ -1467,6 +1500,61 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
 
           {/* ABA KANBAN */}
           {activeTab === 'kanban' && (
+            <>
+            <CollapsibleSection
+              title="Etapas Visíveis no Roadmap do Cliente"
+              description="Escolha quais etapas aparecem no roadmap exibido ao cliente. A ordem segue a ordem das colunas do Kanban."
+              defaultOpen={true}
+              borderColor="violet-500"
+              icon={<Map className="h-5 w-5" />}
+            >
+              {loadingKanban ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+                  <span className="ml-3 text-gray-600">Carregando etapas...</span>
+                </div>
+              ) : kanbanStatuses.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Map className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhuma coluna encontrada no Kanban.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {kanbanStatuses.map((status) => {
+                      const isVisible = roadmapVisibility[status.id] ?? true;
+                      const isSaving = savingRoadmapStatusId === status.id;
+                      return (
+                        <button
+                          key={status.id}
+                          type="button"
+                          onClick={() => handleToggleRoadmapVisibility(status.id)}
+                          disabled={isSaving}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all disabled:opacity-60",
+                            isVisible
+                              ? "bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-700 dark:text-indigo-300"
+                              : "bg-gray-50 border-gray-200 text-gray-400 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-500"
+                          )}
+                        >
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
+                          {status.name}
+                          {isSaving ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : isVisible ? (
+                            <Check className="h-3.5 w-3.5" />
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                    A alteração é salva automaticamente ao clicar em cada etapa.
+                  </p>
+                </>
+              )}
+            </CollapsibleSection>
+
             <CollapsibleSection
               title="Colunas do Kanban"
               description="Configure as colunas do quadro Kanban e seus prazos de SLA."
@@ -1655,6 +1743,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
                 </div>
               )}
             </CollapsibleSection>
+            </>
           )}
 
           {/* ABA FINANCEIRO */}

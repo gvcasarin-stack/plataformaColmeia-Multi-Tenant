@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
           is_active,
           sla_days,
           sla_exclude_weekends,
-          is_conclusion
+          is_conclusion,
+          visible_in_roadmap
         `)
         .eq('tenant_id', tenantId)
         .eq('is_active', true)

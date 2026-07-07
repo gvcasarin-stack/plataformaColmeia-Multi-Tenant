@@ -14,6 +14,7 @@ export interface ProjectStatusInfo {
   slaDays?: number | null;
   slaExcludeWeekends?: boolean;
   isConclusion?: boolean;
+  visibleInRoadmap?: boolean;
 }
 
 // ✅ NOVO: Buscar status de projetos do tenant atual
@@ -275,7 +276,8 @@ export async function getProjectStatuses(): Promise<ProjectStatusInfo[]> {
         projectCount: status.project_count || 0,
         slaDays: status.sla_days ?? null,
         slaExcludeWeekends: status.sla_exclude_weekends !== undefined ? status.sla_exclude_weekends : true,
-        isConclusion: status.is_conclusion === true
+        isConclusion: status.is_conclusion === true,
+        visibleInRoadmap: status.visible_in_roadmap !== undefined ? status.visible_in_roadmap : true
       }))
       .sort((a, b) => a.order - b.order); // ✅ CORREÇÃO: Ordenar por order_index
 
@@ -332,6 +334,30 @@ export async function updateStatusConclusion(statusId: string, isConclusion: boo
     devLog.log('[KanbanService] is_conclusion atualizado:', { statusId, isConclusion });
   } catch (error) {
     devLog.error('[KanbanService] Erro ao atualizar is_conclusion:', error);
+    throw error;
+  }
+}
+
+// Marcar/desmarcar status como visível no roadmap exibido ao cliente
+export async function updateStatusRoadmapVisibility(statusId: string, visible: boolean): Promise<void> {
+  try {
+    const response = await fetch(`/api/project-statuses/${statusId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visible_in_roadmap: visible }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Erro ao atualizar');
+
+    devLog.log('[KanbanService] visible_in_roadmap atualizado:', { statusId, visible });
+  } catch (error) {
+    devLog.error('[KanbanService] Erro ao atualizar visible_in_roadmap:', error);
     throw error;
   }
 }
