@@ -338,12 +338,12 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
                     )}
                   >
                     <div className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-200",
+                      "w-[38px] h-[38px] rounded-full flex items-center justify-center border transition-all duration-200",
                       isActive
                         ? "bg-white/20 text-white border-white/10"
                         : "bg-gray-100 dark:bg-gray-700/50 border-transparent"
                     )}>
-                      <Icon className={cn("h-3.5 w-3.5", !isActive && link.color)} />
+                      <Icon className={cn("h-[19px] w-[19px]", !isActive && link.color)} />
                     </div>
 
                     {!collapsed && (

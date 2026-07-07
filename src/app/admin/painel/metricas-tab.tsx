@@ -560,21 +560,23 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
 
             <Card className="lg:col-span-1 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader>
-                <CardTitle>Distribuição por Status</CardTitle>
-                <CardDescription>Projetos por estágio do pipeline (todos os status configurados no Kanban)</CardDescription>
-                <div className="flex items-center gap-2 pt-1">
-                  <Checkbox
-                    id="hide-finalized-status-chart"
-                    checked={hideFinalizedInStatusChart}
-                    onCheckedChange={(checked) => setHideFinalizedInStatusChart(checked === true)}
-                  />
-                  <label
-                    htmlFor="hide-finalized-status-chart"
-                    className="text-xs text-muted-foreground cursor-pointer select-none"
-                  >
-                    Ocultar finalizados/cancelados
-                  </label>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <CardTitle>Distribuição por Status</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="hide-finalized-status-chart"
+                      checked={hideFinalizedInStatusChart}
+                      onCheckedChange={(checked) => setHideFinalizedInStatusChart(checked === true)}
+                    />
+                    <label
+                      htmlFor="hide-finalized-status-chart"
+                      className="text-xs text-muted-foreground cursor-pointer select-none whitespace-nowrap"
+                    >
+                      Ocultar finalizados/cancelados
+                    </label>
+                  </div>
                 </div>
+                <CardDescription>Projetos por estágio do pipeline (todos os status configurados no Kanban)</CardDescription>
               </CardHeader>
               <CardContent>
                 {projectsByStatusData.length === 0
