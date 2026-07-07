@@ -560,76 +560,24 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
                 <CardTitle>Distribuição por Status</CardTitle>
                 <CardDescription>Projetos por estágio do pipeline (todos os status configurados no Kanban)</CardDescription>
               </CardHeader>
-              <CardContent className="pl-0 pr-3 sm:pl-2 sm:pr-6">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 20 }}>
-                    <Pie
-                      data={projectsByStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={false}
-                    >
-                      {projectsByStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0];
-                          return (
-                            <div className="bg-background border border-border p-2 rounded shadow-lg">
-                              <p className="font-semibold">{data.payload.name}</p>
-                              <p style={{ color: data.color }}>
-                                Projetos: {data.value}
-                              </p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Legend
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
-                      wrapperStyle={{ fontSize: "10px", lineHeight: "1.2" }}
-                      content={({ payload }) => (
-                        <div className="flex flex-wrap justify-center gap-2 mt-2">
-                          {payload?.map((entry, index) => {
-                            const words = entry.value.split(' ');
-                            const shouldBreak = words.length > 3;
-
-                            const totalValue = projectsByStatusData.reduce((sum, item) => sum + item.value, 0);
-                            const currentData = projectsByStatusData.find(item => item.name === entry.value);
-                            const percentage = currentData ? Math.round((currentData.value / totalValue) * 100) : 0;
-
-                            return (
-                              <div key={`legend-${index}`} className="flex items-center gap-1 text-xs">
-                                <div
-                                  className="w-3 h-3 rounded-sm"
-                                  style={{ backgroundColor: projectsByStatusData.find(item => item.name === entry.value)?.color || entry.color }}
-                                ></div>
-                                <span className={shouldBreak ? "text-center leading-tight" : ""}>
-                                  {shouldBreak ? (
-                                    <span>
-                                      {words.slice(0, Math.ceil(words.length / 2)).join(' ')}<br/>
-                                      {words.slice(Math.ceil(words.length / 2)).join(' ')} ({percentage}%)
-                                    </span>
-                                  ) : `${entry.value} (${percentage}%)`}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+              <CardContent>
+                {projectsByStatusData.length === 0
+                  ? emptyState()
+                  : (
+                    <ResponsiveContainer width="100%" height={Math.max(240, projectsByStatusData.length * 34)}>
+                      <BarChart data={projectsByStatusData} layout="vertical" margin={{ left: 8, right: 28, top: 4, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" allowDecimals={false} fontSize={11} tickLine={false} />
+                        <YAxis type="category" dataKey="name" width={155} fontSize={10} tickLine={false} />
+                        <Tooltip formatter={(v: number) => [v, 'Projetos']} />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18}>
+                          {projectsByStatusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
               </CardContent>
             </Card>
           </div>
