@@ -26,6 +26,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { TrendingUp, DollarSign, Layers, ShieldCheck, CheckCircle, Zap } from 'lucide-react'
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
   const [filterYear,         setFilterYear]         = useState('all')
   const [filterDistributor,  setFilterDistributor]  = useState('all')
   const [filterCollaborator, setFilterCollaborator] = useState('all')
+  const [hideFinalizedInStatusChart, setHideFinalizedInStatusChart] = useState(true)
 
   // Membros da equipe — lazy, só quando a aba fica ativa
   useEffect(() => {
@@ -218,10 +220,11 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
     return Object.entries(counts)
       .map(([slug, value]) => {
         const info = availableStatuses.find(s => s.slug === slug)
-        return { name: info?.name || slug, value, color: info?.color || '#8884d8' }
+        return { name: info?.name || slug, value, color: info?.color || '#8884d8', isConclusion: (info as any)?.isConclusion === true }
       })
+      .filter(s => !hideFinalizedInStatusChart || !s.isConclusion)
       .sort((a, b) => b.value - a.value)
-  }, [filteredProjects, availableStatuses])
+  }, [filteredProjects, availableStatuses, hideFinalizedInStatusChart])
 
   const monthlyRevenueData = useMemo(
     () => monthRange.map(month => {
@@ -559,6 +562,19 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
               <CardHeader>
                 <CardTitle>Distribuição por Status</CardTitle>
                 <CardDescription>Projetos por estágio do pipeline (todos os status configurados no Kanban)</CardDescription>
+                <div className="flex items-center gap-2 pt-1">
+                  <Checkbox
+                    id="hide-finalized-status-chart"
+                    checked={hideFinalizedInStatusChart}
+                    onCheckedChange={(checked) => setHideFinalizedInStatusChart(checked === true)}
+                  />
+                  <label
+                    htmlFor="hide-finalized-status-chart"
+                    className="text-xs text-muted-foreground cursor-pointer select-none"
+                  >
+                    Ocultar finalizados/cancelados
+                  </label>
+                </div>
               </CardHeader>
               <CardContent>
                 {projectsByStatusData.length === 0

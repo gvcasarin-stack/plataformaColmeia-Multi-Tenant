@@ -260,7 +260,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         `${collapsed ? 'w-20' : 'w-64'} bg-white dark:bg-gray-800 shadow-md dark:text-white flex flex-col h-screen transition-all duration-300`,
         className
       )}>
-        <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
+        <div className="p-3 border-b dark:border-gray-700 flex items-center justify-between">
           <div className={cn(
             "flex items-center",
             collapsed && "w-full justify-center cursor-pointer"
@@ -308,11 +308,11 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
           </button>
         </div>
 
-        <nav className="flex-1 p-2 space-y-3 overflow-y-auto">
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {groupedLinks.map(({ group, items }) => (
-            <div key={group} className="space-y-1">
+            <div key={group} className="space-y-0.5">
               {!collapsed && (
-                <div className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                <div className="px-3 pt-0.5 pb-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 leading-tight">
                   {group}
                 </div>
               )}
@@ -329,7 +329,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
                     passHref
                     legacyBehavior={false}
                     className={cn(
-                      "flex items-center px-3 py-2 rounded-lg transition-all duration-200 group relative",
+                      "flex items-center px-3 py-1 rounded-lg transition-all duration-200 group relative",
                       "hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
                       isActive
                         ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm"
@@ -338,12 +338,12 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
                     )}
                   >
                     <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-200",
+                      "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-200",
                       isActive
                         ? "bg-white/20 text-white border-white/10"
                         : "bg-gray-100 dark:bg-gray-700/50 border-transparent"
                     )}>
-                      <Icon className={cn("h-4 w-4", !isActive && link.color)} />
+                      <Icon className={cn("h-3.5 w-3.5", !isActive && link.color)} />
                     </div>
 
                     {!collapsed && (
@@ -387,13 +387,13 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
           ))}
         </nav>
 
-        <div className="p-2 border-t dark:border-gray-700 mt-auto space-y-2 bg-orange-50/30 dark:bg-orange-900/10">
+        <div className="p-1.5 border-t dark:border-gray-700 mt-auto space-y-1.5 bg-orange-50/30 dark:bg-orange-900/10">
           <div className={cn(
-            "px-3 py-2 rounded-lg group transition-colors hover:bg-white dark:hover:bg-gray-700/50",
+            "px-2.5 py-1.5 rounded-lg group transition-colors hover:bg-white dark:hover:bg-gray-700/50",
             collapsed ? "text-center" : "text-left"
           )}>
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center flex-shrink-0 text-white shadow-sm">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 flex items-center justify-center flex-shrink-0 text-white shadow-sm">
                 {user?.profile?.name ? user.profile.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'A'}
               </div>
               <div className={cn(
@@ -430,7 +430,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
             className={cn(
               "w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-sm",
               "transition-all duration-200 rounded-lg",
-              "flex items-center justify-center py-2 px-3 text-sm",
+              "flex items-center justify-center py-1.5 px-3 text-sm",
               !collapsed && "px-2"
             )}>
             <LucideIcons.LogOut className="h-4 w-4" />
