@@ -329,7 +329,7 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
                     passHref
                     legacyBehavior={false}
                     className={cn(
-                      "flex items-center px-3 py-1 rounded-lg transition-all duration-200 group relative",
+                      "flex items-center px-3 py-1.5 rounded-lg transition-all duration-200 group relative",
                       "hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
                       isActive
                         ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm"
@@ -338,12 +338,12 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
                     )}
                   >
                     <div className={cn(
-                      "w-[38px] h-[38px] rounded-full flex items-center justify-center border transition-all duration-200",
+                      "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-200",
                       isActive
                         ? "bg-white/20 text-white border-white/10"
                         : "bg-gray-100 dark:bg-gray-700/50 border-transparent"
                     )}>
-                      <Icon className={cn("h-[19px] w-[19px]", !isActive && link.color)} />
+                      <Icon className={cn("h-3.5 w-3.5", !isActive && link.color)} />
                     </div>
 
                     {!collapsed && (
