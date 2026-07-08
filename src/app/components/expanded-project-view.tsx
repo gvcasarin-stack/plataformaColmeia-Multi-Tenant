@@ -13,17 +13,14 @@ import {
   Save,
   X,
   Trash2,
-  Building,
   DollarSign,
   ChevronLeft,
   User,
   Settings,      // ✅ Para substituir outros ícones
   Download,      // ✅ Ícone correto de download
-  CreditCard,    // ✅ Para CPF/CNPJ
   MapPin,        // ✅ Para endereço
   Factory,       // ✅ Para distribuidora
   Zap,           // ✅ Para potência (raio)
-  Plug,          // ✅ Para disjuntor (tomada)
   Lock,          // ✅ Para comentários internos
   Camera,        // 🎨 Para upload de imagens em comentários
   Archive,       // ✅ Para arquivar projeto
@@ -34,7 +31,6 @@ import {
   FileOutput,    // 📄 Para aba Gerar Projeto
   ClipboardCheck, // ✅ Para conferir informações do projeto
   CheckCircle2,  // ✅ Para indicar setup concluído
-  Hash,          // # Para número da UC
   Eye,           // 👁 Para visualizar arquivo
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
@@ -2043,216 +2039,166 @@ export const ExpandedProjectView = ({
                   ) : (
                     <div className="space-y-8">
                       {/* 📋 SEÇÃO: INFORMAÇÕES DO CLIENTE */}
-                      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 px-6 py-4">
-                          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                            <div className="p-2 bg-white/20 rounded-full">
-                              <User className="h-5 w-5 text-white" />
-                            </div>
-                            Informações do Cliente
-                          </h3>
+                      <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-purple-50 to-white dark:from-purple-900/10 dark:to-gray-800">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-purple-400 to-purple-600 text-white">
+                            <User className="h-3.5 w-3.5" />
+                          </div>
+                          <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Informações do Cliente</h3>
                         </div>
-                        <div className="p-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
-                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
-                                <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-2 block">Cliente Final</span>
-                                <div className="flex items-center gap-3">
-                                  <User className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{editedProject.nomeClienteFinal}</p>
-                                </div>
-                              </div>
+                        <div className="p-3.5">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div className="md:col-span-2 rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                              <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Cliente Final</span>
+                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.nomeClienteFinal}</span>
                             </div>
                             {editedProject.cpf_cnpj_cliente_final && (
-                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
-                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2 block">CPF/CNPJ</span>
-                                <div className="flex items-center gap-3">
-                                  <CreditCard className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCpfCnpj(editedProject.cpf_cnpj_cliente_final)}</p>
-                                </div>
+                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">CPF/CNPJ</span>
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{formatCpfCnpj(editedProject.cpf_cnpj_cliente_final)}</span>
                               </div>
                             )}
                             {(editedProject as any).numero_uc && (
-                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
-                                <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-2 block">Número da UC</span>
-                                <div className="flex items-center gap-3">
-                                  <Hash className="h-6 w-6 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
-                                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{(editedProject as any).numero_uc}</p>
-                                </div>
+                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Número da UC</span>
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{(editedProject as any).numero_uc}</span>
                               </div>
                             )}
+                            <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                              <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Compensação de Créditos</span>
+                              <span className={`text-sm font-bold ${editedProject.havera_beneficiarias ? 'text-purple-700 dark:text-purple-400' : 'text-gray-900 dark:text-gray-100'}`}>
+                                {editedProject.havera_beneficiarias ? 'Sim' : 'Não'}
+                              </span>
+                            </div>
+                            <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                              <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Proprietário do Projeto</span>
+                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{getCurrentOwnerName()}</span>
+                            </div>
                             {editedProject.endereco_local && (
-                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
-                                <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-2 block">Endereço do Local</span>
-                                <div className="flex items-center gap-3">
-                                  <MapPin className="h-6 w-6 text-rose-600 dark:text-rose-400 flex-shrink-0" />
-                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.endereco_local}</p>
-                                </div>
+                              <div className="md:col-span-2 rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Endereço do Local</span>
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{editedProject.endereco_local}</span>
                               </div>
                             )}
-                            <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
-                              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-2 block">Compensação de Créditos</span>
-                              <div className="flex items-center gap-3">
-                                <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                                {editedProject.havera_beneficiarias ? (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200">
-                                    Sim
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
-                                    Não
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className={editedProject.cpf_cnpj_cliente_final || editedProject.endereco_local ? "" : "md:col-span-2"}>
-                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200">
-                                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2 block">Proprietário do Projeto</span>
-                                <div className="flex items-center gap-3">
-                                  <Building className="h-6 w-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{getCurrentOwnerName()}</p>
-                                </div>
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* ⚡💰📅 SEÇÃO: INFORMAÇÕES TÉCNICAS, FINANCEIRAS E DATAS */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* ⚡💰 SEÇÃO: INFORMAÇÕES TÉCNICAS E FINANCEIRAS */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* ⚡ Informações Técnicas */}
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                          <div className="bg-gradient-to-r from-teal-500 to-teal-600 dark:from-teal-600 dark:to-teal-700 px-4 py-3">
-                            <h4 className="text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
-                              <div className="p-1.5 bg-white/20 rounded-full">
-                                <Settings className="h-4 w-4 text-white" />
-                              </div>
-                              Técnico
-                            </h4>
+                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-teal-50 to-white dark:from-teal-900/10 dark:to-gray-800">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-teal-400 to-teal-600 text-white">
+                              <Settings className="h-3.5 w-3.5" />
+                            </div>
+                            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Técnico</h4>
                           </div>
-                          <div className="p-4">
-                            <div className="space-y-3">
-                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                                <span className="text-xs font-bold uppercase tracking-wider text-green-600 dark:text-green-400 block mb-1.5">Distribuidora</span>
-                                <div className="flex items-center gap-2">
-                                  <Factory className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.distribuidora || 'N/A'}</p>
-                                </div>
+                          <div className="p-3.5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Distribuidora</span>
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.distribuidora || 'N/A'}</span>
                               </div>
-                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                                <span className="text-xs font-bold uppercase tracking-wider text-yellow-600 dark:text-yellow-400 block mb-1.5">Potência</span>
-                                <div className="flex items-center gap-2">
-                                  <Zap className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.potencia || 0} kWp</p>
-                                </div>
+                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Potência</span>
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{editedProject.potencia || 0} kWp</span>
                               </div>
-                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                                <span className="text-xs font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 block mb-1.5">Disjuntor</span>
-                                <div className="flex items-center gap-2">
-                                  <Plug className="h-5 w-5 text-violet-600 dark:text-violet-400 flex-shrink-0" />
-                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{editedProject.disjuntorPadraoEntrada || 'N/A'}</p>
-                                </div>
+                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Disjuntor</span>
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.disjuntorPadraoEntrada || 'N/A'}</span>
                               </div>
                             </div>
                           </div>
                         </div>
 
                         {/* 💰 Informações Financeiras */}
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                          <div className="bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-600 dark:to-amber-700 px-4 py-3">
-                            <h4 className="text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
-                              <div className="p-1.5 bg-white/20 rounded-full">
-                                <DollarSign className="h-4 w-4 text-white" />
-                              </div>
-                              Financeiro
-                            </h4>
+                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-amber-50 to-white dark:from-amber-900/10 dark:to-gray-800">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-amber-400 to-amber-600 text-white">
+                              <DollarSign className="h-3.5 w-3.5" />
+                            </div>
+                            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Financeiro</h4>
                           </div>
-                          <div className="p-4">
+                          <div className="p-3.5">
                             {/* 🔒 Verificar se usuário é colaborador para restringir acesso */}
                             {(() => {
                               const actualRole = user?.profile?.role || user?.role;
                               const isColaborador = actualRole === 'colaborador';
-                              
+
                               // Se for colaborador, mostrar mensagem de restrição
                               if (isColaborador) {
                                 return (
-                                  <div className="bg-gray-50 dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                                    <div className="flex items-center gap-3">
-                                      <Info className="h-6 w-6 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                          Informações financeiras disponíveis apenas para administradores
-                                        </p>
-                                      </div>
-                                    </div>
+                                  <div className="rounded-lg p-3 bg-gray-50 dark:bg-gray-900/40 flex items-center gap-2.5">
+                                    <Info className="h-4 w-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                      Informações financeiras disponíveis apenas para administradores
+                                    </p>
                                   </div>
                                 );
                               }
-                              
+
                               // Para outros roles (admin, superadmin, client), mostrar informações normalmente
                               return null;
                             })()}
-                            
+
                             {/* 🆕 Renderizar informações baseadas no billing_mode - Apenas se não for colaborador */}
                             {(() => {
                               const actualRole = user?.profile?.role || user?.role;
                               const isColaborador = actualRole === 'colaborador';
                               if (isColaborador) return null;
-                              
+
                               return editedProject.billing_mode === 'pacote' && editedProject.billing_snapshot ? (
-                              <div className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-lg shadow-lg border-2 border-purple-200 dark:border-purple-700">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <Package className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                                  <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Projeto incluso no pacote</span>
+                              <div className="rounded-lg p-3 bg-purple-50 dark:bg-purple-900/20">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Package className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  <span className="text-[10px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">Projeto incluso no pacote</span>
                                 </div>
-                                <p className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-1">
+                                <p className="text-base font-bold text-purple-700 dark:text-purple-300 mb-0.5">
                                   {editedProject.billing_snapshot.pacote_nome || 'Pacote'}
                                 </p>
-                                <p className="text-sm text-purple-600 dark:text-purple-400">
+                                <p className="text-xs text-purple-600 dark:text-purple-400">
                                   Projeto {editedProject.billing_snapshot.projetos_usados_depois || 1} de {editedProject.billing_snapshot.projetos_inclusos || 0}
                                 </p>
                                 {editedProject.billing_snapshot.data_ativacao && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
                                     Ativado em: {new Date(editedProject.billing_snapshot.data_ativacao).toLocaleDateString('pt-BR')}
                                   </p>
                                 )}
                                 {editedProject.billing_snapshot.data_expiracao && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
                                     Válido até: {new Date(editedProject.billing_snapshot.data_expiracao).toLocaleDateString('pt-BR')}
                                   </p>
                                 )}
                               </div>
                             ) : editedProject.billing_mode === 'assinatura' && editedProject.billing_snapshot ? (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-lg shadow-lg border-2 border-blue-200 dark:border-blue-700">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <CalendarCheck className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Projeto incluso na assinatura</span>
+                              <div className="rounded-lg p-3 bg-blue-50 dark:bg-blue-900/20">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <CalendarCheck className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                  <span className="text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Projeto incluso na assinatura</span>
                                 </div>
-                                <p className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-1">
+                                <p className="text-base font-bold text-blue-700 dark:text-blue-300 mb-0.5">
                                   {editedProject.billing_snapshot.plano_nome || 'Plano de Assinatura'}
                                 </p>
-                                <p className="text-sm text-blue-600 dark:text-blue-400">
+                                <p className="text-xs text-blue-600 dark:text-blue-400">
                                   Projeto {editedProject.billing_snapshot.projetos_usados_depois || 1} de {editedProject.billing_snapshot.projetos_mensais || 0} do ciclo atual
                                 </p>
                                 {editedProject.billing_snapshot.proximo_reset && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
                                     Renovação: {new Date(editedProject.billing_snapshot.proximo_reset).toLocaleDateString('pt-BR')}
                                   </p>
                                 )}
                               </div>
                             ) : (
-                              <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block mb-2">Valor do Projeto</span>
-                                <div className="flex items-center gap-2">
-                                  <DollarSign className="h-6 w-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                                    {editedProject.valorProjeto !== undefined && editedProject.valorProjeto !== null
-                                      ? `R$ ${Number(editedProject.valorProjeto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                      : 'N/A'}
-                                  </p>
-                                </div>
+                              <div className="rounded-lg p-3 bg-gray-50 dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Valor do Projeto</span>
+                                <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400">
+                                  {editedProject.valorProjeto !== undefined && editedProject.valorProjeto !== null
+                                    ? `R$ ${Number(editedProject.valorProjeto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                    : 'N/A'}
+                                </p>
                                 {editedProject.potencia && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                                     Baseado em {editedProject.potencia} kWp
                                   </p>
                                 )}
@@ -2265,17 +2211,15 @@ export const ExpandedProjectView = ({
                       </div>
 
                       {/* 📦 SEÇÃO: LISTA DE MATERIAIS */}
-                      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 dark:from-indigo-600 dark:to-indigo-700 px-6 py-4">
-                          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                            <div className="p-2 bg-white/20 rounded-full">
-                              <FileIcon className="h-5 w-5 text-white" />
-                            </div>
-                            Lista de Materiais
-                          </h3>
+                      <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900/10 dark:to-gray-800">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-indigo-400 to-indigo-600 text-white">
+                            <FileIcon className="h-3.5 w-3.5" />
+                          </div>
+                          <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Lista de Materiais</h3>
                         </div>
-                        <div className="p-6">
-                          <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-lg min-h-[100px] max-h-60 overflow-y-auto">
+                        <div className="p-3.5">
+                          <div className="bg-gray-50 dark:bg-gray-900/40 p-3 rounded-lg min-h-[80px] max-h-60 overflow-y-auto">
                             <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
                               {editedProject.listaMateriais || 'Nenhum material especificado'}
                             </p>
@@ -2285,17 +2229,15 @@ export const ExpandedProjectView = ({
 
                       {/* 👤 SEÇÃO: RESPONSÁVEL PELO PROJETO */}
                       {isAdminPanel && user && (
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                          <div className="bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 px-6 py-4">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                              <div className="p-2 bg-white/20 rounded-full">
-                                <User className="h-5 w-5 text-white" />
-                              </div>
-                              Responsável pelo Projeto
-                            </h3>
+                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-orange-50 to-white dark:from-orange-900/10 dark:to-gray-800">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-orange-400 to-orange-600 text-white">
+                              <User className="h-3.5 w-3.5" />
+                            </div>
+                            <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Responsável pelo Projeto</h3>
                           </div>
-                          <div className="p-6">
-                            <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-lg">
+                          <div className="p-3.5">
+                            <div className="bg-gray-50 dark:bg-gray-900/40 p-3 rounded-lg">
                               <ProjectResponsibleAdmin
                                 project={editedProject}
                                 currentUser={{
