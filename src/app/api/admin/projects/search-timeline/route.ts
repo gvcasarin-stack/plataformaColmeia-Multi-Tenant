@@ -1,7 +1,11 @@
 /**
- * API para buscar projetos cujo timeline_events (comentários/eventos, ex: número de
- * protocolo) contém o termo pesquisado. Usada apenas quando o usuário digita uma busca
- * em /admin/projetos — a listagem normal não carrega essa coluna JSONB pesada.
+ * API para buscar projetos cujos eventos de linha do tempo (comentários, ex: número de
+ * protocolo) contêm o termo pesquisado. Usada apenas quando o usuário digita uma busca
+ * em /admin/projetos — a listagem normal não carrega esses dados.
+ *
+ * Os eventos são lidos da tabela dedicada `project_timeline_events` (ver migração
+ * 20260625_create_project_timeline_events.sql), que substituiu o antigo array JSONB
+ * `projects.timeline_events` — comentários novos só são gravados na tabela nova.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,31 +34,22 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Buscar timeline_events do tenant e filtrar em JS — evita depender de sintaxe de
-    // filtro do PostgREST (cast + ilike em coluna JSONB) que não é usada em nenhum outro
-    // lugar do projeto e cujo comportamento não é garantido nesta versão do PostgREST
+    // Escapar caracteres especiais do ILIKE (% e _) para que a busca seja literal
+    const escaped = query.replace(/[%_]/g, (char) => `\\${char}`);
+
     const { data, error } = await supabase
-      .from('projects')
-      .select('id, timeline_events')
+      .from('project_timeline_events')
+      .select('project_id')
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null);
+      .ilike('content', `%${escaped}%`);
 
     if (error) {
-      devLog.error('[API search-timeline] Erro ao buscar projetos para busca na timeline:', error);
+      devLog.error('[API search-timeline] Erro ao buscar na linha do tempo:', error);
       // Degradar graciosamente: não quebrar a busca da tela por causa deste filtro extra
       return NextResponse.json({ success: true, data: [] });
     }
 
-    const searchLower = query.toLowerCase();
-
-    const matchingIds = (data || [])
-      .filter((p) =>
-        Array.isArray(p.timeline_events) &&
-        p.timeline_events.some((event: any) =>
-          typeof event?.content === 'string' && event.content.toLowerCase().includes(searchLower)
-        )
-      )
-      .map((p) => p.id);
+    const matchingIds = Array.from(new Set((data || []).map((row) => row.project_id)));
 
     return NextResponse.json({
       success: true,
