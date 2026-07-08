@@ -32,6 +32,8 @@ import {
   ClipboardCheck, // ✅ Para conferir informações do projeto
   CheckCircle2,  // ✅ Para indicar setup concluído
   Eye,           // 👁 Para visualizar arquivo
+  Building2,     // 🏢 Para proprietário do projeto
+  Hash,          // # Para disjuntor
 } from 'lucide-react'
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "@/components/ui/use-toast"
@@ -56,7 +58,7 @@ import { Badge } from '@/components/ui/badge'
 import { getProjectStatuses, ProjectStatusInfo } from '@/lib/services/kanbanService'
 // ❌ FIREBASE - REMOVIDO: import { Timestamp } from 'firebase/firestore'
 import { deleteCommentAction, deleteFileAction, editProjectAction } from '@/lib/actions/project-actions'
-import { ProjectResponsibleAdmin } from './project-view/project-responsible-admin'
+import { AssumeResponsibilityDialog } from './project-view/assume-responsibility-dialog'
 import { calculateSLAExpiration } from '@/lib/utils/sla-calculator'
 import { GenerateProcuracaoModal } from '@/components/modals/GenerateProcuracaoModal'
 import { MemorialDescritivoPreview, type CargaRow } from '@/components/templates/MemorialDescritivoPreview'
@@ -615,6 +617,7 @@ export const ExpandedProjectView = ({
   const [isSessionChecking, setIsSessionChecking] = useState(false);
   const [availableStatuses, setAvailableStatuses] = useState<ProjectStatusInfo[]>([]);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [isResponsibleDialogOpen, setIsResponsibleDialogOpen] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
 
   // 🖼️ Estado para modal de ampliação de imagem
@@ -1385,30 +1388,6 @@ export const ExpandedProjectView = ({
     }
   };
 
-  // ✅ REMOVIDO: handleAssumeResponsibility - agora usa o componente ProjectResponsibleAdmin
-  const handleProjectUpdate = async (updatedProject: Partial<Project>) => {
-    try {
-      // Atualizar estado local
-      setEditedProject(prev => ({ ...prev, ...updatedProject }));
-
-      // Chamar callback de atualização do pai
-      await onUpdate(updatedProject);
-
-      toast({
-        title: "Projeto atualizado",
-        description: "As informações do projeto foram atualizadas com sucesso.",
-      });
-
-    } catch (error) {
-      devLog.error("Erro ao atualizar projeto:", error);
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Não foi possível atualizar o projeto.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleSaveConferirModal = async (updatedFields: Record<string, any>) => {
     const { _plantaFile, _autoSave, ...fieldsToSave } = updatedFields;
 
@@ -1670,16 +1649,24 @@ export const ExpandedProjectView = ({
               </div>
 
               {/* Responsável pelo Projeto (visível apenas no painel administrativo) */}
-              {isAdminPanel && editedProject.adminResponsibleName && (
-                <div className="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2 backdrop-blur-sm" title="Responsável pelo projeto">
+              {isAdminPanel && (
+                <button
+                  type="button"
+                  onClick={() => isFullAdmin && setIsResponsibleDialogOpen(true)}
+                  disabled={!isFullAdmin}
+                  className={`flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2 backdrop-blur-sm text-left ${isFullAdmin ? 'hover:bg-white/20 transition-colors cursor-pointer' : 'cursor-default'}`}
+                  title={isFullAdmin ? 'Clique para alterar o responsável pelo projeto' : 'Responsável pelo projeto'}
+                >
                   <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                    {editedProject.adminResponsibleName.charAt(0).toUpperCase()}
+                    {editedProject.adminResponsibleName ? editedProject.adminResponsibleName.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{editedProject.adminResponsibleName}</div>
+                    <div className="text-sm font-medium truncate">
+                      {editedProject.adminResponsibleName || 'Sem responsável definido'}
+                    </div>
                     <div className="text-xs text-blue-200">Responsável pelo Projeto</div>
                   </div>
-                </div>
+                </button>
               )}
             </div>
           </div>
@@ -2040,44 +2027,56 @@ export const ExpandedProjectView = ({
                     <div className="space-y-8">
                       {/* 📋 SEÇÃO: INFORMAÇÕES DO CLIENTE */}
                       <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-purple-50 to-white dark:from-purple-900/10 dark:to-gray-800">
-                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-purple-400 to-purple-600 text-white">
-                            <User className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-purple-500 to-purple-700">
+                          <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center flex-shrink-0">
+                            <User className="h-4 w-4 text-white" />
                           </div>
-                          <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Informações do Cliente</h3>
+                          <h3 className="text-sm font-bold text-white m-0">Informações do Cliente</h3>
                         </div>
                         <div className="p-3.5">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <div className="md:col-span-2 rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                              <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Cliente Final</span>
-                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.nomeClienteFinal}</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                            <div className="md:col-span-2 rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                              <span className="block text-[10px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400 mb-1.5">Cliente Final</span>
+                              <div className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.nomeClienteFinal}</span>
+                              </div>
                             </div>
                             {editedProject.cpf_cnpj_cliente_final && (
-                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">CPF/CNPJ</span>
+                              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400 mb-1.5">CPF/CNPJ</span>
                                 <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{formatCpfCnpj(editedProject.cpf_cnpj_cliente_final)}</span>
                               </div>
                             )}
                             {(editedProject as any).numero_uc && (
-                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Número da UC</span>
+                              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400 mb-1.5">Número da UC</span>
                                 <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{(editedProject as any).numero_uc}</span>
                               </div>
                             )}
-                            <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                              <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Compensação de Créditos</span>
-                              <span className={`text-sm font-bold ${editedProject.havera_beneficiarias ? 'text-purple-700 dark:text-purple-400' : 'text-gray-900 dark:text-gray-100'}`}>
-                                {editedProject.havera_beneficiarias ? 'Sim' : 'Não'}
-                              </span>
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                              <span className="block text-[10px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400 mb-1.5">Compensação de Créditos</span>
+                              <div className="flex items-center gap-2">
+                                <Zap className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                <span className={`text-sm font-bold ${editedProject.havera_beneficiarias ? 'text-purple-700 dark:text-purple-400' : 'text-gray-900 dark:text-gray-100'}`}>
+                                  {editedProject.havera_beneficiarias ? 'Sim' : 'Não'}
+                                </span>
+                              </div>
                             </div>
-                            <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                              <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Proprietário do Projeto</span>
-                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{getCurrentOwnerName()}</span>
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                              <span className="block text-[10px] font-bold uppercase tracking-wide text-orange-600 dark:text-orange-400 mb-1.5">Proprietário do Projeto</span>
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{getCurrentOwnerName()}</span>
+                              </div>
                             </div>
                             {editedProject.endereco_local && (
-                              <div className="md:col-span-2 rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Endereço do Local</span>
-                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{editedProject.endereco_local}</span>
+                              <div className="md:col-span-2 rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400 mb-1.5">Endereço do Local</span>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{editedProject.endereco_local}</span>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2088,25 +2087,34 @@ export const ExpandedProjectView = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* ⚡ Informações Técnicas */}
                         <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-teal-50 to-white dark:from-teal-900/10 dark:to-gray-800">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-teal-400 to-teal-600 text-white">
-                              <Settings className="h-3.5 w-3.5" />
+                          <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-teal-400 to-teal-600">
+                            <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center flex-shrink-0">
+                              <Settings className="h-4 w-4 text-white" />
                             </div>
-                            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Técnico</h4>
+                            <h4 className="text-sm font-bold text-white m-0">Técnico</h4>
                           </div>
                           <div className="p-3.5">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Distribuidora</span>
-                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.distribuidora || 'N/A'}</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-green-600 dark:text-green-400 mb-1.5">Distribuidora</span>
+                                <div className="flex items-center gap-2">
+                                  <Factory className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.distribuidora || 'N/A'}</span>
+                                </div>
                               </div>
-                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Potência</span>
-                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{editedProject.potencia || 0} kWp</span>
+                              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1.5">Potência</span>
+                                <div className="flex items-center gap-2">
+                                  <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 font-mono">{editedProject.potencia || 0} kWp</span>
+                                </div>
                               </div>
-                              <div className="rounded-lg p-2.5 bg-gray-50 dark:bg-gray-900/40">
-                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Disjuntor</span>
-                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.disjuntorPadraoEntrada || 'N/A'}</span>
+                              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400 mb-1.5">Disjuntor</span>
+                                <div className="flex items-center gap-2">
+                                  <Hash className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{editedProject.disjuntorPadraoEntrada || 'N/A'}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -2114,11 +2122,11 @@ export const ExpandedProjectView = ({
 
                         {/* 💰 Informações Financeiras */}
                         <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-amber-50 to-white dark:from-amber-900/10 dark:to-gray-800">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-amber-400 to-amber-600 text-white">
-                              <DollarSign className="h-3.5 w-3.5" />
+                          <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-amber-400 to-amber-600">
+                            <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center flex-shrink-0">
+                              <DollarSign className="h-4 w-4 text-white" />
                             </div>
-                            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Financeiro</h4>
+                            <h4 className="text-sm font-bold text-white m-0">Financeiro</h4>
                           </div>
                           <div className="p-3.5">
                             {/* 🔒 Verificar se usuário é colaborador para restringir acesso */}
@@ -2190,15 +2198,18 @@ export const ExpandedProjectView = ({
                                 )}
                               </div>
                             ) : (
-                              <div className="rounded-lg p-3 bg-gray-50 dark:bg-gray-900/40">
-                                <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-0.5">Valor do Projeto</span>
-                                <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400">
-                                  {editedProject.valorProjeto !== undefined && editedProject.valorProjeto !== null
-                                    ? `R$ ${Number(editedProject.valorProjeto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                    : 'N/A'}
-                                </p>
+                              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-900/40">
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 mb-1.5">Valor do Projeto</span>
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                                  <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 m-0">
+                                    {editedProject.valorProjeto !== undefined && editedProject.valorProjeto !== null
+                                      ? `R$ ${Number(editedProject.valorProjeto).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                      : 'N/A'}
+                                  </p>
+                                </div>
                                 {editedProject.potencia && (
-                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
                                     Baseado em {editedProject.potencia} kWp
                                   </p>
                                 )}
@@ -2212,47 +2223,20 @@ export const ExpandedProjectView = ({
 
                       {/* 📦 SEÇÃO: LISTA DE MATERIAIS */}
                       <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900/10 dark:to-gray-800">
-                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-indigo-400 to-indigo-600 text-white">
-                            <FileIcon className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-indigo-400 to-indigo-600">
+                          <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center flex-shrink-0">
+                            <FileIcon className="h-4 w-4 text-white" />
                           </div>
-                          <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Lista de Materiais</h3>
+                          <h3 className="text-sm font-bold text-white m-0">Lista de Materiais</h3>
                         </div>
                         <div className="p-3.5">
-                          <div className="bg-gray-50 dark:bg-gray-900/40 p-3 rounded-lg min-h-[80px] max-h-60 overflow-y-auto">
+                          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-3 min-h-[80px] max-h-60 overflow-y-auto">
                             <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
                               {editedProject.listaMateriais || 'Nenhum material especificado'}
                             </p>
                           </div>
                         </div>
                       </div>
-
-                      {/* 👤 SEÇÃO: RESPONSÁVEL PELO PROJETO */}
-                      {isAdminPanel && user && (
-                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gradient-to-r from-orange-50 to-white dark:from-orange-900/10 dark:to-gray-800">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm bg-gradient-to-br from-orange-400 to-orange-600 text-white">
-                              <User className="h-3.5 w-3.5" />
-                            </div>
-                            <h3 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 m-0">Responsável pelo Projeto</h3>
-                          </div>
-                          <div className="p-3.5">
-                            <div className="bg-gray-50 dark:bg-gray-900/40 p-3 rounded-lg">
-                              <ProjectResponsibleAdmin
-                                project={editedProject}
-                                currentUser={{
-                                  uid: user.id,
-                                  email: user.email,
-                                  name: user.profile?.name || user.email,
-                                  phone: user.profile?.phone || '',
-                                  role: user.role
-                                }}
-                                onUpdate={handleProjectUpdate}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                 </CardContent>
@@ -3671,6 +3655,22 @@ export const ExpandedProjectView = ({
           window.location.reload();
         }}
       />
+
+      {/* Modal de definir/redefinir responsável pelo projeto (aberto pelo chip no header) */}
+      {isFullAdmin && user && (
+        <AssumeResponsibilityDialog
+          open={isResponsibleDialogOpen}
+          onOpenChange={setIsResponsibleDialogOpen}
+          project={editedProject}
+          currentUser={{
+            uid: user.id,
+            email: user.email,
+            name: user.profile?.name || user.email,
+            phone: user.profile?.phone || '',
+            role: user.role
+          }}
+        />
+      )}
     </div>
   )
 } 
