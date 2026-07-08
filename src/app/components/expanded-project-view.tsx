@@ -24,7 +24,6 @@ import {
   Factory,       // ✅ Para distribuidora
   Zap,           // ✅ Para potência (raio)
   Plug,          // ✅ Para disjuntor (tomada)
-  Clock,         // ✅ Para datas
   Lock,          // ✅ Para comentários internos
   Camera,        // 🎨 Para upload de imagens em comentários
   Archive,       // ✅ Para arquivar projeto
@@ -234,20 +233,6 @@ export const ExpandedProjectView = ({
     return value;
   };
 
-  const formatDateBR = (value: any): string => {
-    if (!value) return 'N/A';
-    if (typeof value === 'string') {
-      const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return 'N/A';
-      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
-    if (value instanceof Date) {
-      return value.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
-    return 'N/A';
-  };
   const { user } = useAuth()
 
   // ✅ Obter permissões do usuário
@@ -1655,37 +1640,114 @@ export const ExpandedProjectView = ({
         {/* Header Azul Refatorado com bordas arredondadas */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-2xl overflow-hidden">
           <div className="px-6 py-6">
-            {/* Linha Superior: Status e Atualização (Botão Voltar Removido) */}
-            <div className="flex items-center justify-start space-x-3 mb-3">
-              <div className="bg-white/25 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
-                {availableStatuses.length > 0 && (() => {
-                  const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
-                  if (currentStatus) {
-                    return (
-                      <>
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: currentStatus.color }}
-                        />
-                        {currentStatus.name}
-                      </>
-                    );
-                  }
-                  return editedProject.status;
-                })()}
-                {availableStatuses.length === 0 && editedProject.status}
-              </div>
-              <div className="flex items-center text-xs text-blue-100">
-                {/* Ícone de relógio removido anteriormente, manter sem por enquanto */}
-                <span>{`Atualizado ${new Date(editedProject.updatedAt instanceof Date ? editedProject.updatedAt : editedProject.updatedAt).toLocaleTimeString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}</span>
-              </div>
-            </div>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                {/* Linha Superior: Status e Atualização (Botão Voltar Removido) */}
+                <div className="flex items-center justify-start space-x-3 mb-3">
+                  <div className="bg-white/25 text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
+                    {availableStatuses.length > 0 && (() => {
+                      const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
+                      if (currentStatus) {
+                        return (
+                          <>
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: currentStatus.color }}
+                            />
+                            {currentStatus.name}
+                          </>
+                        );
+                      }
+                      return editedProject.status;
+                    })()}
+                    {availableStatuses.length === 0 && editedProject.status}
+                  </div>
+                  <div className="flex items-center text-xs text-blue-100">
+                    {/* Ícone de relógio removido anteriormente, manter sem por enquanto */}
+                    <span>{`Atualizado ${new Date(editedProject.updatedAt instanceof Date ? editedProject.updatedAt : editedProject.updatedAt).toLocaleTimeString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}</span>
+                  </div>
+                </div>
 
-            {/* Título Principal do Projeto */}
-            <h1 className="text-3xl font-bold mb-1">Projeto {editedProject.nomeClienteFinal || 'Cliente Final'}</h1>
-            <p className="text-sm text-blue-200">Número do projeto: {editedProject.number}</p>
+                {/* Título Principal do Projeto */}
+                <h1 className="text-3xl font-bold mb-1">Projeto {editedProject.nomeClienteFinal || 'Cliente Final'}</h1>
+                <p className="text-sm text-blue-200">Número do projeto: {editedProject.number}</p>
+              </div>
+
+              {/* Responsável pelo Projeto (visível apenas no painel administrativo) */}
+              {isAdminPanel && editedProject.adminResponsibleName && (
+                <div className="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2 backdrop-blur-sm" title="Responsável pelo projeto">
+                  <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                    {editedProject.adminResponsibleName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{editedProject.adminResponsibleName}</div>
+                    <div className="text-xs text-blue-200">Responsável pelo Projeto</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Roadmap do Projeto — etapas do Kanban marcadas como visíveis ao cliente em Preferências */}
+        {(() => {
+          const roadmapStatuses = availableStatuses
+            .filter(s => s.visibleInRoadmap)
+            .sort((a, b) => a.order - b.order);
+          const currentIndex = roadmapStatuses.findIndex(s => s.slug === editedProject.status);
+
+          if (roadmapStatuses.length === 0 || currentIndex === -1) {
+            return null;
+          }
+
+          const percent = Math.round(((currentIndex + 1) / roadmapStatuses.length) * 100);
+
+          return (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm p-5">
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <Zap className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Andamento do Projeto</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {`Etapa ${currentIndex + 1} de ${roadmapStatuses.length} — ${roadmapStatuses[currentIndex].name}`}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-gray-900 dark:text-white font-mono">{percent}%</span>
+              </div>
+
+              <div className="flex gap-1 mb-2">
+                {roadmapStatuses.map((s, i) => (
+                  <div
+                    key={s.id}
+                    className={`h-3 flex-1 rounded-sm transition-colors ${
+                      i < currentIndex ? 'bg-blue-500' : i === currentIndex ? 'bg-green-400' : 'bg-gray-100 dark:bg-gray-700'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-1">
+                {roadmapStatuses.map((s, i) => (
+                  <span
+                    key={s.id}
+                    className={`flex-1 text-center text-[10px] leading-tight px-0.5 ${
+                      i < currentIndex
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : i === currentIndex
+                          ? 'text-green-700 dark:text-green-400 font-bold'
+                          : 'text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex space-x-2 mb-6">
@@ -2057,7 +2119,7 @@ export const ExpandedProjectView = ({
                       </div>
 
                       {/* ⚡💰📅 SEÇÃO: INFORMAÇÕES TÉCNICAS, FINANCEIRAS E DATAS */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* ⚡ Informações Técnicas */}
                         <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
                           <div className="bg-gradient-to-r from-teal-500 to-teal-600 dark:from-teal-600 dark:to-teal-700 px-4 py-3">
@@ -2200,43 +2262,6 @@ export const ExpandedProjectView = ({
                           </div>
                         </div>
 
-                        {/* 📅 Datas */}
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                          <div className="bg-gradient-to-r from-sky-500 to-sky-600 dark:from-sky-600 dark:to-sky-700 px-4 py-3">
-                            <h4 className="text-base font-bold text-white uppercase tracking-wide flex items-center gap-2">
-                              <div className="p-1.5 bg-white/20 rounded-full">
-                                <ClockIcon className="h-4 w-4 text-white" />
-                              </div>
-                              Datas
-                            </h4>
-                          </div>
-                          <div className="p-4">
-                            <div className="space-y-3">
-                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block mb-1.5">Criação</span>
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">
-                                    {editedProject.createdAt
-                                      ? new Date(
-                                          typeof editedProject.createdAt === 'string'
-                                            ? editedProject.createdAt
-                                            : (editedProject.createdAt as any)
-                                        ).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric'})
-                                      : 'N/A'}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                                <span className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400 block mb-1.5">Entrega</span>
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">{formatDateBR(editedProject.dataEntrega)}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                       </div>
 
                       {/* 📦 SEÇÃO: LISTA DE MATERIAIS */}
@@ -2254,87 +2279,6 @@ export const ExpandedProjectView = ({
                             <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
                               {editedProject.listaMateriais || 'Nenhum material especificado'}
                             </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 📊 SEÇÃO: STATUS DO PROJETO */}
-                      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 px-6 py-4">
-                          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                            <div className="p-2 bg-white/20 rounded-full">
-                              <ClockIcon className="h-5 w-5 text-white" />
-                            </div>
-                            Status do Projeto
-                          </h3>
-                        </div>
-                        <div className="p-6">
-                          <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between flex-wrap gap-4">
-                              {/* Status Badge */}
-                              {availableStatuses.length > 0 && (() => {
-                                const currentStatus = availableStatuses.find(s => s.slug === editedProject.status);
-                                if (currentStatus) {
-                                  return (
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full shadow-md border-2" style={{
-                                      backgroundColor: `${currentStatus.color}15`,
-                                      borderColor: currentStatus.color
-                                    }}>
-                                      <div
-                                        className="w-3 h-3 rounded-full shadow-sm"
-                                        style={{ backgroundColor: currentStatus.color }}
-                                      />
-                                      <span className="text-base font-bold text-gray-900 dark:text-gray-100">
-                                        {currentStatus.name}
-                                      </span>
-                                    </div>
-                                  );
-                                }
-                              })()}
-                              {availableStatuses.length === 0 && (
-                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full shadow-md bg-gray-100 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600">
-                                  <span className="text-base font-bold text-gray-900 dark:text-gray-100">
-                                    {editedProject.status}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Badge de Prioridade */}
-                              {isAdminPanel && (
-                                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full shadow-md border-2" style={{
-                                  backgroundColor:
-                                    editedProject.prioridade === 'Urgente' ? '#FEE2E2' :
-                                    editedProject.prioridade === 'Alta' ? '#FEF3C7' :
-                                    editedProject.prioridade === 'Média' ? '#DBEAFE' :
-                                    '#F3F4F6',
-                                  borderColor:
-                                    editedProject.prioridade === 'Urgente' ? '#DC2626' :
-                                    editedProject.prioridade === 'Alta' ? '#F59E0B' :
-                                    editedProject.prioridade === 'Média' ? '#3B82F6' :
-                                    '#9CA3AF'
-                                }}>
-                                  <span className={`text-sm ${
-                                    editedProject.prioridade === 'Urgente' ? 'text-red-700' :
-                                    editedProject.prioridade === 'Alta' ? 'text-yellow-700' :
-                                    editedProject.prioridade === 'Média' ? 'text-blue-700' :
-                                    'text-gray-700'
-                                  }`}>
-                                    {editedProject.prioridade === 'Urgente' && '🔥'}
-                                    {editedProject.prioridade === 'Alta' && '⚠️'}
-                                    {editedProject.prioridade === 'Média' && '📊'}
-                                    {!editedProject.prioridade && '📋'}
-                                  </span>
-                                  <span className={`text-xs font-bold uppercase tracking-wide ${
-                                    editedProject.prioridade === 'Urgente' ? 'text-red-800' :
-                                    editedProject.prioridade === 'Alta' ? 'text-yellow-800' :
-                                    editedProject.prioridade === 'Média' ? 'text-blue-800' :
-                                    'text-gray-700'
-                                  }`}>
-                                    {editedProject.prioridade || 'Baixa'}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
                           </div>
                         </div>
                       </div>

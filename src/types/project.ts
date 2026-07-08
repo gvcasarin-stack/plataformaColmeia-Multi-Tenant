@@ -1,4 +1,3 @@
-import { User } from '@/types/user';
 // Remover a importação circular de kanban.ts
 // import { ProjectStatus, ProjectPriority } from './kanban';
 import { TimelineEvent } from "./timeline";
@@ -343,25 +342,6 @@ export type UpdatedProject = Partial<Project> & {
 export interface FileUploadSectionProps {
   project: Project;
   onUpdate: (files: File[]) => Promise<void>;
-}
-
-/**
- * Props para o componente de visualização expandida do projeto
- */
-export interface ExpandedProjectViewProps {
-  project: Project;
-  onClose: () => void;
-  onUpdate: (
-    updatedProject: UpdatedProject, 
-    user: { 
-      uid: string; 
-      email?: string | null; 
-      role?: string; 
-      userType?: string; 
-    }
-  ) => Promise<UpdatedProject>;
-  onDelete?: (projectId: string) => Promise<void>;
-  currentUser: User;
 }
 
 /**
