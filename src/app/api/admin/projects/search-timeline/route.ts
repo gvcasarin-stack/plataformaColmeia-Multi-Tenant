@@ -30,25 +30,35 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Escapar caracteres especiais do ILIKE (% e _) para que a busca seja literal
-    const escaped = query.replace(/[%_]/g, (char) => `\\${char}`);
-
+    // Buscar timeline_events do tenant e filtrar em JS — evita depender de sintaxe de
+    // filtro do PostgREST (cast + ilike em coluna JSONB) que não é usada em nenhum outro
+    // lugar do projeto e cujo comportamento não é garantido nesta versão do PostgREST
     const { data, error } = await supabase
       .from('projects')
-      .select('id')
+      .select('id, timeline_events')
       .eq('tenant_id', tenantId)
-      .is('deleted_at', null)
-      .filter('timeline_events::text', 'ilike', `%${escaped}%`);
+      .is('deleted_at', null);
 
     if (error) {
-      devLog.error('[API search-timeline] Erro ao buscar na timeline:', error);
+      devLog.error('[API search-timeline] Erro ao buscar projetos para busca na timeline:', error);
       // Degradar graciosamente: não quebrar a busca da tela por causa deste filtro extra
       return NextResponse.json({ success: true, data: [] });
     }
 
+    const searchLower = query.toLowerCase();
+
+    const matchingIds = (data || [])
+      .filter((p) =>
+        Array.isArray(p.timeline_events) &&
+        p.timeline_events.some((event: any) =>
+          typeof event?.content === 'string' && event.content.toLowerCase().includes(searchLower)
+        )
+      )
+      .map((p) => p.id);
+
     return NextResponse.json({
       success: true,
-      data: (data || []).map((p) => p.id),
+      data: matchingIds,
     });
   } catch (error: any) {
     devLog.error('[API search-timeline] Erro inesperado:', error);
