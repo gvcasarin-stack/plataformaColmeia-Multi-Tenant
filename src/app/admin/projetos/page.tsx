@@ -52,6 +52,7 @@ export default function ProjetosPage() {
   const { projects, updateProject } = useProjects()
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [timelineMatchIds, setTimelineMatchIds] = useState<Set<string>>(new Set())
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [organization, setOrganization] = useState<any>(null)
   const [isTrialExpired, setIsTrialExpired] = useState(false)
@@ -191,6 +192,44 @@ export default function ProjetosPage() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
+  // ✅ Busca na linha do tempo (comentários, protocolos, etc.) — sob demanda no servidor,
+  // já que timeline_events não é mais carregado na listagem por questão de performance
+  useEffect(() => {
+    const term = debouncedSearchQuery.trim()
+
+    if (!term || !user?.id) {
+      setTimelineMatchIds(new Set())
+      return
+    }
+
+    let cancelled = false
+
+    const searchTimeline = async () => {
+      try {
+        const tenantHeaders = await createTenantHeaders(user.id)
+        const response = await fetch(`/api/admin/projects/search-timeline?q=${encodeURIComponent(term)}`, {
+          method: 'GET',
+          headers: tenantHeaders,
+        })
+
+        if (!response.ok || cancelled) return
+
+        const result = await response.json()
+        if (!cancelled) {
+          setTimelineMatchIds(new Set(result.data || []))
+        }
+      } catch (error) {
+        devLog.error('[ProjetosPage] Erro ao buscar na timeline:', error)
+      }
+    }
+
+    searchTimeline()
+
+    return () => {
+      cancelled = true
+    }
+  }, [debouncedSearchQuery, user?.id])
+
   // ✅ Filtrar projetos com base em busca + filtro de responsável
   const filteredProjects = useMemo(() => {
     let result = projects;
@@ -222,12 +261,16 @@ export default function ProjetosPage() {
         const matchesMaterials = typeof project.listaMateriais === 'string'
           && project.listaMateriais.toLowerCase().includes(searchLower);
 
-        return matchesBasicFields || matchesMaterials;
+        // Busca nos comentários/eventos da linha do tempo (ex: número de protocolo),
+        // resolvida sob demanda no servidor (ver useEffect de timelineMatchIds)
+        const matchesTimeline = timelineMatchIds.has(project.id);
+
+        return matchesBasicFields || matchesMaterials || matchesTimeline;
       });
     }
 
     return result;
-  }, [projects, debouncedSearchQuery, filterType, selectedResponsible, user?.id]);
+  }, [projects, debouncedSearchQuery, filterType, selectedResponsible, user?.id, timelineMatchIds]);
 
   // ✅ Calcular contadores para os chips
   const filterCounts = useMemo(() => ({
@@ -460,7 +503,7 @@ export default function ProjetosPage() {
 
         {/* ✅ Filtros de Responsável */}
         <div className="mt-6 space-y-4">
-          {/* Chips de filtro rápido */}
+          {/* Chips de filtro rápido + Responsável/Ordenação (mesma linha, alinhados à direita) */}
           <div>
             <div className="flex items-center gap-3 mb-2">
               <p className="text-sm text-blue-100">Filtrar por:</p>
@@ -475,211 +518,214 @@ export default function ProjetosPage() {
                 Resetar Filtros
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {/* Chip: Todos */}
-              <button
-                onClick={() => handleFilterTypeChange('todos')}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all duration-200",
-                  filterType === 'todos' && !selectedResponsible
-                    ? "bg-white/20 border-white/40 text-white shadow-lg"
-                    : "bg-white/5 border-white/10 text-blue-100 hover:bg-white/10"
-                )}
-              >
-                <Users className="h-4 w-4" />
-                <span className="font-medium">Todos</span>
-                <Badge variant="secondary" className="bg-white/20 text-white border-none ml-1">
-                  {filterCounts.todos}
-                </Badge>
-              </button>
-
-              {/* Chip: Meus Projetos */}
-              <button
-                onClick={() => handleFilterTypeChange('meus')}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all duration-200",
-                  filterType === 'meus'
-                    ? "bg-blue-100 border-blue-300 text-blue-700 shadow-lg"
-                    : "bg-white/5 border-white/10 text-blue-100 hover:bg-white/10"
-                )}
-              >
-                <User className="h-4 w-4" />
-                <span className="font-medium">Meus Projetos</span>
-                <Badge
-                  variant="secondary"
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {/* Chip: Todos */}
+                <button
+                  onClick={() => handleFilterTypeChange('todos')}
                   className={cn(
-                    "border-none ml-1",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all duration-200",
+                    filterType === 'todos' && !selectedResponsible
+                      ? "bg-white/20 border-white/40 text-white shadow-lg"
+                      : "bg-white/5 border-white/10 text-blue-100 hover:bg-white/10"
+                  )}
+                >
+                  <Users className="h-4 w-4" />
+                  <span className="font-medium">Todos</span>
+                  <Badge variant="secondary" className="bg-white/20 text-white border-none ml-1">
+                    {filterCounts.todos}
+                  </Badge>
+                </button>
+
+                {/* Chip: Meus Projetos */}
+                <button
+                  onClick={() => handleFilterTypeChange('meus')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all duration-200",
                     filterType === 'meus'
-                      ? "bg-blue-200 text-blue-800"
-                      : "bg-white/20 text-white"
+                      ? "bg-blue-100 border-blue-300 text-blue-700 shadow-lg"
+                      : "bg-white/5 border-white/10 text-blue-100 hover:bg-white/10"
                   )}
                 >
-                  {filterCounts.meus}
-                </Badge>
-              </button>
+                  <User className="h-4 w-4" />
+                  <span className="font-medium">Meus Projetos</span>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "border-none ml-1",
+                      filterType === 'meus'
+                        ? "bg-blue-200 text-blue-800"
+                        : "bg-white/20 text-white"
+                    )}
+                  >
+                    {filterCounts.meus}
+                  </Badge>
+                </button>
 
-              {/* Chip: Sem Responsável */}
-              <button
-                onClick={() => handleFilterTypeChange('sem-responsavel')}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all duration-200",
-                  filterType === 'sem-responsavel'
-                    ? "bg-orange-100 border-orange-300 text-orange-700 shadow-lg"
-                    : "bg-white/5 border-white/10 text-blue-100 hover:bg-white/10"
-                )}
-              >
-                <AlertCircle className="h-4 w-4" />
-                <span className="font-medium">Sem Responsável</span>
-                <Badge
-                  variant="secondary"
+                {/* Chip: Sem Responsável */}
+                <button
+                  onClick={() => handleFilterTypeChange('sem-responsavel')}
                   className={cn(
-                    "border-none ml-1",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all duration-200",
                     filterType === 'sem-responsavel'
-                      ? "bg-orange-200 text-orange-800"
-                      : "bg-white/20 text-white"
+                      ? "bg-orange-100 border-orange-300 text-orange-700 shadow-lg"
+                      : "bg-white/5 border-white/10 text-blue-100 hover:bg-white/10"
                   )}
                 >
-                  {filterCounts.semResponsavel}
-                </Badge>
-              </button>
-            </div>
-          </div>
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="font-medium">Sem Responsável</span>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "border-none ml-1",
+                      filterType === 'sem-responsavel'
+                        ? "bg-orange-200 text-orange-800"
+                        : "bg-white/20 text-white"
+                    )}
+                  >
+                    {filterCounts.semResponsavel}
+                  </Badge>
+                </button>
+              </div>
 
-          {/* Dropdown de filtro por responsável */}
-          <div>
-            <p className="text-sm text-blue-100 mb-2">Filtrar por responsável:</p>
-            <Select
-              value={selectedResponsible}
-              onValueChange={handleResponsibleChange}
-              disabled={filterType === 'meus' || filterType === 'sem-responsavel'}
-            >
-              <SelectTrigger className="w-full max-w-md bg-white/10 border-white/20 text-white hover:bg-white/20">
-                <SelectValue placeholder="Selecione um responsável..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="clear">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-gray-500" />
-                    <span>Limpar filtro</span>
-                  </div>
-                </SelectItem>
-                {loadingMembers ? (
-                  <SelectItem value="loading" disabled>
-                    Carregando membros...
-                  </SelectItem>
-                ) : teamMembers.length === 0 ? (
-                  <SelectItem value="none" disabled>
-                    Nenhum membro disponível
-                  </SelectItem>
-                ) : (
-                  teamMembers.map((member) => {
-                    const projectCount = projects.filter(p => p.adminResponsibleId === member.id).length
-                    const isCurrentUser = member.id === user?.id
-
-                    return (
-                      <SelectItem key={member.id} value={member.id}>
-                        <div className="flex items-center gap-3 py-1">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                            {member.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">
-                                {member.name}
-                                {isCurrentUser && (
-                                  <span className="text-blue-600 ml-1">(Você)</span>
-                                )}
-                              </span>
-                              {(member.role === 'admin' || member.role === 'superadmin') && (
-                                <Badge variant="default" className="bg-blue-500 text-white text-xs">
-                                  Admin
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 truncate">
-                              {member.email} • {projectCount} {projectCount === 1 ? 'projeto' : 'projetos'}
-                            </p>
-                          </div>
+              {/* Filtro por responsável + Ordenação, lado direito da mesma linha */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-blue-100 whitespace-nowrap">Responsável:</span>
+                  <Select
+                    value={selectedResponsible}
+                    onValueChange={handleResponsibleChange}
+                    disabled={filterType === 'meus' || filterType === 'sem-responsavel'}
+                  >
+                    <SelectTrigger className="w-52 h-9 text-sm bg-white/10 border-white/20 text-white hover:bg-white/20">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="clear">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-gray-500" />
+                          <span>Limpar filtro</span>
                         </div>
                       </SelectItem>
-                    )
-                  })
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+                      {loadingMembers ? (
+                        <SelectItem value="loading" disabled>
+                          Carregando membros...
+                        </SelectItem>
+                      ) : teamMembers.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          Nenhum membro disponível
+                        </SelectItem>
+                      ) : (
+                        teamMembers.map((member) => {
+                          const projectCount = projects.filter(p => p.adminResponsibleId === member.id).length
+                          const isCurrentUser = member.id === user?.id
 
-          {/* ✅ Dropdown de ordenação */}
-          <div>
-            <p className="text-sm text-blue-100 mb-2">Ordenar por:</p>
-            <Select
-              value={sortBy}
-              onValueChange={setSortBy}
-            >
-              <SelectTrigger className="w-full max-w-md bg-white/10 border-white/20 text-white hover:bg-white/20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent
-                side="bottom"
-                align="start"
-                sideOffset={5}
-                avoidCollisions={false}
-                position="popper"
-                className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
-              >
-                <SelectItem value="manual">
-                  <span className="font-medium">Ordenação Manual</span>
-                </SelectItem>
-                <SelectItem value="delivery-date-asc">
-                  <span>Data de Entrega (Mais Próxima)</span>
-                </SelectItem>
-                <SelectItem value="delivery-date-desc">
-                  <span>Data de Entrega (Mais Distante)</span>
-                </SelectItem>
-                <SelectItem value="priority-desc">
-                  <span>Prioridade (Maior para Menor)</span>
-                </SelectItem>
-                <SelectItem value="priority-asc">
-                  <span>Prioridade (Menor para Maior)</span>
-                </SelectItem>
-                <SelectItem value="sla-asc">
-                  <span>SLA (Expira Primeiro)</span>
-                </SelectItem>
-                <SelectItem value="sla-desc">
-                  <span>SLA (Expira Depois)</span>
-                </SelectItem>
-                <SelectItem value="created-asc">
-                  <span>Data de Criação (Mais Antigos)</span>
-                </SelectItem>
-                <SelectItem value="created-desc">
-                  <span>Data de Criação (Mais Recentes)</span>
-                </SelectItem>
-                <SelectItem value="updated-desc">
-                  <span>Última Atualização (Mais Recentes)</span>
-                </SelectItem>
-                <SelectItem value="updated-asc">
-                  <span>Última Atualização (Mais Antigas)</span>
-                </SelectItem>
-                <SelectItem value="value-desc">
-                  <span>Valor do Projeto (Maior para Menor)</span>
-                </SelectItem>
-                <SelectItem value="value-asc">
-                  <span>Valor do Projeto (Menor para Maior)</span>
-                </SelectItem>
-                <SelectItem value="client-asc">
-                  <span>Cliente (A-Z)</span>
-                </SelectItem>
-                <SelectItem value="client-desc">
-                  <span>Cliente (Z-A)</span>
-                </SelectItem>
-                <SelectItem value="time-in-status-desc">
-                  <span>Tempo na Etapa (Mais Tempo)</span>
-                </SelectItem>
-                <SelectItem value="time-in-status-asc">
-                  <span>Tempo na Etapa (Menos Tempo)</span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                          return (
+                            <SelectItem key={member.id} value={member.id}>
+                              <div className="flex items-center gap-3 py-1">
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                  {member.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-900">
+                                      {member.name}
+                                      {isCurrentUser && (
+                                        <span className="text-blue-600 ml-1">(Você)</span>
+                                      )}
+                                    </span>
+                                    {(member.role === 'admin' || member.role === 'superadmin') && (
+                                      <Badge variant="default" className="bg-blue-500 text-white text-xs">
+                                        Admin
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {member.email} • {projectCount} {projectCount === 1 ? 'projeto' : 'projetos'}
+                                  </p>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          )
+                        })
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-blue-100 whitespace-nowrap">Ordenar:</span>
+                  <Select
+                    value={sortBy}
+                    onValueChange={setSortBy}
+                  >
+                    <SelectTrigger className="w-60 h-9 text-sm bg-white/10 border-white/20 text-white hover:bg-white/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      side="bottom"
+                      align="end"
+                      sideOffset={5}
+                      avoidCollisions={false}
+                      position="popper"
+                      className="max-h-[300px] overflow-y-auto custom-scrollbar"
+                    >
+                      <SelectItem value="manual">
+                        <span className="font-medium">Ordenação Manual</span>
+                      </SelectItem>
+                      <SelectItem value="delivery-date-asc">
+                        <span>Data de Entrega (Mais Próxima)</span>
+                      </SelectItem>
+                      <SelectItem value="delivery-date-desc">
+                        <span>Data de Entrega (Mais Distante)</span>
+                      </SelectItem>
+                      <SelectItem value="priority-desc">
+                        <span>Prioridade (Maior para Menor)</span>
+                      </SelectItem>
+                      <SelectItem value="priority-asc">
+                        <span>Prioridade (Menor para Maior)</span>
+                      </SelectItem>
+                      <SelectItem value="sla-asc">
+                        <span>SLA (Expira Primeiro)</span>
+                      </SelectItem>
+                      <SelectItem value="sla-desc">
+                        <span>SLA (Expira Depois)</span>
+                      </SelectItem>
+                      <SelectItem value="created-asc">
+                        <span>Data de Criação (Mais Antigos)</span>
+                      </SelectItem>
+                      <SelectItem value="created-desc">
+                        <span>Data de Criação (Mais Recentes)</span>
+                      </SelectItem>
+                      <SelectItem value="updated-desc">
+                        <span>Última Atualização (Mais Recentes)</span>
+                      </SelectItem>
+                      <SelectItem value="updated-asc">
+                        <span>Última Atualização (Mais Antigas)</span>
+                      </SelectItem>
+                      <SelectItem value="value-desc">
+                        <span>Valor do Projeto (Maior para Menor)</span>
+                      </SelectItem>
+                      <SelectItem value="value-asc">
+                        <span>Valor do Projeto (Menor para Maior)</span>
+                      </SelectItem>
+                      <SelectItem value="client-asc">
+                        <span>Cliente (A-Z)</span>
+                      </SelectItem>
+                      <SelectItem value="client-desc">
+                        <span>Cliente (Z-A)</span>
+                      </SelectItem>
+                      <SelectItem value="time-in-status-desc">
+                        <span>Tempo na Etapa (Mais Tempo)</span>
+                      </SelectItem>
+                      <SelectItem value="time-in-status-asc">
+                        <span>Tempo na Etapa (Menos Tempo)</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </div>
         </div></div>}
 
