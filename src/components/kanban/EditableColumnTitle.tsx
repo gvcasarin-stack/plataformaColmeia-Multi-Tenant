@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react'
-import { Check, X, Edit } from 'lucide-react'
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { Check, X } from 'lucide-react'
 import { devLog } from "@/lib/utils/productionLogger";
 import { toast } from '@/components/ui/use-toast'
 
@@ -15,22 +15,26 @@ interface EditableColumnTitleProps {
   onUpdateTitle: (columnId: string, newTitle: string) => void
 }
 
-export function EditableColumnTitle({ 
-  columnId, 
-  title, 
-  originalStatus, 
-  onUpdateTitle 
-}: EditableColumnTitleProps) {
+export interface EditableColumnTitleHandle {
+  startEditing: () => void
+}
+
+export const EditableColumnTitle = forwardRef<EditableColumnTitleHandle, EditableColumnTitleProps>(function EditableColumnTitle({
+  columnId,
+  title,
+  originalStatus,
+  onUpdateTitle
+}, ref) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedTitle, setEditedTitle] = useState(title)
   const [isUpdating, setIsUpdating] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  
+
   // Update local state when the title prop changes
   useEffect(() => {
     setEditedTitle(title)
   }, [title])
-  
+
   // Focus input when editing starts
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -38,17 +42,22 @@ export function EditableColumnTitle({
       inputRef.current.select()
     }
   }, [isEditing])
-  
+
   const handleStartEditing = () => {
     setEditedTitle(title)
     setIsEditing(true)
   }
-  
+
+  // Expõe startEditing para o componente pai (usado pelo ícone de editar na barra de ações)
+  useImperativeHandle(ref, () => ({
+    startEditing: handleStartEditing
+  }))
+
   const handleCancel = () => {
     setIsEditing(false)
     setEditedTitle(title)
   }
-  
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSave()
@@ -56,19 +65,19 @@ export function EditableColumnTitle({
       handleCancel()
     }
   }
-  
+
   const handleSave = async () => {
     if (editedTitle.trim() === '' || editedTitle.trim() === title) {
       handleCancel()
       return
     }
-    
+
     try {
       setIsUpdating(true)
-      
+
       // Chama a função de callback fornecida pelo componente pai
       await onUpdateTitle(columnId, editedTitle.trim())
-      
+
       // Atualiza o estado local e sai do modo de edição
       setIsEditing(false)
     } catch (error) {
@@ -89,7 +98,7 @@ export function EditableColumnTitle({
     // Verifica se o clique foi fora dos botões de ação
     if (
       !e.currentTarget.contains(e.relatedTarget as Node) ||
-      (e.relatedTarget && 
+      (e.relatedTarget &&
        !(e.relatedTarget as HTMLElement).classList.contains('edit-action'))
     ) {
       handleCancel()
@@ -132,18 +141,8 @@ export function EditableColumnTitle({
   }
 
   return (
-    <div className="flex items-start gap-1 group min-w-0">
-      <button
-        onClick={handleStartEditing}
-        className="p-0.5 mt-0.5 text-gray-500 hover:text-blue-500 rounded cursor-pointer pointer-events-auto z-10 flex-shrink-0"
-        aria-label="Editar título"
-        title="Editar título da coluna"
-      >
-        <Edit className="w-4 h-4" />
-      </button>
-      <span className="font-medium text-gray-900 dark:text-white min-w-0 flex-1 line-clamp-2 break-words">
-        {title}
-      </span>
-    </div>
+    <span className="font-medium text-gray-900 dark:text-white min-w-0 line-clamp-2 break-words">
+      {title}
+    </span>
   )
-}
+})

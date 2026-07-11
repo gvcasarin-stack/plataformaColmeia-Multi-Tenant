@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, ReactNode, forwardRef, useImperativeHandle } from "react"
+import React, { useState, useEffect, useMemo, useRef, ReactNode, forwardRef, useImperativeHandle } from "react"
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Card } from "@/components/ui/card"
 import {
@@ -23,7 +23,8 @@ import {
   Link2,
   Archive,
   CheckCircle2,
-  GripVertical
+  GripVertical,
+  Edit
 } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Project, TimelineEvent } from "@/types/project"
@@ -31,6 +32,7 @@ import { ProjectStatus } from "@/types/kanban"
 import { cn } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
 import { EditableColumnTitle } from '@/components/kanban'
+import { type EditableColumnTitleHandle } from '@/components/kanban/EditableColumnTitle'
 import { getKanbanColumnTitles, updateKanbanColumnTitle, getKanbanColumnColors, getProjectStatuses, updateStatusConclusion, reorderKanbanColumns, ProjectStatusInfo } from '@/lib/services/kanbanService'
 import { toast } from '@/components/ui/use-toast'
 import { DeleteColumnDialog } from '@/components/kanban'
@@ -120,6 +122,9 @@ export const KanbanBoard = forwardRef<
   // 🆕 Estados para modal de arquivar
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [projectToArchive, setProjectToArchive] = useState<Project | null>(null);
+
+  // Refs para acionar a edição do nome de cada coluna a partir da barra de ações
+  const columnTitleRefs = useRef<Record<string, EditableColumnTitleHandle | null>>({});
 
   // Expor o método reloadColumnTitles através da ref
   useImperativeHandle(ref, () => ({
@@ -983,57 +988,64 @@ export const KanbanBoard = forwardRef<
                 "px-4 py-3 border-b border-gray-100 dark:border-gray-700 rounded-t-xl",
                 "bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-750",
               )}>
-                <div className="flex items-start justify-between gap-1">
-                  <div className="flex items-start gap-1.5 min-w-0 flex-1">
-                    <div
-                      {...providedCol.dragHandleProps}
-                      className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors flex-shrink-0 mt-1.5"
-                      title="Arrastar para reordenar coluna"
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </div>
-                    <div
-                      className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
-                      style={{ backgroundColor: column.color }}
+                {/* Linha 1: identidade da coluna — nome com a largura toda disponível */}
+                <div className="flex items-start gap-1.5">
+                  <div
+                    {...providedCol.dragHandleProps}
+                    className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors flex-shrink-0 mt-1"
+                    title="Arrastar para reordenar coluna"
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </div>
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                    style={{ backgroundColor: column.color }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <EditableColumnTitle
+                      ref={(el) => { columnTitleRefs.current[column.id] = el; }}
+                      columnId={column.id}
+                      title={column.title}
+                      originalStatus={column.slug}
+                      onUpdateTitle={handleUpdateTitle}
                     />
-                    <div className="min-w-0 flex-1">
-                      <EditableColumnTitle
-                        columnId={column.id}
-                        title={column.title}
-                        originalStatus={column.slug}
-                        onUpdateTitle={handleUpdateTitle}
-                      />
-                    </div>
-                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0 mt-0.5">
-                      {getColumnProjects(column.slug).length}
-                    </span>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <div
-                      title={column.isConclusion ? 'Representa conclusão (clique para desmarcar)' : 'Marcar como conclusão de projeto'}
-                      className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center",
-                        "cursor-pointer transition-colors",
-                        column.isConclusion
-                          ? "bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-900/60"
-                          : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 opacity-40 hover:opacity-70"
-                      )}
-                      onClick={(e) => handleToggleConclusion(column.id, column.isConclusion ?? false, e)}
-                    >
-                      <CheckCircle2 className={cn("h-4 w-4", column.isConclusion ? "text-green-600 dark:text-green-400" : "text-gray-400")} />
-                    </div>
-                    <div
-                      className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center",
-                        "bg-gray-100 dark:bg-gray-700",
-                        "text-gray-500 dark:text-gray-400",
-                        "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      )}
-                      onClick={(e) => handleDeleteClick(column.id, column.title, column.isDefault, e)}
-                    >
-                      <X className="h-4 w-4 text-red-500 hover:text-red-700" />
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0">
+                    {getColumnProjects(column.slug).length}
+                  </span>
+                </div>
+
+                {/* Linha 2: barra de ações, sutil, abaixo do nome */}
+                <div className="flex items-center justify-end gap-0.5 mt-1.5 -mb-0.5">
+                  <button
+                    type="button"
+                    title="Editar nome da coluna"
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => columnTitleRefs.current[column.id]?.startEditing()}
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    title={column.isConclusion ? 'Representa conclusão (clique para desmarcar)' : 'Marcar como conclusão de projeto'}
+                    className={cn(
+                      "w-6 h-6 rounded-md flex items-center justify-center transition-colors",
+                      column.isConclusion
+                        ? "text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40"
+                        : "text-gray-400 hover:text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    )}
+                    onClick={(e) => handleToggleConclusion(column.id, column.isConclusion ?? false, e)}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Excluir coluna"
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={(e) => handleDeleteClick(column.id, column.title, column.isDefault, e)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
 
