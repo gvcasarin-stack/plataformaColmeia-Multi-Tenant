@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
 
     // Parse do body
     const body = await request.json();
-    const { name, color = '#6b7280', icon } = body;
+    const { name, color = '#6b7280', icon, insert_after_id } = body;
 
     // Validações
     if (!name || name.trim().length === 0) {
@@ -199,18 +199,23 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServiceRoleClient();
 
-    // Verificar próximo order_index disponível
-    const { data: maxOrder } = await supabase
+    // Buscar status ativos existentes, ordenados — usado para calcular o próximo
+    // order_index (sempre no final, opção segura) e, se uma posição específica foi
+    // pedida, para recalcular a ordem final depois de inserir
+    const { data: existingStatuses } = await supabase
       .from('project_statuses')
-      .select('order_index')
+      .select('id, order_index')
       .eq('tenant_id', tenantId)
-      .order('order_index', { ascending: false })
-      .limit(1)
-      .single();
+      .eq('is_active', true)
+      .order('order_index', { ascending: true });
 
-    const nextOrderIndex = (maxOrder?.order_index || 0) + 1;
+    const existingList = existingStatuses || [];
+    const nextOrderIndex = (existingList.length > 0
+      ? Math.max(...existingList.map((s) => s.order_index))
+      : 0) + 1;
 
-    // Inserir novo status
+    // Inserir novo status sempre com order_index seguro (final da lista);
+    // reposicionamento (se solicitado) é feito depois, num segundo passo
     const { data: newStatus, error } = await supabase
       .from('project_statuses')
       .insert({
@@ -249,6 +254,44 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'Erro ao criar status'
       }, { status: 500 });
+    }
+
+    // 🆕 Reposicionar, se uma posição específica foi solicitada (insert_after_id).
+    // Sem esse parâmetro, o comportamento padrão (inserir no final) é mantido.
+    if (insert_after_id) {
+      const afterIndex = existingList.findIndex((s) => s.id === insert_after_id);
+
+      if (afterIndex !== -1) {
+        const finalOrderIds = [
+          ...existingList.slice(0, afterIndex + 1).map((s) => s.id),
+          newStatus.id,
+          ...existingList.slice(afterIndex + 1).map((s) => s.id),
+        ];
+
+        // Só precisa renumerar se a posição pedida não for já o final
+        if (afterIndex + 1 < existingList.length) {
+          // Fase 1: mover todos os existentes para uma faixa temporária alta,
+          // evitando qualquer colisão de order_index durante a renumeração
+          for (let i = 0; i < existingList.length; i++) {
+            await supabase
+              .from('project_statuses')
+              .update({ order_index: 1000000 + i })
+              .eq('id', existingList[i].id)
+              .eq('tenant_id', tenantId);
+          }
+
+          // Fase 2: aplicar a ordem final sequencial (1..N)
+          for (let i = 0; i < finalOrderIds.length; i++) {
+            await supabase
+              .from('project_statuses')
+              .update({ order_index: i + 1 })
+              .eq('id', finalOrderIds[i])
+              .eq('tenant_id', tenantId);
+          }
+
+          newStatus.order_index = afterIndex + 2;
+        }
+      }
     }
 
     devLog.log('[project-statuses] Status criado com sucesso:', {

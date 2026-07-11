@@ -22,12 +22,13 @@ import {
   type ConfiguracaoSistema
 } from '@/lib/services/configService.supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail, Bell, FileUp, MessageSquare, FolderPlus, Map, Check } from 'lucide-react';
+import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail, Bell, FileUp, MessageSquare, FolderPlus, Map, Check, GripVertical, ArrowUpDown } from 'lucide-react';
 import { devLog } from "@/lib/utils/productionLogger";
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { getProjectStatuses, updateStatusSLA, updateStatusRoadmapVisibility, type ProjectStatusInfo } from '@/lib/services/kanbanService';
+import { getProjectStatuses, updateStatusSLA, updateStatusRoadmapVisibility, reorderKanbanColumns, type ProjectStatusInfo } from '@/lib/services/kanbanService';
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { PackagesTab } from '@/components/admin/PackagesTab';
 import { SubscriptionPlansTab } from '@/components/admin/SubscriptionPlansTab';
 
@@ -186,6 +187,7 @@ export default function PreferenciasPage() {
   const [slaConfig, setSlaConfig] = useState<Record<string, { sla_days: number | null; sla_exclude_weekends: boolean }>>({});
   const [editandoKanban, setEditandoKanban] = useState(false);
   const [slaConfigOriginal, setSlaConfigOriginal] = useState<Record<string, { sla_days: number | null; sla_exclude_weekends: boolean }>>({});
+  const [isReorderingColumns, setIsReorderingColumns] = useState(false);
   const [roadmapVisibility, setRoadmapVisibility] = useState<Record<string, boolean>>({});
   const [savingRoadmapStatusId, setSavingRoadmapStatusId] = useState<string | null>(null);
 
@@ -512,6 +514,41 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
       });
     } finally {
       setSavingRoadmapStatusId(null);
+    }
+  };
+
+  // Reordenar colunas do Kanban via drag-and-drop (arrastar os chips)
+  const handleColumnOrderDragEnd = async (result: DropResult) => {
+    const { destination, source } = result;
+    if (!destination || destination.index === source.index) return;
+
+    const previousOrder = kanbanStatuses;
+
+    const reordered = [...kanbanStatuses];
+    const [moved] = reordered.splice(source.index, 1);
+    reordered.splice(destination.index, 0, moved);
+
+    // Atualização otimista
+    setKanbanStatuses(reordered);
+    setIsReorderingColumns(true);
+
+    try {
+      await reorderKanbanColumns(reordered.map((s) => s.id));
+      toast({
+        title: 'Ordem atualizada',
+        description: 'A ordem das colunas do Kanban foi salva.',
+      });
+    } catch (error) {
+      devLog.error('Erro ao reordenar colunas do Kanban:', error);
+      // Reverter em caso de erro
+      setKanbanStatuses(previousOrder);
+      toast({
+        title: 'Erro ao reordenar',
+        description: 'Não foi possível salvar a nova ordem das colunas.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsReorderingColumns(false);
     }
   };
 
@@ -1550,6 +1587,62 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
                     A alteração é salva automaticamente ao clicar em cada etapa.
+                  </p>
+                </>
+              )}
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Ordem das Colunas do Kanban"
+              description="Arraste os cartões para definir a ordem em que as colunas aparecem no quadro."
+              defaultOpen={true}
+              borderColor="indigo-500"
+              icon={<ArrowUpDown className="h-5 w-5" />}
+            >
+              {loadingKanban ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                  <span className="ml-3 text-gray-600">Carregando colunas...</span>
+                </div>
+              ) : kanbanStatuses.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Columns3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhuma coluna encontrada no Kanban.</p>
+                </div>
+              ) : (
+                <>
+                  <DragDropContext onDragEnd={handleColumnOrderDragEnd}>
+                    <Droppable droppableId="preferencias-column-order" direction="horizontal">
+                      {(provided) => (
+                        <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-2">
+                          {kanbanStatuses.map((status, index) => (
+                            <Draggable key={status.id} draggableId={status.id} index={index}>
+                              {(providedChip, snapshotChip) => (
+                                <div
+                                  ref={providedChip.innerRef}
+                                  {...providedChip.draggableProps}
+                                  {...providedChip.dragHandleProps}
+                                  className={cn(
+                                    "flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm font-medium select-none",
+                                    "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                                    "cursor-grab active:cursor-grabbing",
+                                    snapshotChip.isDragging && "shadow-lg ring-2 ring-indigo-400/40 border-indigo-300"
+                                  )}
+                                >
+                                  <GripVertical className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
+                                  <span className="text-gray-700 dark:text-gray-300">{status.name}</span>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                    {isReorderingColumns ? 'Salvando nova ordem...' : 'A ordem é salva automaticamente ao soltar o cartão.'}
                   </p>
                 </>
               )}

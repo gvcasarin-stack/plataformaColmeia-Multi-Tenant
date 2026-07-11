@@ -17,6 +17,20 @@ export interface ProjectStatusInfo {
   visibleInRoadmap?: boolean;
 }
 
+// ✅ Cache compartilhado de status (evita refetch redundante entre Kanban, Vista Expandida,
+// Preferências, etc. — antes cada tela buscava a mesma lista de forma independente e sem
+// cache, causando um atraso perceptível ao abrir um projeto logo após visitar o Kanban)
+let statusCache: ProjectStatusInfo[] | null = null;
+let statusCacheTimestamp = 0;
+let statusFetchPromise: Promise<ProjectStatusInfo[]> | null = null;
+const STATUS_CACHE_TTL_MS = 60_000;
+
+function invalidateStatusCache(): void {
+  statusCache = null;
+  statusCacheTimestamp = 0;
+  statusFetchPromise = null;
+}
+
 // ✅ NOVO: Buscar status de projetos do tenant atual
 export async function getKanbanColumnTitles(): Promise<Record<string, string>> {
   try {
@@ -106,6 +120,7 @@ export async function updateKanbanColumnTitle(
     }
 
     devLog.log('[KanbanService] Título da coluna atualizado com sucesso');
+    invalidateStatusCache();
 
   } catch (error) {
     devLog.error('[KanbanService] Erro ao atualizar título da coluna:', error);
@@ -173,12 +188,14 @@ export async function addKanbanColumn(
   columnId: string,
   title: string,
   color: string,
-  originalStatus?: string
+  originalStatus?: string,
+  insertAfterId?: string | null
 ): Promise<void> {
   try {
     devLog.log('[KanbanService] Adicionando nova coluna:', {
       title,
-      color
+      color,
+      insertAfterId
     });
 
     const response = await fetch('/api/project-statuses', {
@@ -188,7 +205,8 @@ export async function addKanbanColumn(
       },
       body: JSON.stringify({
         name: title,
-        color: color || '#6b7280'
+        color: color || '#6b7280',
+        insert_after_id: insertAfterId || undefined
       }),
     });
 
@@ -204,9 +222,37 @@ export async function addKanbanColumn(
     }
 
     devLog.log('[KanbanService] Nova coluna criada com sucesso:', result.data.id);
+    invalidateStatusCache();
 
   } catch (error) {
     devLog.error('[KanbanService] Erro ao adicionar coluna:', error);
+    throw error;
+  }
+}
+
+// 🆕 Reordenar em lote as colunas (status) do Kanban
+export async function reorderKanbanColumns(orderedIds: string[]): Promise<void> {
+  try {
+    devLog.log('[KanbanService] Reordenando colunas:', orderedIds);
+
+    const response = await fetch('/api/project-statuses/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderedIds }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Erro ao reordenar colunas');
+
+    devLog.log('[KanbanService] Colunas reordenadas com sucesso');
+    invalidateStatusCache();
+  } catch (error) {
+    devLog.error('[KanbanService] Erro ao reordenar colunas:', error);
     throw error;
   }
 }
@@ -235,6 +281,7 @@ export async function deleteKanbanColumn(columnId: string): Promise<void> {
     }
 
     devLog.log('[KanbanService] Coluna deletada com sucesso');
+    invalidateStatusCache();
 
   } catch (error) {
     devLog.error('[KanbanService] Erro ao deletar coluna:', error);
@@ -242,56 +289,77 @@ export async function deleteKanbanColumn(columnId: string): Promise<void> {
   }
 }
 
-// ✅ NOVO: Buscar todos os status completos do tenant
+// ✅ NOVO: Buscar todos os status completos do tenant (com cache compartilhado + dedupe)
 export async function getProjectStatuses(): Promise<ProjectStatusInfo[]> {
-  try {
-    devLog.log('[KanbanService] Buscando status completos via API');
+  const now = Date.now();
 
-    const response = await fetch('/api/project-statuses', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro HTTP: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.error || 'Erro ao buscar status');
-    }
-
-    // Mapear para interface padronizada e ORDENAR por order_index
-    const statuses: ProjectStatusInfo[] = result.data
-      .map((status: any) => ({
-        id: status.id,
-        name: status.name,
-        slug: status.slug,
-        color: status.color,
-        order: status.order_index,
-        isDefault: status.is_default,
-        projectCount: status.project_count || 0,
-        slaDays: status.sla_days ?? null,
-        slaExcludeWeekends: status.sla_exclude_weekends !== undefined ? status.sla_exclude_weekends : true,
-        isConclusion: status.is_conclusion === true,
-        visibleInRoadmap: status.visible_in_roadmap !== undefined ? status.visible_in_roadmap : true
-      }))
-      .sort((a, b) => a.order - b.order); // ✅ CORREÇÃO: Ordenar por order_index
-
-    devLog.log('[KanbanService] Status completos carregados e ordenados:', {
-      count: statuses.length,
-      statuses: statuses.map(s => ({ slug: s.slug, name: s.name, order: s.order }))
-    });
-
-    return statuses;
-
-  } catch (error) {
-    devLog.error('[KanbanService] Erro ao carregar status completos:', error);
-    return []; // Retornar array vazio em caso de erro
+  // Cache válido: retorna imediatamente, sem round-trip de rede
+  if (statusCache && (now - statusCacheTimestamp) < STATUS_CACHE_TTL_MS) {
+    return statusCache;
   }
+
+  // Já existe uma busca em andamento (ex: duas telas montando ao mesmo tempo): reaproveita
+  if (statusFetchPromise) {
+    return statusFetchPromise;
+  }
+
+  statusFetchPromise = (async () => {
+    try {
+      devLog.log('[KanbanService] Buscando status completos via API');
+
+      const response = await fetch('/api/project-statuses', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao buscar status');
+      }
+
+      // Mapear para interface padronizada e ORDENAR por order_index
+      const statuses: ProjectStatusInfo[] = result.data
+        .map((status: any) => ({
+          id: status.id,
+          name: status.name,
+          slug: status.slug,
+          color: status.color,
+          order: status.order_index,
+          isDefault: status.is_default,
+          projectCount: status.project_count || 0,
+          slaDays: status.sla_days ?? null,
+          slaExcludeWeekends: status.sla_exclude_weekends !== undefined ? status.sla_exclude_weekends : true,
+          isConclusion: status.is_conclusion === true,
+          visibleInRoadmap: status.visible_in_roadmap !== undefined ? status.visible_in_roadmap : true
+        }))
+        .sort((a, b) => a.order - b.order); // ✅ CORREÇÃO: Ordenar por order_index
+
+      devLog.log('[KanbanService] Status completos carregados e ordenados:', {
+        count: statuses.length,
+        statuses: statuses.map(s => ({ slug: s.slug, name: s.name, order: s.order }))
+      });
+
+      statusCache = statuses;
+      statusCacheTimestamp = Date.now();
+
+      return statuses;
+
+    } catch (error) {
+      devLog.error('[KanbanService] Erro ao carregar status completos:', error);
+      return []; // Retornar array vazio em caso de erro (não fica em cache — próxima chamada tenta de novo)
+    } finally {
+      statusFetchPromise = null;
+    }
+  })();
+
+  return statusFetchPromise;
 }
 
 // ✅ NOVO: Função para obter nome de exibição do status (dinâmica)
@@ -332,6 +400,7 @@ export async function updateStatusConclusion(statusId: string, isConclusion: boo
     if (!result.success) throw new Error(result.error || 'Erro ao atualizar');
 
     devLog.log('[KanbanService] is_conclusion atualizado:', { statusId, isConclusion });
+    invalidateStatusCache();
   } catch (error) {
     devLog.error('[KanbanService] Erro ao atualizar is_conclusion:', error);
     throw error;
@@ -356,6 +425,7 @@ export async function updateStatusRoadmapVisibility(statusId: string, visible: b
     if (!result.success) throw new Error(result.error || 'Erro ao atualizar');
 
     devLog.log('[KanbanService] visible_in_roadmap atualizado:', { statusId, visible });
+    invalidateStatusCache();
   } catch (error) {
     devLog.error('[KanbanService] Erro ao atualizar visible_in_roadmap:', error);
     throw error;
@@ -398,6 +468,7 @@ export async function updateStatusSLA(
     }
 
     devLog.log('[KanbanService] SLA atualizado com sucesso');
+    invalidateStatusCache();
 
   } catch (error) {
     devLog.error('[KanbanService] Erro ao atualizar SLA:', error);

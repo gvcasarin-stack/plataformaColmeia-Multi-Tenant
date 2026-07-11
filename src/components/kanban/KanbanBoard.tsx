@@ -22,7 +22,8 @@ import {
   ArrowRightLeft,
   Link2,
   Archive,
-  CheckCircle2
+  CheckCircle2,
+  GripVertical
 } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Project, TimelineEvent } from "@/types/project"
@@ -30,7 +31,7 @@ import { ProjectStatus } from "@/types/kanban"
 import { cn } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
 import { EditableColumnTitle } from '@/components/kanban'
-import { getKanbanColumnTitles, updateKanbanColumnTitle, getKanbanColumnColors, getProjectStatuses, updateStatusConclusion, ProjectStatusInfo } from '@/lib/services/kanbanService'
+import { getKanbanColumnTitles, updateKanbanColumnTitle, getKanbanColumnColors, getProjectStatuses, updateStatusConclusion, reorderKanbanColumns, ProjectStatusInfo } from '@/lib/services/kanbanService'
 import { toast } from '@/components/ui/use-toast'
 import { DeleteColumnDialog } from '@/components/kanban'
 import { devLog } from "@/lib/utils/productionLogger";
@@ -756,12 +757,50 @@ export const KanbanBoard = forwardRef<
     }
   };
 
+  /**
+   * Reordenar as colunas do quadro (arrastar pelo cabeçalho da coluna)
+   */
+  const handleColumnReorder = async (sourceIndex: number, destinationIndex: number) => {
+    const previousColumns = columns;
+
+    const reordered = [...columns];
+    const [moved] = reordered.splice(sourceIndex, 1);
+    reordered.splice(destinationIndex, 0, moved);
+
+    // Atualização otimista
+    setColumns(reordered);
+
+    try {
+      await reorderKanbanColumns(reordered.map(c => c.id));
+      toast({
+        title: "Colunas reordenadas",
+        description: "A nova ordem das colunas foi salva.",
+        className: "bg-green-500 text-white"
+      });
+    } catch (error: any) {
+      devLog.error('[Kanban] Erro ao reordenar colunas:', error);
+      // Reverter em caso de erro
+      setColumns(previousColumns);
+      toast({
+        title: "Erro ao reordenar colunas",
+        description: error.message || "Não foi possível salvar a nova ordem.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source, draggableId, type } = result;
 
     if (!destination ||
         (destination.droppableId === source.droppableId &&
          destination.index === source.index)) {
+      return;
+    }
+
+    // 🆕 Arraste de coluna (cabeçalho) — reordena as colunas, não afeta os cards
+    if (type === 'COLUMN') {
+      handleColumnReorder(source.index, destination.index);
       return;
     }
 
@@ -917,17 +956,27 @@ export const KanbanBoard = forwardRef<
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="h-full overflow-x-auto pb-6">
-        <div className="inline-flex gap-4 p-1 min-w-full">
-          {/* Renderizar colunas dinâmicas do tenant */}
-          {columns.map((column) => (
+        <Droppable droppableId="kanban-columns-board" direction="horizontal" type="COLUMN">
+          {(providedBoard) => (
             <div
-              key={column.id}
+              ref={providedBoard.innerRef}
+              {...providedBoard.droppableProps}
+              className="inline-flex gap-4 p-1 min-w-full"
+            >
+              {/* Renderizar colunas dinâmicas do tenant */}
+              {columns.map((column, columnIndex) => (
+                <Draggable key={column.id} draggableId={`column-${column.id}`} index={columnIndex}>
+                  {(providedCol, snapshotCol) => (
+            <div
+              ref={providedCol.innerRef}
+              {...providedCol.draggableProps}
               className={cn(
                 "flex-shrink-0 w-[280px] rounded-xl",
                 "border border-gray-200 dark:border-gray-700",
                 "bg-white dark:bg-gray-800",
                 "hover:shadow-md transition-all duration-300",
                 "shadow-sm",
+                snapshotCol.isDragging && "shadow-xl ring-2 ring-blue-400/40"
               )}
             >
               <div className={cn(
@@ -936,6 +985,13 @@ export const KanbanBoard = forwardRef<
               )}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
+                    <div
+                      {...providedCol.dragHandleProps}
+                      className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors"
+                      title="Arrastar para reordenar coluna"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </div>
                     <div
                       className="w-2 h-2 rounded-full"
                       style={{ backgroundColor: column.color }}
@@ -979,7 +1035,7 @@ export const KanbanBoard = forwardRef<
                 </div>
               </div>
 
-              <Droppable droppableId={column.slug}>
+              <Droppable droppableId={column.slug} type="CARD">
                 {(provided) => (
                   <div
                     ref={provided.innerRef}
@@ -1260,10 +1316,16 @@ export const KanbanBoard = forwardRef<
                 )}
               </Droppable>
             </div>
-          ))}
+                  )}
+                </Draggable>
+              ))}
+              {providedBoard.placeholder}
+            </div>
+          )}
+        </Droppable>
 
-          {/* Diálogo de exclusão de coluna */}
-          <DeleteColumnDialog
+        {/* Diálogo de exclusão de coluna */}
+        <DeleteColumnDialog
             open={deleteDialogOpen}
             onOpenChange={setDeleteDialogOpen}
             columnId={columnToDelete.id}
@@ -1294,8 +1356,7 @@ export const KanbanBoard = forwardRef<
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </div>
       </div>
     </DragDropContext>
   );
-}); 
+});
