@@ -983,30 +983,32 @@ export const KanbanBoard = forwardRef<
                 "px-4 py-3 border-b border-gray-100 dark:border-gray-700 rounded-t-xl",
                 "bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-750",
               )}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <div
                       {...providedCol.dragHandleProps}
-                      className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors"
+                      className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors flex-shrink-0"
                       title="Arrastar para reordenar coluna"
                     >
                       <GripVertical className="h-4 w-4" />
                     </div>
                     <div
-                      className="w-2 h-2 rounded-full"
+                      className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: column.color }}
                     />
-                    <EditableColumnTitle
-                      columnId={column.id}
-                      title={column.title}
-                      originalStatus={column.slug}
-                      onUpdateTitle={handleUpdateTitle}
-                    />
-                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full">
+                    <div className="min-w-0 truncate">
+                      <EditableColumnTitle
+                        columnId={column.id}
+                        title={column.title}
+                        originalStatus={column.slug}
+                        onUpdateTitle={handleUpdateTitle}
+                      />
+                    </div>
+                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0">
                       {getColumnProjects(column.slug).length}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <div
                       title={column.isConclusion ? 'Representa conclusão (clique para desmarcar)' : 'Marcar como conclusão de projeto'}
                       className={cn(
