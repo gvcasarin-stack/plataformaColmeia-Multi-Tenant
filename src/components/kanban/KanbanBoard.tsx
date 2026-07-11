@@ -983,20 +983,20 @@ export const KanbanBoard = forwardRef<
                 "px-4 py-3 border-b border-gray-100 dark:border-gray-700 rounded-t-xl",
                 "bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-750",
               )}>
-                <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-1">
+                  <div className="flex items-start gap-1.5 min-w-0 flex-1">
                     <div
                       {...providedCol.dragHandleProps}
-                      className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors flex-shrink-0"
+                      className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition-colors flex-shrink-0 mt-1.5"
                       title="Arrastar para reordenar coluna"
                     >
                       <GripVertical className="h-4 w-4" />
                     </div>
                     <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
                       style={{ backgroundColor: column.color }}
                     />
-                    <div className="min-w-0 truncate">
+                    <div className="min-w-0 flex-1">
                       <EditableColumnTitle
                         columnId={column.id}
                         title={column.title}
@@ -1004,7 +1004,7 @@ export const KanbanBoard = forwardRef<
                         onUpdateTitle={handleUpdateTitle}
                       />
                     </div>
-                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0">
+                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0 mt-0.5">
                       {getColumnProjects(column.slug).length}
                     </span>
                   </div>

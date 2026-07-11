@@ -132,18 +132,18 @@ export function EditableColumnTitle({
   }
 
   return (
-    <div className="flex items-center gap-1 group">
+    <div className="flex items-start gap-1 group min-w-0">
       <button
         onClick={handleStartEditing}
-        className="p-0.5 text-gray-500 hover:text-blue-500 rounded cursor-pointer pointer-events-auto z-10"
+        className="p-0.5 mt-0.5 text-gray-500 hover:text-blue-500 rounded cursor-pointer pointer-events-auto z-10 flex-shrink-0"
         aria-label="Editar título"
         title="Editar título da coluna"
       >
         <Edit className="w-4 h-4" />
       </button>
-      <span className="font-medium text-gray-900 dark:text-white">
+      <span className="font-medium text-gray-900 dark:text-white min-w-0 flex-1 line-clamp-2 break-words">
         {title}
       </span>
     </div>
   )
-} 
+}
