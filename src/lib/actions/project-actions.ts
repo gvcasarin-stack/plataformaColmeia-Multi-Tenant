@@ -1985,6 +1985,8 @@ export async function createProjectClientAction(
       disjuntor_padrao_entrada: projectDataFromClient.disjuntorPadraoEntrada && projectDataFromClient.disjuntorPadraoEntrada.trim() !== '' ? projectDataFromClient.disjuntorPadraoEntrada : null,
       cpf_cnpj_cliente_final: projectDataFromClient.cpf_cnpj_cliente_final && projectDataFromClient.cpf_cnpj_cliente_final.trim() !== '' ? projectDataFromClient.cpf_cnpj_cliente_final : null,
       endereco_local: projectDataFromClient.endereco_local && projectDataFromClient.endereco_local.trim() !== '' ? projectDataFromClient.endereco_local : null,
+      client_city: projectDataFromClient.client_city && projectDataFromClient.client_city.trim() !== '' ? projectDataFromClient.client_city : null,
+      client_state: projectDataFromClient.client_state && projectDataFromClient.client_state.trim() !== '' ? projectDataFromClient.client_state : null,
       havera_beneficiarias: projectDataFromClient.havera_beneficiarias || false, // ✅ NOVO CAMPO
       status: projectDataFromClient.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: projectDataFromClient.prioridade || 'Baixa',

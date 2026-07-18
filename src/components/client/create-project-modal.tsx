@@ -15,6 +15,7 @@ import logger from '@/lib/utils/logger'
 import { BillingInfoCard } from "@/components/project/BillingInfoCard"
 import { AdminCreateClientModal } from "@/components/modals/AdminCreateClientModal"
 import { ChevronDown, UserPlus, Check, AlertCircle, User } from 'lucide-react'
+import { ESTADOS_BRASIL } from "@/lib/utils/validators"
 
 const DISTRIBUIDORAS = [
   "Enel",
@@ -52,6 +53,8 @@ interface ClientFormData {
   nomeClienteFinal: string;
   cpf_cnpj_cliente_final?: string;
   endereco_local?: string;
+  client_city?: string;
+  client_state?: string;
   distribuidora: string;
   distribuidoraOutro?: string;
   power: number;
@@ -90,6 +93,8 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
       nomeClienteFinal: "",
       cpf_cnpj_cliente_final: "",
       endereco_local: "",
+      client_city: "",
+      client_state: "",
       distribuidora: "",
       distribuidoraOutro: "",
       power: 0,
@@ -581,9 +586,45 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
                   <Input
                     id="endereco_local"
                     {...register("endereco_local")}
-                    placeholder="Ex: Rua das Flores, 123 - Centro - Florianópolis/SC"
+                    placeholder="Ex: Rua das Flores, 123"
                     className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
                   />
+                </div>
+
+                {/* Cidade e Estado */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="client_city" className="text-sm font-medium text-gray-700">
+                      Cidade
+                    </Label>
+                    <Input
+                      id="client_city"
+                      {...register("client_city")}
+                      placeholder="Ex: Florianópolis"
+                      className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="client_state" className="text-sm font-medium text-gray-700">
+                      Estado
+                    </Label>
+                    <Controller
+                      name="client_state"
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger id="client_state" className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
+                            <SelectValue placeholder="Selecione o estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ESTADOS_BRASIL.map((estado) => (
+                              <SelectItem key={estado} value={estado}>{estado}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 {/* Haverá Compensação de Créditos */}

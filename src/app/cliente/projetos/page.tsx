@@ -401,6 +401,8 @@ export default function ClientProjects() {
         nomeClienteFinal: data.nomeClienteFinal,
         cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final, // ✅ NOVO CAMPO
         endereco_local: data.endereco_local, // ✅ NOVO CAMPO
+        client_city: data.client_city, // ✅ NOVO CAMPO
+        client_state: data.client_state, // ✅ NOVO CAMPO
         havera_beneficiarias: data.havera_beneficiarias, // ✅ NOVO CAMPO: Compensação de créditos
         distribuidora: data.distribuidora,
         potencia: data.power, // 'power' é o campo do formulário
