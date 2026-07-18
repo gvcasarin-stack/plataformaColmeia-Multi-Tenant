@@ -36,7 +36,13 @@ interface GenerateProcuracaoModalProps {
   onOpenChange: (open: boolean) => void;
   project: Project | null;
   userId: string; // ✅ ID do usuário autenticado
-  onSuccess: () => void;
+  onSuccess: (savedFields: {
+    nome_cliente_final: string;
+    cpf_cnpj_cliente_final: string;
+    client_city: string;
+    client_state: string;
+    distribuidora: string;
+  }) => void;
 }
 
 interface ProcuracaoFormData {
@@ -246,16 +252,11 @@ export function GenerateProcuracaoModal({
         throw new Error(result.error || 'Erro ao salvar dados do cliente');
       }
 
-      toast({
-        title: 'Dados salvos com sucesso!',
-        description: result.message || 'Os dados do cliente foram atualizados.',
-      });
-
       // Atualizar lista de campos faltantes
       setMissingFields([]);
 
-      // Notificar atualização sem fechar o modal
-      onSuccess();
+      // Notificar atualização sem fechar o modal (o banner acima já reflete o sucesso)
+      onSuccess(payload);
 
     } catch (error: any) {
       toast({

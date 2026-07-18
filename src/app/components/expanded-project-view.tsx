@@ -3645,14 +3645,9 @@ export const ExpandedProjectView = ({
         onOpenChange={setShowProcuracaoModal}
         project={project}
         userId={user?.id || ''}
-        onSuccess={() => {
-          // Atualizar projeto após salvar dados
-          toast({
-            title: 'Dados salvos!',
-            description: 'Os dados do cliente foram atualizados com sucesso.',
-          });
-          // Recarregar a página ou atualizar o estado conforme necessário
-          window.location.reload();
+        onSuccess={async (savedFields) => {
+          // Atualizar o projeto localmente, sem recarregar a página nem fechar o modal
+          await onUpdate({ id: project.id, timelineEvents: project.timelineEvents || [], ...savedFields });
         }}
       />
 
