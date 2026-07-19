@@ -8,15 +8,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import {
   CheckCircle2, AlertCircle, MinusCircle, Save, X,
   User, CreditCard, MapPin, Factory, Zap, Plug, Info,
   Package, Settings, Building, Upload, ImageIcon, FolderArchive, Calendar,
-  ClipboardList
+  ClipboardList, Search, ChevronDown, ChevronRight, ChevronsDown, ChevronsUp,
+  HelpCircle, Eye, EyeOff, ArrowRight, Copy, CloudUpload, Check
 } from 'lucide-react';
 import { EquipamentoListEditor } from './EquipamentoListEditor';
 import { getAllModulos, getAllInversores, parseStringsModulos } from '@/lib/utils/equipmentParser';
 import type { ModuloItem, InversorItem, InversorUnitConfig } from '@/lib/utils/equipmentParser';
+import { validarEmail, validarCEP, validarTelefone, validarCPForCNPJ } from '@/lib/utils/validators';
+import { buscarEnderecoPorCEP } from '@/lib/utils/cep';
 
 const DISTRIBUIDORAS = [
   "Enel", "Copel", "Cemig", "CPFL", "Neoenergia Cosern",
@@ -70,7 +74,32 @@ interface FieldDef {
   defaultValue?: string | ((fields: Record<string, any>) => string);
   onlyForDistribuidoras?: string[];
   hideForDistribuidoras?: string[];
+  span2?: boolean;
+  help?: string;
+  validate?: 'cep' | 'cpf' | 'email' | 'phone';
 }
+
+// Documentos aos quais cada grupo de campos está associado, usado no filtro por documento.
+const GROUP_DOCS: Record<string, string[]> = {
+  'Dados do Cliente': ['memorial', 'unifilar', 'acesso'],
+  'Responsável Legal': ['memorial', 'acesso'],
+  'Dados do Projeto': ['memorial', 'unifilar', 'acesso'],
+  'Responsável Técnico': ['memorial', 'unifilar', 'acesso'],
+  'Módulos Fotovoltaicos': ['memorial', 'unifilar'],
+  'Inversores Fotovoltaicos': ['memorial', 'unifilar'],
+  'Padrão de Entrada': ['unifilar', 'acesso'],
+  'Dados da Unidade Consumidora': ['acesso'],
+  'Coordenadas UTM (Padrão de Entrada)': ['planta', 'acesso'],
+  'Planta de Situação': ['planta'],
+  'Dimensionamento dos Cabos': ['unifilar'],
+};
+
+const DOC_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'memorial', label: 'Memorial Descritivo' },
+  { value: 'unifilar', label: 'Diagrama Unifilar' },
+  { value: 'planta', label: 'Planta de Situação' },
+  { value: 'acesso', label: 'Acesso à Rede' },
+];
 
 const PVC_TEMP_OPTIONS = [
   { value: '1,06', label: '1,06 (25ºC)' },
@@ -150,19 +179,19 @@ const CPFL_PADRAO_CABOS: Record<string, string> = {
 const FIELD_DEFINITIONS: FieldDef[] = [
   // Dados do Cliente
   { key: 'nomeClienteFinal', label: 'Nome do Cliente Final', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
-  { key: 'cpf_cnpj_cliente_final', label: 'CPF/CNPJ', icon: <CreditCard className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
-  { key: 'endereco_local', label: 'Endereço', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
+  { key: 'cpf_cnpj_cliente_final', label: 'CPF/CNPJ', icon: <CreditCard className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente', validate: 'cpf' },
+  { key: 'endereco_local', label: 'Endereço', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente', span2: true },
   { key: 'client_city', label: 'Cidade', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
   { key: 'client_state', label: 'Estado', icon: <MapPin className="h-3.5 w-3.5" />, type: 'select', required: true, options: ESTADOS_BR, group: 'Dados do Cliente' },
-  { key: 'cliente_cep', label: 'CEP', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 65580-000', group: 'Dados do Cliente' },
-  { key: 'cliente_email', label: 'E-mail do Cliente', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente' },
-  { key: 'cliente_celular', label: 'Celular do Cliente', type: 'text', required: true, placeholder: 'Ex: (48) 9 9900-0387', group: 'Dados do Cliente' },
-  { key: 'cliente_telefone_fixo', label: 'Telefone Fixo do Cliente', type: 'text', required: false, group: 'Dados do Cliente' },
+  { key: 'cliente_cep', label: 'CEP', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 65580-000', group: 'Dados do Cliente', validate: 'cep', help: 'Ao sair do campo, buscamos automaticamente a cidade e o estado (ViaCEP) se estiverem vazios.' },
+  { key: 'cliente_email', label: 'E-mail do Cliente', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente', validate: 'email' },
+  { key: 'cliente_celular', label: 'Celular do Cliente', type: 'text', required: true, placeholder: 'Ex: (48) 9 9900-0387', group: 'Dados do Cliente', validate: 'phone' },
+  { key: 'cliente_telefone_fixo', label: 'Telefone Fixo do Cliente', type: 'text', required: false, group: 'Dados do Cliente', validate: 'phone' },
 
   // Responsável Legal
   { key: 'responsavel_legal_nome', label: 'Nome do Responsável Legal', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Legal' },
-  { key: 'responsavel_legal_telefone', label: 'Telefone do Responsável Legal', type: 'text', required: true, placeholder: 'Ex: (48) 9 9900-0387', group: 'Responsável Legal' },
-  { key: 'responsavel_legal_email', label: 'E-mail do Responsável Legal', type: 'text', required: false, group: 'Responsável Legal' },
+  { key: 'responsavel_legal_telefone', label: 'Telefone do Responsável Legal', type: 'text', required: true, placeholder: 'Ex: (48) 9 9900-0387', group: 'Responsável Legal', validate: 'phone' },
+  { key: 'responsavel_legal_email', label: 'E-mail do Responsável Legal', type: 'text', required: false, group: 'Responsável Legal', validate: 'email' },
 
   // Dados do Projeto
   { key: 'distribuidora', label: 'Distribuidora', icon: <Factory className="h-3.5 w-3.5" />, type: 'select', required: true, options: DISTRIBUIDORAS.map(d => ({ value: d, label: d })), group: 'Dados do Projeto' },
@@ -171,7 +200,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
   { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
   { key: 'data_documento', label: 'Data do Documento', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
-  { key: 'tipo_solicitacao', label: 'Tipo de Solicitação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [
+  { key: 'tipo_solicitacao', label: 'Tipo de Solicitação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, span2: true, options: [
     { value: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA', label: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA' },
     { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
     { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
@@ -187,7 +216,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'responsavel_nome', label: 'Nome Completo', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Técnico' },
   { key: 'responsavel_profissao', label: 'Profissão', type: 'text', required: true, group: 'Responsável Técnico' },
   { key: 'responsavel_registro', label: 'Nº de Registro Profissional', type: 'text', required: true, group: 'Responsável Técnico' },
-  { key: 'responsavel_email', label: 'E-mail do Responsável Técnico', type: 'text', required: true, group: 'Responsável Técnico' },
+  { key: 'responsavel_email', label: 'E-mail do Responsável Técnico', type: 'text', required: true, group: 'Responsável Técnico', validate: 'email' },
   { key: 'responsavel_uf', label: 'UF do Responsável Técnico', type: 'select', required: true, options: ESTADOS_BR, group: 'Responsável Técnico' },
 
   // Módulos Fotovoltaicos
@@ -196,10 +225,10 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_modelo', label: 'Modelo dos Módulos', type: 'text', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_total_strings', label: 'Total de Strings', type: 'strings_config', required: true, group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_potencia_wp', label: 'Potência dos Módulos (Wp)', type: 'text', required: true, suffix: 'Wp', group: 'Módulos Fotovoltaicos' },
-  { key: 'modulos_voc', label: 'Tensão de circuito aberto – Voc [V]', type: 'text', required: true, suffix: 'V', group: 'Módulos Fotovoltaicos' },
-  { key: 'modulos_isc', label: 'Corrente de curto-circuito – Isc [A]', type: 'text', required: true, suffix: 'A', group: 'Módulos Fotovoltaicos' },
-  { key: 'modulos_vpmp', label: 'Tensão de máxima potência – Vpmp [V]', type: 'text', required: true, suffix: 'V', group: 'Módulos Fotovoltaicos' },
-  { key: 'modulos_ipmp', label: 'Corrente de máxima potência – Ipmp [A]', type: 'text', required: true, suffix: 'A', group: 'Módulos Fotovoltaicos' },
+  { key: 'modulos_voc', label: 'Tensão de circuito aberto – Voc [V]', type: 'text', required: true, suffix: 'V', group: 'Módulos Fotovoltaicos', help: 'Tensão de circuito aberto do módulo (sem carga conectada), informada no datasheet do fabricante.' },
+  { key: 'modulos_isc', label: 'Corrente de curto-circuito – Isc [A]', type: 'text', required: true, suffix: 'A', group: 'Módulos Fotovoltaicos', help: 'Corrente de curto-circuito do módulo, informada no datasheet do fabricante.' },
+  { key: 'modulos_vpmp', label: 'Tensão de máxima potência – Vpmp [V]', type: 'text', required: true, suffix: 'V', group: 'Módulos Fotovoltaicos', help: 'Tensão no ponto de máxima potência do módulo, informada no datasheet do fabricante.' },
+  { key: 'modulos_ipmp', label: 'Corrente de máxima potência – Ipmp [A]', type: 'text', required: true, suffix: 'A', group: 'Módulos Fotovoltaicos', help: 'Corrente no ponto de máxima potência do módulo, informada no datasheet do fabricante.' },
   { key: 'modulos_eficiencia', label: 'Eficiência [%]', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '22,07', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_comprimento_m', label: 'Comprimento [m]', type: 'default_with_custom', required: true, suffix: 'm', defaultValue: '2,0', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_largura_m', label: 'Largura [m]', type: 'default_with_custom', required: true, suffix: 'm', defaultValue: '0,992', group: 'Módulos Fotovoltaicos' },
@@ -217,17 +246,17 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'inversores_tensao_max_ca', label: 'Máxima tensão CA – Vca-máx (V) (Limite do Inversor)', type: 'default_with_custom', required: true, suffix: 'V', defaultValue: '300', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_tensao_min_ca', label: 'Mínima tensão CA – Vca-min (V) (Limite do Inversor)', type: 'default_with_custom', required: true, suffix: 'V', defaultValue: '160', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_faixa_tensao', label: 'Faixa de Tensão de Operação CC (V)', type: 'default_with_custom', required: true, defaultValue: '176 - 242', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_vcc_max', label: 'Máxima tensão CC – Vcc-máx [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_icc_max', label: 'Máxima corrente CC – Icc-máx [A]', type: 'text', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_vpmp_max', label: 'Máxima tensão MPPT – Vpmp-máx [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_vpmp_min', label: 'Mínima tensão MPPT – Vpmp-min [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
-  { key: 'inversores_vcc_partida', label: 'Tensão CC de partida – Vcc-part [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos' },
+  { key: 'inversores_vcc_max', label: 'Máxima tensão CC – Vcc-máx [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos', help: 'Máxima tensão CC de entrada suportada pelo inversor, informada no datasheet do fabricante.' },
+  { key: 'inversores_icc_max', label: 'Máxima corrente CC – Icc-máx [A]', type: 'text', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos', help: 'Máxima corrente CC de entrada por MPPT, informada no datasheet do fabricante.' },
+  { key: 'inversores_vpmp_max', label: 'Máxima tensão MPPT – Vpmp-máx [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos', help: 'Limite superior da faixa de tensão MPPT do inversor, informado no datasheet do fabricante.' },
+  { key: 'inversores_vpmp_min', label: 'Mínima tensão MPPT – Vpmp-min [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos', help: 'Limite inferior da faixa de tensão MPPT do inversor, informado no datasheet do fabricante.' },
+  { key: 'inversores_vcc_partida', label: 'Tensão CC de partida – Vcc-part [V]', type: 'text', required: true, suffix: 'V', group: 'Inversores Fotovoltaicos', help: 'Tensão mínima de entrada necessária para o inversor iniciar a operação (partida).' },
   { key: 'inversores_corrente_nominal', label: 'Corrente Nominal CA (A)', type: 'number', required: true, suffix: 'A', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_quantidade_mppt', label: 'Quantidade de MPPTs', type: 'text', required: true, placeholder: 'Ex: 1', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_entradas_por_mppt', label: 'Quantidade de entradas por MPPT', type: 'text', required: true, placeholder: 'Ex: 2', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_tipo_conexao_saida', label: 'Nº de Fases + Neutro + Terra', type: 'select', required: true, options: [{ value: 'F+F+T', label: 'F+F+T' }, { value: 'F+N+T', label: 'F+N+T' }, { value: '3F+N+T', label: '3F+N+T' }], group: 'Inversores Fotovoltaicos' },
   { key: 'tipo_conexao_rede_ca', label: 'Tipo de Conexão', type: 'select', required: true, options: [{ value: 'Monofásico', label: 'Monofásico' }, { value: 'Trifásico', label: 'Trifásico' }], group: 'Inversores Fotovoltaicos' },
-  { key: 'disjuntor_ca_corrente_a', label: 'Disjuntor CA de Proteção — Corrente (A)', type: 'default_with_custom', required: true, suffix: 'A', options: [{ value: '10', label: '10 A' }, { value: '16', label: '16 A' }, { value: '20', label: '20 A' }, { value: '25', label: '25 A' }, { value: '30', label: '30 A' }, { value: '32', label: '32 A' }, { value: '40', label: '40 A' }, { value: '50', label: '50 A' }, { value: '60', label: '60 A' }, { value: '63', label: '63 A' }, { value: '70', label: '70 A' }, { value: '80', label: '80 A' }, { value: '100', label: '100 A' }, { value: '125', label: '125 A' }, { value: '150', label: '150 A' }, { value: '175', label: '175 A' }, { value: '200', label: '200 A' }, { value: '250', label: '250 A' }], defaultValue: (fields) => { const i = parseFloat(String(fields.inversores_corrente_nominal || '0')); if (i <= 0) return ''; const calc = i * 1.25; const values = [10, 16, 20, 25, 30, 32, 40, 50, 60, 63, 70, 80, 100, 125, 150, 175, 200, 250]; const nearest = [...values].reverse().find(v => v <= calc); return nearest !== undefined ? String(nearest) : String(values[0]); }, group: 'Inversores Fotovoltaicos' },
+  { key: 'disjuntor_ca_corrente_a', label: 'Disjuntor CA de Proteção — Corrente (A)', type: 'default_with_custom', required: true, suffix: 'A', options: [{ value: '10', label: '10 A' }, { value: '16', label: '16 A' }, { value: '20', label: '20 A' }, { value: '25', label: '25 A' }, { value: '30', label: '30 A' }, { value: '32', label: '32 A' }, { value: '40', label: '40 A' }, { value: '50', label: '50 A' }, { value: '60', label: '60 A' }, { value: '63', label: '63 A' }, { value: '70', label: '70 A' }, { value: '80', label: '80 A' }, { value: '100', label: '100 A' }, { value: '125', label: '125 A' }, { value: '150', label: '150 A' }, { value: '175', label: '175 A' }, { value: '200', label: '200 A' }, { value: '250', label: '250 A' }], defaultValue: (fields) => { const i = parseFloat(String(fields.inversores_corrente_nominal || '0')); if (i <= 0) return ''; const calc = i * 1.25; const values = [10, 16, 20, 25, 30, 32, 40, 50, 60, 63, 70, 80, 100, 125, 150, 175, 200, 250]; const nearest = [...values].reverse().find(v => v <= calc); return nearest !== undefined ? String(nearest) : String(values[0]); }, group: 'Inversores Fotovoltaicos', help: 'Calculado automaticamente como 1,25x a corrente nominal do inversor, arredondado para o disjuntor comercial mais próximo.' },
   { key: 'disjuntor_ca_polos', label: 'Disjuntor CA de Proteção — Nº de Polos', type: 'select', required: true, options: [{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }], group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_fator_potencia', label: 'Fator de Potência', type: 'default_with_custom', required: true, defaultValue: '1 (Ajustável)', group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_rendimento', label: 'Eficiência máxima (%)', type: 'default_with_custom', required: true, suffix: '%', defaultValue: '97,60', group: 'Inversores Fotovoltaicos' },
@@ -264,11 +293,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'secao_aterramento_mm2', label: 'Ramal de Entrada — Seção Condutor Aterramento (mm²)', type: 'select', required: true, suffix: 'mm²', options: [{ value: '2,5', label: '2,5 mm²' }, { value: '4', label: '4 mm²' }, { value: '6', label: '6 mm²' }, { value: '10', label: '10 mm²' }, { value: '16', label: '16 mm²' }, { value: '25', label: '25 mm²' }, { value: '35', label: '35 mm²' }, { value: '50', label: '50 mm²' }, { value: '70', label: '70 mm²' }, { value: '95', label: '95 mm²' }], group: 'Padrão de Entrada' },
 
   // Coordenadas UTM (oculto para CPFL — usa Lat/Long)
-  { key: 'coord_utm_fuso', label: 'Fuso UTM', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 23K', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
+  { key: 'coord_utm_fuso', label: 'Fuso UTM', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 23K', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'], help: 'Zona UTM do local de instalação (ex: 23K), obtida via GPS ou mapa (ex: Google Maps, IBGE).' },
   { key: 'coord_utm_x', label: 'X (Long)', type: 'text', required: true, placeholder: 'Ex: 345678.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
   { key: 'coord_utm_y', label: 'Y (Lat)', type: 'text', required: true, placeholder: 'Ex: 7654321.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
   // Coordenadas Lat/Long — somente CPFL
-  { key: 'latitude', label: 'Latitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -8.050944', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'] },
+  { key: 'latitude', label: 'Latitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -8.050944', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'], help: 'Coordenada obtida via GPS ou mapa (ex: Google Maps), em graus decimais.' },
   { key: 'longitude', label: 'Longitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -48.491528', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'] },
 
   // Planta de Situação (Imagem)
@@ -287,6 +316,7 @@ interface ConferirInformacoesModalProps {
   onClose: () => void;
   fields: Record<string, any>;
   onSave: (updatedFields: Record<string, any>) => Promise<void>;
+  projectId?: string;
 }
 
 interface AcervoItem {
@@ -401,7 +431,7 @@ function computeStringsGlobals(invList: InversorItem[]): { modulos_total_strings
   return { modulos_total_strings: String(total), modulos_strings_modulos: JSON.stringify(modules) };
 }
 
-export function ConferirInformacoesModal({ open, onClose, fields, onSave }: ConferirInformacoesModalProps) {
+export function ConferirInformacoesModal({ open, onClose, fields, onSave, projectId }: ConferirInformacoesModalProps) {
   const [localFields, setLocalFields] = useState<Record<string, any>>({ ...fields });
   const [skippedFields, setSkippedFields] = useState<Set<string>>(() => initSkippedFields(fields));
   const [customOverrides, setCustomOverrides] = useState<Set<string>>(new Set());
@@ -421,6 +451,22 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
   // Listas de múltiplos modelos (novo formato)
   const [modulosList, setModulosList] = useState<ModuloItem[]>([]);
   const [inversoresList, setInversoresList] = useState<InversorItem[]>([]);
+
+  // ── Melhorias de UX: busca, navegação, revisão, autosave, cópia de dados ──
+  const [groupOrder, setGroupOrder] = useState<string[]>([]);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [docFilter, setDocFilter] = useState<string | null>(null);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [copyBannerData, setCopyBannerData] = useState<Record<string, any> | null>(null);
+  const [copyBannerDismissed, setCopyBannerDismissed] = useState(false);
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
+  const originalFieldsRef = useRef<Record<string, any>>(fields);
+  const skipAutosaveDebounceRef = useRef(true);
+  const autosaveDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cepLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cepLastLookedUp = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -443,6 +489,44 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     setModulosList(mods.length > 0 ? mods : [{ fabricante: '', modelo: '', potencia_wp: '', quantidade: '1' }]);
     const invs = getAllInversores(fields);
     setInversoresList(invs.length > 0 ? invs : [{ fabricante: '', modelo: '', potencia: '', quantidade: '1' }]);
+
+    // Reinicia estado das melhorias de UX a cada abertura do modal
+    originalFieldsRef.current = fields;
+    skipAutosaveDebounceRef.current = true;
+    setSearchTerm('');
+    setDocFilter(null);
+    setReviewMode(false);
+    setAutosaveStatus('idle');
+    setCopyBannerData(null);
+    setCopyBannerDismissed(false);
+    cepLastLookedUp.current = null;
+
+    // Calcula a ordem dos grupos (incompletos primeiro) e quais começam abertos, uma única vez por abertura
+    const activeDistribuidora = formatted.distribuidora || '';
+    const skipped = initSkippedFields(formatted);
+    const isFilled = (key: string): boolean => {
+      if (skipped.has(key)) return true;
+      const val = formatted[key];
+      if (key === 'havera_beneficiarias') return val === true || val === false;
+      if (key === 'planta_situacao_url') return !!val;
+      if (typeof val === 'number') return val > 0;
+      return !!val && String(val).trim() !== '';
+    };
+    const groupNames: string[] = [];
+    const groupComplete: Record<string, boolean> = {};
+    for (const field of FIELD_DEFINITIONS) {
+      if (field.onlyForDistribuidoras && !field.onlyForDistribuidoras.includes(activeDistribuidora)) continue;
+      if (field.hideForDistribuidoras && field.hideForDistribuidoras.includes(activeDistribuidora)) continue;
+      if (!groupNames.includes(field.group)) {
+        groupNames.push(field.group);
+        groupComplete[field.group] = true;
+      }
+      if (field.required && !isFilled(field.key)) groupComplete[field.group] = false;
+    }
+    const incomplete = groupNames.filter(g => !groupComplete[g]);
+    const complete = groupNames.filter(g => groupComplete[g]);
+    setGroupOrder([...incomplete, ...complete]);
+    setOpenGroups(new Set(incomplete));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -601,6 +685,80 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     }
   }, [open, localFields.distribuidora, fetchAcervoItems]);
 
+  // Autosave com debounce: qualquer alteração em localFields dispara o salvamento
+  // automático embrionário já existente (autoSavePending/_autoSave), ~2.5s após parar de digitar.
+  useEffect(() => {
+    if (!open) return;
+    if (skipAutosaveDebounceRef.current) {
+      skipAutosaveDebounceRef.current = false;
+      return;
+    }
+    if (autosaveDebounceTimer.current) clearTimeout(autosaveDebounceTimer.current);
+    autosaveDebounceTimer.current = setTimeout(() => {
+      if (isSaving) return;
+      setAutosaveStatus('saving');
+      setAutoSavePending(true);
+    }, 2500);
+    return () => {
+      if (autosaveDebounceTimer.current) clearTimeout(autosaveDebounceTimer.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, localFields]);
+
+  // Quando o autosave embrionário (linhas acima, disparado via autoSavePending) termina,
+  // reflete "salvo" no indicador por alguns segundos.
+  useEffect(() => {
+    if (autosaveStatus !== 'saving') return;
+    if (autoSavePending) return; // ainda não disparou o save
+    setAutosaveStatus('saved');
+    const t = setTimeout(() => setAutosaveStatus('idle'), 3000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSavePending]);
+
+  // Busca automática de cidade/estado por CEP (ViaCEP), preenchendo apenas campos vazios
+  useEffect(() => {
+    if (!open) return;
+    const cep = String(localFields.cliente_cep || '').replace(/\D/g, '');
+    if (cep.length !== 8) return;
+    if (cepLastLookedUp.current === cep) return;
+    if (localFields.client_city && localFields.client_state) return;
+    if (cepLookupTimer.current) clearTimeout(cepLookupTimer.current);
+    cepLookupTimer.current = setTimeout(() => {
+      cepLastLookedUp.current = cep;
+      buscarEnderecoPorCEP(cep).then(endereco => {
+        if (!endereco) return;
+        setLocalFields(prev => ({
+          ...prev,
+          ...(!prev.client_city ? { client_city: endereco.cidade } : {}),
+          ...(!prev.client_state ? { client_state: endereco.estado } : {}),
+        }));
+      });
+    }, 600);
+    return () => {
+      if (cepLookupTimer.current) clearTimeout(cepLookupTimer.current);
+    };
+  }, [open, localFields.cliente_cep, localFields.client_city, localFields.client_state]);
+
+  // Busca outro projeto do mesmo cliente (mesmo CPF/CNPJ) para oferecer copiar dados de contato
+  useEffect(() => {
+    if (!open) return;
+    const cpfCnpj = String(localFields.cpf_cnpj_cliente_final || '').replace(/\D/g, '');
+    if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+      setCopyBannerData(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({ cpf_cnpj: cpfCnpj, exclude_project_id: String(projectId || '') });
+      fetch(`/api/projects/by-client?${params.toString()}`)
+        .then(res => res.json())
+        .then(json => setCopyBannerData(json?.data || null))
+        .catch(() => setCopyBannerData(null));
+    }, 600);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, localFields.cpf_cnpj_cliente_final]);
+
   const handleFieldChange = (key: string, value: any) => {
     setLocalFields(prev => {
       const updates: Record<string, any> = { [key]: value };
@@ -655,6 +813,87 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     if (key === 'planta_situacao_url') return !!(val || plantaFile);
     if (typeof val === 'number') return val > 0;
     return !!val && String(val).trim() !== '';
+  };
+
+  // Retorna true quando o campo está preenchido mas não passa na validação de formato esperada
+  const isFieldInvalid = (field: FieldDef): boolean => {
+    if (!field.validate) return false;
+    if (skippedFields.has(field.key)) return false;
+    if (!isFieldFilled(field.key)) return false;
+    const val = String(localFields[field.key] || '');
+    switch (field.validate) {
+      case 'cpf': return !validarCPForCNPJ(val);
+      case 'cep': return !validarCEP(val);
+      case 'email': return !validarEmail(val);
+      case 'phone': return !validarTelefone(val);
+      default: return false;
+    }
+  };
+
+  // Badge "preenchido do cadastro": valor atual é idêntico ao valor original recebido via prop
+  const isFieldFromCadastro = (key: string): boolean => {
+    const original = originalFieldsRef.current[key];
+    const current = localFields[key];
+    if (original === undefined || original === null || original === '') return false;
+    return String(original) === String(current);
+  };
+
+  const toggleGroup = (groupName: string) => {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupName)) next.delete(groupName);
+      else next.add(groupName);
+      return next;
+    });
+  };
+
+  const expandAllGroups = () => setOpenGroups(new Set(groupOrder));
+  const collapseAllGroups = () => setOpenGroups(new Set());
+
+  // Percorre os campos na ordem de exibição atual (groupOrder) e foca o primeiro obrigatório
+  // ainda não preenchido, expandindo o grupo correspondente. Melhor-esforço: nem todo tipo de
+  // campo aceita foco programático da mesma forma.
+  const goToNextPending = () => {
+    const activeDistribuidora = localFields.distribuidora || '';
+    for (const groupName of groupOrder) {
+      const groupFields = (groups.get(groupName) || []).filter(f => {
+        if (f.onlyForDistribuidoras && !f.onlyForDistribuidoras.includes(activeDistribuidora)) return false;
+        if (f.hideForDistribuidoras && f.hideForDistribuidoras.includes(activeDistribuidora)) return false;
+        return true;
+      });
+      const pending = groupFields.find(f => f.required && !isFieldFilled(f.key));
+      if (pending) {
+        setOpenGroups(prev => new Set(prev).add(groupName));
+        setTimeout(() => {
+          const el = fieldRefs.current[pending.key];
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if ('focus' in el && typeof (el as HTMLElement).focus === 'function') {
+              (el as HTMLElement).focus();
+            }
+          }
+        }, 50);
+        return;
+      }
+    }
+  };
+
+  const applyCopyBannerData = () => {
+    if (!copyBannerData) return;
+    setLocalFields(prev => ({
+      ...prev,
+      ...(copyBannerData.endereco_local ? { endereco_local: copyBannerData.endereco_local } : {}),
+      ...(copyBannerData.client_city ? { client_city: copyBannerData.client_city } : {}),
+      ...(copyBannerData.client_state ? { client_state: copyBannerData.client_state } : {}),
+      ...(copyBannerData.cliente_cep ? { cliente_cep: copyBannerData.cliente_cep } : {}),
+      ...(copyBannerData.cliente_email ? { cliente_email: copyBannerData.cliente_email } : {}),
+      ...(copyBannerData.cliente_celular ? { cliente_celular: copyBannerData.cliente_celular } : {}),
+      ...(copyBannerData.cliente_telefone_fixo ? { cliente_telefone_fixo: copyBannerData.cliente_telefone_fixo } : {}),
+      ...(copyBannerData.responsavel_legal_nome ? { responsavel_legal_nome: copyBannerData.responsavel_legal_nome } : {}),
+      ...(copyBannerData.responsavel_legal_telefone ? { responsavel_legal_telefone: copyBannerData.responsavel_legal_telefone } : {}),
+      ...(copyBannerData.responsavel_legal_email ? { responsavel_legal_email: copyBannerData.responsavel_legal_email } : {}),
+    }));
+    setCopyBannerDismissed(true);
   };
 
   const { filledCount, requiredCount, totalFilledRequired } = useMemo(() => {
@@ -1285,6 +1524,9 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     if (skippedFields.has(field.key)) {
       return <MinusCircle className="h-4 w-4 text-gray-400 flex-shrink-0" />;
     }
+    if (isFieldInvalid(field)) {
+      return <AlertCircle className="h-4 w-4 text-orange-500 flex-shrink-0" />;
+    }
     if (isFieldFilled(field.key)) {
       return <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />;
     }
@@ -1294,9 +1536,29 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
     return <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0" />;
   };
 
+  const FIELD_VALIDATION_MESSAGES: Record<string, string> = {
+    cpf: 'CPF/CNPJ inválido — confira os dígitos.',
+    cep: 'CEP inválido — deve ter 8 dígitos.',
+    email: 'E-mail em formato inválido.',
+    phone: 'Telefone inválido — confira o DDD e o número.',
+  };
+
+  // Um grupo é exibido quando passa no filtro de documento (busca nunca remove grupos do DOM — só destaca campos)
+  const isGroupVisibleForFilters = (groupName: string): boolean => {
+    if (docFilter && !(GROUP_DOCS[groupName] || []).includes(docFilter)) return false;
+    return true;
+  };
+
+  const fieldMatchesSearch = (field: FieldDef): boolean => {
+    if (!searchTerm.trim()) return false;
+    const term = searchTerm.trim().toLowerCase();
+    return field.label.toLowerCase().includes(term) || field.key.toLowerCase().includes(term);
+  };
+
   return (
+    <TooltipProvider delayDuration={300}>
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] max-h-[92vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <ClipboardList className="h-5 w-5 text-blue-600" />
@@ -1317,7 +1579,16 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
           <div className="mt-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Campos obrigatórios</span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {autosaveStatus !== 'idle' && (
+                  <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                    {autosaveStatus === 'saving' ? (
+                      <><CloudUpload className="h-3.5 w-3.5 animate-pulse" /> Salvando...</>
+                    ) : (
+                      <><Check className="h-3.5 w-3.5 text-green-500" /> Alterações salvas</>
+                    )}
+                  </span>
+                )}
                 <span className="text-xs text-gray-500 dark:text-gray-400">{totalFilledRequired}/{requiredCount}</span>
                 <span className={`text-sm font-bold tabular-nums ${progressPercent === 100 ? 'text-green-600' : 'text-blue-600'}`}>{progressPercent}%</span>
               </div>
@@ -1332,13 +1603,61 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
               <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-500" /> Preenchido</span>
               <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-red-400" /> Obrigatório</span>
               <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-amber-400" /> Opcional</span>
+              <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-orange-500" /> Formato inválido</span>
               <span className="flex items-center gap-1"><MinusCircle className="h-3 w-3 text-gray-400" /> Ignorado</span>
             </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar campo..."
+                className="h-8 w-full pl-8 pr-2 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            </div>
+            <Select value={docFilter || 'all'} onValueChange={(v) => setDocFilter(v === 'all' ? null : v)}>
+              <SelectTrigger className="h-8 text-xs w-auto min-w-[160px]">
+                <SelectValue placeholder="Todos os documentos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os documentos</SelectItem>
+                {DOC_FILTER_OPTIONS.map(o => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={goToNextPending}>
+              <ArrowRight className="h-3.5 w-3.5 mr-1" /> Próximo pendente
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={expandAllGroups}>
+              <ChevronsDown className="h-3.5 w-3.5 mr-1" /> Expandir tudo
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={collapseAllGroups}>
+              <ChevronsUp className="h-3.5 w-3.5 mr-1" /> Recolher tudo
+            </Button>
+            <Button
+              type="button"
+              variant={reviewMode ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setReviewMode(prev => !prev)}
+            >
+              {reviewMode ? <EyeOff className="h-3.5 w-3.5 mr-1" /> : <Eye className="h-3.5 w-3.5 mr-1" />}
+              Modo revisão
+            </Button>
           </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-1 space-y-6 mt-2">
-          {Array.from(groups.entries()).map(([groupName, groupFields]) => {
+          {groupOrder.map((groupName) => {
+            const groupFields = groups.get(groupName) || [];
+            if (!isGroupVisibleForFilters(groupName)) return null;
+            const hasSearchMatch = searchTerm.trim() ? groupFields.some(f => fieldMatchesSearch(f)) : false;
+            const isGroupOpen = openGroups.has(groupName) || hasSearchMatch;
             const isMod = groupName === 'Módulos Fotovoltaicos';
             const isInv = groupName === 'Inversores Fotovoltaicos';
             const setupInvQty = isInv ? (
@@ -1362,8 +1681,12 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
 
             return (
             <div key={groupName}>
-              <h3 className="flex items-center justify-between mb-3 sticky top-0 bg-background py-2 z-10 border-b border-gray-100 dark:border-gray-800">
+              <h3
+                className="flex items-center justify-between mb-3 sticky top-0 bg-background py-2 z-10 border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none"
+                onClick={() => toggleGroup(groupName)}
+              >
                 <span className="flex items-center gap-2">
+                  {isGroupOpen ? <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />}
                   <span className="w-1 h-4 rounded-full bg-blue-500 dark:bg-blue-400 inline-block flex-shrink-0" />
                   <span className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-tight">{groupName}</span>
                 </span>
@@ -1371,6 +1694,35 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                   {visibleFields.filter(f => isFieldFilled(f.key)).length}/{visibleFields.length}
                 </span>
               </h3>
+              {!isGroupOpen ? null : (<>
+              {groupName === 'Módulos Fotovoltaicos' && modulosDefinidos > 0 && localFields.potencia && Math.abs((modulosDefinidos * parseFloat(String(localFields.modulos_potencia_wp || '0')) / 1000) - parseFloat(String(localFields.potencia || '0'))) > (parseFloat(String(localFields.potencia || '0')) * 0.1) && (
+                <div className="mb-3 rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
+                    A potência calculada a partir dos módulos ({((modulosDefinidos * parseFloat(String(localFields.modulos_potencia_wp || '0'))) / 1000).toFixed(2)} kWp) diverge da Potência do projeto (<strong>{localFields.potencia} kWp</strong>). Confira a quantidade e a potência unitária dos módulos.
+                  </p>
+                </div>
+              )}
+              {groupName === 'Padrão de Entrada' && localFields.tipo_conexao === 'Trifásico' && localFields.tensao_atendimento === '127/220' && (
+                <div className="mb-3 rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
+                    Conexão <strong>Trifásica</strong> com Tensão de Atendimento <strong>127/220 V</strong> é uma combinação incomum — confirme os dados junto à distribuidora.
+                  </p>
+                </div>
+              )}
+              {groupName === 'Dados do Cliente' && copyBannerData && !copyBannerDismissed && (
+                <div className="mb-3 rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3 flex items-center justify-between gap-3">
+                  <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                    <Copy className="h-3.5 w-3.5 flex-shrink-0" />
+                    Encontramos outro projeto deste cliente com dados de endereço/contato preenchidos. Deseja copiá-los?
+                  </p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={applyCopyBannerData}>Copiar dados</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCopyBannerDismissed(true)}>Dispensar</Button>
+                  </div>
+                </div>
+              )}
               {groupName === 'Responsável Legal' && (
                 <div className="mb-3 space-y-2">
                   <div className="rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
@@ -1633,9 +1985,18 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                 </div>
               )}
 
-              <div className="space-y-3">
-                {visibleFields.map(field => (
-                  <div key={field.key} className="flex items-start gap-3 group">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3">
+                {visibleFields.map(field => {
+                  const invalid = isFieldInvalid(field);
+                  const fromCadastro = !invalid && isFieldFromCadastro(field.key);
+                  const isMatch = fieldMatchesSearch(field);
+                  return (
+                  <div
+                    key={field.key}
+                    ref={(el) => { fieldRefs.current[field.key] = el; }}
+                    tabIndex={-1}
+                    className={`flex items-start gap-3 group rounded-md -mx-1 px-1 py-0.5 transition-colors ${field.span2 ? 'lg:col-span-2' : ''} ${isMatch ? 'ring-1 ring-blue-300 dark:ring-blue-700 bg-blue-50/50 dark:bg-blue-950/20' : ''} ${searchTerm.trim() && !isMatch ? 'opacity-40' : ''}`}
+                  >
                     <div className="mt-2">
                       {getStatusIcon(field)}
                     </div>
@@ -1646,10 +2007,34 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                           {field.label}
                           {field.required && <span className="text-red-500 ml-0.5">*</span>}
                         </Label>
+                        {field.help && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">{field.help}</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {fromCadastro && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal text-gray-500 dark:text-gray-400">
+                            do cadastro
+                          </Badge>
+                        )}
                       </div>
-                      {renderFieldInput(field)}
+                      {reviewMode ? (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 min-h-8 flex items-center px-0.5">
+                          {skippedFields.has(field.key)
+                            ? <span className="italic text-gray-400">Não incluído</span>
+                            : (getFieldValue(field.key) || <span className="italic text-gray-400">Vazio</span>)}
+                        </p>
+                      ) : renderFieldInput(field)}
+                      {invalid && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                          {FIELD_VALIDATION_MESSAGES[field.validate as string]}
+                        </p>
+                      )}
                     </div>
-                    {!field.required && (
+                    {!field.required && !reviewMode && (
                       <div className="flex items-center gap-1.5 mt-7 flex-shrink-0">
                         <Checkbox
                           id={`skip-${field.key}`}
@@ -1662,8 +2047,10 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
+              </>)}
             </div>
             );
           })}
@@ -1680,6 +2067,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave }: Conf
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 }
 

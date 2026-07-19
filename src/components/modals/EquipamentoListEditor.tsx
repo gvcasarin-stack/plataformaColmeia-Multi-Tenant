@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { EquipamentoListItem } from './EquipamentoListItem';
 import type { ModuloItem, InversorItem } from '@/lib/utils/equipmentParser';
+import { toast } from '@/components/ui/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 // ─── Módulos ────────────────────────────────────────────────────────────────
 
@@ -63,12 +65,49 @@ export function EquipamentoListEditor(props: Props) {
   }
 
   function removeItem(idx: number) {
+    const label = tipo === 'modulo' ? 'Módulo' : 'Inversor';
     if (tipo === 'modulo') {
       const p = props as ModulosEditorProps;
-      p.onChange(p.items.filter((_, i) => i !== idx));
+      const removed = p.items[idx];
+      const remaining = p.items.filter((_, i) => i !== idx);
+      p.onChange(remaining);
+      toast({
+        description: `${label} removido.`,
+        duration: 8000,
+        action: (
+          <ToastAction
+            altText="Desfazer remoção"
+            onClick={() => {
+              const restored = [...remaining];
+              restored.splice(idx, 0, removed);
+              p.onChange(restored);
+            }}
+          >
+            Desfazer
+          </ToastAction>
+        ),
+      });
     } else {
       const p = props as InversoresEditorProps;
-      p.onChange(p.items.filter((_, i) => i !== idx));
+      const removed = p.items[idx];
+      const remaining = p.items.filter((_, i) => i !== idx);
+      p.onChange(remaining);
+      toast({
+        description: `${label} removido.`,
+        duration: 8000,
+        action: (
+          <ToastAction
+            altText="Desfazer remoção"
+            onClick={() => {
+              const restored = [...remaining];
+              restored.splice(idx, 0, removed);
+              p.onChange(restored);
+            }}
+          >
+            Desfazer
+          </ToastAction>
+        ),
+      });
     }
   }
 

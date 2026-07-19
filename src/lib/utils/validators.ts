@@ -197,3 +197,31 @@ export function validarEstado(estado: string): boolean {
 export function normalizarEstado(estado: string): string {
   return estado.toUpperCase().trim();
 }
+
+/**
+ * Valida formato de e-mail
+ * @param email - E-mail a ser validado
+ * @returns true se o formato é válido, false caso contrário
+ */
+export function validarEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+/**
+ * Valida CEP brasileiro (8 dígitos)
+ * @param cep - CEP com ou sem formatação
+ * @returns true se válido, false caso contrário
+ */
+export function validarCEP(cep: string): boolean {
+  return /^\d{8}$/.test(cep.replace(/\D/g, ''));
+}
+
+/**
+ * Valida telefone brasileiro (fixo com 10 dígitos ou celular com 11 dígitos, incluindo DDD)
+ * @param telefone - Telefone com ou sem formatação
+ * @returns true se válido, false caso contrário
+ */
+export function validarTelefone(telefone: string): boolean {
+  const digitos = telefone.replace(/\D/g, '');
+  return digitos.length === 10 || digitos.length === 11;
+}

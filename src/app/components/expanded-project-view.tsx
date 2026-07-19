@@ -2950,6 +2950,7 @@ export const ExpandedProjectView = ({
                         onClose={() => setShowConferirModal(false)}
                         fields={gerarProjetoFields}
                         onSave={handleSaveConferirModal}
+                        projectId={project.id}
                       />
 
                       {selectedDistribuidoraGerarProjeto ? (
