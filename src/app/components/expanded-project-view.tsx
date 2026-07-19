@@ -2912,48 +2912,58 @@ export const ExpandedProjectView = ({
                           const setupDone = gerarProjetoFields.setup_concluido === 'true';
                           const conferirDone = setupDone && conferirProgress.total > 0 && conferirProgress.filled === conferirProgress.total;
                           return (
-                            <div className="flex items-center">
+                            <div className="flex items-center flex-wrap gap-y-2">
                               <button
                                 type="button"
                                 onClick={() => setShowSetupModal(true)}
-                                className="group flex items-center gap-2.5 text-left"
-                              >
-                                <span className={`flex items-center justify-center h-8 w-8 rounded-full border-2 flex-shrink-0 transition-colors ${
+                                className={`group flex items-center gap-2.5 text-left rounded-full border pl-1.5 pr-4 py-1.5 transition-colors ${
                                   setupDone
-                                    ? 'bg-green-500 border-green-500 text-white'
-                                    : 'border-blue-400 text-blue-600 dark:text-blue-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/30'
+                                    ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30'
+                                    : 'border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                                }`}
+                              >
+                                <span className={`flex items-center justify-center h-7 w-7 rounded-full flex-shrink-0 transition-colors ${
+                                  setupDone
+                                    ? 'bg-green-500 text-white'
+                                    : 'bg-blue-500 text-white'
                                 }`}>
                                   {setupDone ? <CheckCircle2 className="h-4 w-4" /> : <Settings className="h-3.5 w-3.5" />}
                                 </span>
                                 <span className="flex flex-col">
                                   <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Setup do Projeto</span>
-                                  <span className={`text-[11px] ${setupDone ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                                  <span className={`text-[11px] ${setupDone ? 'text-green-600 dark:text-green-500' : 'text-blue-600 dark:text-blue-400'}`}>
                                     {setupDone ? 'Concluído' : 'Configurar topologia'}
                                   </span>
                                 </span>
                               </button>
 
-                              <div className={`h-0.5 w-10 sm:w-16 mx-3 rounded-full flex-shrink-0 transition-colors ${setupDone ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
+                              <div className={`h-0.5 w-8 sm:w-12 mx-2 rounded-full flex-shrink-0 transition-colors ${setupDone ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
 
                               <button
                                 type="button"
                                 onClick={() => setShowConferirModal(true)}
                                 disabled={!setupDone}
                                 title={!setupDone ? 'Conclua o Setup do Projeto primeiro' : undefined}
-                                className="group flex items-center gap-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                <span className={`flex items-center justify-center h-8 w-8 rounded-full border-2 flex-shrink-0 transition-colors ${
+                                className={`group flex items-center gap-2.5 text-left rounded-full border pl-1.5 pr-4 py-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${
                                   conferirDone
-                                    ? 'bg-green-500 border-green-500 text-white'
+                                    ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-900/30'
                                     : setupDone
-                                    ? 'border-green-500 text-green-600 dark:text-green-500 group-hover:bg-green-50 dark:group-hover:bg-green-950/30'
-                                    : 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500'
+                                    ? 'border-green-200 dark:border-green-800 bg-white dark:bg-gray-900 hover:bg-green-50 dark:hover:bg-green-950/20'
+                                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'
+                                }`}
+                              >
+                                <span className={`flex items-center justify-center h-7 w-7 rounded-full flex-shrink-0 transition-colors ${
+                                  conferirDone
+                                    ? 'bg-green-500 text-white'
+                                    : setupDone
+                                    ? 'bg-green-500 text-white'
+                                    : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
                                 }`}>
                                   {conferirDone ? <CheckCircle2 className="h-4 w-4" /> : <ClipboardCheck className="h-3.5 w-3.5" />}
                                 </span>
                                 <span className="flex flex-col">
                                   <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Conferir Informações do Projeto</span>
-                                  <span className={`text-[11px] tabular-nums ${conferirDone ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                                  <span className={`text-[11px] tabular-nums ${conferirDone ? 'text-green-600 dark:text-green-500' : setupDone ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500'}`}>
                                     {conferirProgress.filled}/{conferirProgress.total} campos
                                   </span>
                                 </span>
