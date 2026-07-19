@@ -2907,35 +2907,73 @@ export const ExpandedProjectView = ({
                         </Select>
                       </div>
 
-                      <div className="flex flex-col gap-2">
-                        <div className="flex gap-2 flex-wrap">
-                          <Button
-                            variant="outline"
-                            onClick={() => setShowSetupModal(true)}
-                            className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                          >
-                            <Settings className="h-4 w-4" />
-                            Setup do Projeto
-                            {gerarProjetoFields.setup_concluido === 'true' && (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                            )}
-                          </Button>
-                          <Button
-                            onClick={() => setShowConferirModal(true)}
-                            disabled={gerarProjetoFields.setup_concluido !== 'true'}
-                            className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={gerarProjetoFields.setup_concluido !== 'true' ? 'Conclua o Setup do Projeto primeiro' : undefined}
-                          >
-                            <ClipboardCheck className="h-4 w-4" />
-                            Conferir Informações do Projeto ({conferirProgress.filled}/{conferirProgress.total})
-                          </Button>
-                        </div>
+                      <div className="flex flex-col gap-3">
+                        {(() => {
+                          const setupDone = gerarProjetoFields.setup_concluido === 'true';
+                          const conferirDone = setupDone && conferirProgress.total > 0 && conferirProgress.filled === conferirProgress.total;
+                          return (
+                            <div className="flex items-center">
+                              <button
+                                type="button"
+                                onClick={() => setShowSetupModal(true)}
+                                className="group flex items-center gap-2.5 text-left"
+                              >
+                                <span className={`flex items-center justify-center h-8 w-8 rounded-full border-2 flex-shrink-0 transition-colors ${
+                                  setupDone
+                                    ? 'bg-green-500 border-green-500 text-white'
+                                    : 'border-blue-400 text-blue-600 dark:text-blue-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/30'
+                                }`}>
+                                  {setupDone ? <CheckCircle2 className="h-4 w-4" /> : <Settings className="h-3.5 w-3.5" />}
+                                </span>
+                                <span className="flex flex-col">
+                                  <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Setup do Projeto</span>
+                                  <span className={`text-[11px] ${setupDone ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                                    {setupDone ? 'Concluído' : 'Configurar topologia'}
+                                  </span>
+                                </span>
+                              </button>
+
+                              <div className={`h-0.5 w-10 sm:w-16 mx-3 rounded-full flex-shrink-0 transition-colors ${setupDone ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
+
+                              <button
+                                type="button"
+                                onClick={() => setShowConferirModal(true)}
+                                disabled={!setupDone}
+                                title={!setupDone ? 'Conclua o Setup do Projeto primeiro' : undefined}
+                                className="group flex items-center gap-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <span className={`flex items-center justify-center h-8 w-8 rounded-full border-2 flex-shrink-0 transition-colors ${
+                                  conferirDone
+                                    ? 'bg-green-500 border-green-500 text-white'
+                                    : setupDone
+                                    ? 'border-green-500 text-green-600 dark:text-green-500 group-hover:bg-green-50 dark:group-hover:bg-green-950/30'
+                                    : 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500'
+                                }`}>
+                                  {conferirDone ? <CheckCircle2 className="h-4 w-4" /> : <ClipboardCheck className="h-3.5 w-3.5" />}
+                                </span>
+                                <span className="flex flex-col">
+                                  <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Conferir Informações do Projeto</span>
+                                  <span className={`text-[11px] tabular-nums ${conferirDone ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                                    {conferirProgress.filled}/{conferirProgress.total} campos
+                                  </span>
+                                </span>
+                              </button>
+                            </div>
+                          );
+                        })()}
                         {gerarProjetoFields.setup_concluido !== 'true' && (
                           <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                             <Info className="h-3.5 w-3.5 flex-shrink-0" />
                             Conclua o Setup do Projeto para liberar o preenchimento das informações. A geração dos documentos depende da topologia configurada.
                           </p>
                         )}
+                        <div className="rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/70 dark:bg-blue-950/30 px-4 py-3">
+                          <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                            <strong>Todos os campos obrigatórios devem ser preenchidos</strong> — caso algum esteja vazio, a documentação não será gerada corretamente.
+                            Após preencher, clique em <strong>Salvar Progresso</strong> e depois selecione o documento que deseja gerar.
+                            O botão para gerar cada documento estará ao final da pré-visualização (Memorial Descritivo, Diagrama Unifilar, Diagrama de Blocos...).
+                          </p>
+                        </div>
                       </div>
 
                       <SetupProjetoModal

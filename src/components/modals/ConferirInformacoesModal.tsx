@@ -1568,15 +1568,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
             Preencha as informações necessárias para a geração dos documentos.
           </DialogDescription>
 
-          <div className="mt-2 rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50/70 dark:bg-blue-950/30 px-4 py-3">
-            <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
-              <strong>Todos os campos obrigatórios devem ser preenchidos</strong> — caso algum esteja vazio, a documentação não será gerada corretamente.
-              Após preencher, clique em <strong>Salvar Progresso</strong> e depois selecione o documento que deseja gerar.
-              O botão para gerar cada documento estará ao final da pré-visualização (Memorial Descritivo, Diagrama Unifilar, Diagrama de Blocos...).
-            </p>
-          </div>
-
-          <div className="mt-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3 space-y-2.5">
+          <div className="mt-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/40 px-4 py-3 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Campos obrigatórios</span>
               <div className="flex items-center gap-3">
