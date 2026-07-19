@@ -3643,11 +3643,13 @@ export const ExpandedProjectView = ({
       <GenerateProcuracaoModal
         open={showProcuracaoModal}
         onOpenChange={setShowProcuracaoModal}
-        project={project}
+        project={editedProject}
         userId={user?.id || ''}
-        onSuccess={async (savedFields) => {
-          // Atualizar o projeto localmente, sem recarregar a página nem fechar o modal
-          await onUpdate({ id: project.id, timelineEvents: project.timelineEvents || [], ...savedFields });
+        onSuccess={(savedFields) => {
+          // ✅ Os dados já foram persistidos pelo próprio modal (updateProjectClientData).
+          // Atualizar apenas o estado local — sem chamar onUpdate/editProjectAction, que
+          // revalida a rota inteira e reseta o estado do componente (fechando este modal)
+          setEditedProject(prev => ({ ...prev, ...savedFields }));
         }}
       />
 

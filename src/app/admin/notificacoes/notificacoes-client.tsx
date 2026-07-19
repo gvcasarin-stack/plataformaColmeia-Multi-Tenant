@@ -739,15 +739,15 @@ export default function NotificacoesClient() {
                           </span>
                         )}
                       </div>
-                      {(notification.projectNumber || notification.data?.clientName) && (
+                      {(notification.projectNumber || notification.data?.projectName) && (
                         <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                           {notification.projectNumber && (
                             <span className="font-mono font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
                               {notification.projectNumber}
                             </span>
                           )}
-                          {notification.data?.clientName && (
-                            <span className="font-medium">{notification.data.clientName}</span>
+                          {notification.data?.projectName && (
+                            <span className="font-medium">{notification.data.projectName}</span>
                           )}
                         </div>
                       )}
