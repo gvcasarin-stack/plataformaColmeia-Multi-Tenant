@@ -27,7 +27,7 @@ import {
   Edit
 } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
-import { Project, TimelineEvent } from "@/types/project"
+import { Project } from "@/types/project"
 import { ProjectStatus } from "@/types/kanban"
 import { cn } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
@@ -87,6 +87,10 @@ interface KanbanBoardProps {
   searchQuery?: string;
   sortBy?: string;
   onProjectUpdate?: (updatedProject: any) => Promise<any>;
+  // Sincroniza um patch local (sem rede) no estado de projetos do componente pai
+  // (ex: página /admin/projetos), para que outras visões (ex: tabela) fiquem
+  // atualizadas mesmo em fluxos que não passam por onProjectUpdate.
+  onProjectPatchedLocally?: (projectId: string, patch: Partial<Project>) => void;
   teamMembers?: Array<{ id: string, name: string, email: string }>;
 }
 
@@ -109,7 +113,7 @@ const priorityStyles = {
 export const KanbanBoard = forwardRef<
   { reloadColumnTitles: () => Promise<boolean> },
   KanbanBoardProps
->(function KanbanBoard({ projects, searchQuery = '', sortBy = 'manual', onProjectUpdate, teamMembers = [] }, ref) {
+>(function KanbanBoard({ projects, searchQuery = '', sortBy = 'manual', onProjectUpdate, onProjectPatchedLocally, teamMembers = [] }, ref) {
   const router = useRouter()
   const { user } = useAuth();
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
@@ -337,6 +341,43 @@ export const KanbanBoard = forwardRef<
     }
   };
 
+  // Endpoint único para mudança de status (drag-and-drop e menu de 3 pontinhos):
+  // calcula SLA, grava o evento de timeline e notifica o cliente no servidor,
+  // via Route Handler (não Server Action) — não dispara revalidação de RSC,
+  // então não causa o "piscar"/atualização de tela inteira.
+  const changeProjectStatus = async (project: Project, newStatusSlug: string): Promise<{
+    status: string;
+    status_changed_at: string;
+    sla_expires_at: string | null;
+    sla_expired: boolean;
+  }> => {
+    const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+    const headers = await createTenantHeaders(user?.id);
+
+    const response = await fetch(`/api/projects/${project.id}/change-status`, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        status: newStatusSlug,
+        userId: user?.id || null,
+        userName: user?.profile?.name || user?.email || 'Sistema',
+        userEmail: user?.email || null,
+        userRole: user?.role || 'admin',
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || 'Erro ao mudar status');
+    }
+
+    const result = await response.json();
+    return result.data;
+  };
+
   const handleChangeStatus = async (project: Project, newStatusSlug: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -344,28 +385,13 @@ export const KanbanBoard = forwardRef<
     if (!newStatus) return;
 
     try {
-      // 🆕 CORREÇÃO: Obter headers corretos usando tenant-helper
-      const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
-      const headers = await createTenantHeaders(user?.id);
+      const updated = await changeProjectStatus(project, newStatusSlug);
 
-      const response = await fetch(`/api/projects/${project.id}`, {
-        method: 'PUT', // ✅ CORREÇÃO: Usar PUT ao invés de PATCH
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatusSlug })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao mudar status');
-      }
-
-      // Atualizar localmente
+      // Atualizar localmente (Kanban) e no estado compartilhado da página (ex: visão em tabela)
       setLocalProjects(prev => prev.map(p =>
-        p.id === project.id ? { ...p, status: newStatusSlug as any } : p
+        p.id === project.id ? { ...p, ...updated } as Project : p
       ));
+      onProjectPatchedLocally?.(project.id, updated);
 
       toast({
         title: "Status alterado",
@@ -850,8 +876,6 @@ export const KanbanBoard = forwardRef<
     }
 
     const userName = user?.profile?.name || user?.email || 'Sistema';
-    const userId = user?.id || 'system';
-    const userRole = user?.role || 'admin';
 
     devLog.log(`[Kanban] Updating project status:`, {
       id: project.id,
@@ -860,102 +884,56 @@ export const KanbanBoard = forwardRef<
       user: userName
     });
 
-    // Obter nomes para display
-    const oldColumn = columns.find(col => col.slug === oldStatusSlug);
-    const newColumn = columns.find(col => col.slug === newStatusSlug);
-
-    const oldDisplayStatus = oldColumn?.title || statusMap[oldStatusSlug] || oldStatusSlug;
-    const newDisplayStatus = newColumn?.title || statusMap[newStatusSlug] || newStatusSlug;
-
-    // ✅ Calcular SLA para o novo status
+    // ✅ Estimativa otimista do SLA no cliente, só para pintar a UI instantaneamente —
+    // o valor definitivo (calculado no servidor) chega na resposta do fetch abaixo.
     const now = new Date();
-    let slaExpiresAt: string | null = null;
-    let slaExpired = false;
-
+    let optimisticSlaExpiresAt: string | null = null;
     if (targetColumn.slaDays && targetColumn.slaDays > 0) {
-      const expirationDate = calculateSLAExpiration(
+      optimisticSlaExpiresAt = calculateSLAExpiration(
         now,
         targetColumn.slaDays,
         targetColumn.slaExcludeWeekends !== undefined ? targetColumn.slaExcludeWeekends : true
-      );
-      slaExpiresAt = expirationDate.toISOString();
-      slaExpired = false; // Resetar flag ao mudar de status
-
-      devLog.log('[Kanban] SLA calculado para novo status:', {
-        status: newStatusSlug,
-        slaDays: targetColumn.slaDays,
-        excludeWeekends: targetColumn.slaExcludeWeekends,
-        statusChangedAt: now.toISOString(),
-        slaExpiresAt
-      });
-    } else {
-      devLog.log('[Kanban] Sem SLA configurado para status:', newStatusSlug);
+      ).toISOString();
     }
 
-    // Criar o evento de timeline para a mudança de status
-    const timelineEvent: TimelineEvent = {
-      type: 'status',
-      timestamp: new Date().toISOString(),
-      content: `Status alterado de ${oldDisplayStatus} para ${newDisplayStatus}${slaExpiresAt ? ` (Prazo: ${targetColumn.slaDays} dia${targetColumn.slaDays !== 1 ? 's' : ''})` : ''}`,
-      user: userName,
-      userId: userId,
-      id: crypto.randomUUID(),
-      userType: userRole,
-      data: {
-        oldStatus: oldStatusSlug,
-        newStatus: newStatusSlug,
-        updatedBy: userName,
-        updatedByEmail: user?.email || 'unknown',
-        updatedByRole: userRole
-      }
-    };
-
-    // Cria o projeto atualizado usando slugs + campos SLA
-    const updatedProject: Project = {
+    const optimisticProject: Project = {
       ...project,
-      status: newStatusSlug,  // Usar slug para o status
-      updatedAt: new Date().toISOString(),
-      status_changed_at: now.toISOString(), // ✅ Registrar quando mudou
-      sla_expires_at: slaExpiresAt, // ✅ Quando expira o prazo
-      sla_expired: slaExpired, // ✅ Flag de expirado
-      timelineEvents: [
-        timelineEvent,
-        ...(project.timelineEvents || [])
-      ],
-      lastUpdateBy: {
-        uid: userId,
-        email: user?.email || 'unknown',
-        role: userRole,
-        timestamp: new Date().toISOString()
-      }
+      status: newStatusSlug,
+      status_changed_at: now.toISOString(),
+      sla_expires_at: optimisticSlaExpiresAt,
+      sla_expired: false,
     };
 
-    // Atualiza o estado local
+    // Atualiza o estado local imediatamente (feedback instantâneo do arraste)
     setLocalProjects(localProjects.map(p =>
-      p.id === updatedProject.id ? updatedProject : p
+      p.id === optimisticProject.id ? optimisticProject : p
     ));
 
-    // Usar o callback para atualizar via API
-    if (onProjectUpdate) {
-      onProjectUpdate(updatedProject)
-        .then(result => {
-          devLog.log(`[Kanban] Project updated successfully:`, result);
-        })
-        .catch(error => {
-          devLog.error(`[Kanban] Error updating project:`, error);
+    // Persiste via o mesmo caminho rápido do menu de 3 pontinhos: um Route Handler
+    // (não Server Action) que calcula o SLA definitivo, grava o evento de timeline e
+    // notifica o cliente no servidor — sem disparar revalidação de RSC.
+    changeProjectStatus(project, newStatusSlug)
+      .then(updated => {
+        devLog.log(`[Kanban] Project status updated successfully:`, updated);
+        setLocalProjects(prev => prev.map(p =>
+          p.id === project.id ? { ...p, ...updated } as Project : p
+        ));
+        onProjectPatchedLocally?.(project.id, updated);
+      })
+      .catch(error => {
+        devLog.error(`[Kanban] Error updating project status:`, error);
 
-          // Reverter para o estado anterior
-          setLocalProjects(localProjects.map(p =>
-            p.id === project.id ? project : p
-          ));
+        // Reverter para o estado anterior
+        setLocalProjects(localProjects.map(p =>
+          p.id === project.id ? project : p
+        ));
 
-          toast({
-            title: "Erro ao atualizar projeto",
-            description: "Não foi possível atualizar o status do projeto.",
-            variant: "destructive"
-          });
+        toast({
+          title: "Erro ao atualizar projeto",
+          description: "Não foi possível atualizar o status do projeto.",
+          variant: "destructive"
         });
-    }
+      });
   };
 
   return (

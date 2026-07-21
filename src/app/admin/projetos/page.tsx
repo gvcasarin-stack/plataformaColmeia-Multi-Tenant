@@ -49,7 +49,7 @@ type FilterType = 'todos' | 'meus' | 'sem-responsavel'
 export default function ProjetosPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { projects, updateProject } = useProjects()
+  const { projects, updateProject, setProjects } = useProjects()
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [timelineMatchIds, setTimelineMatchIds] = useState<Set<string>>(new Set())
@@ -740,6 +740,9 @@ export default function ProjetosPage() {
           <KanbanBoard
             projects={filteredProjects}
             onProjectUpdate={updateProject}
+            onProjectPatchedLocally={(projectId, patch) => {
+              setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...patch } : p));
+            }}
             sortBy={sortBy}
             teamMembers={teamMembers}
             ref={viewKanbanRef}
