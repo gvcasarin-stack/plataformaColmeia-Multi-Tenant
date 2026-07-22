@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { waitUntil } from '@vercel/functions';
 import { devLog } from '@/lib/utils/productionLogger';
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 import { createApiError, ApiErrorCode } from '@/lib/utils/apiErrorHandler';
@@ -168,25 +169,33 @@ export async function PUT(
       }
     }
 
-    // Notificação ao cliente (não crítica — não deve falhar a resposta principal)
+    // Notificação ao cliente (in-app + e-mail): não deve bloquear a resposta ao Kanban.
+    // O envio de e-mail (AWS SES) é a parte mais lenta dessa rota; usamos waitUntil para
+    // que a função continue executando em segundo plano após a resposta já ter sido
+    // enviada, em vez de simplesmente não aguardar a promise (o que em ambiente
+    // serverless poderia encerrar a execução antes do e-mail sair).
     if (statusReallyChanged) {
-      try {
-        const clientId = project.owner_id || project.created_by;
-        if (clientId) {
-          const { notifyStatusChange } = await import('@/lib/services/notificationService');
-          await notifyStatusChange({
-            projectId,
-            projectNumber: project.number,
-            projectName: project.nome_cliente_final,
-            oldStatus: oldStatusSlug,
-            newStatus: newStatusSlug,
-            clientId,
-            adminId: userId,
-            adminName: userName,
-          });
-        }
-      } catch (notificationError) {
-        devLog.error('[API change-status] Erro ao notificar cliente (não crítico):', notificationError);
+      const clientId = project.owner_id || project.created_by;
+      if (clientId) {
+        waitUntil(
+          (async () => {
+            try {
+              const { notifyStatusChange } = await import('@/lib/services/notificationService');
+              await notifyStatusChange({
+                projectId,
+                projectNumber: project.number,
+                projectName: project.nome_cliente_final,
+                oldStatus: oldStatusSlug,
+                newStatus: newStatusSlug,
+                clientId,
+                adminId: userId,
+                adminName: userName,
+              });
+            } catch (notificationError) {
+              devLog.error('[API change-status] Erro ao notificar cliente (não crítico):', notificationError);
+            }
+          })()
+        );
       }
     }
 

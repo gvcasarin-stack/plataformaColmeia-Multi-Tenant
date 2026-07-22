@@ -378,34 +378,55 @@ export const KanbanBoard = forwardRef<
     return result.data;
   };
 
-  const handleChangeStatus = async (project: Project, newStatusSlug: string, e: React.MouseEvent) => {
+  const handleChangeStatus = (project: Project, newStatusSlug: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
     const newStatus = columns.find(col => col.slug === newStatusSlug);
     if (!newStatus) return;
 
-    try {
-      const updated = await changeProjectStatus(project, newStatusSlug);
-
-      // Atualizar localmente (Kanban) e no estado compartilhado da página (ex: visão em tabela)
-      setLocalProjects(prev => prev.map(p =>
-        p.id === project.id ? { ...p, ...updated } as Project : p
-      ));
-      onProjectPatchedLocally?.(project.id, updated);
-
-      toast({
-        title: "Status alterado",
-        description: `Status do projeto ${project.number} alterado para ${newStatus.title}.`,
-        className: "bg-green-500 text-white"
-      });
-    } catch (error: any) {
-      devLog.error('[KanbanBoard] Erro ao mudar status:', error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível mudar o status.",
-        variant: "destructive"
-      });
+    // ✅ Atualização otimista: move o cartão na hora, sem esperar a resposta do servidor
+    // (que inclui o envio de notificação/e-mail ao cliente) — igual ao drag-and-drop.
+    const now = new Date();
+    let optimisticSlaExpiresAt: string | null = null;
+    if (newStatus.slaDays && newStatus.slaDays > 0) {
+      optimisticSlaExpiresAt = calculateSLAExpiration(
+        now,
+        newStatus.slaDays,
+        newStatus.slaExcludeWeekends !== undefined ? newStatus.slaExcludeWeekends : true
+      ).toISOString();
     }
+
+    setLocalProjects(prev => prev.map(p =>
+      p.id === project.id
+        ? { ...p, status: newStatusSlug as any, status_changed_at: now.toISOString(), sla_expires_at: optimisticSlaExpiresAt, sla_expired: false }
+        : p
+    ));
+
+    changeProjectStatus(project, newStatusSlug)
+      .then(updated => {
+        setLocalProjects(prev => prev.map(p =>
+          p.id === project.id ? { ...p, ...updated } as Project : p
+        ));
+        onProjectPatchedLocally?.(project.id, updated);
+
+        toast({
+          title: "Status alterado",
+          description: `Status do projeto ${project.number} alterado para ${newStatus.title}.`,
+          className: "bg-green-500 text-white"
+        });
+      })
+      .catch(error => {
+        devLog.error('[KanbanBoard] Erro ao mudar status:', error);
+
+        // Reverter para o estado anterior
+        setLocalProjects(prev => prev.map(p => p.id === project.id ? project : p));
+
+        toast({
+          title: "Erro",
+          description: error.message || "Não foi possível mudar o status.",
+          variant: "destructive"
+        });
+      });
   };
 
   const handleArchiveProject = (project: Project, e: React.MouseEvent) => {
