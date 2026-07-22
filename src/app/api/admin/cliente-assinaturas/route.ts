@@ -52,36 +52,41 @@ export async function GET(request: NextRequest) {
 
     devLog.log('[API /admin/cliente-assinaturas GET] Assinaturas encontradas:', clienteAssinaturas?.length || 0);
 
-    // Para cada assinatura, buscar os projetos vinculados (do mês corrente e histórico)
-    const assinaturasComProjetos = await Promise.all(
-      (clienteAssinaturas || []).map(async (assinatura) => {
-        // Buscar TODOS os projetos da assinatura
-        devLog.log(`[API /admin/cliente-assinaturas GET] Buscando projetos para assinatura ${assinatura.id}`);
-        const { data: todosProjetos, error: projetosError } = await supabase
-          .from('projects')
-          .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, pagamento, created_at')
-          .eq('cliente_assinatura_id', assinatura.id)
-          .eq('tenant_id', tenantId)
-          .order('created_at', { ascending: false });
+    // ✅ PERFORMANCE: Buscar os projetos de TODAS as assinaturas em uma única query
+    // (antes: uma query por assinatura, N+1) e agrupar em memória.
+    const assinaturaIds = (clienteAssinaturas || []).map(a => a.id);
+    let projetosPorAssinatura = new Map<string, any[]>();
 
-        if (projetosError) {
-          devLog.error(`[API /admin/cliente-assinaturas GET] Erro ao buscar projetos da assinatura ${assinatura.id}:`, projetosError);
-        } else {
-          devLog.log(`[API /admin/cliente-assinaturas GET] Projetos encontrados para assinatura ${assinatura.id}:`, todosProjetos?.length || 0);
+    if (assinaturaIds.length > 0) {
+      const { data: todosProjetos, error: projetosError } = await supabase
+        .from('projects')
+        .select('id, number, empresa_integradora, nome_cliente_final, potencia, status, pagamento, created_at, cliente_assinatura_id')
+        .in('cliente_assinatura_id', assinaturaIds)
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
+
+      if (projetosError) {
+        devLog.error('[API /admin/cliente-assinaturas GET] Erro ao buscar projetos das assinaturas:', projetosError);
+      } else {
+        for (const projeto of (todosProjetos || [])) {
+          const key = projeto.cliente_assinatura_id;
+          if (!projetosPorAssinatura.has(key)) projetosPorAssinatura.set(key, []);
+          projetosPorAssinatura.get(key)!.push(projeto);
         }
+      }
+    }
 
-        // ✅ CORREÇÃO FINAL: Para assinaturas, TODOS os projetos vinculados são do "mês atual"
-        // O contador projetos_usados_mes_atual já é controlado corretamente pelo banco
-        // Não filtrar por data de criação, pois projetos podem ter sido criados antes da assinatura
-        const projetosDoMesAtual = todosProjetos || [];
-
-        return {
-          ...assinatura,
-          projetos: todosProjetos || [],
-          projetosDoMesAtual,
-        };
-      })
-    );
+    // ✅ CORREÇÃO FINAL: Para assinaturas, TODOS os projetos vinculados são do "mês atual"
+    // O contador projetos_usados_mes_atual já é controlado corretamente pelo banco
+    // Não filtrar por data de criação, pois projetos podem ter sido criados antes da assinatura
+    const assinaturasComProjetos = (clienteAssinaturas || []).map((assinatura) => {
+      const todosProjetos = projetosPorAssinatura.get(assinatura.id) || [];
+      return {
+        ...assinatura,
+        projetos: todosProjetos,
+        projetosDoMesAtual: todosProjetos,
+      };
+    });
 
     devLog.log('[API /admin/cliente-assinaturas GET] Assinaturas encontradas:', assinaturasComProjetos.length);
 

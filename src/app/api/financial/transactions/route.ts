@@ -21,13 +21,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
-    
-    devLog.log('[API Financial Transactions] Buscando transações:', { month, year, tenantId });
-    
+    // ✅ PERFORMANCE: callers que só precisam somar valores (ex: total histórico
+    // recebido) podem pedir só as colunas necessárias via ?fields=type,amount
+    const fields = searchParams.get('fields');
+    const selectColumns = fields ? fields.split(',').map(f => f.trim()).join(',') : '*';
+
+    devLog.log('[API Financial Transactions] Buscando transações:', { month, year, tenantId, selectColumns });
+
     // ✅ SEGURANÇA: Filtrar transações por tenant
     let query = supabase
       .from('financial_transactions')
-      .select('*')
+      .select(selectColumns)
       .eq('tenant_id', tenantId)  // ✅ CRÍTICO: Filtrar por tenant
       .order('created_at', { ascending: false });
     

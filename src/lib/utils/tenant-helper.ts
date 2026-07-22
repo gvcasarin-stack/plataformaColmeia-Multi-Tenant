@@ -3,12 +3,23 @@
 
 import { devLog } from '@/lib/utils/productionLogger';
 
+// ✅ PERFORMANCE: o tenant_id de um usuário não muda durante a sessão — cachear em
+// memória evita repetir o round-trip de rede (POST /api/user/tenant-id) toda vez que
+// uma tela precisa montar headers com x-tenant-id (ex: página financeira chama isso
+// várias vezes na mesma carga).
+const tenantIdCache = new Map<string, string>();
+
 /**
  * Helper para buscar tenant_id do usuário autenticado via API
  * Usado para enviar headers x-tenant-id nas chamadas de API
  * ✅ CORREÇÃO: Fallback para extrair tenant do hostname se API falhar
  */
 export async function getUserTenantId(userId: string): Promise<string | null> {
+  const cached = tenantIdCache.get(userId);
+  if (cached) {
+    return cached;
+  }
+
   try {
     // ✅ PRIMEIRA TENTATIVA: Usar API se disponível
     const response = await fetch('/api/user/tenant-id', {
@@ -23,6 +34,7 @@ export async function getUserTenantId(userId: string): Promise<string | null> {
       const { tenantId } = await response.json();
       if (tenantId) {
         devLog.log('[getUserTenantId] Tenant ID obtido via API:', tenantId);
+        tenantIdCache.set(userId, tenantId);
         return tenantId;
       }
     } else {
@@ -53,6 +65,7 @@ export async function getUserTenantId(userId: string): Promise<string | null> {
           const debugResult = await debugResponse.json();
           if (debugResult.success && debugResult.tenant?.id) {
             devLog.log('[getUserTenantId] Tenant ID obtido via debug API:', debugResult.tenant.id);
+            tenantIdCache.set(userId, debugResult.tenant.id);
             return debugResult.tenant.id;
           }
         }

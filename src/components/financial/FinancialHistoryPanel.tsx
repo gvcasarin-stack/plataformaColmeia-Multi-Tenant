@@ -407,52 +407,30 @@ export default function FinancialHistoryPanel({ initialLoading = false, preloade
     return months.find(m => m.value === month)?.label || '';
   };
 
-  // Função para gerar dados REAIS de lucro líquido mensal
+  // Função para gerar dados REAIS de lucro líquido mensal — busca os últimos 12 meses
+  // em uma única chamada agregada (o servidor calcula tudo de uma vez), em vez de um
+  // round-trip por mês.
   const generateRealProfitData = async () => {
-    const data = [];
-    
-    // Buscar dados dos últimos 12 meses
-    for (let i = 0; i < 12; i++) {
-      const monthDate = new Date(selectedYear, selectedMonth - 1 - i, 1);
-      const month = monthDate.getMonth() + 1;
-      const year = monthDate.getFullYear();
-      const monthName = getMonthName(month);
-      
-      try {
-        // Buscar dados financeiros reais para este mês
-        if (!user?.id) continue;
-        
-        const headers = await createTenantHeaders(user.id);
-        const response = await fetch(`/api/financial/dashboard?month=${month}&year=${year}`, {
-          headers
-        });
-        
-        if (response.ok) {
-          const monthData = await response.json();
-          const monthMetrics = monthData.metrics || {};
-          
-          // Calcular lucro líquido real: receitas - despesas - custos fixos
-          const revenue = safeNumber(monthMetrics.totalRevenue);
-          const expenses = safeNumber(monthMetrics.totalExpenses);
-          const netProfit = revenue - expenses;
-          
-          // Só adicionar se houver dados (receitas ou despesas)
-          if (revenue > 0 || expenses > 0) {
-            data.unshift({
-              month: `${monthName}/${year}`,
-              lucroLiquido: Math.round(netProfit),
-              isCurrentMonth: month === selectedMonth && year === selectedYear,
-              revenue: revenue,
-              expenses: expenses
-            });
-          }
-        }
-      } catch (error) {
-        devLog.error(`Erro ao buscar dados para ${monthName}/${year}:`, error);
-      }
+    try {
+      if (!user?.id) return [];
+
+      const headers = await createTenantHeaders(user.id);
+      const response = await fetch(`/api/financial/dashboard/range?month=${selectedMonth}&year=${selectedYear}&count=12`, {
+        headers
+      });
+
+      if (!response.ok) return [];
+
+      const result = await response.json();
+      return (result.data || []).map((entry: any) => ({
+        ...entry,
+        revenue: safeNumber(entry.revenue),
+        expenses: safeNumber(entry.expenses),
+      }));
+    } catch (error) {
+      devLog.error('Erro ao buscar dados do gráfico de 12 meses:', error);
+      return [];
     }
-    
-    return data;
   };
 
   // Carregar dados do gráfico quando análise gráfica estiver ativa

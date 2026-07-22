@@ -30,7 +30,7 @@ import {
   MoreHorizontal,
   ArrowRightLeft
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+// ✅ PERFORMANCE: xlsx é importado sob demanda dentro de exportToExcel (ver abaixo)
 
 const Icons = {
   DollarSign,
@@ -109,7 +109,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import FinancialHistoryPanel from '@/components/financial/FinancialHistoryPanel';
+// ✅ PERFORMANCE: FinancialHistoryPanel usa recharts (biblioteca pesada) e só é
+// renderizado quando a aba "Histórico" é aberta — carregado sob demanda.
+import dynamic from 'next/dynamic';
+const FinancialHistoryPanel = dynamic(() => import('@/components/financial/FinancialHistoryPanel'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-500">Carregando histórico financeiro...</p>
+      </div>
+    </div>
+  ),
+});
 
 interface ProjectWithBilling extends Project {
   pagamento: 'pendente' | 'parcela1' | 'pago';
@@ -972,8 +985,12 @@ export default function AdminBillingPage() {
   const hasActiveFilters = searchTerm || selectedClient || selectedPaymentStatus || selectedStatus;
 
   // ✅ Função para exportar dados para Excel
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
+      // ✅ PERFORMANCE: xlsx só é necessário quando o usuário exporta — carregamos sob
+      // demanda em vez de incluir no bundle inicial da página.
+      const XLSX = await import('xlsx');
+
       // Obter dados filtrados
       const dataToExport = filteredProjects.map(project => {
         // Buscar o status real
@@ -1542,8 +1559,20 @@ export default function AdminBillingPage() {
 
       devLog.log('[fetchData] Iniciando busca de dados financeiros...');
 
-      // Buscar projetos
-      const projectsData = await getProjectsWithBilling();
+      // ✅ PERFORMANCE: buscar projetos e resolver os headers de tenant em paralelo —
+      // são independentes entre si (antes rodavam em sequência, um esperando o outro).
+      const headersPromise = user?.id
+        ? (async () => {
+            const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
+            return createTenantHeaders(user.id);
+          })()
+        : Promise.resolve(null);
+
+      const [projectsData, headers] = await Promise.all([
+        getProjectsWithBilling(),
+        headersPromise,
+      ]);
+
       devLog.log('[fetchData] Projetos recebidos:', projectsData?.length || 0);
 
       if (projectsData) {
@@ -1566,22 +1595,25 @@ export default function AdminBillingPage() {
       }
 
       // Buscar transações e custos fixos via API financial/dashboard
-      if (user?.id) {
+      if (headers) {
         try {
-          const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
-          const headers = await createTenantHeaders(user.id);
-
-          // Buscar dados do mês atual
           const currentDate = new Date();
           const currentMonth = currentDate.getMonth() + 1;
           const currentYear = currentDate.getFullYear();
 
-          const response = await fetch(`/api/financial/dashboard?month=${currentMonth}&year=${currentYear}`, {
-            headers
-          });
+          // ✅ PERFORMANCE: as duas chamadas são independentes — rodam em paralelo.
+          // - includeProjects=false: essa página não usa `metrics`/`projects` dessa
+          //   resposta (já tem os projetos via /api/projects/unified), então pulamos
+          //   a busca+filtro de projetos que a rota faria à toa.
+          // - fields=id,type,amount: só usamos o histórico de transações para somar
+          //   receitas, não precisamos de todas as colunas de cada linha.
+          const [dashboardResponse, allTransactionsResponse] = await Promise.all([
+            fetch(`/api/financial/dashboard?month=${currentMonth}&year=${currentYear}&includeProjects=false`, { headers }),
+            fetch('/api/financial/transactions?fields=id,type,amount', { headers }),
+          ]);
 
-          if (response.ok) {
-            const financialData = await response.json();
+          if (dashboardResponse.ok) {
+            const financialData = await dashboardResponse.json();
             devLog.log('[fetchData] Dados financeiros do mês atual recebidos:', {
               transactions: financialData.transactions?.length || 0,
               fixedCosts: financialData.fixedCosts?.length || 0
@@ -1590,11 +1622,6 @@ export default function AdminBillingPage() {
             setTransactions(financialData.transactions || []);
             setFixedCosts(financialData.fixedCosts || []);
           }
-
-          // Buscar TODAS as transações históricas (sem filtro de data) via API direta
-          const allTransactionsResponse = await fetch('/api/financial/transactions', {
-            headers
-          });
 
           if (allTransactionsResponse.ok) {
             const allTransactionsData = await allTransactionsResponse.json();
