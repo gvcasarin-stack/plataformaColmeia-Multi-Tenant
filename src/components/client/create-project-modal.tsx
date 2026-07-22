@@ -616,7 +616,7 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
                           <SelectTrigger id="client_state" className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
                             <SelectValue placeholder="Selecione o estado" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent position="popper" side="bottom" className="max-h-60 overflow-y-auto custom-scrollbar">
                             {ESTADOS_BRASIL.map((estado) => (
                               <SelectItem key={estado} value={estado}>{estado}</SelectItem>
                             ))}
