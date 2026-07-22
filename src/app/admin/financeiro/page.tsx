@@ -773,13 +773,13 @@ export default function AdminBillingPage() {
       if (paymentStatus === 'pendente') {
         pendingCount++;
         totalPending += price;
-        const clientKey = project.client_id || project.created_by || project.userId || project.empresaIntegradora || 'sem-cliente';
+        const clientKey = project.client_id || project.created_by || project.empresaIntegradora || 'sem-cliente';
         pendingClientIds.add(String(clientKey));
       } else if (paymentStatus === 'parcela1') {
         parcela1Count++;
         totalPending += price / 2;
         totalPaid += price / 2;
-        const clientKey = project.client_id || project.created_by || project.userId || project.empresaIntegradora || 'sem-cliente';
+        const clientKey = project.client_id || project.created_by || project.empresaIntegradora || 'sem-cliente';
         pendingClientIds.add(String(clientKey));
       } else if (paymentStatus === 'pago') {
         paidCount++;
@@ -889,7 +889,7 @@ export default function AdminBillingPage() {
     // ✅ Filtro por cliente
     if (selectedClient && selectedClient !== 'all') {
       filtered = filtered.filter(project => {
-        const clientKey = project.empresaIntegradora || project.userId || 'sem-cliente';
+        const clientKey = project.empresaIntegradora || 'sem-cliente';
         return clientKey === selectedClient;
       });
     }
@@ -933,15 +933,6 @@ export default function AdminBillingPage() {
       }
     }
 
-    const projectsForClient = projects.filter(p => p.userId === clientKey);
-
-    if (projectsForClient.length > 0) {
-      const empresaIntegradora = projectsForClient[0].empresaIntegradora;
-      if (empresaIntegradora && empresaIntegradora.trim() !== '') {
-        return safeString(empresaIntegradora);
-      }
-    }
-
     return 'Cliente #' + safeString(clientKey).slice(0, 8);
   };
 
@@ -949,7 +940,7 @@ export default function AdminBillingPage() {
     const grouped: Record<string, ProjectWithBilling[]> = {};
 
     filteredProjects.forEach(project => {
-      const clientKey = project.empresaIntegradora || project.userId || 'sem-cliente';
+      const clientKey = project.empresaIntegradora || 'sem-cliente';
       if (!grouped[clientKey]) {
         grouped[clientKey] = [];
       }
@@ -964,7 +955,7 @@ export default function AdminBillingPage() {
     const clientMap = new Map<string, string>();
 
     projects.forEach(project => {
-      const clientKey = project.empresaIntegradora || project.userId || 'sem-cliente';
+      const clientKey = project.empresaIntegradora || 'sem-cliente';
       if (!clientMap.has(clientKey)) {
         clientMap.set(clientKey, getClientName(clientKey));
       }
@@ -1584,7 +1575,7 @@ export default function AdminBillingPage() {
             acc.push({
               id: project.client_id,
               name: project.client_name || 'Cliente sem nome',
-              email: project.client_email || 'N/A'
+              email: 'N/A'
             });
           }
           return acc;
@@ -1666,7 +1657,7 @@ export default function AdminBillingPage() {
       };
 
       // Buscar perfil completo do cliente (empresa integradora) para dados corretos
-      const clientId = project.client_id || project.userId || project.owner_id || project.user_id;
+      const clientId = project.client_id || project.owner_id;
       // Buscar via API (evita falha em ambientes sem Service Role durante build)
       let clientProfile = null as any;
       if (clientId) {
@@ -1682,8 +1673,8 @@ export default function AdminBillingPage() {
       
       const userData = {
         name: clientProfile?.name || project.client_name || 'Cliente',
-        email: clientProfile?.email || project.client_email || 'N/A',
-        phone: clientProfile?.phone || project.client_phone || 'N/A',
+        email: clientProfile?.email || 'N/A',
+        phone: clientProfile?.phone || 'N/A',
         // Campos do banco (snake_case)
         is_company: clientProfile?.is_company,
         company_name: clientProfile?.company_name,
@@ -1961,7 +1952,7 @@ export default function AdminBillingPage() {
       const clientName = getClientName(clientId);
 
       // Descobrir o ID real do cliente a partir da lista de projetos (evita passar nome da empresa)
-      const inferredClientId = (projects[0] as any)?.client_id || (projects[0] as any)?.userId || (projects[0] as any)?.users?.id || clientId;
+      const inferredClientId = (projects[0] as any)?.client_id || clientId;
       let clientProfile = null as any;
       if (inferredClientId) {
         try {

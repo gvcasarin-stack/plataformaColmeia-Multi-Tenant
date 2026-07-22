@@ -112,10 +112,26 @@ export async function GET(request: NextRequest) {
 
     // 🆕 CORREÇÃO: Adicionar LEFT JOIN com users para buscar dados do proprietário
     // ✅ PROCURAÇÃO: Incluir explicitamente todos os campos necessários
+    // ✅ PERFORMANCE: esta rota alimenta exclusivamente a página /admin/financeiro
+    // (billingService/getProjectsWithBilling não tem outro chamador). Um levantamento
+    // completo de todos os campos `project.xxx` usados nessa página + geração de
+    // fatura/PDF + exportação Excel + painel de histórico confirmou que os ~90 campos
+    // técnicos do modal "Conferir Informações" (módulos, inversores, coordenadas,
+    // cabos, padrão de entrada etc.) e os blobs JSON (files, documents, comments,
+    // history, timelineEvents) não são usados aqui — por isso, selecionar colunas
+    // explícitas ao invés de `*` reduz bastante o payload sem afetar nenhuma tela.
+    const PROJECT_COLUMNS = [
+      'id', 'number', 'status', 'pagamento', 'valor_projeto', 'billing_mode',
+      'billing_snapshot', 'data_pagamento_integral', 'data_pagamento_parcela1',
+      'empresa_integradora', 'nome_cliente_final', 'distribuidora', 'potencia',
+      'owner_id', 'created_by', 'created_at',
+      'cpf_cnpj_cliente_final', 'endereco_local', 'client_city', 'client_state',
+    ].join(', ');
+
     let query = supabase
       .from('projects')
       .select(`
-        *,
+        ${PROJECT_COLUMNS},
         owner:users!owner_id (
           id,
           name,
