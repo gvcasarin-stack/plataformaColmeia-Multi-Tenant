@@ -23,8 +23,8 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
   };
 
   const SH: React.CSSProperties = {
-    backgroundColor: '#1a3a6b',
-    color: '#ffffff',
+    backgroundColor: '#B8CCE4',
+    color: '#1a3a6b',
     fontWeight: 'bold',
     padding: '5px 7px',
     border: '1px solid #888',
@@ -106,8 +106,8 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
               verticalAlign: 'middle',
               width: '130px',
             }}>
-              <div style={{ fontWeight: 'bold', fontSize: '10pt', color: '#1a3a6b', letterSpacing: '1px' }}>CPFL</div>
-              <div style={{ fontSize: '7pt', color: '#444' }}>ENERGIA</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/logocpfl.png" alt="CPFL Energia / RGE" style={{ maxWidth: '110px', maxHeight: '50px', objectFit: 'contain' }} />
             </td>
           </tr>
         </tbody>
