@@ -264,7 +264,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 1: Dados da UC */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '100%' }]}><Text>1) Dados da Unidade Consumidora (UC):</Text></View>
           </View>
           {([
@@ -283,7 +283,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
             ['1.13) Número do Ato de Outorga ou Registro', ''],
             ['1.14) Ano do Ato de Outorga ou Registro', ''],
           ] as [string, string][]).map(([label, value], i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.v, { width: '58%' }]}><Text>{value}</Text></View>
             </View>
@@ -292,7 +292,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 2a: Microgeração */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '42%' }]}><Text>2a) Dados Técnicos da Unidade Consumidora (se Microgeração)</Text></View>
             <View style={[s.shc, { width: '29%' }]}><Text>Existente</Text></View>
             <View style={[s.shc, { width: '29%' }]}><Text>Novo</Text></View>
@@ -306,7 +306,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
             ['2.6) Demanda Disponibilizada (se MT) ou Carga Instalada (se BT):', get('carga_declarada_kw')],
             ['2.7) Disjuntor (A):', get('disjuntor_corrente_a')],
           ] as [string, string][]).map(([label, value], i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.vc, { width: '29%' }]}><Text> </Text></View>
               <View style={[s.vc, { width: '29%' }]}><Text>{value}</Text></View>
@@ -316,14 +316,14 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 2b: Minigeração */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '42%' }]}><Text>2b) Dados Técnicos da Unidade Consumidora (se Minigeração)</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Existente</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Acréscimo</Text></View>
             <View style={[s.shc, { width: '19.34%' }]}><Text>Total</Text></View>
           </View>
           {secao2bRows.map(([label, value], i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
@@ -334,7 +334,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 2c: Transformadores */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '42%' }]}><Text>2c) Dados dos transformadores de acoplamento (se Minigeração)</Text></View>
             <View style={[s.shc, { width: '14.5%' }]}><Text>T1</Text></View>
             <View style={[s.shc, { width: '14.5%' }]}><Text>T2</Text></View>
@@ -342,7 +342,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
             <View style={[s.shc, { width: '14.5%' }]}><Text>T4</Text></View>
           </View>
           {secao2cRows.map((label, i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.vc, { width: '14.5%' }]}><Text> </Text></View>
               <View style={[s.vc, { width: '14.5%' }]}><Text> </Text></View>
@@ -354,7 +354,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 3: UFV */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '42%' }]}><Text>3) Dados Unidades Geradoras Fotovoltaicas Solares (UFV):</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Existente</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Acréscimo</Text></View>
@@ -372,7 +372,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
             ['3.9) Potência Nominal dos inversores (soma das potências nominais dos inversores, kW): *', get('inversores_potencia')],
             ['3.10) Data pretendida para entrada em operação (dd/mm/aaaa):', get('data_inicio_operacao')],
           ] as [string, string][]).map(([label, value], i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
@@ -383,14 +383,14 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 4: EOL */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '42%' }]}><Text>4) Dados das Unidades Geradoras Eólicas (EOL):</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Existente</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Acréscimo</Text></View>
             <View style={[s.shc, { width: '19.34%' }]}><Text>Total</Text></View>
           </View>
           {secao4Rows.map((label, i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
@@ -401,14 +401,14 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 5: Hidráulica */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '42%' }]}><Text>5) Dados das Unidades Geradoras Hidráulicas (CGH/PCH):</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Existente</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Acréscimo</Text></View>
             <View style={[s.shc, { width: '19.34%' }]}><Text>Total</Text></View>
           </View>
           {secao5Rows.map((label, i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
@@ -419,14 +419,14 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 6: Biomassa / Solar Térmica / Cogeração */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '42%' }]}><Text>6) Dados das Unidades Geradoras de Biomassa / Solar Térmica / Cogeração:</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Existente</Text></View>
             <View style={[s.shc, { width: '19.33%' }]}><Text>Acréscimo</Text></View>
             <View style={[s.shc, { width: '19.34%' }]}><Text>Total</Text></View>
           </View>
           {secao6Rows.map((label, i) => (
-            <View key={i} style={s.row}>
+            <View key={i} style={s.row} wrap={false}>
               <View style={[s.l, { width: '42%' }]}><Text>{label}</Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
               <View style={[s.vc, { width: '19.33%' }]}><Text> </Text></View>
@@ -437,12 +437,12 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
 
         {/* Seção 7: Fontes Primárias */}
         <View style={s.tbl}>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '100%' }]}>
               <Text>7) Fontes Primárias de Energia da Central Geradora Elétrica (para preenchimento do item 6.5)</Text>
             </View>
           </View>
-          <View style={s.row}>
+          <View style={s.row} wrap={false}>
             <View style={[s.v, { width: '100%' }]}>
               <Text style={{ fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
                 7.1) Origem em biomassa (floresta, resíduos sólidos, resíduos animais, biocombustíveis líquidos, agroindustriais):
