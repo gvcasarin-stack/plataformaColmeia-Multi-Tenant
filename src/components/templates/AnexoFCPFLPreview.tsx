@@ -11,6 +11,32 @@ interface AnexoFCPFLPreviewProps {
 export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) {
   const [downloading, setDownloading] = useState(false);
 
+  const handleGeneratePdf = async () => {
+    setDownloading(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      const { AnexoFCPFLPDF } = await import('./AnexoFCPFLPDF');
+      const React = await import('react');
+      const clientName = projectData?.nomeClienteFinal || 'projeto';
+      const filename = `Anexo F - Formulário de Registro - ${clientName}.pdf`;
+      const blob = await pdf(
+        React.createElement(AnexoFCPFLPDF, { projectData })
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao gerar PDF do Anexo F:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const get = (key: string) => projectData[key] || '';
 
   const PADRAO_CABOS: Record<string, string> = {
@@ -22,8 +48,35 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
     C10: '35 mm²', C11: '50 mm²',
   };
 
+  // ✅ Mesmos rótulos usados no seletor "Categoria do Padrão de Entrada" do modal
+  // Conferir Informações (ConferirInformacoesModal.tsx, CPFL_PADRAO_127_220/220_380)
+  const PADRAO_ENTRADA_LABELS: Record<string, string> = {
+    A1: 'A1 - GED 13',
+    A2: 'A2 - GED 13',
+    B1: 'B1 - GED 13',
+    B2: 'B2 - GED 13',
+    C1: 'C1 - GED 13',
+    C2: 'C2 - GED 13',
+    C3: 'C3 - GED 13',
+    C4: 'C4 - GED 13',
+    C5: 'C5 - GED 13',
+    C6: 'C6 - GED 13',
+    A3: 'A3 - GED 13',
+    A4: 'A4 - GED 13',
+    B3: 'B3 - GED 13',
+    C7: 'C7 - GED 13',
+    C8: 'C8 - GED 13',
+    C9: 'C9 - GED 13',
+    C10: 'C10 - GED 13',
+    C11: 'C11 - GED 13',
+  };
+
   const cabosSecao = PADRAO_CABOS[get('padrao_entrada')] || get('cabos_secao') || '';
   const caixaTipo  = get('cpfl_tipo_poste_padrao') || get('caixa_medicao_tipo') || '';
+  const padraoEntradaLabel = PADRAO_ENTRADA_LABELS[get('padrao_entrada')] || get('padrao_entrada');
+  // ✅ Seção 2b (Dados Técnicos — se Minigeração) só deve ser preenchida quando o
+  // projeto for classificado como Minigeração; em Microgeração, os campos ficam em branco.
+  const isMinigeracao = get('tipo_fornecimento') === 'Minigeração Distribuída';
 
   function decimalToDMS(decimal: string, type: 'lat' | 'lng'): string {
     const num = parseFloat(decimal);
@@ -189,12 +242,12 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
           <tr>
             <td style={L}>2.1) Padrão de Entrada (categoria - GED 13/RIC BT):</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('padrao_entrada')}</td>
+            <td style={VC}>{padraoEntradaLabel}</td>
           </tr>
           <tr>
             <td style={L}>2.2) Tipo de Atendimento (aéreo/subterrâneo):</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('tipo_ramal')}</td>
+            <td style={VC}>{get('tipo_ramal').toUpperCase()}</td>
           </tr>
           <tr>
             <td style={L}>2.3) Número de Fases da Instalação (Monofásico/Bifásico/Trifásico):</td>
@@ -248,10 +301,10 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
             ['2.4) Quantidade de motores com potência menor ou igual a 75 CV: *', '', '', ''],
             ['2.5) Potência instalada de geração (kVA): *', '', '', ''],
             ['2.6) Potência exportada de geração (kW): *', '', '', ''],
-            ['2.7) Nome do responsável técnico: *', get('responsavel_nome'), '', ''],
-            ['2.8) Número do registro (CREA) do responsável técnico: *', get('responsavel_registro'), '', ''],
+            ['2.7) Nome do responsável técnico: *', isMinigeracao ? get('responsavel_nome') : '', '', ''],
+            ['2.8) Número do registro (CREA) do responsável técnico: *', isMinigeracao ? get('responsavel_registro') : '', '', ''],
             ['2.9) Número do telefone do responsável técnico:', '', '', ''],
-            ['2.10) Data pretendida para entrada em operação (dd/mm/aaaa):', get('data_inicio_operacao'), '', ''],
+            ['2.10) Data pretendida para entrada em operação (dd/mm/aaaa):', isMinigeracao ? get('data_inicio_operacao') : '', '', ''],
           ] as [string, string, string, string][]).map(([label, ex, ac, tot], i) => (
             <tr key={i}>
               <td style={L}>{label}</td>
@@ -399,12 +452,16 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
             <td style={SHC}>Total</td>
           </tr>
           {([
-            '4.1) Quantidade total de aerogeradores: *',
-            '4.2) Listar fabricantes dos aerogeradores:',
-            '4.3) Listar modelos dos aerogeradores:',
-            '4.4) Potência nominal dos aerogeradores (kW): *',
-            '4.5) Potência Nominal dos inversores (kW): *',
-            '4.6) Data pretendida para entrada em operação (dd/mm/aaaa):',
+            '4.1) Fabricante do aerogerador:',
+            '4.2) Modelo do aerogerador:',
+            '4.3) Eixo rotor (horizontal ou vertical):',
+            '4.4) Altura máxima da pá ou atingida pela estrutura (m):',
+            '4.5) Potência dos inversores (soma das potências dos inversores, kW): *',
+            '4.6) Potência dos aerogeradores (soma potências dos aerogeradores, kW): *',
+            '4.7) Data pretendida para entrada em operação (dd/mm/aaaa):',
+            '4.8) Fabricante, modelo e tipo de conexão dos inversores:',
+            '4.9) Quantidade de inversores: *',
+            '4.10) Potência (soma das potências nominais dos inversores, kW): *',
           ]).map((label, i) => (
             <tr key={i}>
               <td style={L}>{label}</td>
@@ -434,12 +491,22 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
             <td style={SHC}>Total</td>
           </tr>
           {([
-            '5.1) Quantidade total de turbinas: *',
-            '5.2) Listar fabricantes das turbinas:',
-            '5.3) Listar modelos das turbinas:',
-            '5.4) Potência nominal das turbinas (kW): *',
-            '5.5) Potência Nominal dos geradores (kVA): *',
-            '5.6) Data pretendida para entrada em operação (dd/mm/aaaa):',
+            '5.1) Rio onde se localiza a central geradora:',
+            '5.2) Bacia onde se localiza o rio:',
+            '5.3) Sub-bacia onde se localiza o rio:',
+            '5.4) Tipo de turbina: *',
+            '5.5) Potência turbina (soma potências nominais das turbinas, kVA): *',
+            '5.6) Potência gerador (soma potências nominais dos geradores, kVA): *',
+            '5.7) Fator de potência do gerador (entre 0 e 1): *',
+            '5.8) Potência ativa do gerador (kW): *',
+            '5.9) Potência aparente do gerador (kVA): *',
+            '5.10) Tensão (kV):',
+            '5.11) Nível Operacional Normal de Montante (m)',
+            '5.12) Nível Operacional Normal de Jusante (m)',
+            '5.13) Data pretendida para entrada em operação (dd/mm/aaaa):',
+            '5.14) Fabricante, modelo e tipo de conexão dos inversores:',
+            '5.15) Quantidade de inversores: *',
+            '5.16) Potência (soma das potências nominais dos inversores, kW): *',
           ]).map((label, i) => (
             <tr key={i}>
               <td style={L}>{label}</td>
@@ -469,12 +536,29 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
             <td style={SHC}>Total</td>
           </tr>
           {([
-            '6.1) Quantidade total de grupos geradores: *',
-            '6.2) Listar fabricantes dos grupos geradores:',
-            '6.3) Listar modelos dos grupos geradores:',
-            '6.4) Potência nominal dos grupos geradores (kVA): *',
-            '6.5) Potência exportada de geração (kW): *',
+            '6.1) Fabricante e modelo:',
+            '6.2) Potência (soma das potências nominais dos geradores, kVA): *',
+            '6.3) Fator de potência (entre 0 e 1): *',
+            '6.4) Potência ativa (kW): *',
+            '6.5) Fonte (indicar segundo lista do Item 7 a seguir, conforme aplicável): *',
             '6.6) Data pretendida para entrada em operação (dd/mm/aaaa):',
+            '6.7) Ciclo (aberto/fechado): *',
+            '6.8) Máquina Motriz: *',
+            '6.9) Número do Despacho de qualificação como cogeradora: *',
+            '6.10) Data do Despacho: *',
+            '6.11) Tensão Terminal Nominal (Vn kV)',
+            '6.12) Reatância síncrona de eixo direto (Xd, em pu)',
+            '6.13) Reatância transitória de eixo direto (Xd\', em pu)',
+            '6.14) Reatância sub-transitória de eixo direto (Xd\'\', em pu)',
+            '6.15) Reatância de sequência negativa (X2, em pu)',
+            '6.16) Reatância de sequência zero (X0, em pu)',
+            '6.17) Reatância síncrona de eixo em quadratura (Xq, em pu)',
+            '6.18) Resistência do enrolamento de armadura (Ra, em pu)',
+            '6.19) Constante de inércia, em segundos (H)',
+            '6.20) Constante de amortecimento, em pu/pu. (D)',
+            '6.21) Fabricante, modelo e tipo de conexão dos inversores:',
+            '6.22) Quantidade de inversores: *',
+            '6.23) Potência (soma das potências nominais dos inversores, kW): *',
           ]).map((label, i) => (
             <tr key={i}>
               <td style={L}>{label}</td>
@@ -495,22 +579,51 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
           <col style={{ width: '58%' }} />
         </colgroup>
         <tbody>
-          <tr><td colSpan={2} style={SH}>7) Fontes Primárias de Energia (marque as que se aplicam):</td></tr>
+          <tr><td colSpan={2} style={SH}>7) Fontes Primárias de Energia da Central Geradora Elétrica (para preenchimento do item 6.5)</td></tr>
           <tr>
-            <td colSpan={2} style={V}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                <span>☐ Solar fotovoltaica</span>
-                <span>☐ Solar térmica</span>
-                <span>☐ Eólica</span>
-                <span>☐ Hidráulica</span>
-                <span>☐ Biomassa sólida</span>
-                <span>☐ Biogás</span>
-                <span>☐ Biogás de aterro sanitário</span>
-                <span>☐ Cogeração a gás natural</span>
-                <span>☐ Cogeração a óleo diesel</span>
-                <span>☐ Cogeração a GLP</span>
-                <span>☐ Outras fontes</span>
+            <td colSpan={2} style={{ ...V, lineHeight: '1.6' }}>
+              <div><strong>7.1) Origem em biomassa (floresta, resíduos sólidos, resíduos animais, biocombustíveis líquidos, agroindustriais):</strong></div>
+              <div style={{ paddingLeft: '14px' }}>
+                {[
+                  'Biogás (floresta)',
+                  'Biogás (resíduo sólido urbano, RU)',
+                  'Biogás (resíduo animal, RA)',
+                  'Biogás (agroindustrial)',
+                  'Carvão vegetal',
+                  'Gás de alto-forno (de biomassa)',
+                  'Lenha',
+                  'Licor negro',
+                  'Resíduos de madeira',
+                  'Etanol',
+                  'Óleos vegetais',
+                  'Bagaço de cana-de-açúcar',
+                  'Capim elefante',
+                  'Casca de arroz',
+                ].map(item => <div key={item}>- {item}</div>)}
               </div>
+              <div style={{ marginTop: '6px' }}><strong>7.2) Eólica (cinética do vento):</strong></div>
+              <div style={{ marginTop: '6px' }}><strong>7.3) Fóssil (petróleo, carvão mineral, gás natural, outros):</strong></div>
+              <div style={{ paddingLeft: '14px' }}>
+                {[
+                  'Gás de alto-forno (de petróleo)',
+                  'Gás de refinaria (de petróleo)',
+                  'Óleo combustível',
+                  'Óleo diesel',
+                  'Outros energéticos de petróleo',
+                  'Carvão mineral',
+                  'Calor de processo (de carvão mineral)',
+                  'Gás de alto-forno (de carvão mineral)',
+                  'Gás natural',
+                  'Calor de processo (de gás natural)',
+                  'Calor de processo (de outras fontes fósseis)',
+                  'Turfa',
+                  'Xisto',
+                ].map(item => <div key={item}>- {item}</div>)}
+              </div>
+              <div style={{ marginTop: '6px' }}>7.4) Hídrica (potencial hidráulico)</div>
+              <div>7.5) Nuclear (urânio)</div>
+              <div>7.6) Solar (radiação solar)</div>
+              <div>7.7) Undi-elétrica (cinética da água)</div>
             </td>
           </tr>
         </tbody>
@@ -518,7 +631,7 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
 
       <div className="mt-6 flex justify-center">
         <Button
-          onClick={() => {}}
+          onClick={handleGeneratePdf}
           disabled={downloading}
           size="lg"
           className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
