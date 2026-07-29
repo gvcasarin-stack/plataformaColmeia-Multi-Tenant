@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { getAllModulos, getAllInversores, getTotalModulosQtd, getTotalInversoresQtd, getTotalKwpFromModulos, getTotalInversorKw, fmtBR } from '@/lib/utils/equipmentParser';
 
 interface AnexoFCPFLPDFProps {
   projectData?: Record<string, any>;
@@ -116,6 +117,20 @@ const s = StyleSheet.create({
 
 export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
   const get = (key: string) => projectData[key] || '';
+
+  // ✅ Seção 3 (UFV): calculado a partir das listas reais de módulos/inversores
+  // cadastrados (podem ter mais de um modelo), em vez dos campos legados únicos —
+  // que só refletiam o primeiro modelo cadastrado, mesmo havendo vários.
+  const modulosListF = getAllModulos(projectData);
+  const inversoresListF = getAllInversores(projectData);
+  const modulosFabricantesF = Array.from(new Set(modulosListF.map(m => m.fabricante).filter(Boolean))).join(', ');
+  const modulosModelosF = Array.from(new Set(modulosListF.map(m => m.modelo).filter(Boolean))).join(', ');
+  const modulosQtdTotalF = getTotalModulosQtd(projectData);
+  const inversoresFabricantesF = Array.from(new Set(inversoresListF.map(i => i.fabricante).filter(Boolean))).join(', ');
+  const inversoresModelosF = Array.from(new Set(inversoresListF.map(i => i.modelo).filter(Boolean))).join(', ');
+  const inversoresQtdTotalF = getTotalInversoresQtd(projectData);
+  const modulosKwpTotalF = getTotalKwpFromModulos(projectData);
+  const inversoresKwTotalF = getTotalInversorKw(projectData);
 
   const cabosSecao = PADRAO_CABOS[get('padrao_entrada')] || get('cabos_secao') || '';
   const caixaTipo = get('cpfl_tipo_poste_padrao') || get('caixa_medicao_tipo') || '';
@@ -361,15 +376,15 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
             <View style={[s.shc, { width: '19.34%' }]}><Text>Total</Text></View>
           </View>
           {([
-            ['3.1) Quantidade total de módulos:', get('modulos_quantidade')],
-            ['3.2) Listar fabricantes dos módulos:', get('modulos_fabricante')],
-            ['3.3) Listar modelos dos módulos:', get('modulos_modelo')],
+            ['3.1) Quantidade total de módulos:', modulosQtdTotalF > 0 ? String(modulosQtdTotalF) : ''],
+            ['3.2) Listar fabricantes dos módulos:', modulosFabricantesF],
+            ['3.3) Listar modelos dos módulos:', modulosModelosF],
             ['3.4) Área total ocupada pelos arranjos (m²):', get('modulos_area_m2')],
-            ['3.5) Quantidade total de inversores:', get('inversores_quantidade') || (get('inversores_modelo') ? '1' : '')],
-            ['3.6) Listar fabricantes dos inversores:', get('inversores_fabricante')],
-            ['3.7) Listar modelos dos inversores:', get('inversores_modelo')],
-            ['3.8) Potência de pico dos módulos (soma das potências dos módulos, kWp): *', get('potencia')],
-            ['3.9) Potência Nominal dos inversores (soma das potências nominais dos inversores, kW): *', get('inversores_potencia')],
+            ['3.5) Quantidade total de inversores:', inversoresQtdTotalF > 0 ? String(inversoresQtdTotalF) : ''],
+            ['3.6) Listar fabricantes dos inversores:', inversoresFabricantesF],
+            ['3.7) Listar modelos dos inversores:', inversoresModelosF],
+            ['3.8) Potência de pico dos módulos (soma das potências dos módulos, kWp): *', modulosKwpTotalF > 0 ? `${fmtBR(modulosKwpTotalF)} kWp` : ''],
+            ['3.9) Potência Nominal dos inversores (soma das potências nominais dos inversores, kW): *', inversoresKwTotalF > 0 ? `${fmtBR(inversoresKwTotalF)} kW` : ''],
             ['3.10) Data pretendida para entrada em operação (dd/mm/aaaa):', get('data_inicio_operacao')],
           ] as [string, string][]).map(([label, value], i) => (
             <View key={i} style={s.row} wrap={false}>

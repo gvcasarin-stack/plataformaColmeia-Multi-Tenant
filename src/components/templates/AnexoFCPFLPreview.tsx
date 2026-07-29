@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
+import { getAllModulos, getAllInversores, getTotalModulosQtd, getTotalInversoresQtd, getTotalKwpFromModulos, getTotalInversorKw, fmtBR } from '@/lib/utils/equipmentParser';
 
 interface AnexoFCPFLPreviewProps {
   projectData?: Record<string, any>;
@@ -38,6 +39,20 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
   };
 
   const get = (key: string) => projectData[key] || '';
+
+  // ✅ Seção 3 (UFV): calculado a partir das listas reais de módulos/inversores
+  // cadastrados (podem ter mais de um modelo), em vez dos campos legados únicos —
+  // que só refletiam o primeiro modelo cadastrado, mesmo havendo vários.
+  const modulosListF = getAllModulos(projectData);
+  const inversoresListF = getAllInversores(projectData);
+  const modulosFabricantesF = Array.from(new Set(modulosListF.map(m => m.fabricante).filter(Boolean))).join(', ');
+  const modulosModelosF = Array.from(new Set(modulosListF.map(m => m.modelo).filter(Boolean))).join(', ');
+  const modulosQtdTotalF = getTotalModulosQtd(projectData);
+  const inversoresFabricantesF = Array.from(new Set(inversoresListF.map(i => i.fabricante).filter(Boolean))).join(', ');
+  const inversoresModelosF = Array.from(new Set(inversoresListF.map(i => i.modelo).filter(Boolean))).join(', ');
+  const inversoresQtdTotalF = getTotalInversoresQtd(projectData);
+  const modulosKwpTotalF = getTotalKwpFromModulos(projectData);
+  const inversoresKwTotalF = getTotalInversorKw(projectData);
 
   const PADRAO_CABOS: Record<string, string> = {
     A1: '6 mm²',  A2: '16 mm²', A3: '6 mm²',  A4: '16 mm²',
@@ -375,19 +390,19 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
             <td style={L}>3.1) Quantidade total de módulos:</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('modulos_quantidade')}</td>
+            <td style={VC}>{modulosQtdTotalF > 0 ? modulosQtdTotalF : ''}</td>
           </tr>
           <tr>
             <td style={L}>3.2) Listar fabricantes dos módulos:</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('modulos_fabricante')}</td>
+            <td style={VC}>{modulosFabricantesF}</td>
           </tr>
           <tr>
             <td style={L}>3.3) Listar modelos dos módulos:</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('modulos_modelo')}</td>
+            <td style={VC}>{modulosModelosF}</td>
           </tr>
           <tr>
             <td style={L}>3.4) Área total ocupada pelos arranjos (m²):</td>
@@ -399,31 +414,31 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
             <td style={L}>3.5) Quantidade total de inversores:</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('inversores_quantidade') || (get('inversores_modelo') ? '1' : '')}</td>
+            <td style={VC}>{inversoresQtdTotalF > 0 ? inversoresQtdTotalF : ''}</td>
           </tr>
           <tr>
             <td style={L}>3.6) Listar fabricantes dos inversores:</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('inversores_fabricante')}</td>
+            <td style={VC}>{inversoresFabricantesF}</td>
           </tr>
           <tr>
             <td style={L}>3.7) Listar modelos dos inversores:</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('inversores_modelo')}</td>
+            <td style={VC}>{inversoresModelosF}</td>
           </tr>
           <tr>
             <td style={L}>3.8) Potência de pico dos módulos (soma das potências dos módulos, kWp): *</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('potencia')}</td>
+            <td style={VC}>{modulosKwpTotalF > 0 ? `${fmtBR(modulosKwpTotalF)} kWp` : ''}</td>
           </tr>
           <tr>
             <td style={L}>3.9) Potência Nominal dos inversores (soma das potências nominais dos inversores, kW): *</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('inversores_potencia')}</td>
+            <td style={VC}>{inversoresKwTotalF > 0 ? `${fmtBR(inversoresKwTotalF)} kW` : ''}</td>
           </tr>
           <tr>
             <td style={L}>3.10) Data pretendida para entrada em operação (dd/mm/aaaa):</td>

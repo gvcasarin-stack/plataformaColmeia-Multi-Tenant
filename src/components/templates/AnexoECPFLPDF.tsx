@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import { getPotenciaGeracao, fmtBR } from '@/lib/utils/equipmentParser';
+import { getPotenciaGeracaoReal, fmtBR, getAllInversores } from '@/lib/utils/equipmentParser';
 
 interface AnexoECPFLPDFProps {
   projectData?: Record<string, any>;
@@ -96,18 +96,18 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
   const get = (key: string) => projectData[key] || '';
 
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
-  const hasInverter = !!get('inversores_modelo') || !!get('inversores_fabricante');
-  const potencia = get('potencia') ? `${get('potencia')} kW` : '';
+  // ✅ Lista real de inversores cadastrados (podem ser de modelos diferentes) — em vez
+  // dos campos legados únicos, que só refletiam um modelo mesmo com vários cadastrados.
+  const inversoresList = getAllInversores(projectData);
+  const hasInverter = inversoresList.length > 0;
   // ✅ 2.2 Potência: deve ser a MENOR entre a potência total dos módulos (kWp) e a
-  // potência total dos inversores (kW) — não o campo genérico "potencia" do projeto.
-  const potenciaGeracaoKw = getPotenciaGeracao(projectData);
+  // potência total dos inversores (kW), calculada a partir das listas realmente
+  // cadastradas — não o campo genérico "potencia" do projeto.
+  const potenciaGeracaoKw = getPotenciaGeracaoReal(projectData);
   const potenciaGeracao = potenciaGeracaoKw > 0 ? `${fmtBR(potenciaGeracaoKw)} kW` : '';
-  // ✅ 2.4 Potência nominal de conexão à rede: também com 2 casas decimais
-  const inversoresPotenciaKw = parseFloat(String(get('inversores_potencia')).replace(',', '.')) || 0;
-  const potenciaConexaoRede = inversoresPotenciaKw > 0 ? `${fmtBR(inversoresPotenciaKw)} kW` : potencia;
 
   const fases = get('fases_instalacao') || '';
-  const tensaoInversor = fases.toLowerCase().includes('trif') ? '380 V' : '220 V';
+  const tensaoInversorPadrao = fases.toLowerCase().includes('trif') ? '380 V' : '220 V';
 
   const logoUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/images/logocpfl.png`
@@ -236,14 +236,21 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
           <View style={s.row} wrap={false}>
             <View style={s.l}><Text>2.4 Dados do inversor (se houver):</Text></View>
             <View style={[s.v, { width: '68%' }]}>
-              <Text>Fabricante: {get('inversores_fabricante')}</Text>
-              <Text>Modelo: {get('inversores_modelo')}</Text>
-              <Text>Quantidade instalada: {get('inversores_quantidade') || (hasInverter ? '1' : '')}</Text>
-              <Text>Tensão nominal de conexão à rede: {get('tensao_rede') || tensaoInversor}</Text>
-              <Text>Potência nominal de conexão à rede: {potenciaConexaoRede}</Text>
-              <Text style={{ fontFamily: 'Helvetica-Oblique', fontSize: 6.5, color: '#555555', marginTop: 2 }}>
-                (caso sejam empregados mais de um modelo de conversor, replicar as informações acima para os outros modelos)
-              </Text>
+              {inversoresList.map((inv, i) => {
+                const potNum = parseFloat(String(inv.potencia || '0').replace(',', '.')) || 0;
+                return (
+                  <View key={i} style={{ marginBottom: i < inversoresList.length - 1 ? 5 : 0 }}>
+                    {inversoresList.length > 1 && (
+                      <Text style={{ fontFamily: 'Helvetica-Bold', color: '#1a3a6b' }}>Modelo {i + 1}</Text>
+                    )}
+                    <Text>Fabricante: {inv.fabricante}</Text>
+                    <Text>Modelo: {inv.modelo}</Text>
+                    <Text>Quantidade instalada: {inv.quantidade || '1'}</Text>
+                    <Text>Tensão nominal de conexão à rede: {inv.tensao ? `${inv.tensao} V` : (get('tensao_rede') || tensaoInversorPadrao)}</Text>
+                    <Text>Potência nominal de conexão à rede: {potNum > 0 ? `${fmtBR(potNum)} kW` : ''}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
           <View style={s.row} wrap={false}>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
-import { getPotenciaGeracao, fmtBR } from '@/lib/utils/equipmentParser';
+import { getPotenciaGeracaoReal, fmtBR, getAllInversores } from '@/lib/utils/equipmentParser';
 
 interface AnexoECPFLPreviewProps {
   projectData?: Record<string, any>;
@@ -99,19 +99,19 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
   const UNCHECKED = '☐';
 
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
-  const hasInverter = !!get('inversores_modelo') || !!get('inversores_fabricante');
-  const potencia = get('potencia') ? `${get('potencia')} kW` : '';
+  // ✅ Lista real de inversores cadastrados (podem ser de modelos diferentes) — em vez
+  // dos campos legados únicos, que só refletiam um modelo mesmo com vários cadastrados.
+  const inversoresList = getAllInversores(projectData);
+  const hasInverter = inversoresList.length > 0;
   // ✅ 2.2 Potência: deve ser a MENOR entre a potência total dos módulos (kWp) e a
-  // potência total dos inversores (kW) — não o campo genérico "potencia" do projeto.
-  const potenciaGeracaoKw = getPotenciaGeracao(projectData);
+  // potência total dos inversores (kW), calculada a partir das listas realmente
+  // cadastradas — não o campo genérico "potencia" do projeto.
+  const potenciaGeracaoKw = getPotenciaGeracaoReal(projectData);
   const potenciaGeracao = potenciaGeracaoKw > 0 ? `${fmtBR(potenciaGeracaoKw)} kW` : '';
-  // ✅ 2.4 Potência nominal de conexão à rede: também com 2 casas decimais
-  const inversoresPotenciaKw = parseFloat(String(get('inversores_potencia')).replace(',', '.')) || 0;
-  const potenciaConexaoRede = inversoresPotenciaKw > 0 ? `${fmtBR(inversoresPotenciaKw)} kW` : potencia;
 
   // Tensão nominal do inversor — padrão 220 V se monofásico, 380 V se trifásico
   const fases = get('fases_instalacao') || '';
-  const tensaoInversor = fases.toLowerCase().includes('trif') ? '380 V' : '220 V';
+  const tensaoInversorPadrao = fases.toLowerCase().includes('trif') ? '380 V' : '220 V';
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '800px', margin: '0 auto', padding: '8px' }}>
@@ -244,20 +244,27 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
             </td>
           </tr>
 
-          {/* 2.4 Dados do inversor */}
+          {/* 2.4 Dados do inversor — um bloco por modelo realmente cadastrado */}
           <tr>
             <td style={L}>2.4 Dados do inversor (se houver):</td>
             <td style={V}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', lineHeight: '1.8' }}>
-                <span>Fabricante: <strong>{get('inversores_fabricante')}</strong></span>
-                <span>Modelo: <strong>{get('inversores_modelo')}</strong></span>
-                <span>Quantidade instalada: <strong>{get('inversores_quantidade') || (hasInverter ? '1' : '')}</strong></span>
-                <span>Tensão nominal de conexão à rede: <strong>{get('tensao_rede') || tensaoInversor}</strong></span>
-                <span>Potência nominal de conexão à rede: <strong>{potenciaConexaoRede}</strong></span>
-                <span style={{ color: '#555', fontStyle: 'italic', fontSize: '7.5pt' }}>
-                  (caso sejam empregados mais de um modelo de conversor, replicar as informações acima para os outros modelos)
-                </span>
-              </div>
+              {inversoresList.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {inversoresList.map((inv, i) => {
+                    const potNum = parseFloat(String(inv.potencia || '0').replace(',', '.')) || 0;
+                    return (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '3px', lineHeight: '1.8', paddingBottom: i < inversoresList.length - 1 ? '6px' : '0', borderBottom: i < inversoresList.length - 1 ? '1px dashed #ccc' : 'none' }}>
+                        {inversoresList.length > 1 && <span style={{ color: '#1a3a6b', fontWeight: 'bold' }}>Modelo {i + 1}</span>}
+                        <span>Fabricante: <strong>{inv.fabricante}</strong></span>
+                        <span>Modelo: <strong>{inv.modelo}</strong></span>
+                        <span>Quantidade instalada: <strong>{inv.quantidade || '1'}</strong></span>
+                        <span>Tensão nominal de conexão à rede: <strong>{inv.tensao ? `${inv.tensao} V` : (get('tensao_rede') || tensaoInversorPadrao)}</strong></span>
+                        <span>Potência nominal de conexão à rede: <strong>{potNum > 0 ? `${fmtBR(potNum)} kW` : ''}</strong></span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
             </td>
           </tr>
 

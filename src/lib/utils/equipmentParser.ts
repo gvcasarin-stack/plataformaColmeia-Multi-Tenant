@@ -220,6 +220,26 @@ export function getPotenciaGeracao(pd: Record<string, any> | undefined): number 
   return Math.min(kwp, invKw);
 }
 
+// Potência de pico total (kWp) calculada SEMPRE a partir da lista real de módulos
+// cadastrados (Wp × qtd), ignorando o campo "potencia" do projeto (que pode ter sido
+// preenchido/calculado em outro lugar e não refletir os módulos de fato cadastrados).
+export function getTotalKwpFromModulos(pd: Record<string, any> | undefined): number {
+  return getAllModulos(pd).reduce((acc, m) => {
+    return acc + (parseNum(m.potencia_wp) * parseNum(m.quantidade)) / 1000;
+  }, 0);
+}
+
+// Potência de geração real = min(kWp dos módulos cadastrados, kW dos inversores
+// cadastrados) — variante de getPotenciaGeracao() que não usa o campo "potencia" do
+// projeto como atalho, para documentos que precisam refletir exatamente o que foi
+// cadastrado nas listas de módulos/inversores (ex: Anexo E e Anexo F da CPFL).
+export function getPotenciaGeracaoReal(pd: Record<string, any> | undefined): number {
+  const kwp = getTotalKwpFromModulos(pd);
+  const invKw = getTotalInversorKw(pd);
+  if (kwp <= 0 || invKw <= 0) return 0;
+  return Math.min(kwp, invKw);
+}
+
 // Formata número para padrão BR com N casas decimais
 export function fmtBR(val: number, decimals = 2): string {
   if (isNaN(val) || val === 0) return '0,' + '0'.repeat(decimals);
