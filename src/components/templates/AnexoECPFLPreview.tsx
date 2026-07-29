@@ -12,6 +12,14 @@ interface AnexoECPFLPreviewProps {
 export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) {
   const [downloading, setDownloading] = useState(false);
 
+  // ✅ Checkboxes editáveis de "Solicito dispensa da análise de inversão de fluxo"
+  // (item 4) — marcados/desmarcados por clique na pré-visualização e repassados
+  // ao PDF gerado, para que a seleção saia impressa também.
+  const [dispensaFluxo, setDispensaFluxo] = useState(false);
+  const [dispensaFluxoGridZero, setDispensaFluxoGridZero] = useState(false);
+  const [dispensaFluxoGratuidadeREN, setDispensaFluxoGratuidadeREN] = useState(false);
+  const [dispensaFluxoAutoconsumoLocal, setDispensaFluxoAutoconsumoLocal] = useState(false);
+
   const handleGeneratePdf = async () => {
     setDownloading(true);
     try {
@@ -21,7 +29,13 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
       const clientName = projectData?.nomeClienteFinal || 'projeto';
       const filename = `Anexo E - Formulário de Solicitação de Acesso - ${clientName}.pdf`;
       const blob = await pdf(
-        React.createElement(AnexoECPFLPDF, { projectData })
+        React.createElement(AnexoECPFLPDF, {
+          projectData,
+          dispensaFluxo,
+          dispensaFluxoGridZero,
+          dispensaFluxoGratuidadeREN,
+          dispensaFluxoAutoconsumoLocal,
+        })
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -335,15 +349,29 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
             </tr>
           ))}
 
-          {/* Linha do "Solicito dispensa" com sub-checkboxes */}
+          {/* Linha do "Solicito dispensa" com sub-checkboxes — editáveis por clique */}
           <tr>
-            <td style={{ ...FULL, textAlign: 'center', verticalAlign: 'top', width: '5%' }}>{UNCHECKED}</td>
+            <td
+              style={{ ...FULL, textAlign: 'center', verticalAlign: 'top', width: '5%', cursor: 'pointer' }}
+              onClick={() => setDispensaFluxo(v => !v)}
+              title="Clique para marcar/desmarcar"
+            >
+              {dispensaFluxo ? CHECKED : UNCHECKED}
+            </td>
             <td style={FULL}>
-              <div>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A, na seguinte regra: (Opcional)</div>
+              <div style={{ cursor: 'pointer' }} onClick={() => setDispensaFluxo(v => !v)}>
+                Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A, na seguinte regra: (Opcional)
+              </div>
               <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: '10px' }}>
-                <span>{UNCHECKED} não injeção na rede de distribuição de energia elétrica ("Grid Zero").</span>
-                <span>{UNCHECKED} enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração.</span>
-                <span>{UNCHECKED} modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6.</span>
+                <span style={{ cursor: 'pointer' }} onClick={() => setDispensaFluxoGridZero(v => !v)} title="Clique para marcar/desmarcar">
+                  {dispensaFluxoGridZero ? CHECKED : UNCHECKED} não injeção na rede de distribuição de energia elétrica ("Grid Zero").
+                </span>
+                <span style={{ cursor: 'pointer' }} onClick={() => setDispensaFluxoGratuidadeREN(v => !v)} title="Clique para marcar/desmarcar">
+                  {dispensaFluxoGratuidadeREN ? CHECKED : UNCHECKED} enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração.
+                </span>
+                <span style={{ cursor: 'pointer' }} onClick={() => setDispensaFluxoAutoconsumoLocal(v => !v)} title="Clique para marcar/desmarcar">
+                  {dispensaFluxoAutoconsumoLocal ? CHECKED : UNCHECKED} modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6.
+                </span>
               </div>
             </td>
           </tr>
@@ -426,11 +454,15 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', textAlign: 'center' }}>
                 <div>
-                  <div style={{ borderBottom: '1px solid #555', paddingBottom: '4px', marginBottom: '4px', minHeight: '36px' }}>&nbsp;</div>
+                  <div style={{ borderBottom: '1px solid #555', paddingBottom: '4px', marginBottom: '4px', minHeight: '36px' }}>
+                    {dispensaFluxo ? municipio : <>&nbsp;</>}
+                  </div>
                   <div style={{ fontSize: '7.5pt', color: '#555' }}>Local</div>
                 </div>
                 <div>
-                  <div style={{ borderBottom: '1px solid #555', paddingBottom: '4px', marginBottom: '4px', minHeight: '36px' }}>&nbsp;</div>
+                  <div style={{ borderBottom: '1px solid #555', paddingBottom: '4px', marginBottom: '4px', minHeight: '36px' }}>
+                    {dispensaFluxo ? get('data_inicio_operacao') : <>&nbsp;</>}
+                  </div>
                   <div style={{ fontSize: '7.5pt', color: '#555' }}>Data</div>
                 </div>
                 <div>

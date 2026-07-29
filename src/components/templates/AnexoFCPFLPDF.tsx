@@ -66,7 +66,7 @@ const s = StyleSheet.create({
   tbl: { borderTopWidth: B, borderLeftWidth: B, borderColor: BC, marginBottom: 10 },
   row: { flexDirection: 'row' },
   sh: {
-    backgroundColor: '#4a4a4a',
+    backgroundColor: '#1a3a6b',
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
     fontSize: 7.5,
@@ -76,7 +76,7 @@ const s = StyleSheet.create({
     borderColor: BC,
   },
   shc: {
-    backgroundColor: '#4a4a4a',
+    backgroundColor: '#1a3a6b',
     color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
     fontSize: 7.5,
@@ -131,6 +131,14 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
   const inversoresQtdTotalF = getTotalInversoresQtd(projectData);
   const modulosKwpTotalF = getTotalKwpFromModulos(projectData);
   const inversoresKwTotalF = getTotalInversorKw(projectData);
+  // ✅ 3.4) Área total ocupada pelos arranjos = soma de (área unitária × quantidade)
+  // de cada modelo de módulo cadastrado — não o campo legado "modulos_area_m2"
+  // (que só refletia a área de um único módulo do primeiro modelo).
+  const areaTotalArranjosF = modulosListF.reduce((acc, m) => {
+    const areaUnit = parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0;
+    const qty = parseFloat(String(m.quantidade || '0').replace(',', '.')) || 0;
+    return acc + areaUnit * qty;
+  }, 0);
 
   const cabosSecao = PADRAO_CABOS[get('padrao_entrada')] || get('cabos_secao') || '';
   const caixaTipo = get('cpfl_tipo_poste_padrao') || get('caixa_medicao_tipo') || '';
@@ -379,7 +387,7 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
             ['3.1) Quantidade total de módulos:', modulosQtdTotalF > 0 ? String(modulosQtdTotalF) : ''],
             ['3.2) Listar fabricantes dos módulos:', modulosFabricantesF],
             ['3.3) Listar modelos dos módulos:', modulosModelosF],
-            ['3.4) Área total ocupada pelos arranjos (m²):', get('modulos_area_m2')],
+            ['3.4) Área total ocupada pelos arranjos (m²):', areaTotalArranjosF > 0 ? fmtBR(areaTotalArranjosF) : ''],
             ['3.5) Quantidade total de inversores:', inversoresQtdTotalF > 0 ? String(inversoresQtdTotalF) : ''],
             ['3.6) Listar fabricantes dos inversores:', inversoresFabricantesF],
             ['3.7) Listar modelos dos inversores:', inversoresModelosF],
@@ -450,7 +458,9 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
           ))}
         </View>
 
-        {/* Seção 7: Fontes Primárias */}
+        {/* Seção 7: Fontes Primárias — cada item em sua própria linha, para que a
+            quebra de página ocorra entre itens (evita bloco único forçado por wrap=false
+            que empurrava toda a seção para a página seguinte, deixando espaço em branco). */}
         <View style={s.tbl}>
           <View style={s.row} wrap={false}>
             <View style={[s.sh, { width: '100%' }]}>
@@ -459,24 +469,44 @@ export function AnexoFCPFLPDF({ projectData = {} }: AnexoFCPFLPDFProps) {
           </View>
           <View style={s.row} wrap={false}>
             <View style={[s.v, { width: '100%' }]}>
-              <Text style={{ fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
+              <Text style={{ fontFamily: 'Helvetica-Bold' }}>
                 7.1) Origem em biomassa (floresta, resíduos sólidos, resíduos animais, biocombustíveis líquidos, agroindustriais):
               </Text>
-              {fontesBiomassa.map((f) => (
-                <Text key={f} style={{ marginLeft: 10, marginBottom: 1 }}>- {f}</Text>
-              ))}
-              <Text style={{ fontFamily: 'Helvetica-Bold', marginTop: 4, marginBottom: 2 }}>7.2) Eólica (cinética do vento):</Text>
-              <Text style={{ fontFamily: 'Helvetica-Bold', marginTop: 2, marginBottom: 2 }}>
+            </View>
+          </View>
+          {fontesBiomassa.map((f) => (
+            <View key={f} style={s.row} wrap={false}>
+              <View style={[s.v, { width: '100%' }]}><Text style={{ marginLeft: 10 }}>- {f}</Text></View>
+            </View>
+          ))}
+          <View style={s.row} wrap={false}>
+            <View style={[s.v, { width: '100%' }]}>
+              <Text style={{ fontFamily: 'Helvetica-Bold' }}>7.2) Eólica (cinética do vento):</Text>
+            </View>
+          </View>
+          <View style={s.row} wrap={false}>
+            <View style={[s.v, { width: '100%' }]}>
+              <Text style={{ fontFamily: 'Helvetica-Bold' }}>
                 7.3) Fóssil (petróleo, carvão mineral, gás natural, outros):
               </Text>
-              {fontesFossil.map((f) => (
-                <Text key={f} style={{ marginLeft: 10, marginBottom: 1 }}>- {f}</Text>
-              ))}
-              <Text style={{ marginTop: 4 }}>7.4) Hídrica (potencial hidráulico)</Text>
-              <Text>7.5) Nuclear (urânio)</Text>
-              <Text>7.6) Solar (radiação solar)</Text>
-              <Text>7.7) Undi-elétrica (cinética da água)</Text>
             </View>
+          </View>
+          {fontesFossil.map((f) => (
+            <View key={f} style={s.row} wrap={false}>
+              <View style={[s.v, { width: '100%' }]}><Text style={{ marginLeft: 10 }}>- {f}</Text></View>
+            </View>
+          ))}
+          <View style={s.row} wrap={false}>
+            <View style={[s.v, { width: '100%' }]}><Text>7.4) Hídrica (potencial hidráulico)</Text></View>
+          </View>
+          <View style={s.row} wrap={false}>
+            <View style={[s.v, { width: '100%' }]}><Text>7.5) Nuclear (urânio)</Text></View>
+          </View>
+          <View style={s.row} wrap={false}>
+            <View style={[s.v, { width: '100%' }]}><Text>7.6) Solar (radiação solar)</Text></View>
+          </View>
+          <View style={s.row} wrap={false}>
+            <View style={[s.v, { width: '100%' }]}><Text>7.7) Undi-elétrica (cinética da água)</Text></View>
           </View>
         </View>
       </Page>

@@ -53,6 +53,14 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
   const inversoresQtdTotalF = getTotalInversoresQtd(projectData);
   const modulosKwpTotalF = getTotalKwpFromModulos(projectData);
   const inversoresKwTotalF = getTotalInversorKw(projectData);
+  // ✅ 3.4) Área total ocupada pelos arranjos = soma de (área unitária × quantidade)
+  // de cada modelo de módulo cadastrado — não o campo legado "modulos_area_m2"
+  // (que só refletia a área de um único módulo do primeiro modelo).
+  const areaTotalArranjosF = modulosListF.reduce((acc, m) => {
+    const areaUnit = parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0;
+    const qty = parseFloat(String(m.quantidade || '0').replace(',', '.')) || 0;
+    return acc + areaUnit * qty;
+  }, 0);
 
   const PADRAO_CABOS: Record<string, string> = {
     A1: '6 mm²',  A2: '16 mm²', A3: '6 mm²',  A4: '16 mm²',
@@ -114,7 +122,7 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
   };
 
   const SH: React.CSSProperties = {
-    backgroundColor: '#4a4a4a',
+    backgroundColor: '#1a3a6b',
     color: '#ffffff',
     fontWeight: 'bold',
     padding: '4px 6px',
@@ -408,7 +416,7 @@ export function AnexoFCPFLPreview({ projectData = {} }: AnexoFCPFLPreviewProps) 
             <td style={L}>3.4) Área total ocupada pelos arranjos (m²):</td>
             <td style={VC}>&nbsp;</td>
             <td style={VC}>&nbsp;</td>
-            <td style={VC}>{get('modulos_area_m2')}</td>
+            <td style={VC}>{areaTotalArranjosF > 0 ? fmtBR(areaTotalArranjosF) : ''}</td>
           </tr>
           <tr>
             <td style={L}>3.5) Quantidade total de inversores:</td>

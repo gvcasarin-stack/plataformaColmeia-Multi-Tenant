@@ -3,6 +3,13 @@ import { getPotenciaGeracaoReal, fmtBR, getAllInversores } from '@/lib/utils/equ
 
 interface AnexoECPFLPDFProps {
   projectData?: Record<string, any>;
+  // ✅ Estado dos checkboxes de "Solicito dispensa da análise de inversão de fluxo"
+  // (item 4), definidos interativamente na pré-visualização e repassados aqui para
+  // que a marcação também apareça no PDF gerado.
+  dispensaFluxo?: boolean;
+  dispensaFluxoGridZero?: boolean;
+  dispensaFluxoGratuidadeREN?: boolean;
+  dispensaFluxoAutoconsumoLocal?: boolean;
 }
 
 const B = 0.75;
@@ -92,7 +99,13 @@ const s = StyleSheet.create({
   },
 });
 
-export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
+export function AnexoECPFLPDF({
+  projectData = {},
+  dispensaFluxo = false,
+  dispensaFluxoGridZero = false,
+  dispensaFluxoGratuidadeREN = false,
+  dispensaFluxoAutoconsumoLocal = false,
+}: AnexoECPFLPDFProps) {
   const get = (key: string) => projectData[key] || '';
 
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
@@ -294,12 +307,12 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
             </View>
           ))}
           <View style={s.row} wrap={false}>
-            <View style={[s.full, { width: '5%', alignItems: 'center', justifyContent: 'center', paddingTop: 6 }]}><Checkbox checked={false} /></View>
+            <View style={[s.full, { width: '5%', alignItems: 'center', justifyContent: 'center', paddingTop: 6 }]}><Checkbox checked={dispensaFluxo} /></View>
             <View style={[s.full, { width: '95%' }]}>
               <Text>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A, na seguinte regra: (Opcional)</Text>
-              <CheckboxLine checked={false} label='não injeção na rede de distribuição de energia elétrica ("Grid Zero").' style={{ marginTop: 3, marginLeft: 8 }} />
-              <CheckboxLine checked={false} label="enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração." style={{ marginLeft: 8 }} />
-              <CheckboxLine checked={false} label="modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6." style={{ marginLeft: 8 }} />
+              <CheckboxLine checked={dispensaFluxoGridZero} label='não injeção na rede de distribuição de energia elétrica ("Grid Zero").' style={{ marginTop: 3, marginLeft: 8 }} />
+              <CheckboxLine checked={dispensaFluxoGratuidadeREN} label="enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração." style={{ marginLeft: 8 }} />
+              <CheckboxLine checked={dispensaFluxoAutoconsumoLocal} label="modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6." style={{ marginLeft: 8 }} />
             </View>
           </View>
           <View style={s.row} wrap={false}>
@@ -376,13 +389,13 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
               </Text>
               <View style={{ flexDirection: 'row', gap: 10 }} wrap={false}>
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                  <Text style={{ marginBottom: 2 }}> </Text>
+                  <Text style={{ marginBottom: 2 }}>{dispensaFluxo ? municipio : ' '}</Text>
                   <View style={{ width: '100%', borderTopWidth: 0.5, borderColor: '#555555' }}>
                     <Text style={{ fontSize: 6, color: '#555555', paddingTop: 2, textAlign: 'center' }}>Local</Text>
                   </View>
                 </View>
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                  <Text style={{ marginBottom: 2 }}> </Text>
+                  <Text style={{ marginBottom: 2 }}>{dispensaFluxo ? get('data_inicio_operacao') : ' '}</Text>
                   <View style={{ width: '100%', borderTopWidth: 0.5, borderColor: '#555555' }}>
                     <Text style={{ fontSize: 6, color: '#555555', paddingTop: 2, textAlign: 'center' }}>Data</Text>
                   </View>
