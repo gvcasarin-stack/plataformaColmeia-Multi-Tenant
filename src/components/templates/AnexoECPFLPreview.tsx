@@ -11,6 +11,32 @@ interface AnexoECPFLPreviewProps {
 export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) {
   const [downloading, setDownloading] = useState(false);
 
+  const handleGeneratePdf = async () => {
+    setDownloading(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      const { AnexoECPFLPDF } = await import('./AnexoECPFLPDF');
+      const React = await import('react');
+      const clientName = projectData?.nomeClienteFinal || 'projeto';
+      const filename = `Anexo E - Formulário de Solicitação de Acesso - ${clientName}.pdf`;
+      const blob = await pdf(
+        React.createElement(AnexoECPFLPDF, { projectData })
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao gerar PDF do Anexo E:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const get = (key: string) => projectData[key] || '';
 
   // ── Estilos inline ──────────────────────────────────────────────────────────
@@ -411,7 +437,7 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
       {/* ── Botão PDF ── */}
       <div className="mt-6 flex justify-center">
         <Button
-          onClick={() => {}}
+          onClick={handleGeneratePdf}
           disabled={downloading}
           size="lg"
           className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
