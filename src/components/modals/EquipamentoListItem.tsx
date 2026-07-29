@@ -11,7 +11,7 @@ import {
 import {
   ChevronDown, ChevronRight, Trash2, Loader2, CheckCircle2, Plus, X,
 } from 'lucide-react';
-import { parseStringsModulos } from '@/lib/utils/equipmentParser';
+import { parseStringsModulos, fmtBR } from '@/lib/utils/equipmentParser';
 import type { ModuloItem, InversorItem, InversorUnitConfig, StringConfig } from '@/lib/utils/equipmentParser';
 import type { EquipmentCatalogItem } from '@/lib/services/equipmentCatalogService';
 
@@ -358,9 +358,15 @@ export function EquipamentoListItem(props: Props) {
   const m = props.item as ModuloItem;
   const inv = props.item as InversorItem;
   const modulosListProp = tipo === 'inversor' ? ((props as EquipamentoListItemInversorProps).modulosList || []) : [];
+
+  // Potência total do módulo (Wp × quantidade / 1000 = kWp)
+  const moduloPotenciaWp = parseFloat(String(m.potencia_wp || '0').replace(',', '.')) || 0;
+  const moduloQuantidade = parseFloat(String(m.quantidade || '1').replace(',', '.')) || 1;
+  const moduloTotalKwp = moduloPotenciaWp > 0 ? (moduloPotenciaWp * moduloQuantidade) / 1000 : 0;
+
   const summaryLabel = tipo === 'modulo'
     ? (m.fabricante && m.modelo
-      ? `${m.fabricante} / ${m.modelo}${m.potencia_wp ? ` — ${m.potencia_wp} Wp` : ''}${m.quantidade && m.quantidade !== '1' ? ` × ${m.quantidade}` : ''}`
+      ? `${m.fabricante} / ${m.modelo}${m.potencia_wp ? ` — ${m.potencia_wp} Wp` : ''}${m.quantidade && m.quantidade !== '1' ? ` × ${m.quantidade}` : ''}${moduloTotalKwp > 0 ? ` — ${fmtBR(moduloTotalKwp)} kWp` : ''}`
       : `Módulo ${index + 1}`)
     : (inv.fabricante && inv.modelo
       ? `${inv.fabricante} / ${inv.modelo}${inv.potencia ? ` — ${inv.potencia} kW` : ''}${inv.quantidade && inv.quantidade !== '1' ? ` × ${inv.quantidade}` : ''}`
@@ -524,26 +530,54 @@ export function EquipamentoListItem(props: Props) {
               </div>
             </div>
 
-            {/* Potência + Quantidade compacta */}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Field
-                  label={tipo === 'modulo' ? 'Potência (Wp) *' : 'Potência nominal (kW) *'}
-                  value={tipo === 'modulo' ? (m.potencia_wp || '') : (inv.potencia || '')}
-                  onChange={v => updateField(tipo === 'modulo' ? 'potencia_wp' : 'potencia', v)}
-                  suffix={tipo === 'modulo' ? 'Wp' : 'kW'}
-                  placeholder={tipo === 'modulo' ? '650' : '5,0'}
-                />
+            {/* Potência + Quantidade (+ Potência Total, para módulos) */}
+            {tipo === 'modulo' ? (
+              <div className="flex gap-2">
+                <div className="w-24">
+                  <Field
+                    label="Potência (Wp) *"
+                    value={m.potencia_wp || ''}
+                    onChange={v => updateField('potencia_wp', v)}
+                    suffix="Wp"
+                    placeholder="650"
+                  />
+                </div>
+                <div className="w-20">
+                  <Field
+                    label="Quantidade"
+                    value={props.item.quantidade || '1'}
+                    onChange={v => updateField('quantidade', v)}
+                    placeholder="1"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-[11px] text-gray-500">Potência Total (kWp)</Label>
+                  <div className="mt-0.5 h-7 px-2 flex items-center text-xs bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-300">
+                    {moduloTotalKwp > 0 ? `${fmtBR(moduloTotalKwp)} kWp` : '—'}
+                  </div>
+                </div>
               </div>
-              <div className="w-24">
-                <Field
-                  label="Quantidade"
-                  value={props.item.quantidade || '1'}
-                  onChange={v => updateField('quantidade', v)}
-                  placeholder="1"
-                />
+            ) : (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Field
+                    label="Potência nominal (kW) *"
+                    value={inv.potencia || ''}
+                    onChange={v => updateField('potencia', v)}
+                    suffix="kW"
+                    placeholder="5,0"
+                  />
+                </div>
+                <div className="w-24">
+                  <Field
+                    label="Quantidade"
+                    value={props.item.quantidade || '1'}
+                    onChange={v => updateField('quantidade', v)}
+                    placeholder="1"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Salvar no catálogo */}
             <div className="flex justify-end mt-1">
