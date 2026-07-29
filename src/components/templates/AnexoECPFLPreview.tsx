@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
+import { getPotenciaGeracao, fmtBR } from '@/lib/utils/equipmentParser';
 
 interface AnexoECPFLPreviewProps {
   projectData?: Record<string, any>;
@@ -100,6 +101,13 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
   const hasInverter = !!get('inversores_modelo') || !!get('inversores_fabricante');
   const potencia = get('potencia') ? `${get('potencia')} kW` : '';
+  // ✅ 2.2 Potência: deve ser a MENOR entre a potência total dos módulos (kWp) e a
+  // potência total dos inversores (kW) — não o campo genérico "potencia" do projeto.
+  const potenciaGeracaoKw = getPotenciaGeracao(projectData);
+  const potenciaGeracao = potenciaGeracaoKw > 0 ? `${fmtBR(potenciaGeracaoKw)} kW` : '';
+  // ✅ 2.4 Potência nominal de conexão à rede: também com 2 casas decimais
+  const inversoresPotenciaKw = parseFloat(String(get('inversores_potencia')).replace(',', '.')) || 0;
+  const potenciaConexaoRede = inversoresPotenciaKw > 0 ? `${fmtBR(inversoresPotenciaKw)} kW` : potencia;
 
   // Tensão nominal do inversor — padrão 220 V se monofásico, 380 V se trifásico
   const fases = get('fases_instalacao') || '';
@@ -219,7 +227,7 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
           <tr>
             <td style={L}>2.2 Potência:</td>
             <td style={V}>
-              {potencia} {potencia && <span style={{ color: '#555' }}>(Valor de potência instalada total de geração, em kW)</span>}
+              {potenciaGeracao} {potenciaGeracao && <span style={{ color: '#555' }}>(Valor de potência instalada total de geração, em kW)</span>}
             </td>
           </tr>
 
@@ -245,7 +253,7 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
                 <span>Modelo: <strong>{get('inversores_modelo')}</strong></span>
                 <span>Quantidade instalada: <strong>{get('inversores_quantidade') || (hasInverter ? '1' : '')}</strong></span>
                 <span>Tensão nominal de conexão à rede: <strong>{get('tensao_rede') || tensaoInversor}</strong></span>
-                <span>Potência nominal de conexão à rede: <strong>{get('inversores_potencia') ? `${get('inversores_potencia')} kW` : potencia}</strong></span>
+                <span>Potência nominal de conexão à rede: <strong>{potenciaConexaoRede}</strong></span>
                 <span style={{ color: '#555', fontStyle: 'italic', fontSize: '7.5pt' }}>
                   (caso sejam empregados mais de um modelo de conversor, replicar as informações acima para os outros modelos)
                 </span>
