@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { getPotenciaGeracao, fmtBR } from '@/lib/utils/equipmentParser';
 
 interface AnexoECPFLPDFProps {
   projectData?: Record<string, any>;
@@ -6,8 +7,31 @@ interface AnexoECPFLPDFProps {
 
 const B = 0.75;
 const BC = '#888888';
-const CHECKED = '[X]';
-const UNCHECKED = '[ ]';
+
+// ✅ Caixinha de marcação desenhada (tamanho fixo sempre igual, preenchida quando
+// marcada) — em vez de texto "[X]"/"[ ]", que ficava com peso visual desigual.
+function Checkbox({ checked }: { checked: boolean }) {
+  return (
+    <View
+      style={{
+        width: 7,
+        height: 7,
+        borderWidth: 0.75,
+        borderColor: '#000000',
+        backgroundColor: checked ? '#000000' : '#FFFFFF',
+      }}
+    />
+  );
+}
+
+function CheckboxLine({ checked, label, style }: { checked: boolean; label: string; style?: any }) {
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', marginBottom: 1.5 }, style]}>
+      <Checkbox checked={checked} />
+      <Text style={{ marginLeft: 4 }}>{label}</Text>
+    </View>
+  );
+}
 
 const s = StyleSheet.create({
   page: {
@@ -74,6 +98,13 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
   const hasInverter = !!get('inversores_modelo') || !!get('inversores_fabricante');
   const potencia = get('potencia') ? `${get('potencia')} kW` : '';
+  // ✅ 2.2 Potência: deve ser a MENOR entre a potência total dos módulos (kWp) e a
+  // potência total dos inversores (kW) — não o campo genérico "potencia" do projeto.
+  const potenciaGeracaoKw = getPotenciaGeracao(projectData);
+  const potenciaGeracao = potenciaGeracaoKw > 0 ? `${fmtBR(potenciaGeracaoKw)} kW` : '';
+  // ✅ 2.4 Potência nominal de conexão à rede: também com 2 casas decimais
+  const inversoresPotenciaKw = parseFloat(String(get('inversores_potencia')).replace(',', '.')) || 0;
+  const potenciaConexaoRede = inversoresPotenciaKw > 0 ? `${fmtBR(inversoresPotenciaKw)} kW` : potencia;
 
   const fases = get('fases_instalacao') || '';
   const tensaoInversor = fases.toLowerCase().includes('trif') ? '380 V' : '220 V';
@@ -96,11 +127,11 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
     '3.11 Documento que comprove o aporte da Garantia de Fiel Cumprimento, se aplicável, conforme previsto no art. 655-C da Resolução Normativa nº 1.000/2021. (Caso aplicável)',
   ];
 
-  const declaracoes: [string, string][] = [
-    [CHECKED, 'Solicito que a contagem do prazo para realização da vistoria pela distribuidora, conforme art. 91 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação. (Opcional)'],
-    [CHECKED, 'Renuncio ao direito de desistir do orçamento de conexão nos termos dos §§ 7º e 8º do art. 89 da Resolução Normativa nº 1.000/2021. (Opcional)'],
-    [CHECKED, 'Autorizo a distribuidora a entregar junto com o orçamento de conexão os contratos e o documento ou meio para pagamento de custos de minha responsabilidade. (Opcional)'],
-    [CHECKED, 'Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnicas - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável. (Obrigatório)'],
+  const declaracoes: [boolean, string][] = [
+    [true, 'Solicito que a contagem do prazo para realização da vistoria pela distribuidora, conforme art. 91 da Resolução Normativa nº 1.000/2021, inicie-se somente após minha solicitação. (Opcional)'],
+    [true, 'Renuncio ao direito de desistir do orçamento de conexão nos termos dos §§ 7º e 8º do art. 89 da Resolução Normativa nº 1.000/2021. (Opcional)'],
+    [true, 'Autorizo a distribuidora a entregar junto com o orçamento de conexão os contratos e o documento ou meio para pagamento de custos de minha responsabilidade. (Opcional)'],
+    [true, 'Declaro que as instalações internas da minha unidade consumidora, incluindo a geração distribuída, atendem às normas e padrões da distribuidora, às normas da Associação Brasileira de Normas Técnicas - ABNT e às normas dos órgãos oficiais competentes, e ao art. 8º da Lei nº 9.074, de 1995, naquilo que for aplicável. (Obrigatório)'],
   ];
 
   return (
@@ -179,27 +210,27 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
           <View style={s.row} wrap={false}>
             <View style={s.l}><Text>2.1 Tipo de fonte primária:</Text></View>
             <View style={[s.v, { width: '68%' }]}>
-              <Text>{CHECKED} Solar fotovoltaica</Text>
-              <Text>{UNCHECKED} Hidráulica</Text>
-              <Text>{UNCHECKED} Eólica</Text>
-              <Text>{UNCHECKED} Biomassa</Text>
-              <Text>{UNCHECKED} Cogeração qualificada</Text>
-              <Text>{UNCHECKED} Outra (especificar):</Text>
+              <CheckboxLine checked={true} label="Solar fotovoltaica" />
+              <CheckboxLine checked={false} label="Hidráulica" />
+              <CheckboxLine checked={false} label="Eólica" />
+              <CheckboxLine checked={false} label="Biomassa" />
+              <CheckboxLine checked={false} label="Cogeração qualificada" />
+              <CheckboxLine checked={false} label="Outra (especificar):" />
             </View>
           </View>
           <View style={s.row} wrap={false}>
             <View style={s.l}><Text>2.2 Potência:</Text></View>
             <View style={[s.v, { width: '68%' }]}>
-              <Text>{potencia} {potencia ? '(Valor de potência instalada total de geração, em kW)' : ''}</Text>
+              <Text>{potenciaGeracao} {potenciaGeracao ? '(Valor de potência instalada total de geração, em kW)' : ''}</Text>
             </View>
           </View>
           <View style={s.row} wrap={false}>
             <View style={s.l}><Text>2.3 Tipo de geração:</Text></View>
             <View style={[s.v, { width: '68%' }]}>
-              <Text>{UNCHECKED} Empregando máquina síncrona sem conversor</Text>
-              <Text>{hasInverter ? CHECKED : UNCHECKED} Empregando conversor eletrônico/inversor</Text>
-              <Text>{UNCHECKED} Mista</Text>
-              <Text>{UNCHECKED} Outra (especificar):</Text>
+              <CheckboxLine checked={false} label="Empregando máquina síncrona sem conversor" />
+              <CheckboxLine checked={hasInverter} label="Empregando conversor eletrônico/inversor" />
+              <CheckboxLine checked={false} label="Mista" />
+              <CheckboxLine checked={false} label="Outra (especificar):" />
             </View>
           </View>
           <View style={s.row} wrap={false}>
@@ -209,7 +240,7 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
               <Text>Modelo: {get('inversores_modelo')}</Text>
               <Text>Quantidade instalada: {get('inversores_quantidade') || (hasInverter ? '1' : '')}</Text>
               <Text>Tensão nominal de conexão à rede: {get('tensao_rede') || tensaoInversor}</Text>
-              <Text>Potência nominal de conexão à rede: {get('inversores_potencia') ? `${get('inversores_potencia')} kW` : potencia}</Text>
+              <Text>Potência nominal de conexão à rede: {potenciaConexaoRede}</Text>
               <Text style={{ fontFamily: 'Helvetica-Oblique', fontSize: 6.5, color: '#555555', marginTop: 2 }}>
                 (caso sejam empregados mais de um modelo de conversor, replicar as informações acima para os outros modelos)
               </Text>
@@ -218,10 +249,10 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
           <View style={s.row} wrap={false}>
             <View style={s.l}><Text>2.5 Modalidade de Compensação de Excedentes</Text></View>
             <View style={[s.v, { width: '68%' }]}>
-              <Text>{CHECKED} Autoconsumo local</Text>
-              <Text>{UNCHECKED} Autoconsumo remoto</Text>
-              <Text>{UNCHECKED} Múltiplas Unidades Consumidoras</Text>
-              <Text>{UNCHECKED} Geração compartilhada</Text>
+              <CheckboxLine checked={true} label="Autoconsumo local" />
+              <CheckboxLine checked={false} label="Autoconsumo remoto" />
+              <CheckboxLine checked={false} label="Múltiplas Unidades Consumidoras" />
+              <CheckboxLine checked={false} label="Geração compartilhada" />
             </View>
           </View>
           <View style={s.row} wrap={false}>
@@ -251,21 +282,21 @@ export function AnexoECPFLPDF({ projectData = {} }: AnexoECPFLPDFProps) {
           </View>
           {declaracoes.map(([check, text], i) => (
             <View key={i} style={s.row} wrap={false}>
-              <View style={[s.full, { width: '5%', textAlign: 'center' }]}><Text>{check}</Text></View>
+              <View style={[s.full, { width: '5%', alignItems: 'center', justifyContent: 'center' }]}><Checkbox checked={check} /></View>
               <View style={[s.full, { width: '95%' }]}><Text>{text}</Text></View>
             </View>
           ))}
           <View style={s.row} wrap={false}>
-            <View style={[s.full, { width: '5%', textAlign: 'center' }]}><Text>{UNCHECKED}</Text></View>
+            <View style={[s.full, { width: '5%', alignItems: 'center', justifyContent: 'center', paddingTop: 6 }]}><Checkbox checked={false} /></View>
             <View style={[s.full, { width: '95%' }]}>
               <Text>Solicito dispensa da análise de inversão de fluxo por enquadramento no art. 73-A, na seguinte regra: (Opcional)</Text>
-              <Text style={{ marginTop: 3, marginLeft: 8 }}>{UNCHECKED} não injeção na rede de distribuição de energia elétrica ("Grid Zero").</Text>
-              <Text style={{ marginLeft: 8 }}>{UNCHECKED} enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração.</Text>
-              <Text style={{ marginLeft: 8 }}>{UNCHECKED} modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6.</Text>
+              <CheckboxLine checked={false} label='não injeção na rede de distribuição de energia elétrica ("Grid Zero").' style={{ marginTop: 3, marginLeft: 8 }} />
+              <CheckboxLine checked={false} label="enquadramento nos critérios de gratuidade da REN 1.000/2021 e potência de geração compatível com o consumo no horário de geração." style={{ marginLeft: 8 }} />
+              <CheckboxLine checked={false} label="modalidade autoconsumo local, com potência instalada de geração igual ou inferior a 7,5 kW, observado o item 6." style={{ marginLeft: 8 }} />
             </View>
           </View>
           <View style={s.row} wrap={false}>
-            <View style={[s.full, { width: '5%', textAlign: 'center' }]}><Text>{CHECKED}</Text></View>
+            <View style={[s.full, { width: '5%', alignItems: 'center', justifyContent: 'center' }]}><Checkbox checked={true} /></View>
             <View style={[s.full, { width: '95%' }]}><Text>Declaro, para todos os fins, que todas as informações prestadas neste documento são verdadeiras. (Obrigatório)</Text></View>
           </View>
         </View>
