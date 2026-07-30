@@ -1806,6 +1806,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                     onChange={setModulosList}
                     hideStrings={true}
                     onAfterCatalogSave={handleAfterCatalogSave}
+                    showStatus={fields.setup_e_ampliacao === 'sim'}
                   />
                 </div>
               )}
@@ -1864,6 +1865,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                     onChange={setInversoresList}
                     modulosList={modulosList}
                     onAfterCatalogSave={handleAfterCatalogSave}
+                    showStatus={fields.setup_e_ampliacao === 'sim'}
                   />
                   {/* Disjuntor CA Geral do Quadro de Proteção CA — apenas quando saídas agrupadas */}
                   {fields.setup_configuracao_saidas === 'agrupadas' && (

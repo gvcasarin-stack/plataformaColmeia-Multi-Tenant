@@ -595,6 +595,7 @@ export const ExpandedProjectView = ({
     cabo_ca_fator_temperatura: (project as any).cabo_ca_fator_temperatura || '',
     cabo_ca_fator_agrupamento: (project as any).cabo_ca_fator_agrupamento || '',
     // Setup do Projeto
+    setup_e_ampliacao: (project as any).setup_e_ampliacao || SETUP_DEFAULTS.setup_e_ampliacao,
     setup_padrao_entrada: (project as any).setup_padrao_entrada || SETUP_DEFAULTS.setup_padrao_entrada,
     setup_quadro_cc: (project as any).setup_quadro_cc || SETUP_DEFAULTS.setup_quadro_cc,
     setup_mais_de_um_inversor: (project as any).setup_mais_de_um_inversor || SETUP_DEFAULTS.setup_mais_de_um_inversor,

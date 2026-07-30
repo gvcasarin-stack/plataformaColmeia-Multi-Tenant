@@ -2604,6 +2604,7 @@ export async function getProjectAction(projectId: string): Promise<{
       cabo_ca_fator_temperatura: data.cabo_ca_fator_temperatura || undefined,
       cabo_ca_fator_agrupamento: data.cabo_ca_fator_agrupamento || undefined,
 
+      setup_e_ampliacao: data.setup_e_ampliacao || undefined,
       setup_padrao_entrada: data.setup_padrao_entrada || undefined,
       setup_quadro_cc: data.setup_quadro_cc || undefined,
       setup_mais_de_um_inversor: data.setup_mais_de_um_inversor || undefined,
@@ -3499,6 +3500,7 @@ export async function editProjectAction(
       valorProjeto: updatedProjectData.valor_projeto,
       pagamento: updatedProjectData.pagamento,
 
+      setup_e_ampliacao: updatedProjectData.setup_e_ampliacao || undefined,
       setup_padrao_entrada: updatedProjectData.setup_padrao_entrada || undefined,
       setup_quadro_cc: updatedProjectData.setup_quadro_cc || undefined,
       setup_mais_de_um_inversor: updatedProjectData.setup_mais_de_um_inversor || undefined,

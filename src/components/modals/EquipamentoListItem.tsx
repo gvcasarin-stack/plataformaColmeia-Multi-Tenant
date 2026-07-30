@@ -144,6 +144,7 @@ interface EquipamentoListItemModuloProps {
   onRemove: () => void;
   hideStrings?: boolean;
   onAfterCatalogSave?: () => void;
+  showStatus?: boolean;
 }
 
 interface EquipamentoListItemInversorProps {
@@ -154,6 +155,7 @@ interface EquipamentoListItemInversorProps {
   onRemove: () => void;
   modulosList?: ModuloItem[];
   onAfterCatalogSave?: () => void;
+  showStatus?: boolean;
 }
 
 type Props = EquipamentoListItemModuloProps | EquipamentoListItemInversorProps;
@@ -493,6 +495,20 @@ export function EquipamentoListItem(props: Props) {
 
       {expanded && (
         <div className="p-3 space-y-3" ref={containerRef}>
+          {/* Situação do equipamento (ampliação de sistema existente) — só aparece
+              quando o Setup do Projeto está marcado como ampliação */}
+          {props.showStatus && (
+            <div className="w-40">
+              <SelectField
+                label="Situação do Equipamento"
+                value={(props.item as ModuloItem | InversorItem).status || ''}
+                onChange={v => updateField('status', v)}
+                options={STATUS_OPTIONS}
+                placeholder="Não definido"
+              />
+            </div>
+          )}
+
           {/* Identificação + Autocomplete */}
           <div>
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Identificação</p>
@@ -543,17 +559,6 @@ export function EquipamentoListItem(props: Props) {
                   className="mt-0.5 h-7 text-xs"
                 />
               </div>
-            </div>
-
-            {/* Situação do equipamento (ampliação de sistema existente) */}
-            <div className="w-40 mb-2">
-              <SelectField
-                label="Situação do Equipamento"
-                value={(props.item as ModuloItem | InversorItem).status || ''}
-                onChange={v => updateField('status', v)}
-                options={STATUS_OPTIONS}
-                placeholder="Não definido"
-              />
             </div>
 
             {/* Potência + Quantidade (+ Potência Total, para módulos) */}

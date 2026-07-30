@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, Info, CheckCircle2 } from 'lucide-react';
 
 export interface SetupProjetoData {
+  setup_e_ampliacao: string;
   setup_padrao_entrada: string;
   setup_quadro_cc: string;
   setup_mais_de_um_inversor: string;
@@ -20,6 +21,7 @@ export interface SetupProjetoData {
 }
 
 export const SETUP_DEFAULTS: SetupProjetoData = {
+  setup_e_ampliacao: 'nao',
   setup_padrao_entrada: 'baixa_tensao',
   setup_quadro_cc: 'nao',
   setup_mais_de_um_inversor: 'nao',
@@ -69,6 +71,7 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
   useEffect(() => {
     if (!open) return;
     setLocal({
+      setup_e_ampliacao: fields.setup_e_ampliacao || SETUP_DEFAULTS.setup_e_ampliacao,
       setup_padrao_entrada: fields.setup_padrao_entrada || SETUP_DEFAULTS.setup_padrao_entrada,
       setup_quadro_cc: fields.setup_quadro_cc || SETUP_DEFAULTS.setup_quadro_cc,
       setup_mais_de_um_inversor: fields.setup_mais_de_um_inversor || SETUP_DEFAULTS.setup_mais_de_um_inversor,
@@ -115,6 +118,21 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
         </DialogHeader>
 
         <div className="space-y-6 py-2">
+          {/* Ampliação de Sistema */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800 pb-1.5">Ampliação de Sistema</h3>
+            <SelectQuestion
+              label="É uma ampliação de sistema fotovoltaico já existente?"
+              description="Quando marcado, o Conferir Informações passa a permitir classificar cada equipamento como Existente ou Novo."
+              value={local.setup_e_ampliacao}
+              onChange={v => set('setup_e_ampliacao', v)}
+              options={[
+                { value: 'nao', label: 'Não — sistema novo' },
+                { value: 'sim', label: 'Sim — ampliação de sistema existente' },
+              ]}
+            />
+          </div>
+
           {/* Padrão de Entrada */}
           <div className="space-y-4">
             <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-800 pb-1.5">Padrão de Entrada</h3>
