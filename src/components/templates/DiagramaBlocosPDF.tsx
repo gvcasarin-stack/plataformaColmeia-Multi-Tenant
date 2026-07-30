@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import { getTotalKwp, getTotalModulosQtd, getAllModulos, getAllInversores, parseStringsModulos } from '@/lib/utils/equipmentParser';
+import { getTotalKwp, getTotalModulosQtd, getAllModulos, getAllInversores, parseStringsModulos, getStatusTag } from '@/lib/utils/equipmentParser';
 
 interface DiagramaBlocosPDFProps {
   projectData?: Record<string, any>;
@@ -42,6 +42,12 @@ const s = StyleSheet.create({
     fontSize: 7,
     textAlign: 'center',
     lineHeight: 1.4,
+  },
+  statusTag: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 7,
+    textAlign: 'center',
+    marginBottom: 3,
   },
   vLine: {
     width: 1,
@@ -174,25 +180,32 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
   // Per-physical-unit data for multi-inverter columns
   const modulosListFull = getAllModulos(pd);
   const inversoresListFull = getAllInversores(pd);
-  const physicalInvData: Array<{ fabricante: string; potencia: string; moduloWp: number; moduloQtd: number }> = [];
+  const modulosTagSingle = getStatusTag(modulosListFull);
+  const physicalInvData: Array<{ fabricante: string; potencia: string; moduloWp: number; moduloQtd: number; moduloStatusTag: string }> = [];
   for (const inv of inversoresListFull) {
     const qty = parseInt(String(inv.quantidade || '1')) || 1;
     for (let u = 0; u < qty; u++) {
       const cfg = inv.units_config?.[u];
       let moduloWp = modulosWp;
       let moduloQtd = 0;
+      let moduloStatusTag = '';
       if (cfg) {
         const modIdx = cfg.modulo_idx ?? 0;
         const mod = modulosListFull[modIdx];
         if (mod) moduloWp = parseFloat(String(mod.potencia_wp || '0')) || 0;
         const strings = parseStringsModulos(cfg.strings_modulos || '[]', modIdx);
         moduloQtd = strings.reduce((acc, s) => acc + s.quantidade, 0);
+        const referencedModulos = strings
+          .map(st => modulosListFull[st.modulo_idx ?? modIdx])
+          .filter(Boolean) as typeof modulosListFull;
+        moduloStatusTag = getStatusTag(referencedModulos.length > 0 ? referencedModulos : (mod ? [mod] : []));
       }
       physicalInvData.push({
         fabricante: String(inv.fabricante || '').toUpperCase() || '___',
         potencia: fmt2(inv.potencia),
         moduloWp,
         moduloQtd,
+        moduloStatusTag,
       });
     }
   }
@@ -251,6 +264,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
         {numInversores === 1 ? (
           <>
             {/* 1. Módulos */}
+            {modulosTagSingle && <Text style={s.statusTag}>{modulosTagSingle}</Text>}
             <View style={s.box}>
               <Text style={s.boldLine}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</Text>
               <Text style={s.normalLine}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</Text>
@@ -308,8 +322,10 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
                 const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
+                const uStatusTag = unit?.moduloStatusTag || '';
                 return (
                   <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
+                    {uStatusTag && <Text style={s.statusTag}>{uStatusTag}</Text>}
                     <View style={[s.box, { width: pdfColW }]}>
                       <Text style={s.boldLine}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</Text>
                       <Text style={s.normalLine}>de {uWp > 0 ? uWp : '___'} Wp cada</Text>
@@ -365,8 +381,10 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
                 const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
+                const uStatusTag = unit?.moduloStatusTag || '';
                 return (
                   <View key={i} style={{ width: pdfColW, alignItems: 'center' }}>
+                    {uStatusTag && <Text style={s.statusTag}>{uStatusTag}</Text>}
                     <View style={[s.box, { width: pdfColW }]}>
                       <Text style={s.boldLine}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</Text>
                       <Text style={s.normalLine}>de {uWp > 0 ? uWp : '___'} Wp cada</Text>

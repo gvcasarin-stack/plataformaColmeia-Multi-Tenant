@@ -18,6 +18,10 @@ export interface ModuloItem {
   strings_modulos?: string;
   area_m2?: string;
   is_microinversor?: string;
+  // ✅ Marca se o equipamento já existia no local (ampliação de sistema) ou é
+  // novo/adicionado nesta obra. Opcional — undefined = não classificado (comportamento
+  // atual, sem tag exibida).
+  status?: 'existente' | 'novo';
 }
 
 // Config de uma string individual (modelo de módulo + quantidade)
@@ -83,6 +87,10 @@ export interface InversorItem {
   cabo_ca_fator_temperatura?: string;
   cabo_ca_fator_agrupamento?: string;
   units_config?: InversorUnitConfig[]; // config por unidade física
+  // ✅ Marca se o equipamento já existia no local (ampliação de sistema) ou é
+  // novo/adicionado nesta obra. Opcional — undefined = não classificado (comportamento
+  // atual, sem tag exibida).
+  status?: 'existente' | 'novo';
 }
 
 function parseNum(val: string | number | undefined): number {
@@ -238,6 +246,16 @@ export function getPotenciaGeracaoReal(pd: Record<string, any> | undefined): num
   const invKw = getTotalInversorKw(pd);
   if (kwp <= 0 || invKw <= 0) return 0;
   return Math.min(kwp, invKw);
+}
+
+// Rótulo de situação (EXISTENTE/NOVO) a partir de um ou mais equipamentos —
+// usado para marcar blocos/itens que representam ampliação de sistema já existente.
+// Retorna string vazia quando nenhum item tem status definido (comportamento atual).
+export function getStatusTag(items: Array<{ status?: string }>): string {
+  const set = new Set(items.map(i => i.status).filter(Boolean));
+  if (set.size === 0) return '';
+  if (set.size > 1) return '(EXISTENTE E NOVO)';
+  return set.has('existente') ? '(EXISTENTE)' : '(NOVO)';
 }
 
 // Formata número para padrão BR com N casas decimais

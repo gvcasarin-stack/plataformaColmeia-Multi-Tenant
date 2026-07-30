@@ -117,6 +117,11 @@ const AGRUPAMENTO_OPTIONS = [
   { value: '0,38', label: '0,38 (≥ 20 circuitos)' },
 ];
 
+const STATUS_OPTIONS = [
+  { value: 'novo', label: 'Novo' },
+  { value: 'existente', label: 'Existente' },
+];
+
 const TEMP_FATOR_OPTIONS = [
   { value: '1,06', label: '1,06 (PVC 25ºC)' },
   { value: '1,04', label: '1,04 (EPR 25ºC)' },
@@ -364,12 +369,22 @@ export function EquipamentoListItem(props: Props) {
   const moduloQuantidade = parseFloat(String(m.quantidade || '1').replace(',', '.')) || 1;
   const moduloTotalKwp = moduloPotenciaWp > 0 ? (moduloPotenciaWp * moduloQuantidade) / 1000 : 0;
 
+  // Tag (NOVO)/(EXISTENTE) exibida no resumo quando a situação do equipamento
+  // foi classificada (opcional — sem status definido, nenhuma tag aparece).
+  const statusTag = (props.item as ModuloItem | InversorItem).status === 'existente'
+    ? ' (EXISTENTE)'
+    : (props.item as ModuloItem | InversorItem).status === 'novo'
+    ? ' (NOVO)'
+    : '';
+
+  const inversorPotenciaKw = parseFloat(String(inv.potencia || '0').replace(',', '.')) || 0;
+
   const summaryLabel = tipo === 'modulo'
     ? (m.fabricante && m.modelo
-      ? `${m.fabricante} / ${m.modelo}${m.potencia_wp ? ` — ${m.potencia_wp} Wp` : ''}${m.quantidade && m.quantidade !== '1' ? ` × ${m.quantidade}` : ''}${moduloTotalKwp > 0 ? ` — ${fmtBR(moduloTotalKwp)} kWp` : ''}`
+      ? `${m.fabricante} / ${m.modelo}${m.potencia_wp ? ` — ${m.potencia_wp} Wp` : ''}${m.quantidade && m.quantidade !== '1' ? ` × ${m.quantidade}` : ''}${moduloTotalKwp > 0 ? ` — ${fmtBR(moduloTotalKwp)} kWp` : ''}${statusTag}`
       : `Módulo ${index + 1}`)
     : (inv.fabricante && inv.modelo
-      ? `${inv.fabricante} / ${inv.modelo}${inv.potencia ? ` — ${inv.potencia} kW` : ''}${inv.quantidade && inv.quantidade !== '1' ? ` × ${inv.quantidade}` : ''}`
+      ? `${inv.fabricante} / ${inv.modelo}${inversorPotenciaKw > 0 ? ` — ${fmtBR(inversorPotenciaKw)} kW` : ''}${inv.quantidade && inv.quantidade !== '1' ? ` × ${inv.quantidade}` : ''}${statusTag}`
       : `Inversor ${index + 1}`);
 
   const isFilled = tipo === 'modulo'
@@ -528,6 +543,17 @@ export function EquipamentoListItem(props: Props) {
                   className="mt-0.5 h-7 text-xs"
                 />
               </div>
+            </div>
+
+            {/* Situação do equipamento (ampliação de sistema existente) */}
+            <div className="w-40 mb-2">
+              <SelectField
+                label="Situação do Equipamento"
+                value={(props.item as ModuloItem | InversorItem).status || ''}
+                onChange={v => updateField('status', v)}
+                options={STATUS_OPTIONS}
+                placeholder="Não definido"
+              />
             </div>
 
             {/* Potência + Quantidade (+ Potência Total, para módulos) */}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
-import { getTotalKwp, getTotalModulosQtd, getAllModulos, getAllInversores, parseStringsModulos } from '@/lib/utils/equipmentParser';
+import { getTotalKwp, getTotalModulosQtd, getAllModulos, getAllInversores, parseStringsModulos, getStatusTag } from '@/lib/utils/equipmentParser';
 
 interface DiagramaBlocosPreviewProps {
   projectData?: Record<string, any>;
@@ -20,6 +20,7 @@ const BOX: React.CSSProperties = {
 };
 
 const BOLD: React.CSSProperties = { fontWeight: 'bold', fontSize: '8px' };
+const STATUS_TAG: React.CSSProperties = { fontWeight: 'bold', fontSize: '7.5px', marginBottom: '3px', textAlign: 'center' };
 const NORMAL: React.CSSProperties = { fontSize: '7.5px' };
 const V_LINE: React.CSSProperties = { width: '1px', height: '22px', backgroundColor: '#000000', margin: '0 auto' };
 const H_LINE: React.CSSProperties = { height: '1px', width: '22px', backgroundColor: '#000000', flexShrink: 0 };
@@ -80,25 +81,32 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
   // Per-physical-unit data for multi-inverter columns
   const modulosListFull = getAllModulos(pd);
   const inversoresListFull = getAllInversores(pd);
-  const physicalInvData: Array<{ fabricante: string; potencia: string; moduloWp: number; moduloQtd: number }> = [];
+  const modulosTagSingle = getStatusTag(modulosListFull);
+  const physicalInvData: Array<{ fabricante: string; potencia: string; moduloWp: number; moduloQtd: number; moduloStatusTag: string }> = [];
   for (const inv of inversoresListFull) {
     const qty = parseInt(String(inv.quantidade || '1')) || 1;
     for (let u = 0; u < qty; u++) {
       const cfg = inv.units_config?.[u];
       let moduloWp = modulosWp;
       let moduloQtd = 0;
+      let moduloStatusTag = '';
       if (cfg) {
         const modIdx = cfg.modulo_idx ?? 0;
         const mod = modulosListFull[modIdx];
         if (mod) moduloWp = parseFloat(String(mod.potencia_wp || '0')) || 0;
         const strings = parseStringsModulos(cfg.strings_modulos || '[]', modIdx);
         moduloQtd = strings.reduce((acc, s) => acc + s.quantidade, 0);
+        const referencedModulos = strings
+          .map(st => modulosListFull[st.modulo_idx ?? modIdx])
+          .filter(Boolean) as typeof modulosListFull;
+        moduloStatusTag = getStatusTag(referencedModulos.length > 0 ? referencedModulos : (mod ? [mod] : []));
       }
       physicalInvData.push({
         fabricante: String(inv.fabricante || '').toUpperCase() || '___',
         potencia: fmt2(inv.potencia),
         moduloWp,
         moduloQtd,
+        moduloStatusTag,
       });
     }
   }
@@ -153,6 +161,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
         {numInversores === 1 ? (
           <>
             {/* 1. Módulos */}
+            {modulosTagSingle && <div style={STATUS_TAG}>{modulosTagSingle}</div>}
             <div style={BOX}>
               <div style={BOLD}>{modulosQtd > 0 ? modulosQtd : '___'} Módulos Fotovoltaicos</div>
               <div style={NORMAL}>de {modulosWp > 0 ? modulosWp : '___'} Wp cada</div>
@@ -211,8 +220,10 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
+                const uStatusTag = unit?.moduloStatusTag || '';
                 return (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {uStatusTag && <div style={STATUS_TAG}>{uStatusTag}</div>}
                     <div style={BOX}>
                       <div style={BOLD}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</div>
                       <div style={NORMAL}>de {uWp > 0 ? uWp : '___'} Wp cada</div>
@@ -287,8 +298,10 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 const uPot = unit?.potencia ?? '___';
                 const uWp = unit?.moduloWp ?? modulosWp;
                 const uQtd = unit?.moduloQtd ?? 0;
+                const uStatusTag = unit?.moduloStatusTag || '';
                 return (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {uStatusTag && <div style={STATUS_TAG}>{uStatusTag}</div>}
                     <div style={BOX}>
                       <div style={BOLD}>{uQtd > 0 ? uQtd : '___'} Módulos Fotovoltaicos</div>
                       <div style={NORMAL}>de {uWp > 0 ? uWp : '___'} Wp cada</div>
