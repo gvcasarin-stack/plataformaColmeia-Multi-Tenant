@@ -100,6 +100,9 @@ export default function ClientProjects() {
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table'); // Estado para alternar entre tabela e kanban
+  const [sortField, setSortField] = useState<'pot' | 'status' | null>(null);
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+  const [finalizadosOpen, setFinalizadosOpen] = useState(false);
   const { user } = useAuth();
   const { projects: allProjects, loading: projectsLoading, addProject } = useProjects();
   const isMobile = useIsMobile();
@@ -200,7 +203,154 @@ export default function ClientProjects() {
   });
   
   devLog.log("Filtered projects:", filteredProjects);
-  
+
+  // ✅ Projetos encerrados (Finalizado/Cancelado) ficam separados dos ativos,
+  // numa seção colapsável — não disputam atenção com o que ainda está em andamento.
+  const TERMINAL_SLUGS = ['finalizado', 'cancelado'];
+
+  // Funil principal usado pelo indicador de progresso: todas as etapas
+  // configuradas pelo tenant, exceto "Cancelado" (que é um aborto, não uma
+  // etapa concluída), na ordem definida em availableStatuses.
+  const mainFunnel = [...availableStatuses]
+    .filter(s => s.slug !== 'cancelado')
+    .sort((a, b) => a.order - b.order);
+
+  const compareProjects = (a: any, b: any) => {
+    if (!sortField) return 0;
+    let av: number, bv: number;
+    if (sortField === 'pot') {
+      av = a.potencia || 0;
+      bv = b.potencia || 0;
+    } else {
+      av = availableStatuses.find(s => s.slug === a.status)?.order ?? 999;
+      bv = availableStatuses.find(s => s.slug === b.status)?.order ?? 999;
+    }
+    return (av - bv) * sortDir;
+  };
+
+  const sortedFilteredProjects = sortField ? [...filteredProjects].sort(compareProjects) : filteredProjects;
+  const ativosProjects = sortedFilteredProjects.filter(p => !TERMINAL_SLUGS.includes(p.status));
+  const finalizadosProjects = sortedFilteredProjects.filter(p => TERMINAL_SLUGS.includes(p.status));
+
+  // Abre a seção de encerrados automaticamente se o filtro de status escolhido
+  // for justamente Finalizado ou Cancelado (senão o próprio filtro ficaria escondido).
+  const filterStatusInfo = availableStatuses.find(s => s.name === filter || s.slug === filter);
+  const isFinalizadosOpen = finalizadosOpen || (!!filterStatusInfo && TERMINAL_SLUGS.includes(filterStatusInfo.slug));
+
+  const handleSort = (field: 'pot' | 'status') => {
+    if (sortField === field) {
+      setSortDir(prev => (prev === 1 ? -1 : 1));
+    } else {
+      setSortField(field);
+      setSortDir(1);
+    }
+  };
+
+  const renderSortIcon = (field: 'pot' | 'status') => {
+    if (sortField !== field) return <Icons.ArrowUpDown className="h-3 w-3 text-gray-300 dark:text-gray-600" />;
+    return sortDir === 1
+      ? <Icons.ChevronUp className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+      : <Icons.ChevronDown className="h-3 w-3 text-blue-600 dark:text-blue-400" />;
+  };
+
+  // ✅ Indicador de progresso por posição no funil — de propósito NÃO é uma
+  // porcentagem: cada etapa tem duração muito diferente (uma assinatura pode
+  // levar 1 dia, uma homologação pode levar semanas), então "45%" prometeria
+  // um ritmo que não existe. Mostra em qual das N etapas o projeto está.
+  const renderStepper = (statusSlug: string) => {
+    const idx = mainFunnel.findIndex(s => s.slug === statusSlug);
+    if (idx === -1 || mainFunnel.length <= 1) return null;
+    const total = mainFunnel.length;
+    return (
+      <div className="flex items-center gap-1.5 mt-1.5" title={`Etapa ${idx + 1} de ${total} do funil`}>
+        <div className="flex gap-0.5">
+          {mainFunnel.map((step, i) => (
+            <span
+              key={step.id}
+              className="block w-[9px] h-1 rounded-sm bg-gray-200 dark:bg-gray-700"
+              style={i <= idx ? { backgroundColor: mainFunnel[idx].color } : undefined}
+            />
+          ))}
+        </div>
+        <span className="text-[10.5px] text-gray-400 dark:text-gray-500 tabular-nums whitespace-nowrap">{idx + 1}/{total}</span>
+      </div>
+    );
+  };
+
+  // Linha da tabela — extraído em função para ser reutilizado nos projetos
+  // ativos e, quando expandida, na seção de Finalizados/Cancelados.
+  const renderProjectRow = (project: any, index: number) => {
+    const projectStatus = availableStatuses.find(s => s.slug === project.status);
+    const statusName = projectStatus?.name || getStatusDisplayName(project.status);
+
+    const statusConfig = getStatusConfig(project.status);
+    const StatusIcon = statusConfig.icon;
+
+    return (
+      <TableRow
+        key={`${project.id}-${index}`}
+        className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 cursor-pointer group border-b border-gray-100 dark:border-gray-700/50"
+        onClick={() => handleViewProject(project.id)}
+      >
+        <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+          {project.number}
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Icons.Building2 className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+            </div>
+            <span className="text-gray-700 dark:text-gray-300">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Icons.User className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+            </div>
+            <span className="text-gray-700 dark:text-gray-300">{project.nomeClienteFinal || 'N/A'}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-900/30 border border-cyan-100 dark:border-cyan-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Icons.Plug className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+            </div>
+            <span className="text-gray-700 dark:text-gray-300">{project.distribuidora || 'N/A'}</span>
+          </div>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-gray-700 dark:text-gray-300">{project.potencia || 0} kWp</span>
+            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Icons.Zap className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-col">
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm w-fit`}>
+              <StatusIcon className="w-3.5 h-3.5" />
+              <span className="text-sm font-medium">{statusName}</span>
+            </div>
+            {renderStepper(project.status)}
+          </div>
+        </TableCell>
+        <TableCell className="text-right pr-6">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 px-4 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-700 shadow-sm transition-all"
+            onClick={(e) => { e.stopPropagation(); handleViewProject(project.id); }}
+          >
+            <Icons.Eye className="h-4 w-4 mr-2" />
+            Ver Detalhes
+          </Button>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   const isPendingApproval = user?.profile?.status === 'pending' || userData?.status === 'pending';
   
   // Adicionando um ref para controlar duplicação de submissão
@@ -590,6 +740,43 @@ export default function ClientProjects() {
         </div>
       </div>
 
+      {/* Contador de resultados + chips de filtro ativo removíveis */}
+      {!projectsLoading && (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-sm text-gray-500 dark:text-gray-400">
+          <span>Mostrando {filteredProjects.length} de {projects.length} projeto{projects.length === 1 ? '' : 's'}</span>
+          {(searchQuery.trim() || filter !== 'all') && (
+            <div className="flex flex-wrap gap-2">
+              {searchQuery.trim() && (
+                <span className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-medium">
+                  Busca: &quot;{searchQuery.trim()}&quot;
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Remover busca"
+                    className="w-4 h-4 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800/60 hover:bg-blue-200 dark:hover:bg-blue-700"
+                  >
+                    <Icons.X className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              )}
+              {filter !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-medium">
+                  Status: {filter}
+                  <button
+                    type="button"
+                    onClick={() => setFilter('all')}
+                    aria-label="Remover filtro de status"
+                    className="w-4 h-4 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800/60 hover:bg-blue-200 dark:hover:bg-blue-700"
+                  >
+                    <Icons.X className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Projects Table ou Kanban */}
       {projectsLoading ? (
         <div className="flex justify-center items-center py-16">
@@ -638,73 +825,76 @@ export default function ClientProjects() {
                             Nenhum projeto
                           </p>
                         ) : (
-                          statusProjects.map((project, index) => {
-                            const statusConfig = getStatusConfig(project.status);
-                            const StatusIcon = statusConfig.icon;
-                            
-                            return (
-                              <Card 
-                                key={`${project.id}-${index}`}
-                                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-all cursor-pointer"
-                                onClick={() => handleViewProject(project.id)}
-                              >
-                                <CardContent className="p-4">
-                                  <div className="space-y-3">
-                                    {/* Número do projeto */}
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center">
-                                          <Icons.Lightbulb className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                                        </div>
-                                        <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                          {project.number}
-                                        </span>
-                                      </div>
-                                      <StatusIcon className="w-4 h-4" style={{ color: status.color }} />
-                                    </div>
-                                    
-                                    {/* Informações do projeto */}
-                                    <div className="space-y-2 text-sm">
-                                      <div className="flex items-start gap-2">
-                                        <Icons.User className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                                        <span className="text-gray-700 dark:text-gray-300 line-clamp-2">
-                                          {project.nomeClienteFinal || 'N/A'}
-                                        </span>
-                                      </div>
-                                      
-                                      <div className="flex items-center gap-2">
-                                        <Icons.Zap className="h-4 w-4 text-amber-500" />
-                                        <span className="text-gray-700 dark:text-gray-300">
-                                          {project.potencia || 0} kWp
-                                        </span>
-                                      </div>
-                                      
-                                      <div className="flex items-start gap-2">
-                                        <Icons.Building2 className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                                        <span className="text-gray-600 dark:text-gray-400 text-xs line-clamp-1">
-                                          {project.distribuidora || 'N/A'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Botão de ação */}
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full h-8 text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleViewProject(project.id);
-                                      }}
-                                    >
-                                      <Icons.Eye className="h-3 w-3 mr-1" />
-                                      Ver Detalhes
-                                    </Button>
+                          statusProjects.map((project, index) => (
+                            // ✅ Estrutura e cores replicadas do card do Kanban do admin (mesma
+                            // linguagem visual), sem os elementos de gestão interna (prioridade,
+                            // menu de ações, responsável atribuído, SLA — não fazem sentido pro
+                            // cliente ver). O ícone de status também some daqui: a coluna já
+                            // comunica isso, igual o admin também não repete o status no card.
+                            <Card
+                              key={`${project.id}-${index}`}
+                              className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-all duration-200 p-3 space-y-2 cursor-pointer"
+                              onClick={() => handleViewProject(project.id)}
+                            >
+                              {/* Número do projeto */}
+                              <div className="font-medium text-gray-900 dark:text-white">
+                                {project.number}
+                              </div>
+
+                              {/* Empresa / Cliente / Distribuidora */}
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                  <div className="w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                    <Icons.Building2 className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
                                   </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })
+                                  <span className="truncate">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                  <div className="w-6 h-6 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                    <Icons.Users className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />
+                                  </div>
+                                  <span className="truncate">{project.nomeClienteFinal || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                  <div className="w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                                    <Icons.Factory className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
+                                  </div>
+                                  <span className="truncate">{project.distribuidora || 'N/A'}</span>
+                                </div>
+                              </div>
+
+                              {/* Potência + Data de entrega */}
+                              <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                                <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                                  <div className="w-5 h-5 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+                                    <Icons.Zap className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                                  </div>
+                                  <span>{project.potencia || 0} kWp</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                                  <div className="w-5 h-5 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+                                    <Icons.Calendar className="h-3 w-3 text-red-500 dark:text-red-400" />
+                                  </div>
+                                  <span>{project.dataEntrega ? new Date(project.dataEntrega).toLocaleDateString('pt-BR') : '—'}</span>
+                                </div>
+                              </div>
+
+                              {/* Botão de ação — recurso próprio do Kanban do cliente (o admin
+                                  não tem, lá o card inteiro é arrastável) */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full h-8 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewProject(project.id);
+                                }}
+                              >
+                                <Icons.Eye className="h-3 w-3 mr-1" />
+                                Ver Detalhes
+                              </Button>
+                            </Card>
+                          ))
                         )}
                       </div>
                     </div>
@@ -799,82 +989,59 @@ export default function ClientProjects() {
           </div>
         ) : (
           // Layout de tabela para desktop
-          <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-md overflow-hidden bg-white dark:bg-gray-800">
+          <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-md bg-white dark:bg-gray-800">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50/80 hover:bg-gray-50/80 dark:bg-gray-700/50 dark:hover:bg-gray-700/50">
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Número</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Empresa Integradora</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Cliente Final</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Distribuidora</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Potência</TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-300">Status</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300 pr-6">Ações</TableHead>
+                  <TableHead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-700 dark:text-gray-300">Número</TableHead>
+                  <TableHead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-700 dark:text-gray-300">Empresa Integradora</TableHead>
+                  <TableHead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-700 dark:text-gray-300">Cliente Final</TableHead>
+                  <TableHead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-700 dark:text-gray-300">Distribuidora</TableHead>
+                  <TableHead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-700 dark:text-gray-300 text-right">
+                    <button type="button" onClick={() => handleSort('pot')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      Potência {renderSortIcon('pot')}
+                    </button>
+                  </TableHead>
+                  <TableHead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-700 dark:text-gray-300">
+                    <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      Status {renderSortIcon('status')}
+                    </button>
+                  </TableHead>
+                  <TableHead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 text-right font-semibold text-gray-700 dark:text-gray-300 pr-6">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProjects.map((project, index) => {
-                  // Buscar o status real do tenant ao invés de usar o mapa estático
-                  const projectStatus = availableStatuses.find(s => s.slug === project.status);
-                  const statusName = projectStatus?.name || getStatusDisplayName(project.status);
-                  const statusColor = projectStatus?.color || '#6b7280';
+                {ativosProjects.map((project, index) => renderProjectRow(project, index))}
 
-                  const statusConfig = getStatusConfig(project.status);
-                  const StatusIcon = statusConfig.icon;
+                {ativosProjects.length === 0 && finalizadosProjects.length > 0 && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={7} className="text-center text-sm italic text-gray-400 dark:text-gray-500 py-8">
+                      Nenhum projeto ativo com esse filtro — veja Finalizados e Cancelados abaixo.
+                    </TableCell>
+                  </TableRow>
+                )}
 
-                  return (
-                    <TableRow
-                      key={`${project.id}-${index}`}
-                      className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 cursor-pointer group border-b border-gray-100 dark:border-gray-700/50"
-                    >
-                      <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                        {project.number}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                            <Icons.Building2 className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                          </div>
-                          <span className="text-gray-700 dark:text-gray-300">{project.empresaIntegradora || userData?.companyName || userData?.name || 'N/A'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                            <Icons.User className="h-4 w-4 text-purple-500 dark:text-purple-400" />
-                          </div>
-                          <span className="text-gray-700 dark:text-gray-300">{project.nomeClienteFinal || 'N/A'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-700 dark:text-gray-300">{project.distribuidora || 'N/A'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 flex items-center justify-center flex-shrink-0 shadow-sm">
-                            <Icons.Zap className="h-4 w-4 text-amber-500 dark:text-amber-400" />
-                          </div>
-                          <span className="text-gray-700 dark:text-gray-300">{project.potencia || 0} kWp</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${statusConfig.color} dark:bg-opacity-20 shadow-sm`}>
-                          <StatusIcon className="w-3.5 h-3.5" />
-                          <span className="text-sm font-medium">{statusName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 px-4 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-700 shadow-sm transition-all"
-                          onClick={() => handleViewProject(project.id)}
-                        >
-                          <Icons.Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {finalizadosProjects.length > 0 && (
+                  <TableRow className="hover:bg-transparent border-b-0">
+                    <TableCell colSpan={7} className="p-0">
+                      <button
+                        type="button"
+                        onClick={() => setFinalizadosOpen((v) => !v)}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-50/60 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        {isFinalizadosOpen ? (
+                          <Icons.ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                        ) : (
+                          <Icons.ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                        )}
+                        Finalizados e Cancelados
+                        <span className="text-gray-400 font-normal">({finalizadosProjects.length})</span>
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {isFinalizadosOpen && finalizadosProjects.map((project, index) => renderProjectRow(project, index))}
               </TableBody>
             </Table>
           </div>
