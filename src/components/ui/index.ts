@@ -52,7 +52,4 @@ export { useToast } from './use-toast';
 
 // Dashboard components
 export { DashboardLayout } from './dashboard-layout';
-export { DashboardStats } from './dashboard-stats';
-
-// Notification components
-export { default as NotificationItem } from './notification-item'; 
+export { DashboardStats } from './dashboard-stats'; 

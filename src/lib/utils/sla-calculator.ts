@@ -27,11 +27,21 @@ export function calculateBusinessHours(
     return diffMs / (1000 * 60 * 60);
   }
 
-  // Calcular excluindo fins de semana
-  let totalHours = 0;
-  const current = new Date(startDate);
+  // ✅ CORREÇÃO: quando startDate é posterior a endDate (ex: calcular quanto
+  // tempo passou de um prazo já vencido, onde "agora" vem depois do prazo),
+  // o laço abaixo precisa contar de trás para frente. Antes, o laço sempre
+  // assumia startDate < endDate — quando vinha invertido, a condição
+  // "current < endDate" já era falsa na primeira checagem, o laço nunca
+  // rodava, e a função sempre devolvia 0 (fazia o atraso parecer "0h" não
+  // importa há quanto tempo o prazo tivesse vencido).
+  const isReversed = startDate > endDate;
+  const earlier = isReversed ? endDate : startDate;
+  const later = isReversed ? startDate : endDate;
 
-  while (current < endDate) {
+  let totalHours = 0;
+  const current = new Date(earlier);
+
+  while (current < later) {
     const dayOfWeek = current.getDay();
 
     // Se não for sábado (6) ou domingo (0), conta a hora
@@ -42,7 +52,7 @@ export function calculateBusinessHours(
     current.setHours(current.getHours() + 1);
   }
 
-  return totalHours;
+  return isReversed ? -totalHours : totalHours;
 }
 
 /**
