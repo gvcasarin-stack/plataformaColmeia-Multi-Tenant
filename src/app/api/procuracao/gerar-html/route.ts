@@ -10,19 +10,19 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/service';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      nome_cliente_final,
-      cpf_cnpj_cliente_final,
-      client_city,
-      client_state,
-      distribuidora
-    } = body;
+    const { project_id, userId } = body;
 
-    // Validar campos obrigatórios
-    if (!nome_cliente_final || !cpf_cnpj_cliente_final || !client_city || !client_state || !distribuidora) {
+    if (!project_id) {
       return NextResponse.json(
-        { error: 'Todos os campos são obrigatórios' },
+        { error: 'project_id é obrigatório' },
         { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Acesso negado: usuário não identificado' },
+        { status: 401 }
       );
     }
 
@@ -39,6 +39,58 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSupabaseServiceRoleClient();
+
+    // ✅ Busca o projeto direto do banco, escopado ao tenant do request — garante
+    // que cada tenant só gera procuração dos seus próprios projetos, e usa os
+    // dados realmente salvos (não o que veio no corpo da requisição).
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, tenant_id, owner_id, created_by, nome_cliente_final, cpf_cnpj_cliente_final, client_city, client_state, distribuidora')
+      .eq('id', project_id)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    if (projectError || !project) {
+      return NextResponse.json(
+        { error: 'Projeto não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // ✅ Autorização: admin/superadmin/colaborador podem gerar de qualquer
+    // projeto do tenant; qualquer outro usuário (cliente) só do projeto dele.
+    const { data: requestingUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .eq('tenant_id', tenantId)
+      .single();
+
+    const isInternalRole = requestingUser?.role === 'admin' ||
+      requestingUser?.role === 'superadmin' ||
+      requestingUser?.role === 'colaborador';
+    const isProjectOwner = project.owner_id === userId || project.created_by === userId;
+
+    if (!isInternalRole && !isProjectOwner) {
+      return NextResponse.json(
+        { error: 'Você não tem permissão para gerar a procuração deste projeto' },
+        { status: 403 }
+      );
+    }
+
+    const nome_cliente_final = project.nome_cliente_final;
+    const cpf_cnpj_cliente_final = project.cpf_cnpj_cliente_final;
+    const client_city = project.client_city;
+    const client_state = project.client_state;
+    const distribuidora = project.distribuidora;
+
+    // Validar campos obrigatórios (dados salvos no projeto)
+    if (!nome_cliente_final || !cpf_cnpj_cliente_final || !client_city || !client_state || !distribuidora) {
+      return NextResponse.json(
+        { error: 'Todos os campos são obrigatórios. Salve os dados do projeto antes de gerar a procuração.' },
+        { status: 400 }
+      );
+    }
 
     const { data: configData, error: configError } = await supabase
       .from('configs')

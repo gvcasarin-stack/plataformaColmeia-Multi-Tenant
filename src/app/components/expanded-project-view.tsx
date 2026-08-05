@@ -248,6 +248,17 @@ export const ExpandedProjectView = ({
     user?.role === 'colaborador' ||
     user?.profile?.role === 'colaborador';
 
+  // ✅ "Gerar Procuração" é liberado também para o próprio cliente (dono do
+  // projeto) — diferente de canGerarProjeto, que continua restrito a
+  // admin/colaborador (aba "Gerar Projeto" tem documentos técnicos internos).
+  // A autorização real (só o próprio projeto) é validada no servidor, em
+  // /api/procuracao/gerar-html — isto aqui só controla a visibilidade do botão.
+  const canGerarProcuracao = canGerarProjeto ||
+    user?.role === 'client' ||
+    user?.role === 'cliente' ||
+    user?.profile?.role === 'client' ||
+    user?.profile?.role === 'cliente';
+
   const isColaboradorWithEditPermission = (
     user?.role === 'colaborador' ||
     user?.profile?.role === 'colaborador'
@@ -2629,7 +2640,7 @@ export const ExpandedProjectView = ({
                             >
                                 Adicionar Comentário
                             </Button>
-                            {canGerarProjeto && (
+                            {canGerarProcuracao && (
                                 <Button
                                     variant="default"
                                     onClick={() => setShowProcuracaoModal(true)}

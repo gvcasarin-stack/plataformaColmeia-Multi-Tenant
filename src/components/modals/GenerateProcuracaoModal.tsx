@@ -112,8 +112,7 @@ export function GenerateProcuracaoModal({
     formState: { errors },
     reset,
     setValue,
-    watch,
-    getValues
+    watch
   } = useForm<ProcuracaoFormData>();
 
   const watchedCpfCnpj = watch('cpf_cnpj_cliente_final');
@@ -170,14 +169,12 @@ export function GenerateProcuracaoModal({
     if (!project || missingFields.length > 0) return;
 
     try {
-      const formData = getValues();
-
+      // ✅ A rota busca os dados diretamente do projeto salvo no banco (escopado
+      // ao tenant e validando permissão do usuário) — por isso só precisamos
+      // informar qual projeto e quem está pedindo, não os valores do formulário.
       const payload = {
-        nome_cliente_final: formData.nome_cliente_final,
-        cpf_cnpj_cliente_final: removerFormatacao(formData.cpf_cnpj_cliente_final),
-        client_city: formData.client_city,
-        client_state: formData.client_state,
-        distribuidora: formData.distribuidora
+        project_id: project.id,
+        userId
       };
 
       const response = await fetch('/api/procuracao/gerar-html', {

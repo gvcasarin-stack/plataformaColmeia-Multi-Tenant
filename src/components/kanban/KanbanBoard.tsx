@@ -38,7 +38,7 @@ import { toast } from '@/components/ui/use-toast'
 import { DeleteColumnDialog } from '@/components/kanban'
 import { devLog } from "@/lib/utils/productionLogger";
 import { useAuth } from '@/lib/hooks/useAuth'
-import { calculateSLAStatus, calculateSLAExpiration } from '@/lib/utils/sla-calculator'
+import { calculateSLAStatus, calculateSLAExpiration, formatOverdueTime } from '@/lib/utils/sla-calculator'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1291,7 +1291,7 @@ export const KanbanBoard = forwardRef<
                                     <div className="mt-2">
                                       <Badge className="w-full justify-center bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 text-xs py-1 font-medium">
                                         <Clock className="h-3 w-3 mr-1" />
-                                        ATRASADO {slaStatus.hoursOverdue}h
+                                        ATRASADO {formatOverdueTime(slaStatus.hoursOverdue ?? 0)}
                                       </Badge>
                                     </div>
                                   );

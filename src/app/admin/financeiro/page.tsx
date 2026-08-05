@@ -2724,7 +2724,7 @@ export default function AdminBillingPage() {
                   <SelectTrigger className="w-full sm:w-[240px]">
                     <SelectValue placeholder="Todos os clientes" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" className="max-h-72 overflow-y-auto custom-scrollbar">
                     <SelectItem value="all">Todos os clientes</SelectItem>
                     {uniqueClients.map(({ key, name }) => (
                       <SelectItem key={key} value={key}>

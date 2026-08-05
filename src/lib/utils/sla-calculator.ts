@@ -198,3 +198,24 @@ export function formatTimeRemaining(hours: number): string {
 
   return `${days}d ${remainingHours}h`;
 }
+
+/**
+ * Formata o tempo de atraso do badge "ATRASADO" do Kanban: em horas quando
+ * for menos de 24h, e em dias por extenso (ex: "2 dias", "1 dia e 5h") a
+ * partir de 24h.
+ */
+export function formatOverdueTime(hours: number): string {
+  if (hours < 24) {
+    return `${Math.floor(hours)}h`;
+  }
+
+  const days = Math.floor(hours / 24);
+  const remainingHours = Math.floor(hours % 24);
+  const diasLabel = days === 1 ? '1 dia' : `${days} dias`;
+
+  if (remainingHours === 0) {
+    return diasLabel;
+  }
+
+  return `${diasLabel} e ${remainingHours}h`;
+}
