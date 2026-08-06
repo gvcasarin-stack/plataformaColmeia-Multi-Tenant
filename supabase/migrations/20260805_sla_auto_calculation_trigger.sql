@@ -34,6 +34,15 @@
 -- feito pela aplicação.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- DROP + CREATE (em vez de apenas CREATE OR REPLACE): a função
+-- calculate_sla_expiration já existia no banco, criada por scripts antigos
+-- de backfill (ex.: populate-sla-existing-projects-solar-tech.sql) que
+-- deveriam ter se autodestruído no final mas, nesse tenant, deixaram a
+-- função para trás com nomes de parâmetro diferentes dos usados aqui — e
+-- Postgres não permite CREATE OR REPLACE mudar nome de parâmetro.
+DROP FUNCTION IF EXISTS add_business_hours(TIMESTAMPTZ, NUMERIC, BOOLEAN);
+DROP FUNCTION IF EXISTS calculate_sla_expiration(TIMESTAMPTZ, INTEGER, BOOLEAN);
+
 CREATE OR REPLACE FUNCTION add_business_hours(
   p_start TIMESTAMPTZ,
   p_hours NUMERIC,
