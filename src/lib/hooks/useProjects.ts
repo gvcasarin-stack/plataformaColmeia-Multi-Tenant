@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Project, UpdatedProject, CreateProjectClientData } from '@/types/project';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { getProjectsForUserAction, updateProjectAction, editProjectAction, deleteProjectAction, createProjectClientAction } from '@/lib/actions/project-actions';
+import { getProjectsForUserAction, editProjectAction, deleteProjectAction, createProjectClientAction } from '@/lib/actions/project-actions';
 import logger from '@/lib/utils/logger';
 
 // Helper function to ensure consistent date formatting

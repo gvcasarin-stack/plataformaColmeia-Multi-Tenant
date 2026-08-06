@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { getProjectAction, updateProjectAction, editProjectAction } from "@/lib/actions/project-actions";
+import { getProjectAction, editProjectAction } from "@/lib/actions/project-actions";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
 import { ExpandedProjectView } from "@/app/components/expanded-project-view";

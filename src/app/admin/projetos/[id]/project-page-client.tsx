@@ -4,7 +4,7 @@
 import { ExpandedProjectView } from "@/app/components/expanded-project-view";
 import { Project, UpdatedProject } from "@/types/project";
 import { useRouter } from "next/navigation";
-import { updateProjectAction, getProjectAction, editProjectAction } from "@/lib/actions/project-actions";
+import { getProjectAction, editProjectAction } from "@/lib/actions/project-actions";
 import { useCallback, useTransition, useEffect, useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { devLog } from "@/lib/utils/productionLogger";
