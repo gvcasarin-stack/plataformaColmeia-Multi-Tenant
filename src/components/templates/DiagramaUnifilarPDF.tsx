@@ -263,8 +263,13 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const PAGE_PADDING = 15;
   const placaImgLeft = PAGE_PADDING + (14 - VB_MINX) * SVG_SCALE;
   const placaImgTop = PAGE_PADDING + (44 - VB_MINY) * SVG_SCALE;
-  const placaImgW = 56 * SVG_SCALE;
-  const placaImgH = 60 * SVG_SCALE;
+  const placaImgW = 42 * SVG_SCALE;
+  const placaImgH = 45 * SVG_SCALE;
+
+  // Segunda ocorrência da placa — ao lado esquerdo do D1, abaixo e alinhada
+  // ao texto do Ramal de Ligação (mesma técnica de conversão viewBox→pontos)
+  const placaImg2Left = PAGE_PADDING + ((topCX - 96) - VB_MINX) * SVG_SCALE;
+  const placaImg2Top = PAGE_PADDING + (110 - VB_MINY) * SVG_SCALE;
 
   return (
     <Document>
@@ -292,7 +297,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
 
           {/* ═══ PLACA DE ADVERTENCIA (CPFL) — texto ao lado esquerdo do PADRAO DE ENTRADA (imagem fica fora do Svg, ver bloco de posicionamento absoluto abaixo) ═══ */}
           {isCPFL && placaAdvertencia && PLACA_ADVERTENCIA_CPFL_LINES.map((line, i) => (
-            <Text key={i} x={14} y={118 + i * 7} fontSize={4.5} fill="#000">{line}</Text>
+            <Text key={i} x={14} y={103 + i * 8} fontSize={5.5} fill="#000">{line}</Text>
           ))}
 
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
@@ -836,6 +841,26 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
             position: 'absolute',
             left: placaImgLeft,
             top: placaImgTop,
+            width: placaImgW,
+            height: placaImgH,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Image
+              src={placaAdvertencia.imagem_url}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          </View>
+        )}
+
+        {/* Placa de Advertência (CPFL) — segunda ocorrência, ao lado esquerdo do D1 */}
+        {isCPFL && placaAdvertencia && (
+          <View style={{
+            position: 'absolute',
+            left: placaImg2Left,
+            top: placaImg2Top,
             width: placaImgW,
             height: placaImgH,
             overflow: 'hidden',

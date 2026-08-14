@@ -111,9 +111,11 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const latDecimal = parseFloat(String(pd.latitude || '').replace(',', '.')) || null;
   const lngDecimal = parseFloat(String(pd.longitude || '').replace(',', '.')) || null;
 
-  const coords = utmX && utmY
+  const hasUtm = !!(utmX && utmY);
+  const usingLatLng = !hasUtm && !!(latDecimal && lngDecimal);
+  const coords = hasUtm
     ? utmToLatLng(utmX, utmY, utmZone)
-    : (latDecimal && lngDecimal ? { lat: latDecimal, lng: lngDecimal } : null);
+    : (usingLatLng ? { lat: latDecimal, lng: lngDecimal } : null);
   const mapImageUrl = mapboxToken && coords
     ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${coords.lng.toFixed(6)},${coords.lat.toFixed(6)},${mapZoom},0/800x520@2x?access_token=${mapboxToken}`
     : null;
@@ -504,10 +506,17 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
             >
               {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
               {uc         && <div><strong>UC:</strong> {uc}</div>}
-              {hasCoords  && <>
-                <div><strong>X:</strong> {utmX?.toFixed(0)} | <strong>Y:</strong> {utmY?.toFixed(0)}</div>
-                <div><strong>Fuso:</strong> {utmFusoRaw || utmZone}</div>
-              </>}
+              {hasCoords && (usingLatLng ? (
+                <>
+                  <div><strong>Lat:</strong> {latDecimal?.toFixed(6)}</div>
+                  <div><strong>Long:</strong> {lngDecimal?.toFixed(6)}</div>
+                </>
+              ) : (
+                <>
+                  <div><strong>X:</strong> {utmX?.toFixed(0)} | <strong>Y:</strong> {utmY?.toFixed(0)}</div>
+                  <div><strong>Fuso:</strong> {utmFusoRaw || utmZone}</div>
+                </>
+              ))}
             </div>
           )}
 

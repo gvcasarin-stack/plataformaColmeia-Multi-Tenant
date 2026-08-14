@@ -320,11 +320,11 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             <g>
               <image
                 href={placaAdvertencia.imagem_url}
-                x={14} y={44} width={56} height={60}
+                x={14} y={44} width={42} height={45}
                 preserveAspectRatio="xMidYMid meet"
               />
               {PLACA_ADVERTENCIA_CPFL_LINES.map((line, i) => (
-                <text key={i} x={14} y={118 + i * 7} fontSize="4.5">{line}</text>
+                <text key={i} x={14} y={103 + i * 8} fontSize="5.5">{line}</text>
               ))}
             </g>
           )}
@@ -344,6 +344,15 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX - 96} y="87"  fontSize="5.8" fontWeight="bold">{`Alumínio ${ramalTipo} - 1,0 kV`}</text>
           <text x={topCX - 96} y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
           <text x={topCX - 96} y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
+
+          {/* Placa de Advertência (CPFL) — ao lado esquerdo do D1, abaixo e alinhada ao texto do Ramal de Ligação */}
+          {isCPFL && placaAdvertencia && (
+            <image
+              href={placaAdvertencia.imagem_url}
+              x={topCX - 96} y={110} width={42} height={45}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          )}
 
           {/* D1 on main vertical line */}
           <Disjuntor x={topCX} y={145} />
