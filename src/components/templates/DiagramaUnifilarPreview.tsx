@@ -1,9 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { getTotalKwp, getTotalModulosQtd, getAllInversores } from '@/lib/utils/equipmentParser';
+
+// ── Placa de Advertência (CPFL) — texto normativo fixo ──────────────────────
+const PLACA_ADVERTENCIA_CPFL_LINES = [
+  'Além da tampa da caixa do medidor, onde a placa deve ser',
+  'obrigatoriamente fixada através de rebites, esta mesma placa',
+  'deverá também ser fixada através de parafusos ou cintas',
+  'metálicas nos seguintes locais:',
+  '1) No caso de ponto de entrega aérea, no postinho, ou',
+  'parede, ou cabine com buchas de passagem, do lado da via',
+  'pública, na conexão do ramal de ligação (ou serviço).',
+  '2) No caso de conexão de unidade consumidora (UC) em',
+  'edifício com múltiplas unidades (edifício de uso coletivo ou',
+  'com medição agrupada), no ponto de entrega do edifício',
+  '(poste) e na caixa de distribuição (se houver).',
+  '3) No caso de ponto de entrega subterrânea, na parte mais',
+  'alta do duto de entrada localizado no poste da CPFL.',
+];
 
 interface DiagramaUnifilarPreviewProps {
   projectData?: Record<string, any>;
@@ -67,6 +84,26 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const [generating, setGenerating] = useState(false);
   const pd = projectData || {};
   const hasStringbox = fv(pd.setup_quadro_cc, 'nao') !== 'nao';
+  const distribuidora = String(pd.distribuidora || '');
+  const isCPFL = distribuidora.toLowerCase().includes('cpfl');
+
+  // Placa de Advertência cadastrada no Acervo Técnico da distribuidora
+  // (mesmo mecanismo já usado no Memorial Descritivo)
+  const [placaAdvertencia, setPlacaAdvertencia] = useState<{ nome: string; imagem_url: string } | null>(null);
+  useEffect(() => {
+    if (!isCPFL) return;
+    const params = new URLSearchParams({ distribuidora, categoria: 'placa_advertencia' });
+    fetch(`/api/acervo-tecnico?${params.toString()}`)
+      .then(res => res.json())
+      .then(result => {
+        const items = result.data || [];
+        if (items.length > 0 && items[0].imagem_url) {
+          setPlacaAdvertencia({ nome: items[0].nome, imagem_url: items[0].imagem_url });
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCPFL, distribuidora]);
 
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
@@ -231,7 +268,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
       const React = await import('react');
       const clientName = pd?.nomeClienteFinal || 'projeto';
       const filename = `Diagrama Unifilar - ${clientName}.pdf`;
-      const blob = await pdf(React.createElement(DiagramaUnifilarPDF, { projectData })).toBlob();
+      const blob = await pdf(React.createElement(DiagramaUnifilarPDF, { projectData, placaAdvertencia })).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -277,6 +314,20 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <rect x={topBX} y="42" width={BW} height="150" fill="white" stroke="#000" strokeWidth="1.2" />
           <text x={topCX + 66} y="57" fontSize="7.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
           <text x={topCX + 66} y="67" fontSize="6"   textAnchor="middle">(caixa de medição)</text>
+
+          {/* ═══════════════ PLACA DE ADVERTÊNCIA (CPFL) — ao lado esquerdo do PADRÃO DE ENTRADA ═══════════════ */}
+          {isCPFL && placaAdvertencia && (
+            <g>
+              <image
+                href={placaAdvertencia.imagem_url}
+                x={14} y={44} width={56} height={60}
+                preserveAspectRatio="xMidYMid meet"
+              />
+              {PLACA_ADVERTENCIA_CPFL_LINES.map((line, i) => (
+                <text key={i} x={14} y={118 + i * 7} fontSize="4.5">{line}</text>
+              ))}
+            </g>
+          )}
 
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
           <line x1={topCX} y1="42" x2={topCX} y2="138" stroke="#000" strokeWidth="1" />

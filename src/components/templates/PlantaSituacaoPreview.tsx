@@ -104,7 +104,16 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const utmY = parseFloat(String(pd.coord_utm_y || '').replace(',', '.')) || null;
   const utmFusoRaw = String(pd.coord_utm_fuso || '');
   const utmZone = parseInt(utmFusoRaw) || 22;
-  const coords = utmX && utmY ? utmToLatLng(utmX, utmY, utmZone) : null;
+
+  // CPFL não usa UTM — o "Conferir Informações" coleta Latitude/Longitude em
+  // graus decimais diretamente (ver ConferirInformacoesModal.tsx), então
+  // aqui usamos esses valores sem conversão quando não houver UTM informado.
+  const latDecimal = parseFloat(String(pd.latitude || '').replace(',', '.')) || null;
+  const lngDecimal = parseFloat(String(pd.longitude || '').replace(',', '.')) || null;
+
+  const coords = utmX && utmY
+    ? utmToLatLng(utmX, utmY, utmZone)
+    : (latDecimal && lngDecimal ? { lat: latDecimal, lng: lngDecimal } : null);
   const mapImageUrl = mapboxToken && coords
     ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${coords.lng.toFixed(6)},${coords.lat.toFixed(6)},${mapZoom},0/800x520@2x?access_token=${mapboxToken}`
     : null;
@@ -120,7 +129,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const potencia   = String(pd.potencia || '');
   const logoUrl    = String(pd.logo_empresa_url || '');
   const dataDoc    = String(pd.data_documento || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
-  const hasCoords  = !!(utmX && utmY);
+  const hasCoords  = !!((utmX && utmY) || (latDecimal && lngDecimal));
   const hasToken   = !!mapboxToken;
 
   // ── Helpers de posição ──
@@ -298,7 +307,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
       {!hasCoords && (
         <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2 text-sm text-blue-800">
           <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>Preencha <strong>Coordenadas UTM X, Y e Fuso</strong> nas informações do projeto.</span>
+          <span>Preencha as <strong>Coordenadas</strong> (UTM X/Y/Fuso, ou Latitude/Longitude para CPFL) nas informações do projeto.</span>
         </div>
       )}
 

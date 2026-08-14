@@ -16,7 +16,26 @@ import { getTotalKwp, getTotalModulosQtd, getAllInversores } from '@/lib/utils/e
 
 interface DiagramaUnifilarPDFProps {
   projectData?: Record<string, any>;
+  placaAdvertencia?: { nome: string; imagem_url: string } | null;
 }
+
+// ── Placa de Advertência (CPFL) — texto normativo fixo (sem acentos, como o
+// restante deste arquivo, por limitação de fontes do react-pdf) ────────────
+const PLACA_ADVERTENCIA_CPFL_LINES = [
+  'Alem da tampa da caixa do medidor, onde a placa deve ser',
+  'obrigatoriamente fixada atraves de rebites, esta mesma placa',
+  'devera tambem ser fixada atraves de parafusos ou cintas',
+  'metalicas nos seguintes locais:',
+  '1) No caso de ponto de entrega aerea, no postinho, ou',
+  'parede, ou cabine com buchas de passagem, do lado da via',
+  'publica, na conexao do ramal de ligacao (ou servico).',
+  '2) No caso de conexao de unidade consumidora (UC) em',
+  'edificio com multiplas unidades (edificio de uso coletivo ou',
+  'com medicao agrupada), no ponto de entrega do edificio',
+  '(poste) e na caixa de distribuicao (se houver).',
+  '3) No caso de ponto de entrega subterranea, na parte mais',
+  'alta do duto de entrada localizado no poste da CPFL.',
+];
 
 function fv(val: any, fb = '___'): string {
   if (val === undefined || val === null || val === '') return fb;
@@ -74,8 +93,9 @@ function PDFChaveSeccionadora({ x, y }: { x: number; y: number }) {
 
 // ── PDF Component ───────────────────────────────────────────────────────────
 
-export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
+export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaUnifilarPDFProps) {
   const pd = projectData || {};
+  const isCPFL = String(pd.distribuidora || '').toLowerCase().includes('cpfl');
 
   const modQtd    = getTotalModulosQtd(pd);
   const potTotal  = getTotalKwp(pd);
@@ -232,6 +252,20 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
   // Seal column centers
   const MID_CTR = 439; // center of middle col (178-700)
 
+  // Placa de Advertência — mesma conversão viewBox→pontos do Page usada no
+  // logo abaixo (Svg width/height ≠ viewBox, então a posição em pontos
+  // precisa ser escalada; ver bloco do logo mais adiante).
+  const SVG_W = numInversores >= 4 ? 1280 : (numInversores >= 3 ? 1160 : 812);
+  const VB_MINX = numInversores >= 4 ? -100 : (numInversores >= 3 ? -25 : 0);
+  const VB_W = numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060);
+  const VB_MINY = -25;
+  const SVG_SCALE = SVG_W / VB_W;
+  const PAGE_PADDING = 15;
+  const placaImgLeft = PAGE_PADDING + (14 - VB_MINX) * SVG_SCALE;
+  const placaImgTop = PAGE_PADDING + (44 - VB_MINY) * SVG_SCALE;
+  const placaImgW = 56 * SVG_SCALE;
+  const placaImgH = 60 * SVG_SCALE;
+
   return (
     <Document>
       <Page size={numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A3')} style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
@@ -255,6 +289,11 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           <Rect x={topBX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={topCX + 66} y={57} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
           <Text x={topCX + 66} y={67} fontSize={6} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
+
+          {/* ═══ PLACA DE ADVERTENCIA (CPFL) — texto ao lado esquerdo do PADRAO DE ENTRADA (imagem fica fora do Svg, ver bloco de posicionamento absoluto abaixo) ═══ */}
+          {isCPFL && placaAdvertencia && PLACA_ADVERTENCIA_CPFL_LINES.map((line, i) => (
+            <Text key={i} x={14} y={118 + i * 7} fontSize={4.5} fill="#000">{line}</Text>
+          ))}
 
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
           <Line x1={topCX} y1={42} x2={topCX} y2={138} stroke="#000" strokeWidth={1} />
@@ -786,6 +825,26 @@ export function DiagramaUnifilarPDF({ projectData }: DiagramaUnifilarPDFProps) {
           }}>
             <Image
               src={pd.logo_empresa_url}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          </View>
+        )}
+
+        {/* Placa de Advertência (CPFL) — mesma técnica do logo acima (imagem fora do Svg, posição absoluta escalada) */}
+        {isCPFL && placaAdvertencia && (
+          <View style={{
+            position: 'absolute',
+            left: placaImgLeft,
+            top: placaImgTop,
+            width: placaImgW,
+            height: placaImgH,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Image
+              src={placaAdvertencia.imagem_url}
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           </View>
