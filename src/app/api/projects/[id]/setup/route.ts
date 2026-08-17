@@ -4,6 +4,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server';
 const SETUP_FIELDS = [
   'setup_e_ampliacao',
   'setup_padrao_entrada',
+  'setup_dps_padrao_entrada',
   'setup_quadro_cc',
   'setup_mais_de_um_inversor',
   'setup_tipo_inversor',

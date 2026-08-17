@@ -10,6 +10,7 @@ import { Settings, Info, CheckCircle2 } from 'lucide-react';
 export interface SetupProjetoData {
   setup_e_ampliacao: string;
   setup_padrao_entrada: string;
+  setup_dps_padrao_entrada: string;
   setup_quadro_cc: string;
   setup_mais_de_um_inversor: string;
   setup_tipo_inversor: string;
@@ -23,6 +24,7 @@ export interface SetupProjetoData {
 export const SETUP_DEFAULTS: SetupProjetoData = {
   setup_e_ampliacao: 'nao',
   setup_padrao_entrada: 'baixa_tensao',
+  setup_dps_padrao_entrada: 'nao',
   setup_quadro_cc: 'nao',
   setup_mais_de_um_inversor: 'nao',
   setup_tipo_inversor: 'string',
@@ -73,6 +75,7 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
     setLocal({
       setup_e_ampliacao: fields.setup_e_ampliacao || SETUP_DEFAULTS.setup_e_ampliacao,
       setup_padrao_entrada: fields.setup_padrao_entrada || SETUP_DEFAULTS.setup_padrao_entrada,
+      setup_dps_padrao_entrada: fields.setup_dps_padrao_entrada || SETUP_DEFAULTS.setup_dps_padrao_entrada,
       setup_quadro_cc: fields.setup_quadro_cc || SETUP_DEFAULTS.setup_quadro_cc,
       setup_mais_de_um_inversor: fields.setup_mais_de_um_inversor || SETUP_DEFAULTS.setup_mais_de_um_inversor,
       setup_tipo_inversor: fields.setup_tipo_inversor || SETUP_DEFAULTS.setup_tipo_inversor,
@@ -143,6 +146,16 @@ export function SetupProjetoModal({ open, onClose, fields, onSave }: Props) {
               options={[
                 { value: 'baixa_tensao', label: 'Baixa Tensão' },
                 { value: 'media_tensao', label: 'Média Tensão' },
+              ]}
+            />
+            <SelectQuestion
+              label="DPS no Padrão de Entrada?"
+              value={local.setup_dps_padrao_entrada}
+              onChange={v => set('setup_dps_padrao_entrada', v)}
+              options={[
+                { value: 'nao', label: 'Não' },
+                { value: 'tipo2', label: 'Sim, DPS Tipo II' },
+                { value: 'tipo1', label: 'Sim, DPS Tipo I' },
               ]}
             />
             {isMediaTensao && (

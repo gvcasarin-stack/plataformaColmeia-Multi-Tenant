@@ -253,8 +253,21 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
   // For multi-inv, center top section at QD center (always 450 with current math)
   const topCX = isMultiInv ? 450 : CX;
-  const topBX = topCX - 120;
-  const topBR = topCX + 120;
+
+  // DPS no Padrão de Entrada (Setup do Projeto) — quantidade vem do Tipo de Conexão
+  // do Padrão de Entrada (mesma fonte que já define o Ramal de Ligação/D1 acima),
+  // Classe vem da opção escolhida no Setup (Tipo I/Tipo II).
+  const dpsEntradaSetup = fv(pd.setup_dps_padrao_entrada);
+  const hasDpsEntrada = dpsEntradaSetup === 'tipo1' || dpsEntradaSetup === 'tipo2';
+  const dpsEntradaQtd = isTri ? 3 : isBi ? 2 : 1;
+  const dpsEntradaClasse = dpsEntradaSetup === 'tipo1' ? 'Classe I' : 'Classe II';
+
+  // O retângulo do Padrão de Entrada só cresce quando há DPS a desenhar — do
+  // contrário mantém exatamente o tamanho/posição de sempre.
+  const topBX = hasDpsEntrada ? topCX - 145 : topCX - 120;
+  const topBR = hasDpsEntrada ? topCX + 175 : topCX + 120;
+  const padraoEntradaBH = hasDpsEntrada ? 168 : 150;
+  const padraoEntradaBottom = 42 + padraoEntradaBH;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
@@ -311,7 +324,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX + 8} y="57" fontSize="6.5">ACESSANTE</text>
 
           {/* ═══════════════ PADRÃO DE ENTRADA ═══════════════ */}
-          <rect x={topBX} y="42" width={BW} height="150" fill="white" stroke="#000" strokeWidth="1.2" />
+          <rect x={topBX} y="42" width={topBR - topBX} height={padraoEntradaBH} fill="white" stroke="#000" strokeWidth="1.2" />
           <text x={topCX + 66} y="57" fontSize="7.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
           <text x={topCX + 66} y="67" fontSize="6"   textAnchor="middle">(caixa de medição)</text>
 
@@ -345,11 +358,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX - 96} y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
           <text x={topCX - 96} y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
-          {/* Placa de Advertência (CPFL) — ao lado esquerdo do D1, abaixo e alinhada ao texto do Ramal de Ligação */}
+          {/* Placa de Advertência (CPFL) — ao lado esquerdo do D1, abaixo e alinhada ao texto do Ramal de Ligação.
+              x acompanha o topBX (ao invés de um deslocamento fixo de topCX) para nunca ficar
+              por baixo do retângulo quando ele cresce por causa do DPS. */}
           {isCPFL && placaAdvertencia && (
             <image
               href={placaAdvertencia.imagem_url}
-              x={topCX - 96} y={132} width={42} height={45}
+              x={topBX + 24} y={132} width={42} height={45}
               preserveAspectRatio="xMidYMid meet"
             />
           )}
@@ -359,11 +374,27 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX + 15} y="143" fontSize="6.5">D1</text>
           <text x={topCX + 15} y="152" fontSize="5.5">{djLabel}</text>
 
+          {/* DPS no Padrão de Entrada (Setup do Projeto) — mesmo padrão visual do DPS do
+              Quadro de Proteção CA (derivação da linha principal + símbolo + Terra),
+              posicionado à direita do D1 por ser onde sobra espaço nesta caixa. */}
+          {hasDpsEntrada && (
+            <>
+              <line x1={topCX} y1="158" x2={topCX + 65} y2="158" stroke="#000" strokeWidth="0.8" />
+              <line x1={topCX + 65} y1="158" x2={topCX + 65} y2="175" stroke="#000" strokeWidth="0.8" />
+              <DPSSymbol x={topCX + 65} y={181} />
+              <line x1={topCX + 65} y1="187" x2={topCX + 65} y2="193" stroke="#000" strokeWidth="0.8" />
+              <Terra x={topCX + 65} y={193} />
+              <text x={topCX + 80} y="172" fontSize="5.5" fontWeight="bold">{`${dpsEntradaQtd}x DPS`}</text>
+              <text x={topCX + 80} y="181" fontSize="5.5">275 Vca, 20-40 kA</text>
+              <text x={topCX + 80} y="190" fontSize="5.5">{dpsEntradaClasse}</text>
+            </>
+          )}
+
           {/* Wire D1 → out of PADRÃO (continuous, grounding branch removed) */}
           <line x1={topCX} y1="152" x2={topCX} y2="220" stroke="#000" strokeWidth="1" />
 
           {/* Terra — lower-right corner of PADRÃO DE ENTRADA (same style as QUADRO DIST) */}
-          <Terra x={topBR - 18} y={192} />
+          <Terra x={topBR - 18} y={padraoEntradaBottom} />
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect

@@ -241,8 +241,21 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const miColBX = (i: number) => Math.round(miSectionStart + i * miColStep);
 
   const topCX = isMultiInv ? 450 : CX;
-  const topBX = topCX - 120;
-  const topBR = topCX + 120;
+
+  // DPS no Padrao de Entrada (Setup do Projeto) — quantidade vem do Tipo de Conexao
+  // do Padrao de Entrada (mesma fonte que ja define o Ramal de Ligacao/D1), Classe
+  // vem da opcao escolhida no Setup (Tipo I/Tipo II).
+  const dpsEntradaSetup = fv(pd.setup_dps_padrao_entrada);
+  const hasDpsEntrada = dpsEntradaSetup === 'tipo1' || dpsEntradaSetup === 'tipo2';
+  const dpsEntradaQtd = isTri ? 3 : isBi ? 2 : 1;
+  const dpsEntradaClasse = dpsEntradaSetup === 'tipo1' ? 'Classe I' : 'Classe II';
+
+  // O retangulo do Padrao de Entrada so cresce quando ha DPS a desenhar — do
+  // contrario mantem exatamente o tamanho/posicao de sempre.
+  const topBX = hasDpsEntrada ? topCX - 145 : topCX - 120;
+  const topBR = hasDpsEntrada ? topCX + 175 : topCX + 120;
+  const padraoEntradaBH = hasDpsEntrada ? 168 : 150;
+  const padraoEntradaBottom = 42 + padraoEntradaBH;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
@@ -267,8 +280,10 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const placaImgH = 45 * SVG_SCALE;
 
   // Segunda ocorrência da placa — ao lado esquerdo do D1, abaixo e alinhada
-  // ao texto do Ramal de Ligação (mesma técnica de conversão viewBox→pontos)
-  const placaImg2Left = PAGE_PADDING + ((topCX - 96) - VB_MINX) * SVG_SCALE;
+  // ao texto do Ramal de Ligação (mesma técnica de conversão viewBox→pontos).
+  // x acompanha topBX (em vez de deslocamento fixo de topCX) para nunca ficar
+  // por baixo do retângulo quando ele cresce por causa do DPS.
+  const placaImg2Left = PAGE_PADDING + ((topBX + 24) - VB_MINX) * SVG_SCALE;
   const placaImg2Top = PAGE_PADDING + (132 - VB_MINY) * SVG_SCALE;
 
   return (
@@ -291,7 +306,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={topCX + 8} y={57} fontSize={6.5} fill="#000">ACESSANTE</Text>
 
           {/* ═══ PADRÃO DE ENTRADA ═══ */}
-          <Rect x={topBX} y={42} width={BW} height={150} fill="white" stroke="#000" strokeWidth={1.2} />
+          <Rect x={topBX} y={42} width={topBR - topBX} height={padraoEntradaBH} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={topCX + 66} y={57} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
           <Text x={topCX + 66} y={67} fontSize={6} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
 
@@ -321,11 +336,27 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={topCX + 15} y={143} fontSize={6.5} fill="#000">D1</Text>
           <Text x={topCX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
 
+          {/* DPS no Padrao de Entrada (Setup do Projeto) — mesmo padrao visual do DPS do
+              Quadro de Protecao CA (derivacao da linha principal + simbolo + Terra),
+              posicionado a direita do D1 por ser onde sobra espaco nesta caixa. */}
+          {hasDpsEntrada && (
+            <>
+              <Line x1={topCX} y1={158} x2={topCX + 65} y2={158} stroke="#000" strokeWidth={0.8} />
+              <Line x1={topCX + 65} y1={158} x2={topCX + 65} y2={175} stroke="#000" strokeWidth={0.8} />
+              <PDFDPSSymbol x={topCX + 65} y={181} />
+              <Line x1={topCX + 65} y1={187} x2={topCX + 65} y2={193} stroke="#000" strokeWidth={0.8} />
+              <PDFTerra x={topCX + 65} y={193} />
+              <Text x={topCX + 80} y={172} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{`${dpsEntradaQtd}x DPS`}</Text>
+              <Text x={topCX + 80} y={181} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
+              <Text x={topCX + 80} y={190} fontSize={5.5} fill="#000">{dpsEntradaClasse}</Text>
+            </>
+          )}
+
           {/* D1 exit → out of PADRÃO */}
           <Line x1={topCX} y1={152} x2={topCX} y2={220} stroke="#000" strokeWidth={1} />
 
           {/* Terra — lower-right corner of PADRAO DE ENTRADA */}
-          <PDFTerra x={topBR - 18} y={192} />
+          <PDFTerra x={topBR - 18} y={padraoEntradaBottom} />
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           <Rect

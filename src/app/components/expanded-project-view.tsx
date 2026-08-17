@@ -608,6 +608,7 @@ export const ExpandedProjectView = ({
     // Setup do Projeto
     setup_e_ampliacao: (project as any).setup_e_ampliacao || SETUP_DEFAULTS.setup_e_ampliacao,
     setup_padrao_entrada: (project as any).setup_padrao_entrada || SETUP_DEFAULTS.setup_padrao_entrada,
+    setup_dps_padrao_entrada: (project as any).setup_dps_padrao_entrada || SETUP_DEFAULTS.setup_dps_padrao_entrada,
     setup_quadro_cc: (project as any).setup_quadro_cc || SETUP_DEFAULTS.setup_quadro_cc,
     setup_mais_de_um_inversor: (project as any).setup_mais_de_um_inversor || SETUP_DEFAULTS.setup_mais_de_um_inversor,
     setup_tipo_inversor: (project as any).setup_tipo_inversor || SETUP_DEFAULTS.setup_tipo_inversor,
