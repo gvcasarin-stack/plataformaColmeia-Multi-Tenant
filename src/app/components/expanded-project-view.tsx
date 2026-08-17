@@ -921,7 +921,8 @@ export const ExpandedProjectView = ({
         updateEvent = createTimelineEvent('status', {
           content: `Status alterado de "${oldStatusName}" para "${statusName}"${slaExpiresAt && slaDays ? ` (Prazo: ${slaDays} dia${slaDays !== 1 ? 's' : ''})` : ''}. Projeto transferido para ${newOwnerName}.`,
           oldStatus: project.status,
-          newStatus: editedProject.status
+          newStatus: editedProject.status,
+          timestamp: now
         });
         devLog.log('✅ [EXPANDED PROJECT] Criado evento de STATUS CHANGE + TRANSFER:', updateEvent);
       } else if (statusChanged) {
@@ -933,7 +934,8 @@ export const ExpandedProjectView = ({
         updateEvent = createTimelineEvent('status', {
           content: `Status alterado de "${oldStatusName}" para "${statusName}"${slaExpiresAt && slaDays ? ` (Prazo: ${slaDays} dia${slaDays !== 1 ? 's' : ''})` : ''}`,
           oldStatus: project.status,
-          newStatus: editedProject.status
+          newStatus: editedProject.status,
+          timestamp: now
         });
         devLog.log('✅ [EXPANDED PROJECT] Criado evento de STATUS CHANGE:', updateEvent);
       } else if (ownerChanged) {
@@ -1554,6 +1556,14 @@ export const ExpandedProjectView = ({
     newStatus?: string;
     edited?: boolean;
     subItems?: string[];
+    // ✅ Permite reaproveitar um timestamp já calculado (ex: o mesmo `now` usado em
+    // status_changed_at), em vez de gerar um novo aqui dentro. Sem isso, o evento de
+    // status gravado pela aplicação e o evento de fallback gravado pelo trigger do
+    // banco (20260804_project_status_timeline_trigger.sql) ficam com created_at
+    // diferentes por alguns milissegundos, o índice de deduplicação não reconhece
+    // como o mesmo evento, e a mudança de status aparece duplicada na timeline (uma
+    // vez como "Sistema", outra como o usuário real).
+    timestamp?: Date;
   }): TimelineEvent => {
     // ✅ DEBUG COMPLETO: Vamos ver TUDO que está no objeto user
     devLog.log('[DEBUG createTimelineEvent] OBJETO USER COMPLETO:', {
@@ -1592,7 +1602,7 @@ export const ExpandedProjectView = ({
       type,
       user: userDisplayName, // ✅ Nome do usuário logado OU "Sistema" apenas se não há usuário
       userId: user?.id || 'system',
-      timestamp: new Date().toISOString(),
+      timestamp: (data.timestamp ?? new Date()).toISOString(),
       id: uuidv4(),
       fullName: userDisplayName, // ✅ Mesmo nome
     };
