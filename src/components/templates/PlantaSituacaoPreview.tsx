@@ -50,6 +50,11 @@ function utmToLatLng(easting: number, northing: number, zone: number): { lat: nu
   } catch { return null; }
 }
 
+// ─── Longitude → Fuso UTM (para exibição quando as coordenadas vêm em Lat/Long, ex: CPFL) ──
+function lngToUtmZone(lng: number): number {
+  return Math.floor((lng + 180) / 6) + 1;
+}
+
 // ─── Cores e espessuras disponíveis ─────────────────────────────────────────
 const COLORS = ['#e53e3e', '#3182ce', '#38a169', '#1a1a1a', '#dd6b20'];
 const THICKNESS_OPTIONS = [1.5, 2.5, 3.5, 5];
@@ -113,6 +118,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
 
   const hasUtm = !!(utmX && utmY);
   const usingLatLng = !hasUtm && !!(latDecimal && lngDecimal);
+  const latLngUtmZone = usingLatLng ? lngToUtmZone(lngDecimal as number) : null;
   const coords = hasUtm
     ? utmToLatLng(utmX, utmY, utmZone)
     : (usingLatLng ? { lat: latDecimal, lng: lngDecimal } : null);
@@ -510,6 +516,7 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
                 <>
                   <div><strong>Lat:</strong> {latDecimal?.toFixed(6)}</div>
                   <div><strong>Long:</strong> {lngDecimal?.toFixed(6)}</div>
+                  <div><strong>Fuso:</strong> {latLngUtmZone}</div>
                 </>
               ) : (
                 <>

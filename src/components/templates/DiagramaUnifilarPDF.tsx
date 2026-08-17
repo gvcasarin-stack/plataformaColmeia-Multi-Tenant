@@ -269,7 +269,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   // Segunda ocorrência da placa — ao lado esquerdo do D1, abaixo e alinhada
   // ao texto do Ramal de Ligação (mesma técnica de conversão viewBox→pontos)
   const placaImg2Left = PAGE_PADDING + ((topCX - 96) - VB_MINX) * SVG_SCALE;
-  const placaImg2Top = PAGE_PADDING + (110 - VB_MINY) * SVG_SCALE;
+  const placaImg2Top = PAGE_PADDING + (132 - VB_MINY) * SVG_SCALE;
 
   return (
     <Document>

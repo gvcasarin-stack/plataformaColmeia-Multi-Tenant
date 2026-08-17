@@ -28,7 +28,8 @@ import {
   TrendingDown,
   Calendar,
   MoreHorizontal,
-  ArrowRightLeft
+  ArrowRightLeft,
+  CheckSquare
 } from 'lucide-react';
 // ✅ PERFORMANCE: xlsx é importado sob demanda dentro de exportToExcel (ver abaixo)
 
@@ -51,7 +52,8 @@ const Icons = {
   CircleDollarSign: DollarSign,
   CalendarCheck: Calendar,
   MoreVertical: MoreHorizontal,
-  ArrowLeftRight: ArrowRightLeft
+  ArrowLeftRight: ArrowRightLeft,
+  CheckSquare
 };
 
 import {
@@ -336,24 +338,33 @@ export default function AdminBillingPage() {
   // Estados para seleção de projetos
   const [isSelectionMode, setIsSelectionMode] = useState<Record<string, boolean>>({});
   const [selectedProjects, setSelectedProjects] = useState<Record<string, Set<string>>>({});
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   // Funções para gerenciar seleção de projetos
   const toggleProjectSelection = (clientKey: string, projectId: string) => {
     setSelectedProjects(prev => {
       const clientSelections = prev[clientKey] || new Set();
       const newSelections = new Set(clientSelections);
-      
+
       if (newSelections.has(projectId)) {
         newSelections.delete(projectId);
       } else {
         newSelections.add(projectId);
       }
-      
+
       return {
         ...prev,
         [clientKey]: newSelections
       };
     });
+  };
+
+  // Marca/desmarca todos os projetos de um cliente de uma vez (checkbox "Todos" do cabeçalho)
+  const toggleSelectAllForClient = (clientKey: string, allProjects: ProjectWithBilling[], checked: boolean) => {
+    setSelectedProjects(prev => ({
+      ...prev,
+      [clientKey]: checked ? new Set(allProjects.map(p => p.id)) : new Set()
+    }));
   };
 
   const getSelectedCount = (clientKey: string): number => {
@@ -2054,6 +2065,47 @@ export default function AdminBillingPage() {
     }
   };
 
+  // Marca todos os projetos selecionados de um cliente como pagos (integral) de uma vez
+  const handleMarkSelectedAsPaid = async (clientId: string) => {
+    const selectedIds = Array.from(selectedProjects[clientId] || new Set<string>());
+    if (selectedIds.length === 0) return;
+
+    try {
+      setIsMarkingPaid(true);
+
+      toast({
+        title: 'Processando pagamentos...',
+        description: `Aguarde enquanto marcamos ${selectedIds.length} ${selectedIds.length === 1 ? 'projeto' : 'projetos'} como pago.`,
+        variant: 'default',
+      });
+
+      await Promise.all(selectedIds.map(id => updateProjectPayment(id, 'pago')));
+
+      toast({
+        title: 'Pagamentos registrados',
+        description: `${selectedIds.length} ${selectedIds.length === 1 ? 'projeto marcado' : 'projetos marcados'} como pago.`,
+        variant: 'default',
+      });
+
+      await fetchData(true);
+
+      window.dispatchEvent(new CustomEvent('billing-updated', {
+        detail: { action: 'paid-bulk', projectIds: selectedIds }
+      }));
+
+      cancelSelection(clientId);
+    } catch (error) {
+      devLog.error('[handleMarkSelectedAsPaid] Error:', error);
+      toast({
+        title: 'Erro ao processar pagamentos',
+        description: 'Ocorreu um erro ao atualizar os projetos selecionados. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsMarkingPaid(false);
+    }
+  };
+
   // Verificar status do trial
   useEffect(() => {
     const checkTrialStatus = async () => {
@@ -2846,8 +2898,8 @@ export default function AdminBillingPage() {
                             onClick={() => handleActivateSelectionMode(clientKey)}
                             disabled={isGeneratingInvoice}
                           >
-                            <Icons.Download className="h-4 w-4" />
-                            Baixar fatura completa
+                            <Icons.CheckSquare className="h-4 w-4" />
+                            Selecionar projetos
                           </Button>
                         ) : (
                           <>
@@ -2855,12 +2907,12 @@ export default function AdminBillingPage() {
                               variant="outline"
                               size="sm"
                               className={`flex items-center gap-1 transition-all duration-200 ${
-                                getSelectedCount(clientKey) === 0 
+                                getSelectedCount(clientKey) === 0
                                   ? "bg-green-50 text-green-500 border-green-200 hover:bg-green-100 hover:text-green-600 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50 dark:hover:bg-green-900/30"
                                   : "bg-green-500 text-white border-green-500 hover:bg-green-600 hover:border-green-600 dark:bg-green-600 dark:border-green-600 dark:hover:bg-green-700"
                               }`}
                               onClick={() => handleDownloadSelectedInvoice(clientKey, clientProjects)}
-                              disabled={isGeneratingInvoice || getSelectedCount(clientKey) === 0}
+                              disabled={isGeneratingInvoice || isMarkingPaid || getSelectedCount(clientKey) === 0}
                             >
                               <Icons.Download className="h-4 w-4" />
                               Gerar Fatura Selecionada ({getSelectedCount(clientKey)})
@@ -2868,9 +2920,23 @@ export default function AdminBillingPage() {
                             <Button
                               variant="outline"
                               size="sm"
+                              className={`flex items-center gap-1 transition-all duration-200 ${
+                                getSelectedCount(clientKey) === 0
+                                  ? "bg-blue-50 text-blue-500 border-blue-200 hover:bg-blue-100 hover:text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50 dark:hover:bg-blue-900/30"
+                                  : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700 dark:bg-blue-600 dark:border-blue-600 dark:hover:bg-blue-700"
+                              }`}
+                              onClick={() => handleMarkSelectedAsPaid(clientKey)}
+                              disabled={isGeneratingInvoice || isMarkingPaid || getSelectedCount(clientKey) === 0}
+                            >
+                              <Icons.DollarSign className="h-4 w-4" />
+                              Marcar como Pago ({getSelectedCount(clientKey)})
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="flex items-center gap-1 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                               onClick={() => cancelSelection(clientKey)}
-                              disabled={isGeneratingInvoice}
+                              disabled={isGeneratingInvoice || isMarkingPaid}
                             >
                               Cancelar
                             </Button>
@@ -2880,10 +2946,10 @@ export default function AdminBillingPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
+                          <TableRow className="sticky top-0 z-10 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:from-gray-100 hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700 border-b-2 border-gray-300 dark:border-gray-600">
                             <TableHead className="font-bold text-gray-800 dark:text-gray-200 w-[100px]">
                               Número
                             </TableHead>
@@ -2899,18 +2965,35 @@ export default function AdminBillingPage() {
                             <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Status
                             </TableHead>
-                            <TableHead className="font-bold text-gray-800 dark:text-gray-200">
+                            <TableHead className="text-right font-bold text-gray-800 dark:text-gray-200">
                               Valor
                             </TableHead>
                             <TableHead className="font-bold text-gray-800 dark:text-gray-200">
                               Situação
                             </TableHead>
-                            <TableHead className="text-right font-bold text-gray-800 dark:text-gray-200">Ações</TableHead>
+                            <TableHead className="text-right font-bold text-gray-800 dark:text-gray-200">
+                              {isSelectionMode[clientKey] && (
+                                <label className="inline-flex items-center gap-1.5 mr-2 px-2 py-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer align-middle">
+                                  <Checkbox
+                                    checked={clientProjects.length > 0 && getSelectedCount(clientKey) === clientProjects.length}
+                                    onCheckedChange={(checked) => toggleSelectAllForClient(clientKey, clientProjects, checked === true)}
+                                    className="data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
+                                  />
+                                  <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">Todos</span>
+                                </label>
+                              )}
+                              Ações
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {clientProjects.map((project) => (
-                            <TableRow key={project.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/40">
+                            <TableRow
+                              key={project.id}
+                              className={`hover:bg-gray-50/60 dark:hover:bg-gray-700/40 even:bg-gray-50/50 dark:even:bg-gray-800/20 ${
+                                selectedProjects[clientKey]?.has(project.id) ? 'bg-orange-50/70 dark:bg-orange-900/10' : ''
+                              }`}
+                            >
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                                 {safeString(project.number)}
                               </TableCell>
@@ -2943,28 +3026,15 @@ export default function AdminBillingPage() {
                                   </Badge>
                                 ) : (() => {
                                   const currentStatus = availableStatuses.find(s => s.slug === project.status);
-                                  if (currentStatus) {
-                                    return (
-                                      <div className="flex items-center gap-2">
-                                        <div
-                                          className="w-2 h-2 rounded-full"
-                                          style={{ backgroundColor: currentStatus.color }}
-                                        />
-                                        <Badge className="bg-blue-50 text-blue-700 border-blue-200">
-                                          {currentStatus.name}
-                                        </Badge>
-                                      </div>
-                                    );
-                                  } else {
-                                    return (
-                                      <Badge className="bg-gray-50 text-gray-700 border-gray-200">
-                                        {getStatusDisplayName(safeString(project.status))}
-                                      </Badge>
-                                    );
-                                  }
+                                  const statusName = currentStatus ? currentStatus.name : getStatusDisplayName(safeString(project.status));
+                                  return (
+                                    <Badge className="bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
+                                      {statusName}
+                                    </Badge>
+                                  );
                                 })()}
                               </TableCell>
-                              <TableCell className="font-medium">
+                              <TableCell className="font-medium text-right tabular-nums">
                                 {formatCurrency(project.valor_projeto || project.valorProjeto || 0)}
                               </TableCell>
                               <TableCell>
@@ -2979,30 +3049,19 @@ export default function AdminBillingPage() {
                                       className="data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
                                     />
                                   )}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex items-center gap-1.5 px-3 py-1.5 h-8 bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300 hover:border-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 dark:border-gray-600 dark:hover:border-gray-500 transition-all duration-200"
-                                    onClick={() => handleDownloadInvoice(project)}
-                                    disabled={isGeneratingInvoice}
-                                    title="Baixar fatura individual"
-                                  >
-                                    <Icons.Printer className="h-4 w-4" />
-                                    <span className="text-xs font-medium">Fatura</span>
-                                  </Button>
 
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300 hover:border-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:text-green-400 dark:border-green-800 dark:hover:border-green-700 transition-all duration-200"
-                                      >
-                                        <Icons.DollarSign className="h-4 w-4 mr-1" />
-                                        Pagamento <Icons.ChevronsUpDown className="h-4 w-4 ml-1" />
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <Icons.MoreVertical className="h-4 w-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleDownloadInvoice(project)} disabled={isGeneratingInvoice}>
+                                        <Icons.Printer className="h-4 w-4 mr-2" />
+                                        Baixar Fatura
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
                                       {/* ✅ CORREÇÃO: Usar paymentStatus normalizado */}
                                       {(() => {
                                         const paymentStatus = project.pagamento || 'pendente';

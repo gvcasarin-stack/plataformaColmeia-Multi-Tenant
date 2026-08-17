@@ -349,7 +349,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {isCPFL && placaAdvertencia && (
             <image
               href={placaAdvertencia.imagem_url}
-              x={topCX - 96} y={110} width={42} height={45}
+              x={topCX - 96} y={132} width={42} height={45}
               preserveAspectRatio="xMidYMid meet"
             />
           )}
