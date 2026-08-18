@@ -264,10 +264,22 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
   // O retângulo do Padrão de Entrada só cresce quando há DPS a desenhar — do
   // contrário mantém exatamente o tamanho/posição de sempre.
-  const topBX = hasDpsEntrada ? topCX - 145 : topCX - 120;
+  const topBX = hasDpsEntrada ? topCX - 155 : topCX - 120;
   const topBR = hasDpsEntrada ? topCX + 175 : topCX + 120;
-  const padraoEntradaBH = hasDpsEntrada ? 168 : 150;
+  const padraoEntradaBH = hasDpsEntrada ? 175 : 150;
   const padraoEntradaBottom = 42 + padraoEntradaBH;
+  // Tudo que fica abaixo do Padrão de Entrada (Quadro de Distribuição em diante)
+  // desce a mesma quantidade que o retângulo cresceu, pra sobrar espaço lá dentro
+  // sem espremer o resto do diagrama. Vira um <g transform="translate(0,Y)"> mais
+  // abaixo — com YSHIFT=0 (caso sem DPS) o translate não faz nada, e o restante
+  // do diagrama fica byte-a-byte igual ao de sempre.
+  const YSHIFT = padraoEntradaBH - 150;
+  // Placa de Advertência (2ª ocorrência, dentro do Padrão de Entrada): sem DPS
+  // continua exatamente onde sempre esteve (ao lado do D1, alinhada ao Ramal de
+  // Ligação); com DPS, o lado esquerdo passa a ser ocupado pelo DPS, então ela
+  // vai para o lado direito (acima do MEDIDOR) para otimizar o espaço.
+  const placa2X = hasDpsEntrada ? topCX + 120 : topCX - 96;
+  const placa2Y = hasDpsEntrada ? 71 : 132;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
@@ -358,13 +370,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX - 96} y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
           <text x={topCX - 96} y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
 
-          {/* Placa de Advertência (CPFL) — ao lado esquerdo do D1, abaixo e alinhada ao texto do Ramal de Ligação.
-              x acompanha o topBX (ao invés de um deslocamento fixo de topCX) para nunca ficar
-              por baixo do retângulo quando ele cresce por causa do DPS. */}
+          {/* Placa de Advertência (CPFL) — dentro do Padrão de Entrada. Sem DPS, ao
+              lado esquerdo do D1 (posição de sempre); com DPS, ao lado direito
+              (acima do MEDIDOR), já que o lado esquerdo passa a ser do DPS. */}
           {isCPFL && placaAdvertencia && (
             <image
               href={placaAdvertencia.imagem_url}
-              x={topBX + 24} y={132} width={42} height={45}
+              x={placa2X} y={placa2Y} width={42} height={45}
               preserveAspectRatio="xMidYMid meet"
             />
           )}
@@ -375,26 +387,33 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX + 15} y="152" fontSize="5.5">{djLabel}</text>
 
           {/* DPS no Padrão de Entrada (Setup do Projeto) — mesmo padrão visual do DPS do
-              Quadro de Proteção CA (derivação da linha principal + símbolo + Terra),
-              posicionado à direita do D1 por ser onde sobra espaço nesta caixa. */}
+              Quadro de Proteção CA (derivação da linha principal + símbolo + Terra), do
+              lado esquerdo do D1, com a derivação saindo do trecho da linha principal
+              ACIMA do D1 (não abaixo). */}
           {hasDpsEntrada && (
             <>
-              <line x1={topCX} y1="158" x2={topCX + 65} y2="158" stroke="#000" strokeWidth="0.8" />
-              <line x1={topCX + 65} y1="158" x2={topCX + 65} y2="175" stroke="#000" strokeWidth="0.8" />
-              <DPSSymbol x={topCX + 65} y={181} />
-              <line x1={topCX + 65} y1="187" x2={topCX + 65} y2="193" stroke="#000" strokeWidth="0.8" />
-              <Terra x={topCX + 65} y={193} />
-              <text x={topCX + 80} y="172" fontSize="5.5" fontWeight="bold">{`${dpsEntradaQtd}x DPS`}</text>
-              <text x={topCX + 80} y="181" fontSize="5.5">275 Vca, 20-40 kA</text>
-              <text x={topCX + 80} y="190" fontSize="5.5">{dpsEntradaClasse}</text>
+              <line x1={topCX} y1="113" x2={topCX - 70} y2="113" stroke="#000" strokeWidth="0.8" />
+              <line x1={topCX - 70} y1="113" x2={topCX - 70} y2="147" stroke="#000" strokeWidth="0.8" />
+              <DPSSymbol x={topCX - 70} y={156} />
+              <line x1={topCX - 70} y1="165" x2={topCX - 70} y2="177" stroke="#000" strokeWidth="0.8" />
+              <Terra x={topCX - 70} y={177} />
+              <text x={topCX - 132} y="123" fontSize="5.5" fontWeight="bold">{`${dpsEntradaQtd}x DPS`}</text>
+              <text x={topCX - 132} y="132" fontSize="5.5">275 Vca, 20-40 kA</text>
+              <text x={topCX - 132} y="141" fontSize="5.5">{dpsEntradaClasse}</text>
             </>
           )}
 
-          {/* Wire D1 → out of PADRÃO (continuous, grounding branch removed) */}
-          <line x1={topCX} y1="152" x2={topCX} y2="220" stroke="#000" strokeWidth="1" />
+          {/* Wire D1 → out of PADRÃO (continuous, grounding branch removed) — desce até o
+              novo topo (deslocado) do Quadro de Distribuição, senão sobraria um vão. */}
+          <line x1={topCX} y1="152" x2={topCX} y2={220 + YSHIFT} stroke="#000" strokeWidth="1" />
 
           {/* Terra — lower-right corner of PADRÃO DE ENTRADA (same style as QUADRO DIST) */}
           <Terra x={topBR - 18} y={padraoEntradaBottom} />
+
+          {/* ═══ TUDO A PARTIR DAQUI (Quadro de Distribuição em diante) desce YSHIFT
+              pixels — com YSHIFT=0 (sem DPS no Padrão de Entrada) o translate não
+              muda nada, então nada abaixo deste ponto é afetado no caso comum. ═══ */}
+          <g transform={`translate(0, ${YSHIFT})`}>
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect
@@ -929,6 +948,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             ? <image href={pd.logo_empresa_url} x="787" y="1132" width="182" height="112" preserveAspectRatio="xMidYMid meet" />
             : null}
 
+          </g>
         </svg>
       </div>
 

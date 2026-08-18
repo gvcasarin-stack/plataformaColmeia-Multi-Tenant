@@ -3,6 +3,7 @@ import {
   Document,
   Page,
   Svg,
+  G,
   Line,
   Polygon,
   Rect,
@@ -252,10 +253,14 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
 
   // O retangulo do Padrao de Entrada so cresce quando ha DPS a desenhar — do
   // contrario mantem exatamente o tamanho/posicao de sempre.
-  const topBX = hasDpsEntrada ? topCX - 145 : topCX - 120;
+  const topBX = hasDpsEntrada ? topCX - 155 : topCX - 120;
   const topBR = hasDpsEntrada ? topCX + 175 : topCX + 120;
-  const padraoEntradaBH = hasDpsEntrada ? 168 : 150;
+  const padraoEntradaBH = hasDpsEntrada ? 175 : 150;
   const padraoEntradaBottom = 42 + padraoEntradaBH;
+  // Tudo que fica abaixo do Padrao de Entrada (Quadro de Distribuicao em diante)
+  // desce a mesma quantidade que o retangulo cresceu — com YSHIFT=0 (sem DPS) o
+  // translate nao faz nada e o resto do diagrama fica igual ao de sempre.
+  const YSHIFT = padraoEntradaBH - 150;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
@@ -279,12 +284,13 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const placaImgW = 42 * SVG_SCALE;
   const placaImgH = 45 * SVG_SCALE;
 
-  // Segunda ocorrência da placa — ao lado esquerdo do D1, abaixo e alinhada
-  // ao texto do Ramal de Ligação (mesma técnica de conversão viewBox→pontos).
-  // x acompanha topBX (em vez de deslocamento fixo de topCX) para nunca ficar
-  // por baixo do retângulo quando ele cresce por causa do DPS.
-  const placaImg2Left = PAGE_PADDING + ((topBX + 24) - VB_MINX) * SVG_SCALE;
-  const placaImg2Top = PAGE_PADDING + (132 - VB_MINY) * SVG_SCALE;
+  // Segunda ocorrência da placa — dentro do Padrão de Entrada. Sem DPS, ao lado
+  // esquerdo do D1 (posição de sempre); com DPS, ao lado direito (acima do
+  // MEDIDOR), já que o lado esquerdo passa a ser do DPS.
+  const placa2X = hasDpsEntrada ? topCX + 120 : topCX - 96;
+  const placa2Y = hasDpsEntrada ? 71 : 132;
+  const placaImg2Left = PAGE_PADDING + (placa2X - VB_MINX) * SVG_SCALE;
+  const placaImg2Top = PAGE_PADDING + (placa2Y - VB_MINY) * SVG_SCALE;
 
   return (
     <Document>
@@ -337,26 +343,33 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={topCX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
 
           {/* DPS no Padrao de Entrada (Setup do Projeto) — mesmo padrao visual do DPS do
-              Quadro de Protecao CA (derivacao da linha principal + simbolo + Terra),
-              posicionado a direita do D1 por ser onde sobra espaco nesta caixa. */}
+              Quadro de Protecao CA (derivacao da linha principal + simbolo + Terra), do
+              lado esquerdo do D1, com a derivacao saindo do trecho da linha principal
+              ACIMA do D1 (nao abaixo). */}
           {hasDpsEntrada && (
             <>
-              <Line x1={topCX} y1={158} x2={topCX + 65} y2={158} stroke="#000" strokeWidth={0.8} />
-              <Line x1={topCX + 65} y1={158} x2={topCX + 65} y2={175} stroke="#000" strokeWidth={0.8} />
-              <PDFDPSSymbol x={topCX + 65} y={181} />
-              <Line x1={topCX + 65} y1={187} x2={topCX + 65} y2={193} stroke="#000" strokeWidth={0.8} />
-              <PDFTerra x={topCX + 65} y={193} />
-              <Text x={topCX + 80} y={172} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{`${dpsEntradaQtd}x DPS`}</Text>
-              <Text x={topCX + 80} y={181} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
-              <Text x={topCX + 80} y={190} fontSize={5.5} fill="#000">{dpsEntradaClasse}</Text>
+              <Line x1={topCX} y1={113} x2={topCX - 70} y2={113} stroke="#000" strokeWidth={0.8} />
+              <Line x1={topCX - 70} y1={113} x2={topCX - 70} y2={147} stroke="#000" strokeWidth={0.8} />
+              <PDFDPSSymbol x={topCX - 70} y={156} />
+              <Line x1={topCX - 70} y1={165} x2={topCX - 70} y2={177} stroke="#000" strokeWidth={0.8} />
+              <PDFTerra x={topCX - 70} y={177} />
+              <Text x={topCX - 132} y={123} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{`${dpsEntradaQtd}x DPS`}</Text>
+              <Text x={topCX - 132} y={132} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
+              <Text x={topCX - 132} y={141} fontSize={5.5} fill="#000">{dpsEntradaClasse}</Text>
             </>
           )}
 
-          {/* D1 exit → out of PADRÃO */}
-          <Line x1={topCX} y1={152} x2={topCX} y2={220} stroke="#000" strokeWidth={1} />
+          {/* D1 exit → out of PADRÃO — desce ate o novo topo (deslocado) do Quadro de
+              Distribuicao, senao sobraria um vao. */}
+          <Line x1={topCX} y1={152} x2={topCX} y2={220 + YSHIFT} stroke="#000" strokeWidth={1} />
 
           {/* Terra — lower-right corner of PADRAO DE ENTRADA */}
           <PDFTerra x={topBR - 18} y={padraoEntradaBottom} />
+
+          {/* ═══ TUDO A PARTIR DAQUI (Quadro de Distribuicao em diante) desce YSHIFT
+              pontos — com YSHIFT=0 (sem DPS no Padrao de Entrada) o translate nao
+              muda nada, entao nada abaixo deste ponto e afetado no caso comum. ═══ */}
+          <G transform={`translate(0, ${YSHIFT})`}>
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           <Rect
@@ -844,14 +857,18 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={MID_CTR} y={1231} fontSize={5.5} textAnchor="middle" fill="#000">TECNICO EM ELETROTECNICA</Text>
           <Text x={MID_CTR} y={1239} fontSize={5.5} textAnchor="middle" fill="#000">{`CFT: ${respCft}`}</Text>
 
+          </G>
         </Svg>
 
-        {/* Logo fora do SVG com posição absoluta sobre a coluna direita do selo */}
+        {/* Logo fora do SVG com posição absoluta sobre a coluna direita do selo.
+            Fica fora do <G> de baixo (que só existe dentro do Svg), então acompanha
+            o mesmo deslocamento manualmente, convertido para pontos pela mesma
+            escala usada nas outras posições absolutas desta página. */}
         {pd.logo_empresa_url && (
           <View style={{
             position: 'absolute',
             left: numInversores >= 3 ? 883 : 618,
-            top: numInversores >= 3 ? 1252 : 901,
+            top: (numInversores >= 3 ? 1252 : 901) + YSHIFT * SVG_SCALE,
             width: numInversores >= 3 ? 195 : 139,
             height: numInversores >= 3 ? 120 : 86,
             overflow: 'hidden',
