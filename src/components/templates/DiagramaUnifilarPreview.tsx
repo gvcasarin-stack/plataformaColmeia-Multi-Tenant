@@ -274,12 +274,17 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   // abaixo — com YSHIFT=0 (caso sem DPS) o translate não faz nada, e o restante
   // do diagrama fica byte-a-byte igual ao de sempre.
   const YSHIFT = padraoEntradaBH - 150;
+  // Com DPS, D1 (e a derivação do DPS, que sai do trecho acima dele) descem um
+  // pouco para dar mais respiro dentro da caixa — sem DPS, fica exatamente onde
+  // sempre esteve.
+  const d1YOffset = hasDpsEntrada ? 15 : 0;
   // Placa de Advertência (2ª ocorrência, dentro do Padrão de Entrada): sem DPS
   // continua exatamente onde sempre esteve (ao lado do D1, alinhada ao Ramal de
   // Ligação); com DPS, o lado esquerdo passa a ser ocupado pelo DPS, então ela
-  // vai para o lado direito (acima do MEDIDOR) para otimizar o espaço.
-  const placa2X = hasDpsEntrada ? topCX + 120 : topCX - 96;
-  const placa2Y = hasDpsEntrada ? 71 : 132;
+  // vai para o lado direito (acima do MEDIDOR), um pouco mais para baixo e
+  // levemente à esquerda, para otimizar o espaço.
+  const placa2X = hasDpsEntrada ? topCX + 112 : topCX - 96;
+  const placa2Y = hasDpsEntrada ? 85 : 132;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
@@ -355,7 +360,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           )}
 
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
-          <line x1={topCX} y1="42" x2={topCX} y2="138" stroke="#000" strokeWidth="1" />
+          <line x1={topCX} y1="42" x2={topCX} y2={138 + d1YOffset} stroke="#000" strokeWidth="1" />
 
           {/* Horizontal tap to MEDIDOR (branch right) */}
           <line x1={topCX} y1="85" x2={topCX + 15} y2="85" stroke="#000" strokeWidth="1" />
@@ -381,31 +386,32 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             />
           )}
 
-          {/* D1 on main vertical line */}
-          <Disjuntor x={topCX} y={145} />
-          <text x={topCX + 15} y="143" fontSize="6.5">D1</text>
-          <text x={topCX + 15} y="152" fontSize="5.5">{djLabel}</text>
+          {/* D1 on main vertical line — com DPS, desce d1YOffset px para dar mais
+              respiro dentro da caixa (a derivação do DPS acima dele desce junto). */}
+          <Disjuntor x={topCX} y={145 + d1YOffset} />
+          <text x={topCX + 15} y={143 + d1YOffset} fontSize="6.5">D1</text>
+          <text x={topCX + 15} y={152 + d1YOffset} fontSize="5.5">{djLabel}</text>
 
           {/* DPS no Padrão de Entrada (Setup do Projeto) — mesmo padrão visual do DPS do
               Quadro de Proteção CA (derivação da linha principal + símbolo + Terra), do
               lado esquerdo do D1, com a derivação saindo do trecho da linha principal
-              ACIMA do D1 (não abaixo). */}
+              ACIMA do D1 (não abaixo). Desce junto com D1 (d1YOffset). */}
           {hasDpsEntrada && (
             <>
-              <line x1={topCX} y1="113" x2={topCX - 70} y2="113" stroke="#000" strokeWidth="0.8" />
-              <line x1={topCX - 70} y1="113" x2={topCX - 70} y2="147" stroke="#000" strokeWidth="0.8" />
-              <DPSSymbol x={topCX - 70} y={156} />
-              <line x1={topCX - 70} y1="165" x2={topCX - 70} y2="177" stroke="#000" strokeWidth="0.8" />
-              <Terra x={topCX - 70} y={177} />
-              <text x={topCX - 132} y="123" fontSize="5.5" fontWeight="bold">{`${dpsEntradaQtd}x DPS`}</text>
-              <text x={topCX - 132} y="132" fontSize="5.5">275 Vca, 20-40 kA</text>
-              <text x={topCX - 132} y="141" fontSize="5.5">{dpsEntradaClasse}</text>
+              <line x1={topCX} y1={113 + d1YOffset} x2={topCX - 70} y2={113 + d1YOffset} stroke="#000" strokeWidth="0.8" />
+              <line x1={topCX - 70} y1={113 + d1YOffset} x2={topCX - 70} y2={147 + d1YOffset} stroke="#000" strokeWidth="0.8" />
+              <DPSSymbol x={topCX - 70} y={156 + d1YOffset} />
+              <line x1={topCX - 70} y1={165 + d1YOffset} x2={topCX - 70} y2={177 + d1YOffset} stroke="#000" strokeWidth="0.8" />
+              <Terra x={topCX - 70} y={177 + d1YOffset} />
+              <text x={topCX - 132} y={123 + d1YOffset} fontSize="5.5" fontWeight="bold">{`${dpsEntradaQtd}x DPS`}</text>
+              <text x={topCX - 132} y={132 + d1YOffset} fontSize="5.5">275 Vca, 20-40 kA</text>
+              <text x={topCX - 132} y={141 + d1YOffset} fontSize="5.5">{dpsEntradaClasse}</text>
             </>
           )}
 
           {/* Wire D1 → out of PADRÃO (continuous, grounding branch removed) — desce até o
               novo topo (deslocado) do Quadro de Distribuição, senão sobraria um vão. */}
-          <line x1={topCX} y1="152" x2={topCX} y2={220 + YSHIFT} stroke="#000" strokeWidth="1" />
+          <line x1={topCX} y1={152 + d1YOffset} x2={topCX} y2={220 + YSHIFT} stroke="#000" strokeWidth="1" />
 
           {/* Terra — lower-right corner of PADRÃO DE ENTRADA (same style as QUADRO DIST) */}
           <Terra x={topBR - 18} y={padraoEntradaBottom} />

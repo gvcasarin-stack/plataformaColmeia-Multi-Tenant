@@ -261,6 +261,10 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   // desce a mesma quantidade que o retangulo cresceu — com YSHIFT=0 (sem DPS) o
   // translate nao faz nada e o resto do diagrama fica igual ao de sempre.
   const YSHIFT = padraoEntradaBH - 150;
+  // Com DPS, D1 (e a derivacao do DPS, que sai do trecho acima dele) descem um
+  // pouco para dar mais respiro dentro da caixa — sem DPS, fica exatamente onde
+  // sempre esteve.
+  const d1YOffset = hasDpsEntrada ? 15 : 0;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
@@ -286,9 +290,10 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
 
   // Segunda ocorrência da placa — dentro do Padrão de Entrada. Sem DPS, ao lado
   // esquerdo do D1 (posição de sempre); com DPS, ao lado direito (acima do
-  // MEDIDOR), já que o lado esquerdo passa a ser do DPS.
-  const placa2X = hasDpsEntrada ? topCX + 120 : topCX - 96;
-  const placa2Y = hasDpsEntrada ? 71 : 132;
+  // MEDIDOR), um pouco mais para baixo e levemente à esquerda, já que o lado
+  // esquerdo passa a ser do DPS.
+  const placa2X = hasDpsEntrada ? topCX + 112 : topCX - 96;
+  const placa2Y = hasDpsEntrada ? 85 : 132;
   const placaImg2Left = PAGE_PADDING + (placa2X - VB_MINX) * SVG_SCALE;
   const placaImg2Top = PAGE_PADDING + (placa2Y - VB_MINY) * SVG_SCALE;
 
@@ -322,7 +327,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           ))}
 
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
-          <Line x1={topCX} y1={42} x2={topCX} y2={138} stroke="#000" strokeWidth={1} />
+          <Line x1={topCX} y1={42} x2={topCX} y2={138 + d1YOffset} stroke="#000" strokeWidth={1} />
 
           {/* Horizontal tap to MEDIDOR (branch right) */}
           <Line x1={topCX} y1={85} x2={topCX + 15} y2={85} stroke="#000" strokeWidth={1} />
@@ -337,31 +342,32 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={topCX - 96} y={96}  fontSize={5.8} fill="#000">{`${nFaseRL} #${secaoFase}mm² (F)`}</Text>
           <Text x={topCX - 96} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (N)`}</Text>
 
-          {/* D1 on main vertical line */}
-          <PDFDisjuntor x={topCX} y={145} />
-          <Text x={topCX + 15} y={143} fontSize={6.5} fill="#000">D1</Text>
-          <Text x={topCX + 15} y={152} fontSize={5.5} fill="#000">{djLabel}</Text>
+          {/* D1 on main vertical line — com DPS, desce d1YOffset px para dar mais
+              respiro dentro da caixa (a derivacao do DPS acima dele desce junto). */}
+          <PDFDisjuntor x={topCX} y={145 + d1YOffset} />
+          <Text x={topCX + 15} y={143 + d1YOffset} fontSize={6.5} fill="#000">D1</Text>
+          <Text x={topCX + 15} y={152 + d1YOffset} fontSize={5.5} fill="#000">{djLabel}</Text>
 
           {/* DPS no Padrao de Entrada (Setup do Projeto) — mesmo padrao visual do DPS do
               Quadro de Protecao CA (derivacao da linha principal + simbolo + Terra), do
               lado esquerdo do D1, com a derivacao saindo do trecho da linha principal
-              ACIMA do D1 (nao abaixo). */}
+              ACIMA do D1 (nao abaixo). Desce junto com D1 (d1YOffset). */}
           {hasDpsEntrada && (
             <>
-              <Line x1={topCX} y1={113} x2={topCX - 70} y2={113} stroke="#000" strokeWidth={0.8} />
-              <Line x1={topCX - 70} y1={113} x2={topCX - 70} y2={147} stroke="#000" strokeWidth={0.8} />
-              <PDFDPSSymbol x={topCX - 70} y={156} />
-              <Line x1={topCX - 70} y1={165} x2={topCX - 70} y2={177} stroke="#000" strokeWidth={0.8} />
-              <PDFTerra x={topCX - 70} y={177} />
-              <Text x={topCX - 132} y={123} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{`${dpsEntradaQtd}x DPS`}</Text>
-              <Text x={topCX - 132} y={132} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
-              <Text x={topCX - 132} y={141} fontSize={5.5} fill="#000">{dpsEntradaClasse}</Text>
+              <Line x1={topCX} y1={113 + d1YOffset} x2={topCX - 70} y2={113 + d1YOffset} stroke="#000" strokeWidth={0.8} />
+              <Line x1={topCX - 70} y1={113 + d1YOffset} x2={topCX - 70} y2={147 + d1YOffset} stroke="#000" strokeWidth={0.8} />
+              <PDFDPSSymbol x={topCX - 70} y={156 + d1YOffset} />
+              <Line x1={topCX - 70} y1={165 + d1YOffset} x2={topCX - 70} y2={177 + d1YOffset} stroke="#000" strokeWidth={0.8} />
+              <PDFTerra x={topCX - 70} y={177 + d1YOffset} />
+              <Text x={topCX - 132} y={123 + d1YOffset} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">{`${dpsEntradaQtd}x DPS`}</Text>
+              <Text x={topCX - 132} y={132 + d1YOffset} fontSize={5.5} fill="#000">275 Vca, 20-40 kA</Text>
+              <Text x={topCX - 132} y={141 + d1YOffset} fontSize={5.5} fill="#000">{dpsEntradaClasse}</Text>
             </>
           )}
 
           {/* D1 exit → out of PADRÃO — desce ate o novo topo (deslocado) do Quadro de
               Distribuicao, senao sobraria um vao. */}
-          <Line x1={topCX} y1={152} x2={topCX} y2={220 + YSHIFT} stroke="#000" strokeWidth={1} />
+          <Line x1={topCX} y1={152 + d1YOffset} x2={topCX} y2={220 + YSHIFT} stroke="#000" strokeWidth={1} />
 
           {/* Terra — lower-right corner of PADRAO DE ENTRADA */}
           <PDFTerra x={topBR - 18} y={padraoEntradaBottom} />
