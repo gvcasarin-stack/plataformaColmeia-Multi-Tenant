@@ -274,11 +274,18 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   // abaixo — com YSHIFT=0 (caso sem DPS) o translate não faz nada, e o restante
   // do diagrama fica byte-a-byte igual ao de sempre.
   const YSHIFT = padraoEntradaBH - 150;
+  // A altura do viewBox precisa crescer junto com o YSHIFT, senão o selo (que fica
+  // no fim do desenho, dentro do <g> deslocado) passa do limite inferior e é
+  // cortado. Com YSHIFT=0 (sem DPS) o valor fica exatamente 1295, como sempre foi.
+  const vbHeight = 1295 + YSHIFT;
   // Com DPS, D1 sobe (fica na altura onde antes ficava a derivação do DPS, um
   // pouco abaixo dela) — sem DPS, fica exatamente onde sempre esteve (y=145).
   const d1Y = hasDpsEntrada ? 138 : 145;
   // Derivação do DPS agora sai do trecho ABAIXO do D1 (não mais acima).
   const dpsTapY = d1Y + 7 + 8;
+  // Só a linha horizontal que sai da linha central desce 15% (do trecho vertical
+  // até o símbolo do DPS) — o símbolo, texto e Terra do DPS continuam no lugar.
+  const dpsTapLineY = dpsTapY + 5;
   // Placa de Advertência (2ª ocorrência, dentro do Padrão de Entrada): sem DPS
   // continua exatamente onde sempre esteve (ao lado do D1, alinhada ao Ramal de
   // Ligação); com DPS, o lado esquerdo passa a ser ocupado pelo DPS, então ela
@@ -290,6 +297,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
   const miQccShift = isSaidaAgrupada ? 75 : 0;
+  // Com 1 só inversor o circuito (Padrão de Entrada → Gerador) fica bem mais estreito
+  // que a folha, deixando um vão grande antes da legenda. Desloca esse bloco pra
+  // direita, aproximando-o da legenda (que não se move), pra aproveitar melhor o
+  // espaço. Não afeta multi-inversor (que já usa a largura toda).
+  const hShift = !isMultiInv ? 50 : 0;
+  const hShiftTransform = hShift ? `translate(${hShift}, 0)` : undefined;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -319,13 +332,17 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox={numInversores >= 4 ? "-100 -25 1200 1295" : (numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295")}
+          viewBox={numInversores >= 4 ? `-100 -25 1200 ${vbHeight}` : (numInversores >= 3 ? `-25 -25 1085 ${vbHeight}` : `0 -25 1060 ${vbHeight}`)}
           width="100%"
           style={{ maxWidth: numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060), display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >
 
+          {/* Com 1 inversor, todo o circuito (menos a placa CPFL do canto, que fica
+              sempre fixa no canto esquerdo da folha) desloca hShift px pra direita —
+              com hShift=0 (multi-inversor) o transform não faz nada. */}
+          <g transform={hShiftTransform}>
           {/* ═══════════════ REDE DE BAIXA TENSÃO ═══════════════ */}
           <line
             x1={isMultiInv ? 144 : 90} y1="28"
@@ -345,8 +362,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <rect x={topBX} y="42" width={topBR - topBX} height={padraoEntradaBH} fill="white" stroke="#000" strokeWidth="1.2" />
           <text x={topCX + 66} y="57" fontSize="7.5" fontWeight="bold" textAnchor="middle">PADRÃO DE ENTRADA</text>
           <text x={topCX + 66} y="67" fontSize="6"   textAnchor="middle">(caixa de medição)</text>
+          </g>
 
-          {/* ═══════════════ PLACA DE ADVERTÊNCIA (CPFL) — ao lado esquerdo do PADRÃO DE ENTRADA ═══════════════ */}
+          {/* ═══════════════ PLACA DE ADVERTÊNCIA (CPFL) — ao lado esquerdo do PADRÃO DE ENTRADA (fixa, não desloca) ═══════════════ */}
           {isCPFL && placaAdvertencia && (
             <g>
               <image
@@ -360,6 +378,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
             </g>
           )}
 
+          <g transform={hShiftTransform}>
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
           <line x1={topCX} y1="42" x2={topCX} y2={d1Y - 7} stroke="#000" strokeWidth="1" />
 
@@ -399,8 +418,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               ABAIXO do D1 (não acima). */}
           {hasDpsEntrada && (
             <>
-              <line x1={topCX} y1={dpsTapY} x2={topCX - 70} y2={dpsTapY} stroke="#000" strokeWidth="0.8" />
-              <line x1={topCX - 70} y1={dpsTapY} x2={topCX - 70} y2={dpsTapY + 34} stroke="#000" strokeWidth="0.8" />
+              <line x1={topCX} y1={dpsTapLineY} x2={topCX - 70} y2={dpsTapLineY} stroke="#000" strokeWidth="0.8" />
+              <line x1={topCX - 70} y1={dpsTapLineY} x2={topCX - 70} y2={dpsTapY + 34} stroke="#000" strokeWidth="0.8" />
               <DPSSymbol x={topCX - 70} y={dpsTapY + 43} />
               <line x1={topCX - 70} y1={dpsTapY + 52} x2={topCX - 70} y2={dpsTapY + 64} stroke="#000" strokeWidth="0.8" />
               <Terra x={topCX - 70} y={dpsTapY + 64} />
@@ -417,11 +436,16 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* Terra — lower-right corner of PADRÃO DE ENTRADA (same style as QUADRO DIST) */}
           <Terra x={topBR - 18} y={padraoEntradaBottom} />
+          </g>
 
           {/* ═══ TUDO A PARTIR DAQUI (Quadro de Distribuição em diante) desce YSHIFT
               pixels — com YSHIFT=0 (sem DPS no Padrão de Entrada) o translate não
               muda nada, então nada abaixo deste ponto é afetado no caso comum. ═══ */}
           <g transform={`translate(0, ${YSHIFT})`}>
+          {/* Circuito (Quadro Distribuição → Gerador) também desloca hShift px pra
+              direita com 1 inversor — legenda/selo/logo (fora deste <g>) não se
+              movem. */}
+          <g transform={hShiftTransform}>
 
           {/* ═══════════════ QUADRO DE DISTRIBUIÇÃO ═══════════════ */}
           <rect
@@ -861,6 +885,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
               );
             })}
           </>)}
+          </g>
 
           {/* ═══════════════ LEGENDA (top right) ═══════════════ */}
           <rect x={legendX} y="-20" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />

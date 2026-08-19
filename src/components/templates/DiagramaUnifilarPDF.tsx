@@ -261,16 +261,29 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   // desce a mesma quantidade que o retangulo cresceu — com YSHIFT=0 (sem DPS) o
   // translate nao faz nada e o resto do diagrama fica igual ao de sempre.
   const YSHIFT = padraoEntradaBH - 150;
+  // A altura do viewBox precisa crescer junto com o YSHIFT, senao o selo (que fica
+  // no fim do desenho, dentro do <G> deslocado) passa do limite inferior e e
+  // cortado. Com YSHIFT=0 (sem DPS) o valor fica exatamente 1295, como sempre foi.
+  const VB_H = 1295 + YSHIFT;
   // Com DPS, D1 sobe (fica na altura onde antes ficava a derivacao do DPS, um
   // pouco abaixo dela) — sem DPS, fica exatamente onde sempre esteve (y=145).
   const d1Y = hasDpsEntrada ? 138 : 145;
   // Derivacao do DPS agora sai do trecho ABAIXO do D1 (nao mais acima).
   const dpsTapY = d1Y + 7 + 8;
+  // So a linha horizontal que sai da linha central desce 15% (do trecho vertical
+  // ate o simbolo do DPS) — o simbolo, texto e Terra do DPS continuam no lugar.
+  const dpsTapLineY = dpsTapY + 5;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
   const miInvShift = isSaidaAgrupada ? 75 : 0;
   const miQccShift = isSaidaAgrupada ? 75 : 0;
+  // Com 1 so inversor o circuito (Padrao de Entrada -> Gerador) fica bem mais estreito
+  // que a folha, deixando um vao grande antes da legenda. Desloca esse bloco pra
+  // direita, aproximando-o da legenda (que nao se move), pra aproveitar melhor o
+  // espaco. Nao afeta multi-inversor (que ja usa a largura toda).
+  const hShift = !isMultiInv ? 50 : 0;
+  const hShiftTransform = hShift ? `translate(${hShift}, 0)` : undefined;
 
   // Seal column centers
   const MID_CTR = 439; // center of middle col (178-700)
@@ -288,6 +301,9 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const placaImgTop = PAGE_PADDING + (44 - VB_MINY) * SVG_SCALE;
   const placaImgW = 42 * SVG_SCALE;
   const placaImgH = 45 * SVG_SCALE;
+  // Altura do Svg em pontos, escalada junto com o VB_H (mesma técnica do "top"
+  // do logo abaixo) — com YSHIFT=0 fica exatamente igual ao valor de sempre.
+  const SVG_H = (numInversores >= 4 ? 1385 : (numInversores >= 3 ? 1385 : 992)) + YSHIFT * SVG_SCALE;
 
   // Segunda ocorrência da placa — dentro do Padrão de Entrada. Sem DPS, ao lado
   // esquerdo do D1 (posição de sempre); com DPS, ao lado direito (acima do
@@ -301,8 +317,12 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   return (
     <Document>
       <Page size={numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A3')} style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
-        <Svg width={numInversores >= 4 ? 1280 : (numInversores >= 3 ? 1160 : 812)} height={numInversores >= 4 ? 1385 : (numInversores >= 3 ? 1385 : 992)} viewBox={numInversores >= 4 ? "-100 -25 1200 1295" : (numInversores >= 3 ? "-25 -25 1085 1295" : "0 -25 1060 1295")}>
+        <Svg width={SVG_W} height={SVG_H} viewBox={`${VB_MINX} ${VB_MINY} ${VB_W} ${VB_H}`}>
 
+          {/* Com 1 inversor, todo o circuito (menos o texto da placa CPFL do canto,
+              que fica sempre fixo no canto esquerdo da folha) desloca hShift pts pra
+              direita — com hShift=0 (multi-inversor) o transform nao faz nada. */}
+          <G transform={hShiftTransform}>
           {/* ═══ REDE DE BAIXA TENSÃO ═══ */}
           <Line
             x1={isMultiInv ? 144 : 90} y1={28}
@@ -321,12 +341,14 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Rect x={topBX} y={42} width={topBR - topBX} height={padraoEntradaBH} fill="white" stroke="#000" strokeWidth={1.2} />
           <Text x={topCX + 66} y={57} fontSize={7.5} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">PADRAO DE ENTRADA</Text>
           <Text x={topCX + 66} y={67} fontSize={6} textAnchor="middle" fill="#000">(caixa de medicao)</Text>
+          </G>
 
-          {/* ═══ PLACA DE ADVERTENCIA (CPFL) — texto ao lado esquerdo do PADRAO DE ENTRADA (imagem fica fora do Svg, ver bloco de posicionamento absoluto abaixo) ═══ */}
+          {/* ═══ PLACA DE ADVERTENCIA (CPFL) — fixa, não desloca — texto ao lado esquerdo do PADRAO DE ENTRADA (imagem fica fora do Svg, ver bloco de posicionamento absoluto abaixo) ═══ */}
           {isCPFL && placaAdvertencia && PLACA_ADVERTENCIA_CPFL_LINES.map((line, i) => (
             <Text key={i} x={14} y={103 + i * 8} fontSize={5.5} fill="#000">{line}</Text>
           ))}
 
+          <G transform={hShiftTransform}>
           {/* Main vertical — starts at box top (y=42) to close the small gap */}
           <Line x1={topCX} y1={42} x2={topCX} y2={d1Y - 7} stroke="#000" strokeWidth={1} />
 
@@ -355,8 +377,8 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
               ABAIXO do D1 (nao acima). */}
           {hasDpsEntrada && (
             <>
-              <Line x1={topCX} y1={dpsTapY} x2={topCX - 70} y2={dpsTapY} stroke="#000" strokeWidth={0.8} />
-              <Line x1={topCX - 70} y1={dpsTapY} x2={topCX - 70} y2={dpsTapY + 34} stroke="#000" strokeWidth={0.8} />
+              <Line x1={topCX} y1={dpsTapLineY} x2={topCX - 70} y2={dpsTapLineY} stroke="#000" strokeWidth={0.8} />
+              <Line x1={topCX - 70} y1={dpsTapLineY} x2={topCX - 70} y2={dpsTapY + 34} stroke="#000" strokeWidth={0.8} />
               <PDFDPSSymbol x={topCX - 70} y={dpsTapY + 43} />
               <Line x1={topCX - 70} y1={dpsTapY + 52} x2={topCX - 70} y2={dpsTapY + 64} stroke="#000" strokeWidth={0.8} />
               <PDFTerra x={topCX - 70} y={dpsTapY + 64} />
@@ -372,11 +394,15 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
 
           {/* Terra — lower-right corner of PADRAO DE ENTRADA */}
           <PDFTerra x={topBR - 18} y={padraoEntradaBottom} />
+          </G>
 
           {/* ═══ TUDO A PARTIR DAQUI (Quadro de Distribuicao em diante) desce YSHIFT
               pontos — com YSHIFT=0 (sem DPS no Padrao de Entrada) o translate nao
               muda nada, entao nada abaixo deste ponto e afetado no caso comum. ═══ */}
           <G transform={`translate(0, ${YSHIFT})`}>
+          {/* Circuito (Quadro Distribuicao -> Gerador) tambem desloca hShift pts pra
+              direita com 1 inversor — legenda/selo/logo (fora deste <G>) nao se movem. */}
+          <G transform={hShiftTransform}>
 
           {/* ═══ QUADRO DE DISTRIBUIÇÃO ═══ */}
           <Rect
@@ -768,6 +794,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
               );
             })}
           </>)}
+          </G>
 
           {/* ═══ LEGENDA ═══ */}
           <Rect x={legendX} y={-20} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
