@@ -2222,6 +2222,7 @@ export async function getProjectAction(projectId: string): Promise<{
 
       setup_e_ampliacao: data.setup_e_ampliacao || undefined,
       setup_padrao_entrada: data.setup_padrao_entrada || undefined,
+      setup_dps_padrao_entrada: data.setup_dps_padrao_entrada || undefined,
       setup_quadro_cc: data.setup_quadro_cc || undefined,
       setup_mais_de_um_inversor: data.setup_mais_de_um_inversor || undefined,
       setup_tipo_inversor: data.setup_tipo_inversor || undefined,
@@ -3118,6 +3119,7 @@ export async function editProjectAction(
 
       setup_e_ampliacao: updatedProjectData.setup_e_ampliacao || undefined,
       setup_padrao_entrada: updatedProjectData.setup_padrao_entrada || undefined,
+      setup_dps_padrao_entrada: updatedProjectData.setup_dps_padrao_entrada || undefined,
       setup_quadro_cc: updatedProjectData.setup_quadro_cc || undefined,
       setup_mais_de_um_inversor: updatedProjectData.setup_mais_de_um_inversor || undefined,
       setup_tipo_inversor: updatedProjectData.setup_tipo_inversor || undefined,
