@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, role, phone, department, permissions } = body;
+    const { name, email, role, phone, department, permissions, password } = body;
 
     devLog.log('[API Team Members] Dados recebidos:', {
       name, email, role, phone, department, permissions
@@ -138,6 +138,13 @@ export async function POST(request: NextRequest) {
     if (!name || !email || !role) {
       return NextResponse.json(
         { error: 'Nome, email e função são obrigatórios' },
+        { status: 400 }
+      );
+    }
+
+    if (!password || String(password).length < 8) {
+      return NextResponse.json(
+        { error: 'Senha obrigatória (mínimo 8 caracteres)' },
         { status: 400 }
       );
     }
@@ -163,13 +170,13 @@ export async function POST(request: NextRequest) {
       }, { status: 409 });
     }
 
-    // Passo 1: Criar usuário no Supabase Auth sem senha (será definida pelo link)
+    // Passo 1: Criar usuário no Supabase Auth já com a senha definida pelo admin
     devLog.log('[API Team Members] Criando usuário no Auth...');
 
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
+      password,
       email_confirm: true, // Email já confirmado
-      // ✅ Não definir senha - será definida pelo link
     });
 
     if (authError) {
@@ -238,49 +245,18 @@ export async function POST(request: NextRequest) {
 
     devLog.log('[API Team Members] Usuário criado:', newUser.id);
 
-    // ✅ Passo 3: Gerar link de definir senha
-    devLog.log('[API Team Members] Gerando link de definir senha...');
+    // ✅ Passo 3: Enviar email de boas-vindas com as credenciais (não-bloqueante — a
+    // senha já foi definida no Passo 1, então o login funciona mesmo se o e-mail falhar)
+    const host = request.headers.get('host') || '';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const loginUrl = `${protocol}://${host}/admin/login`;
 
-    // ✅ SOLUÇÃO FINAL: Redirect direto sem callback
-    // O Supabase vai colocar os tokens no hash fragment (#access_token=...)
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/admin/nova-senha`;
-
-    const { data: resetData, error: resetError } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-      options: {
-        redirectTo: redirectUrl,
-      }
+    import('@/lib/services/emailService').then(({ sendTeamMemberWelcomeEmail }) =>
+      sendTeamMemberWelcomeEmail(email, name, password, loginUrl)
+    ).catch((emailError) => {
+      devLog.error('[API Team Members] Erro ao enviar email de boas-vindas:', emailError);
+      // Não falhar a criação do usuário por causa do email
     });
-
-    if (resetError) {
-      devLog.error('[API Team Members] Erro ao gerar link de senha:', resetError);
-      // Não falhar a criação do usuário por causa do link
-    } else {
-      const passwordResetLink = resetData.properties.action_link || '';
-      devLog.log('[API Team Members] Link de senha gerado com sucesso');
-      devLog.log('[API Team Members] Link:', passwordResetLink);
-      devLog.log('[API Team Members] Redirect URL configurado:', redirectUrl);
-
-      // ✅ Passo 4: Enviar email de boas-vindas com link
-      try {
-        const { sendTeamMemberWelcomeEmail } = await import('@/lib/services/emailService');
-        const emailSent = await sendTeamMemberWelcomeEmail(
-          email,
-          name,
-          passwordResetLink
-        );
-
-        if (emailSent) {
-          devLog.log('[API Team Members] Email de boas-vindas enviado com sucesso');
-        } else {
-          devLog.warn('[API Team Members] Falha ao enviar email de boas-vindas');
-        }
-      } catch (emailError) {
-        devLog.error('[API Team Members] Erro ao enviar email de boas-vindas:', emailError);
-        // Não falhar a criação do usuário por causa do email
-      }
-    }
 
     return NextResponse.json({
       success: true,

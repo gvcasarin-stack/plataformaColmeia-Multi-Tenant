@@ -9,12 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
-import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2, Loader2, Check, X } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2, Loader2, Check, X, Key, Eye, EyeOff } from "lucide-react";
 import { devLog } from "@/lib/utils/productionLogger";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { PermissionsCheckboxes } from '@/components/admin/PermissionsCheckboxes';
 import { UserPermissions, ADMIN_PERMISSIONS, COLABORADOR_PERMISSIONS } from '@/types/user';
+import { generateSecurePassword } from '@/lib/utils/passwordGenerator';
 
 interface TeamMember {
   id: string;
@@ -34,6 +35,7 @@ interface FormData {
   phone: string;
   department: string;
   permissions: UserPermissions;
+  password: string;
 }
 
 interface Cliente {
@@ -61,8 +63,10 @@ export default function EquipePage() {
     role: 'colaborador',
     phone: '',
     department: '',
-    permissions: COLABORADOR_PERMISSIONS // ✅ Preset padrão para colaborador
+    permissions: COLABORADOR_PERMISSIONS, // ✅ Preset padrão para colaborador
+    password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   // 🔒 VALIDAÇÃO DE EMAIL: Estados para verificar se email já existe
   const [emailCheckLoading, setEmailCheckLoading] = useState(false);
@@ -375,6 +379,16 @@ export default function EquipePage() {
         });
         return;
       }
+
+      // ✅ Senha é obrigatória para novos membros (definida pelo admin, na hora)
+      if (!formData.password || formData.password.length < 8) {
+        toast({
+          title: "Senha obrigatória",
+          description: "Defina uma senha de pelo menos 8 caracteres para o novo membro.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     try {
@@ -406,8 +420,11 @@ export default function EquipePage() {
           }
 
           toast({
-            title: 'Sucesso',
-            description: editMode ? 'Membro atualizado com sucesso!' : 'Membro adicionado com sucesso!',
+            title: editMode ? 'Sucesso' : '✅ Membro adicionado com sucesso!',
+            description: editMode
+              ? 'Membro atualizado com sucesso!'
+              : `Senha definida: ${formData.password}. Um e-mail com essas credenciais também foi enviado para ${formData.email}.`,
+            duration: editMode ? undefined : 20000,
           });
 
           resetForm();
@@ -449,7 +466,8 @@ export default function EquipePage() {
       role: member.role,
       phone: member.phone || '',
       department: member.department || '',
-      permissions: memberPermissions
+      permissions: memberPermissions,
+      password: ''
     });
     setCurrentUserId(member.id);
     setEditMode(true);
@@ -549,8 +567,10 @@ export default function EquipePage() {
       role: 'colaborador',
       phone: '',
       department: '',
-      permissions: COLABORADOR_PERMISSIONS // ✅ Reset com preset padrão
+      permissions: COLABORADOR_PERMISSIONS, // ✅ Reset com preset padrão
+      password: ''
     });
+    setShowPassword(false);
     setEditMode(false);
     setCurrentUserId(null);
     // Resetar estados de validação de email
@@ -750,7 +770,53 @@ export default function EquipePage() {
                   )}
                 </div>
               </div>
-              
+
+              {/* ✅ Senha de acesso — definida pelo admin na hora (digitada ou gerada),
+                  em vez de depender do e-mail de convite para o próprio usuário criar. */}
+              {!editMode && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha de Acesso</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="Senha do membro"
+                        autoComplete="new-password"
+                        className="pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        onClick={() => setShowPassword((p) => !p)}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 whitespace-nowrap"
+                      onClick={() => {
+                        const pwd = generateSecurePassword();
+                        setFormData(prev => ({ ...prev, password: pwd }));
+                        setShowPassword(true);
+                      }}
+                    >
+                      <Key className="h-3.5 w-3.5" />
+                      Gerar Senha Segura
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">Mínimo 8 caracteres. As credenciais também serão enviadas por e-mail.</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="role">Função</Label>

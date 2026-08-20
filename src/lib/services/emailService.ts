@@ -403,8 +403,9 @@ export const emailTemplates = {
     </div>
   `,
 
-  // ✅ NOVO: Template para boas-vindas de membro da equipe
-  teamMemberWelcome: (userName: string, setPasswordLink: string) => `
+  // ✅ Template para boas-vindas de membro da equipe — credenciais definidas pelo admin
+  // (mesmo padrão visual do clientWelcome, com email + senha já prontos para uso)
+  teamMemberWelcome: (userName: string, loginEmail: string, password: string, loginUrl: string) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #10b981; padding: 20px; text-align: center;">
         <h1 style="color: white; margin: 0;">Sistema de Gerenciamento Fotovoltaico</h1>
@@ -413,15 +414,15 @@ export const emailTemplates = {
         <h2 style="color: #10b981;">Bem-vindo à Equipe!</h2>
         <p>Olá <strong>${userName}</strong>,</p>
         <p>Você foi adicionado como membro da equipe no Sistema de Gerenciamento Fotovoltaico!</p>
-        <p>Para acessar a plataforma, você precisa definir sua senha clicando no botão abaixo:</p>
-        <div style="margin: 30px 0; text-align: center;">
-          <a href="${setPasswordLink}" style="background-color: #10b981; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Definir Minha Senha</a>
+        <p>Utilize as credenciais abaixo para acessar a plataforma:</p>
+        <div style="background-color: #f3f4f6; padding: 15px; border-radius: 4px; margin: 20px 0;">
+          <p style="margin: 0;"><span style="color: #6b7280;">E-mail:</span> <strong>${loginEmail}</strong></p>
+          <p style="margin: 10px 0 0;"><span style="color: #6b7280;">Senha:</span> <strong style="font-family: monospace;">${password}</strong></p>
         </div>
-        <p style="color: #6b7280; font-size: 0.9rem;">Se o botão acima não funcionar, copie e cole o link abaixo no seu navegador:</p>
-        <p style="background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 0.85rem; word-break: break-all;">${setPasswordLink}</p>
-        <p style="color: #ef4444; font-size: 0.9rem; margin-top: 20px;">
-          ⚠️ <strong>Importante:</strong> Este link é válido por 24 horas e só pode ser usado uma vez.
-        </p>
+        <p style="color: #ef4444; font-size: 0.9rem;">⚠️ Recomendamos que você altere sua senha após o primeiro acesso.</p>
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="${loginUrl}" style="background-color: #10b981; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Acessar Plataforma</a>
+        </div>
         <p style="color: #6b7280; font-size: 0.8rem; margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
           Este é um e-mail automático, por favor não responda.<br>
           &copy; ${new Date().getFullYear()} Sistema de Gerenciamento Fotovoltaico. Todos os direitos reservados.
@@ -1339,22 +1340,20 @@ export async function notifyAdminAboutDocument(
 export async function sendTeamMemberWelcomeEmail(
   email: string,
   name: string,
-  setPasswordLink: string
+  password: string,
+  loginUrl: string
 ): Promise<boolean> {
   devLog.log(`[EmailService] Enviando email de boas-vindas para ${email}`);
 
   try {
-    if (!setPasswordLink) {
-      devLog.error('[EmailService] Link de definir senha não fornecido');
-      return false;
-    }
-
     const emailHtml = emailTemplates.teamMemberWelcome(
       name,
-      setPasswordLink
+      email,
+      password,
+      loginUrl
     );
 
-    const subject = `Bem-vindo à Equipe - Defina sua Senha`;
+    const subject = `Bem-vindo à Equipe - Sistema de Gerenciamento Fotovoltaico`;
 
     const result = await sendEmail(email, subject, emailHtml);
 
