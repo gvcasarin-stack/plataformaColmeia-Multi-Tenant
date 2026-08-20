@@ -139,31 +139,54 @@ export async function PUT(
           ? ` (Prazo: ${newStatus.sla_days} dia${newStatus.sla_days !== 1 ? 's' : ''})`
           : '';
 
-        await supabase.from('project_timeline_events').insert({
+        const timelineContent = `Status alterado de ${oldName} para ${newName}${slaSuffix}`;
+        const timelineMetadata = {
+          isSystemGenerated: false,
+          isStatusChange: true,
+          userType: userRole || null,
+          data: {
+            oldStatus: oldStatusSlug,
+            newStatus: newStatusSlug,
+            updatedBy: userName || null,
+            updatedByEmail: userEmail || null,
+            updatedByRole: userRole || null,
+          },
+        };
+
+        const { error: timelineInsertError } = await supabase.from('project_timeline_events').insert({
           id: randomUUID(),
           project_id: projectId,
           tenant_id: tenantId,
           type: 'status',
           user_id: userId || null,
           user_name: userName || null,
-          content: `Status alterado de ${oldName} para ${newName}${slaSuffix}`,
+          content: timelineContent,
           old_status: oldStatusSlug,
           new_status: newStatusSlug,
           visibility: 'all',
-          metadata: {
-            isSystemGenerated: false,
-            isStatusChange: true,
-            userType: userRole || null,
-            data: {
-              oldStatus: oldStatusSlug,
-              newStatus: newStatusSlug,
-              updatedBy: userName || null,
-              updatedByEmail: userEmail || null,
-              updatedByRole: userRole || null,
-            },
-          },
+          metadata: timelineMetadata,
           created_at: now.toISOString(),
         });
+
+        if (timelineInsertError) {
+          if (timelineInsertError.code === '23505') {
+            // Colisão esperada: a trigger do banco (trg_log_project_status_change) já
+            // gravou um evento "Sistema" com este mesmo timestamp (idx_pte_status_dedup
+            // evita duas linhas para a mesma transição). Em vez de duplicar, corrige
+            // esse registro para refletir o usuário real que fez a mudança.
+            const { error: fixError } = await supabase
+              .from('project_timeline_events')
+              .update({ user_id: userId || null, user_name: userName || null, content: timelineContent, metadata: timelineMetadata })
+              .eq('project_id', projectId)
+              .eq('type', 'status')
+              .eq('old_status', oldStatusSlug)
+              .eq('new_status', newStatusSlug)
+              .eq('created_at', now.toISOString());
+            if (fixError) devLog.error('[API change-status] Erro ao corrigir atribuição do evento de timeline:', fixError);
+          } else {
+            devLog.error('[API change-status] Erro ao gravar evento de timeline (não crítico):', timelineInsertError);
+          }
+        }
       } catch (timelineError) {
         devLog.error('[API change-status] Erro ao gravar evento de timeline (não crítico):', timelineError);
       }

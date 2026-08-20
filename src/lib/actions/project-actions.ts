@@ -2943,39 +2943,71 @@ export async function editProjectAction(
 
         // Novos eventos (ID não existe na tabela) → INSERT
         const newEvents = incomingEvents.filter((e: any) => e.id && !existingIdSet.has(e.id));
-        if (newEvents.length > 0) {
+        const buildTimelineRow = (e: any) => ({
+          id: e.id,
+          project_id: updatedProject.id,
+          tenant_id: currentProject.tenant_id,
+          type: e.type || 'general',
+          user_id: e.userId || null,
+          user_name: e.user || null,
+          content: e.content || null,
+          file_name: e.fileName || null,
+          file_url: e.fileUrl || null,
+          old_status: e.oldStatus || e.data?.oldStatus || null,
+          new_status: e.newStatus || e.data?.newStatus || null,
+          comment_id: e.commentId || null,
+          visibility: e.visibility || 'all',
+          images: (e.images && e.images.length > 0) ? e.images : null,
+          metadata: {
+            isSystemGenerated: e.isSystemGenerated,
+            title: e.title,
+            fullMessage: e.fullMessage,
+            isStatusChange: e.isStatusChange,
+            userType: e.userType,
+            fullName: e.fullName,
+            uploadedByName: e.uploadedByName,
+            uploadedByRole: e.uploadedByRole,
+            clientName: e.clientName,
+            data: e.data
+          },
+          created_at: e.timestamp
+        });
+
+        // Eventos de status são tratados à parte (um a um): a trigger do banco
+        // (trg_log_project_status_change) já grava um evento "Sistema" com o mesmo
+        // created_at (status_changed_at repassado por esta mesma ação), então o INSERT
+        // abaixo colide de propósito com ele (idx_pte_status_dedup) — em vez de duplicar
+        // ou deixar a linha como "Sistema", corrige o registro com os dados reais do
+        // usuário. Feito em lote (.insert de vários) causaria conflito no batch inteiro,
+        // por isso vai separado dos demais tipos de evento.
+        const statusEvents = newEvents.filter((e: any) => e.type === 'status');
+        const otherEvents = newEvents.filter((e: any) => e.type !== 'status');
+
+        if (otherEvents.length > 0) {
           const { error: insertErr } = await supabase
             .from('project_timeline_events')
-            .insert(newEvents.map((e: any) => ({
-              id: e.id,
-              project_id: updatedProject.id,
-              tenant_id: currentProject.tenant_id,
-              type: e.type || 'general',
-              user_id: e.userId || null,
-              user_name: e.user || null,
-              content: e.content || null,
-              file_name: e.fileName || null,
-              file_url: e.fileUrl || null,
-              old_status: e.oldStatus || e.data?.oldStatus || null,
-              new_status: e.newStatus || e.data?.newStatus || null,
-              comment_id: e.commentId || null,
-              visibility: e.visibility || 'all',
-              images: (e.images && e.images.length > 0) ? e.images : null,
-              metadata: {
-                isSystemGenerated: e.isSystemGenerated,
-                title: e.title,
-                fullMessage: e.fullMessage,
-                isStatusChange: e.isStatusChange,
-                userType: e.userType,
-                fullName: e.fullName,
-                uploadedByName: e.uploadedByName,
-                uploadedByRole: e.uploadedByRole,
-                clientName: e.clientName,
-                data: e.data
-              },
-              created_at: e.timestamp
-            })));
+            .insert(otherEvents.map(buildTimelineRow));
           if (insertErr) devLog.error('[editProjectAction] Falha ao inserir eventos na timeline:', insertErr);
+        }
+
+        for (const e of statusEvents) {
+          const row = buildTimelineRow(e);
+          const { error: statusInsertErr } = await supabase.from('project_timeline_events').insert(row);
+          if (statusInsertErr) {
+            if (statusInsertErr.code === '23505') {
+              const { error: fixErr } = await supabase
+                .from('project_timeline_events')
+                .update({ user_id: row.user_id, user_name: row.user_name, content: row.content, metadata: row.metadata })
+                .eq('project_id', row.project_id)
+                .eq('type', 'status')
+                .eq('old_status', row.old_status)
+                .eq('new_status', row.new_status)
+                .eq('created_at', row.created_at);
+              if (fixErr) devLog.error('[editProjectAction] Falha ao corrigir atribuição do evento de status:', fixErr);
+            } else {
+              devLog.error('[editProjectAction] Falha ao inserir evento de status na timeline:', statusInsertErr);
+            }
+          }
         }
 
         // Eventos editados (ID existe + edited: true) → UPDATE apenas content e metadata
