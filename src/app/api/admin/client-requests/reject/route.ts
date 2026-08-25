@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const { requestId, reason } = await request.json();
+    const { requestId } = await request.json();
     
     if (!requestId) {
       return NextResponse.json({
@@ -28,16 +28,16 @@ export async function POST(request: NextRequest) {
     
     const supabase = createSupabaseServiceRoleClient();
     
-    // 1. Rejeitar: definir status='rejected' e motivo
+    // 1. Rejeitar: definir status='rejected'
+    // (rejection_reason não existe como coluna na tabela users — não persistido)
     const { error: updateError } = await supabase
       .from('users')
-      .update({ 
+      .update({
         status: 'rejected',
-        rejection_reason: reason || 'Solicitação rejeitada',
         updated_at: new Date().toISOString()
       })
       .eq('id', requestId)
-      .eq('role', 'cliente');
+      .eq('role', 'client');
     
     if (updateError) {
       devLog.error('[API] [Admin] [ClientRequests] [Reject] Erro ao atualizar usuário:', updateError);

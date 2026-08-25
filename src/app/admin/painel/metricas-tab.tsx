@@ -512,10 +512,12 @@ export default function MetricasTab({ allProjects, availableStatuses, isActive, 
                 label: 'Potência Total (kWp)', value: totalPower.toFixed(2),
                 caption: `${kpi.total > 0 ? (totalPower / kpi.total).toFixed(2) : 0} kWp em média`,
               },
-              {
+              // ✅ Só entra no grid quando o usuário tem permissão de ver dados
+              // financeiros — mesma checagem já usada na seção "Financeiro" abaixo.
+              ...(canViewFinancials ? [{
                 icon: <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />,
                 label: 'Receita Total', value: fmtS(kpi.totalRevenue), caption: 'valor total dos projetos',
-              },
+              }] : []),
             ].map((card, i) => (
               <div
                 key={i}
