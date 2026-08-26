@@ -366,6 +366,15 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
   const inversoresList = getAllInversores(pd);
   const kwpTotal = getTotalKwp(pd);
   const potenciaKwp = kwpTotal > 0 ? fmtBR(kwpTotal) : '___';
+
+  // Area total do arranjo — soma a area de cada linha (mesmo calculo usado por
+  // linha: area_unitaria_m2 x quantidade), em vez de usar modulos_area_m2 (campo
+  // separado, que ficava desatualizado em relacao a lista real de modulos).
+  const areaTotal = modulosList.reduce((sum, m) => {
+    const qty = parseFloat(String(m.quantidade || '1').replace(',', '.')) || 1;
+    const areaUnit = parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0;
+    return sum + areaUnit * qty;
+  }, 0);
   const invKwTotal = getTotalInversorKw(pd);
   const totalInvPotencia = invKwTotal > 0 ? fmtBR(invKwTotal) : '___';
   const pgNum = getPotenciaGeracao(pd);
@@ -831,8 +840,8 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
                 <View style={[s.d2, { width: '12%', textAlign: 'center' }]}><Text>{m.quantidade || '1'}</Text></View>
                 <View style={[s.d2, { width: '18%', textAlign: 'center' }]}><Text>{kwp > 0 ? fmtBR(kwp) : potenciaKwp}</Text></View>
                 <View style={[s.d2, { width: '16%', textAlign: 'center' }]}><Text>{area > 0 ? fmtBR(area) : v('modulos_area_m2', pd)}</Text></View>
-                <View style={[s.d2, { width: '20%' }]}><Text>{m.fabricante || v('modulos_fabricante', pd)}</Text></View>
-                <View style={[s.d2, { width: '13%' }]}><Text>{m.modelo || v('modulos_modelo', pd)}</Text></View>
+                <View style={[s.d2, { width: '20%', textAlign: 'center' }]}><Text>{m.fabricante || v('modulos_fabricante', pd)}</Text></View>
+                <View style={[s.d2, { width: '13%', textAlign: 'center' }]}><Text>{m.modelo || v('modulos_modelo', pd)}</Text></View>
               </View>
             );
           })}
@@ -852,7 +861,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.totGray2, { width: '16%' }]}><Text></Text></View>
             <View style={[s.tot2, { width: '12%' }]}><Text>{totalModulosQtd > 0 ? String(totalModulosQtd) : v('modulos_quantidade', pd)}</Text></View>
             <View style={[s.tot2, { width: '18%' }]}><Text>{potenciaKwp}</Text></View>
-            <View style={[s.tot2, { width: '16%' }]}><Text>{v('modulos_area_m2', pd)}</Text></View>
+            <View style={[s.tot2, { width: '16%' }]}><Text>{areaTotal > 0 ? fmtBR(areaTotal) : v('modulos_area_m2', pd)}</Text></View>
             <View style={[s.totGray2, { width: '20%' }]}><Text></Text></View>
             <View style={[s.totGray2, { width: '13%' }]}><Text></Text></View>
           </View>
@@ -867,7 +876,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.chBlue2, { width: '14%' }]}><Text>Fabricante*</Text></View>
             <View style={[s.chBlue2, { width: '16%' }]}><Text>Modelo*</Text></View>
             <View style={[s.chBlue2, { width: '12%' }]}><Text>Potência Nominal (kW)</Text></View>
-            <View style={[s.chBlue2, { width: '13%' }]}><Text>Faixa de tensão de operação (V)</Text></View>
+            <View style={[s.chBlue2, { width: '13%' }]}><Text>{'Faixa de tensão de\noperação (V)'}</Text></View>
             <View style={[s.chBlue2, { width: '10%' }]}><Text>Corrente Nominal (A)</Text></View>
             <View style={[s.chBlue2, { width: '11%' }]}><Text>Fator de Potência</Text></View>
             <View style={[s.chBlue2, { width: '10%' }]}><Text>Rendimento (%)</Text></View>
@@ -876,8 +885,8 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
           {inversoresList.map((inv, i) => (
             <View key={i} style={s.row}>
               <View style={[s.d2, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
-              <View style={[s.d2, { width: '14%' }]}><Text>{inv.fabricante || v('inversores_fabricante', pd)}</Text></View>
-              <View style={[s.d2, { width: '16%' }]}><Text>{inv.modelo || v('inversores_modelo', pd)}</Text></View>
+              <View style={[s.d2, { width: '14%', textAlign: 'center' }]}><Text>{inv.fabricante || v('inversores_fabricante', pd)}</Text></View>
+              <View style={[s.d2, { width: '16%', textAlign: 'center' }]}><Text>{inv.modelo || v('inversores_modelo', pd)}</Text></View>
               <View style={[s.d2, { width: '12%', textAlign: 'center' }]}><Text>{inv.potencia || v('inversores_potencia', pd)}</Text></View>
               <View style={[s.d2, { width: '13%', textAlign: 'center' }]}><Text>{inv.faixa_tensao || v('inversores_faixa_tensao', pd)}</Text></View>
               <View style={[s.d2, { width: '10%', textAlign: 'center' }]}><Text>{inv.corrente_nominal || v('inversores_corrente_nominal', pd)}</Text></View>
@@ -997,7 +1006,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View key={label} style={s.row}>
               <View style={[s.l2, { width: '20%' }]}><Text>{label}</Text></View>
               <View style={[s.dPeach2, { width: '20%' }]}><Text></Text></View>
-              <View style={unit ? [s.d2, { width: '20%' }] : [s.dPeach2, { width: '20%' }]}><Text>{unit}</Text></View>
+              <View style={unit ? [s.d2, { width: '20%', textAlign: 'center' }] : [s.dPeach2, { width: '20%' }]}><Text>{unit}</Text></View>
               <View style={[s.dPeach2, { width: '20%' }]}><Text></Text></View>
               <View style={[s.dPeach2, { width: '20%' }]}><Text></Text></View>
             </View>

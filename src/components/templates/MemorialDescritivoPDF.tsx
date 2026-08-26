@@ -658,20 +658,14 @@ export function MemorialDescritivoPDF({
               isLast
             />
           </View>
-          {projectData?.planta_situacao_url !== 'nao_incluir' && (
+          {projectData?.planta_situacao_url && projectData.planta_situacao_url !== 'pending_upload' && projectData.planta_situacao_url !== 'nao_incluir' && (
             <View style={styles.imageContainer}>
-              {projectData?.planta_situacao_url && projectData.planta_situacao_url !== 'pending_upload' ? (
-                <>
-                  <Image
-                    src={projectData.planta_situacao_url}
-                    style={styles.figureImage}
-                    cache={false}
-                  />
-                  <Text style={styles.figureCaption}>Figura 1: Localização da unidade consumidora.</Text>
-                </>
-              ) : (
-                <Text style={styles.placeholder}>{'{{planta_situacao_imagem}}'}</Text>
-              )}
+              <Image
+                src={projectData.planta_situacao_url}
+                style={styles.figureImage}
+                cache={false}
+              />
+              <Text style={styles.figureCaption}>Figura 1: Localização da unidade consumidora.</Text>
             </View>
           )}
         </View>
@@ -800,13 +794,11 @@ export function MemorialDescritivoPDF({
             <InfoRow label="CURVA DE ATUAÇÃO (DISPARO)" value="C" isLast />
           </View>
 
-          <View wrap={false}>
           <SH3>6.3. Potência Disponibilizada</SH3>
           <Text style={styles.para}>
             A potência disponibilizada para a unidade consumidora onde será instalada
             a {classificacao} é igual à:
           </Text>
-          </View>
           <View style={styles.monoBox}>
             <Text style={styles.monoText}>PD [kVA] = (VN [V] × IDG [A] × NF) / 1000</Text>
             <Text style={styles.monoText}>PD [kW] = PD [kVA] × FP</Text>

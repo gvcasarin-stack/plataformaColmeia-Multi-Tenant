@@ -151,6 +151,15 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
   const kwpTotal = getTotalKwp(projectData);
   const potenciaKwp = kwpTotal > 0 ? fmtBR(kwpTotal) : null;
 
+  // Área total do arranjo — soma a área de cada linha (mesmo cálculo usado por
+  // linha: area_unitaria_m2 × quantidade), em vez de usar modulos_area_m2 (campo
+  // separado, que ficava desatualizado em relação à lista real de módulos).
+  const areaTotal = modulosList.reduce((sum, m) => {
+    const qty = parseFloat(String(m.quantidade || '1').replace(',', '.')) || 1;
+    const areaUnit = parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0;
+    return sum + areaUnit * qty;
+  }, 0);
+
   const invKwTotal = getTotalInversorKw(projectData);
   const totalInvPotencia = invKwTotal > 0 ? fmtBR(invKwTotal) : '';
 
@@ -731,8 +740,8 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                       <td style={{ ...D2, textAlign: 'center' }}>{m.quantidade || '1'}</td>
                       <td style={{ ...D2, textAlign: 'center' }}>{kwp > 0 ? fmtBR(kwp) : (potenciaKwp ?? <V>{`{{potencia}}`}</V>)}</td>
                       <td style={{ ...D2, textAlign: 'center' }}>{area > 0 ? fmtBR(area) : (projectData?.modulos_area_m2 || '')}</td>
-                      <td style={D2}>{m.fabricante || <V>{`{{modulos_fabricante}}`}</V>}</td>
-                      <td style={D2}>{m.modelo || <V>{`{{modulos_modelo}}`}</V>}</td>
+                      <td style={{ ...D2, textAlign: 'center' }}>{m.fabricante || <V>{`{{modulos_fabricante}}`}</V>}</td>
+                      <td style={{ ...D2, textAlign: 'center' }}>{m.modelo || <V>{`{{modulos_modelo}}`}</V>}</td>
                     </tr>
                   );
                 })}
@@ -750,7 +759,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                   <td style={TOTGray2}></td>
                   <td style={TOT2}>{totalModulosQtd > 0 ? totalModulosQtd : ''}</td>
                   <td style={TOT2}>{potenciaKwp ?? ''}</td>
-                  <td style={TOT2}>{projectData?.modulos_area_m2 || ''}</td>
+                  <td style={TOT2}>{areaTotal > 0 ? fmtBR(areaTotal) : (projectData?.modulos_area_m2 || '')}</td>
                   <td style={TOTGray2}></td><td style={TOTGray2}></td>
                 </tr>
               </tbody>
@@ -770,7 +779,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                   <th style={{ ...CHBlue2, width: '14%' }}>Fabricante*</th>
                   <th style={{ ...CHBlue2, width: '16%' }}>Modelo*</th>
                   <th style={{ ...CHBlue2, width: '12%' }}>Potência Nominal (kW)</th>
-                  <th style={{ ...CHBlue2, width: '13%' }}>Faixa de tensão de operação (V)</th>
+                  <th style={{ ...CHBlue2, width: '13%' }}>Faixa de tensão de<br />operação (V)</th>
                   <th style={{ ...CHBlue2, width: '10%' }}>Corrente Nominal (A)</th>
                   <th style={{ ...CHBlue2, width: '11%' }}>Fator de Potência</th>
                   <th style={{ ...CHBlue2, width: '10%' }}>Rendimento (%)</th>
@@ -782,8 +791,8 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 {inversoresList.map((inv, i) => (
                   <tr key={i}>
                     <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
-                    <td style={D2}>{inv.fabricante || <V>{`{{inversores_fabricante}}`}</V>}</td>
-                    <td style={D2}>{inv.modelo || <V>{`{{inversores_modelo}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.fabricante || <V>{`{{inversores_fabricante}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.modelo || <V>{`{{inversores_modelo}}`}</V>}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.potencia || <V>{`{{inversores_potencia}}`}</V>}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.faixa_tensao || <V>{`{{inversores_faixa_tensao}}`}</V>}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.corrente_nominal || <V>{`{{inversores_corrente_nominal}}`}</V>}</td>
@@ -917,27 +926,27 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 </tr>
                 <tr>
                   <td style={{ ...L2, whiteSpace: 'normal' }}>Potência Nominal de Placa</td>
-                  <td style={DPeach2}></td><td style={D2}>kVA</td><td style={DPeach2}></td><td style={DPeach2}></td>
+                  <td style={DPeach2}></td><td style={{ ...D2, textAlign: 'center' }}>kVA</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
                   <td style={{ ...L2, whiteSpace: 'normal' }}>Potência Máxima em Regime Contínuo</td>
-                  <td style={DPeach2}></td><td style={D2}>kW</td><td style={DPeach2}></td><td style={DPeach2}></td>
+                  <td style={DPeach2}></td><td style={{ ...D2, textAlign: 'center' }}>kW</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
                   <td style={{ ...L2, whiteSpace: 'normal' }}>Corrente Nominal</td>
-                  <td style={DPeach2}></td><td style={D2}>A</td><td style={DPeach2}></td><td style={DPeach2}></td>
+                  <td style={DPeach2}></td><td style={{ ...D2, textAlign: 'center' }}>A</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
                   <td style={{ ...L2, whiteSpace: 'normal' }}>Tensão Nominal</td>
-                  <td style={DPeach2}></td><td style={D2}>kV</td><td style={DPeach2}></td><td style={DPeach2}></td>
+                  <td style={DPeach2}></td><td style={{ ...D2, textAlign: 'center' }}>kV</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
                   <td style={{ ...L2, whiteSpace: 'normal' }}>Frequência Nominal</td>
-                  <td style={DPeach2}></td><td style={D2}>Hz</td><td style={DPeach2}></td><td style={DPeach2}></td>
+                  <td style={DPeach2}></td><td style={{ ...D2, textAlign: 'center' }}>Hz</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
                   <td style={{ ...L2, whiteSpace: 'normal' }}>Velocidade Nominal</td>
-                  <td style={DPeach2}></td><td style={D2}>rpm</td><td style={DPeach2}></td><td style={DPeach2}></td>
+                  <td style={DPeach2}></td><td style={{ ...D2, textAlign: 'center' }}>rpm</td><td style={DPeach2}></td><td style={DPeach2}></td>
                 </tr>
                 <tr>
                   <td style={{ ...L2, whiteSpace: 'normal' }}>Número de fases</td>
