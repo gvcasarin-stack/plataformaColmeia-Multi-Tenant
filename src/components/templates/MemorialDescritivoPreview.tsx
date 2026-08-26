@@ -747,7 +747,11 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
           const corrente = parseFloat(String(projectData?.disjuntor_corrente_a || 0));
           const tipoConexao = projectData?.tipo_conexao;
 
-          const vn = tensaoStr === '127/220' ? 220 : tensaoStr === '220/380' ? 380 : 0;
+          // VN (tensão de linha): para Bifásico/Trifásico o valor é composto
+          // ("127/220" ou "220/380") — usa a tensão maior, do lado direito. Para
+          // Monofásico o valor é simples ("127" ou "220") — usa direto.
+          const tensaoParts = String(tensaoStr || '').split('/');
+          const vn = parseFloat(tensaoParts[tensaoParts.length - 1]) || 0;
           const nf = tipoConexao === 'Trifásico' ? Math.sqrt(3) : 1;
           const nfLabel = tipoConexao === 'Trifásico' ? '√3' : '1';
           const canCalc = vn > 0 && corrente > 0;

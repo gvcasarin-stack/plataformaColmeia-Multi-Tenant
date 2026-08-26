@@ -332,7 +332,11 @@ export function MemorialDescritivoPDF({
   const tensaoStr = projectData?.tensao_atendimento;
   const corrente = parseFloat(String(projectData?.disjuntor_corrente_a || '0')) || 0;
   const tipoConexao = projectData?.tipo_conexao;
-  const vn = tensaoStr === '127/220' ? 220 : tensaoStr === '220/380' ? 380 : 0;
+  // VN (tensao de linha): para Bifasico/Trifasico o valor e composto
+  // ("127/220" ou "220/380") — usa a tensao maior, do lado direito. Para
+  // Monofasico o valor e simples ("127" ou "220") — usa direto.
+  const tensaoParts = String(tensaoStr || '').split('/');
+  const vn = parseFloat(tensaoParts[tensaoParts.length - 1]) || 0;
   const nf = tipoConexao === 'Trifásico' ? Math.sqrt(3) : 1;
   const nfLabel = tipoConexao === 'Trifásico' ? '√3' : '1';
   const canCalc = vn > 0 && corrente > 0;
