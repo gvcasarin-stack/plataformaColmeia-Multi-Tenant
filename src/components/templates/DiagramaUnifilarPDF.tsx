@@ -126,7 +126,9 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   }
 
   const vpmp = parseFloat(fv(pd.modulos_vpmp, '0')) || 0;
-  const corrStr = fv(pd.modulos_ipmp);
+  // Corrente das strings usa Isc (curto-circuito, pior caso) — nao Ipmp, que e
+  // a linha separada "Corrente de saida do modulo" logo acima no diagrama.
+  const corrStr = fv(pd.modulos_isc);
 
   // Tensao label and value per string (sem acentos para PDF)
   let tensaoLabel = 'Tensao de operacao das strings';

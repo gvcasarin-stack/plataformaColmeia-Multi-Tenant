@@ -147,7 +147,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   }
 
   const vpmp = parseFloat(fv(pd.modulos_vpmp, '0')) || 0;
-  const corrStr = fv(pd.modulos_ipmp);
+  // Corrente das strings usa Isc (curto-circuito, pior caso) — não Ipmp, que é
+  // a linha separada "Corrente de saída do módulo" logo acima no diagrama.
+  const corrStr = fv(pd.modulos_isc);
 
   // Tensão label and value per string
   let tensaoLabel = 'Tensão de operação das strings';
