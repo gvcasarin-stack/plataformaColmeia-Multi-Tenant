@@ -159,7 +159,10 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
 
   const caboCC     = fv(pd.cabo_cc_secao_mm2, '4,0');
   const caboCA     = fv(pd.cabo_ca_secao_mm2, '10,0');
-  const secaoFase  = fv(pd.secao_fase_mm2, '10,0');
+  // Secao do Ramal de Ligacao (nao confundir com secao_fase_mm2/secao_neutro_mm2,
+  // que sao do Ramal de Entrada — usados no Memorial Descritivo, campo diferente).
+  const secaoFase   = fv(pd.secao_fase_rl_mm2, '10,0');
+  const secaoNeutro = fv(pd.secao_neutro_rl_mm2, '10,0');
 
   const djPolos    = parseInt(fv(pd.disjuntor_polos, '1')) || 1;
   const djCorr     = fv(pd.disjuntor_corrente_a, '40');
@@ -363,7 +366,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={topCX - 96} y={78}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Ligacao</Text>
           <Text x={topCX - 96} y={87}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">{`Aluminio ${ramalTipo} - 1,0 kV`}</Text>
           <Text x={topCX - 96} y={96}  fontSize={5.8} fill="#000">{`${nFaseRL} #${secaoFase}mm² (F)`}</Text>
-          <Text x={topCX - 96} y={105} fontSize={5.8} fill="#000">{`1 #${secaoFase}mm² (N)`}</Text>
+          <Text x={topCX - 96} y={105} fontSize={5.8} fill="#000">{`1 #${secaoNeutro}mm² (N)`}</Text>
 
           {/* D1 on main vertical line — com DPS, sobe para a altura de onde antes
               ficava a derivacao do DPS (um pouco abaixo dela). */}

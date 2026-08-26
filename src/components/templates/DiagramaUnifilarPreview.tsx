@@ -180,7 +180,10 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
   const caboCC     = fv(pd.cabo_cc_secao_mm2, '4,0');
   const caboCA     = fv(pd.cabo_ca_secao_mm2, '10,0');
-  const secaoFase  = fv(pd.secao_fase_mm2, '10,0');
+  // Seção do Ramal de Ligação (não confundir com secao_fase_mm2/secao_neutro_mm2,
+  // que são do Ramal de Entrada — usados no Memorial Descritivo, campo diferente).
+  const secaoFase   = fv(pd.secao_fase_rl_mm2, '10,0');
+  const secaoNeutro = fv(pd.secao_neutro_rl_mm2, '10,0');
 
   const djPolos    = parseInt(fv(pd.disjuntor_polos, '1')) || 1;
   const djCorr     = fv(pd.disjuntor_corrente_a, '40');
@@ -393,7 +396,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX - 96} y="78"  fontSize="5.8" fontWeight="bold">Ramal de Ligação</text>
           <text x={topCX - 96} y="87"  fontSize="5.8" fontWeight="bold">{`Alumínio ${ramalTipo} - 1,0 kV`}</text>
           <text x={topCX - 96} y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
-          <text x={topCX - 96} y="105" fontSize="5.8">{`1 #${secaoFase}mm² (N)`}</text>
+          <text x={topCX - 96} y="105" fontSize="5.8">{`1 #${secaoNeutro}mm² (N)`}</text>
 
           {/* Placa de Advertência (CPFL) — dentro do Padrão de Entrada. Sem DPS, ao
               lado esquerdo do D1 (posição de sempre); com DPS, ao lado direito
