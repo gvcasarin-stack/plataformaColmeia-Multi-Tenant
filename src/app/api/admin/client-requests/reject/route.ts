@@ -28,12 +28,16 @@ export async function POST(request: NextRequest) {
     
     const supabase = createSupabaseServiceRoleClient();
     
-    // 1. Rejeitar: definir status='rejected'
-    // (rejection_reason não existe como coluna na tabela users — não persistido)
+    // 1. Rejeitar: definir status='inactive'
+    // ('rejected' não é um valor aceito pela constraint users_status_valid — só
+    // active/inactive/blocked/pending. 'blocked' não foi usado aqui de propósito:
+    // esse valor colidiria conceitualmente com o recurso de "Bloquear usuário",
+    // que usa a coluna separada is_blocked. rejection_reason também não existe
+    // como coluna na tabela users — não é persistido.)
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        status: 'rejected',
+        status: 'inactive',
         updated_at: new Date().toISOString()
       })
       .eq('id', requestId)
