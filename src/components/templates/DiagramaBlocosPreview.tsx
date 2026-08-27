@@ -32,6 +32,23 @@ function fmt2(val: string | number | undefined): string {
   return n.toFixed(2).replace('.', ',');
 }
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Normaliza a data (já em DD/MM/AAAA, ou por extenso "DD de mês de AAAA", como
+// data_documento é salvo) para DD/MM/AAAA — formato exigido no selo da prancha.
+function formatDataBR(raw: string): string {
+  const str = raw.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  const match = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (match) {
+    const monthIndex = MESES_PT.indexOf(match[2]);
+    if (monthIndex !== -1) {
+      return `${match[1].padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${match[3]}`;
+    }
+  }
+  return str;
+}
+
 export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProps) {
   const [generating, setGenerating] = useState(false);
 
@@ -128,7 +145,9 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
   const cep      = String(pd?.cliente_cep        || '00.000-000');
   const respNome = String(pd?.responsavel_nome   || 'RESPONSÁVEL TÉCNICO');
   const respCft  = String(pd?.responsavel_registro || '00000000000');
-  const dataDoc  = String(pd?.data_documento     || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
+  const dataDoc  = pd?.data_documento
+    ? formatDataBR(String(pd.data_documento))
+    : (() => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })();
 
   const handleGeneratePdf = async () => {
     setGenerating(true);

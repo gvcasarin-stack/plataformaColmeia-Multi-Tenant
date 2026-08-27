@@ -133,6 +133,23 @@ function fmt2(val: string | number | undefined): string {
   return n.toFixed(2).replace('.', ',');
 }
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Normaliza a data (ja em DD/MM/AAAA, ou por extenso "DD de mes de AAAA", como
+// data_documento e salvo) para DD/MM/AAAA — formato exigido no selo da prancha.
+function formatDataBR(raw: string): string {
+  const str = raw.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  const match = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (match) {
+    const monthIndex = MESES_PT.indexOf(match[2]);
+    if (monthIndex !== -1) {
+      return `${match[1].padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${match[3]}`;
+    }
+  }
+  return str;
+}
+
 export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
   const pd = projectData;
 
@@ -256,7 +273,9 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
   const cep      = String(pd?.cliente_cep         || '00.000-000');
   const respNome = String(pd?.responsavel_nome    || 'RESPONSAVEL TECNICO');
   const respCft  = String(pd?.responsavel_registro || '00000000000');
-  const dataDoc  = String(pd?.data_documento      || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
+  const dataDoc  = pd?.data_documento
+    ? formatDataBR(String(pd.data_documento))
+    : (() => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })();
 
   return (
     <Document>

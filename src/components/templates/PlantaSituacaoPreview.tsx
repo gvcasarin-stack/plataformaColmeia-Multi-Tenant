@@ -59,6 +59,23 @@ function lngToUtmZone(lng: number): number {
 const COLORS = ['#e53e3e', '#3182ce', '#38a169', '#1a1a1a', '#dd6b20'];
 const THICKNESS_OPTIONS = [1.5, 2.5, 3.5, 5];
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Normaliza a data (já em DD/MM/AAAA, ou por extenso "DD de mês de AAAA", como
+// data_documento é salvo) para DD/MM/AAAA — formato exigido no selo da prancha.
+function formatDataBR(raw: string): string {
+  const str = raw.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  const match = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (match) {
+    const monthIndex = MESES_PT.indexOf(match[2]);
+    if (monthIndex !== -1) {
+      return `${match[1].padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${match[3]}`;
+    }
+  }
+  return str;
+}
+
 export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSituacaoPreviewProps) {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -136,7 +153,9 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
   const cep        = String(pd.cliente_cep || '');
   const potencia   = String(pd.potencia || '');
   const logoUrl    = String(pd.logo_empresa_url || '');
-  const dataDoc    = String(pd.data_documento || new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
+  const dataDoc    = pd.data_documento
+    ? formatDataBR(String(pd.data_documento))
+    : (() => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })();
   const hasCoords  = !!((utmX && utmY) || (latDecimal && lngDecimal));
   const hasToken   = !!mapboxToken;
 

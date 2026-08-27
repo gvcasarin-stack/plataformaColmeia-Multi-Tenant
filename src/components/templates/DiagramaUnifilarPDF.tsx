@@ -43,6 +43,23 @@ function fv(val: any, fb = '___'): string {
   return String(val);
 }
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Normaliza a data (ja em DD/MM/AAAA, ou por extenso "DD de mes de AAAA", como
+// data_documento e salvo) para DD/MM/AAAA — formato exigido no selo da prancha.
+function formatDataBR(raw: string): string {
+  const str = raw.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  const match = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (match) {
+    const monthIndex = MESES_PT.indexOf(match[2]);
+    if (monthIndex !== -1) {
+      return `${match[1].padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${match[3]}`;
+    }
+  }
+  return str;
+}
+
 function fn(val: any, dec = 2, fb = '___'): string {
   if (val === undefined || val === null || val === '') return fb;
   const n = parseFloat(String(val).replace(',', '.'));
@@ -146,10 +163,16 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
     : 'Corrente de saida das strings';
 
   const tensaoNom  = fv(pd.tensao_atendimento, '220');
-  const tensaoNomN = parseFloat(tensaoNom.replace(',', '.')) || 220;
+  // Tensao de linha para calcular a corrente das cargas: valores compostos
+  // ("127/220"/"220/380", Bifasico/Trifasico) usam o segundo numero (tensao de
+  // linha); valor simples (Monofasico) usa direto.
+  const tensaoNomParts = tensaoNom.split('/');
+  const tensaoNomN = parseFloat(tensaoNomParts[tensaoNomParts.length - 1].replace(',', '.')) || 220;
   const cargaKw    = fv(pd.carga_declarada_kw);
+  // Carga trifasica equilibrada: I = P / (√3 × V_linha). Monofasico/Bifasico: I = P / V.
+  const isTriCargas = /trif/i.test(fv(pd.tipo_conexao, ''));
   const corrCargas = cargaKw !== '___'
-    ? fn(parseFloat(cargaKw.replace(',', '.')) * 1000 / tensaoNomN)
+    ? fn(parseFloat(cargaKw.replace(',', '.')) * 1000 / (tensaoNomN * (isTriCargas ? Math.sqrt(3) : 1)))
     : '___';
 
   const invFab     = pd.inversores_fabricante ? String(pd.inversores_fabricante).toUpperCase() : '___';
@@ -227,7 +250,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const cep        = fv(pd.cliente_cep,          '00.000-000');
   const respNome   = fv(pd.responsavel_nome,     'RESPONSAVEL TECNICO');
   const respCft    = fv(pd.responsavel_registro, '00000000000');
-  const dataDoc    = fv(pd.data_documento, new Date().toLocaleDateString('pt-BR'));
+  const dataDoc    = formatDataBR(fv(pd.data_documento, new Date().toLocaleDateString('pt-BR')));
 
   const CX = 340;
   const BX = 220;
