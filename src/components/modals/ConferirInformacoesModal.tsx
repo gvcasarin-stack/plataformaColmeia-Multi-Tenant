@@ -370,6 +370,28 @@ function formatPhone(val: string): string {
 const PHONE_FIELDS = new Set(['cliente_celular', 'responsavel_legal_telefone']);
 const CEP_FIELDS = new Set(['cliente_cep']);
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Interpreta datas por extenso no formato usado em "Data do Documento" (ex: "23 de março de 2026").
+function parseDataExtenso(str: string): Date | null {
+  if (!str) return null;
+  const match = String(str).trim().toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (!match) return null;
+  const day = parseInt(match[1], 10);
+  const monthIndex = MESES_PT.indexOf(match[2]);
+  const year = parseInt(match[3], 10);
+  if (monthIndex === -1 || isNaN(day) || isNaN(year)) return null;
+  const date = new Date(year, monthIndex, day);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+// Formata como DD/MM/AAAA (ex: "26/06/2026") — usado em "Data Início de Operação".
+function formatDateBR(date: Date): string {
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${date.getFullYear()}`;
+}
+
 // Detecta quais campos default_with_custom têm valor salvo diferente do seu default padrão,
 // para manter o checkbox "Usar outro valor" marcado ao reabrir o modal.
 function initCustomOverrides(fields: Record<string, any>): Set<string> {
@@ -446,6 +468,9 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
   const [responsavelLoading, setResponsavelLoading] = useState(false);
   const [useOutroResponsavelLegal, setUseOutroResponsavelLegal] = useState(false);
   const [useCustomDate, setUseCustomDate] = useState(false);
+  // "Data Início de Operação" acompanha "Data do Documento" (+30 dias) enquanto o
+  // usuário não digitar uma data diferente nela mesma — ver efeito logo abaixo.
+  const [dataInicioAutoFilled, setDataInicioAutoFilled] = useState(false);
   const [autoSavePending, setAutoSavePending] = useState(false);
 
   // Listas de múltiplos modelos (novo formato)
@@ -482,6 +507,10 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     setSkippedFields(initSkippedFields(formatted));
     setCustomOverrides(initCustomOverrides(fields));
     setUseOutroResponsavelLegal(false);
+    // "Data Início de Operação": só entra em modo automático (acompanha "Data do
+    // Documento" + 30 dias) quando este projeto abre com o campo vazio — se já
+    // existe valor salvo, respeita e não mexe nele.
+    setDataInicioAutoFilled(!formatted.data_inicio_operacao);
     setPlantaPreview(fields.planta_situacao_url && fields.planta_situacao_url !== 'nao_incluir' ? fields.planta_situacao_url : null);
     setPlantaFile(null);
     // Inicializa listas de equipamentos (fallback para campos antigos se lista estiver vazia)
@@ -539,6 +568,20 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // "Data Início de Operação" = "Data do Documento" + 30 dias, em DD/MM/AAAA. O modo
+  // automático é ligado/desligado no carregamento do projeto (efeito acima); uma vez
+  // ativo, este efeito mantém o campo acompanhando mudanças em "Data do Documento"
+  // até o usuário digitar uma data diferente diretamente nele (ver renderFieldInput).
+  useEffect(() => {
+    if (!open || !dataInicioAutoFilled) return;
+    const base = parseDataExtenso(localFields.data_documento);
+    if (!base) return;
+    const dataInicio = new Date(base);
+    dataInicio.setDate(dataInicio.getDate() + 30);
+    const formatted = formatDateBR(dataInicio);
+    setLocalFields(prev => (prev.data_inicio_operacao === formatted ? prev : { ...prev, data_inicio_operacao: formatted }));
+  }, [open, dataInicioAutoFilled, localFields.data_documento]);
 
   // Auto-fill default_with_custom fields when modal opens or modulos_quantidade changes.
   // Regra:
@@ -1392,8 +1435,11 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
           <Input
             type="text"
             value={value}
-            onChange={(e) => handleFieldChange(field.key, e.target.value)}
-            placeholder="Ex: 23 de março de 2026"
+            onChange={(e) => {
+              if (field.key === 'data_inicio_operacao') setDataInicioAutoFilled(false);
+              handleFieldChange(field.key, e.target.value);
+            }}
+            placeholder={field.key === 'data_inicio_operacao' ? 'Ex: 26/06/2026' : 'Ex: 23 de março de 2026'}
             className="h-8 text-sm flex-1"
             disabled={isSkipped || (field.key === 'data_documento' && !useCustomDate)}
           />

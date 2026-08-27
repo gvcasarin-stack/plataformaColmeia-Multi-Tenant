@@ -320,15 +320,32 @@ const s = StyleSheet.create({
   },
 });
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Normaliza a data salva (ja em DD/MM/AAAA, ou por extenso "DD de mes de AAAA")
+// para DD/MM/AAAA — formato exigido neste documento.
+function formatDataBR(raw: string): string {
+  const str = raw.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  const match = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (match) {
+    const monthIndex = MESES_PT.indexOf(match[2]);
+    if (monthIndex !== -1) {
+      return `${match[1].padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${match[3]}`;
+    }
+  }
+  return str;
+}
+
 export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoPDFProps) {
   const pd = projectData;
 
   const dataInicioOperacao = (() => {
     const raw = pd?.data_inicio_operacao;
-    if (raw) return String(raw);
+    if (raw) return formatDataBR(String(raw));
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   })();
   const dataAssinatura = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const localAssinatura = [pd?.client_city, pd?.client_state].filter(Boolean).join(' - ');

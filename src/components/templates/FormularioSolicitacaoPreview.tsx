@@ -99,6 +99,23 @@ const TOT2: React.CSSProperties = { ...D2, fontWeight: 'bold', textAlign: 'cente
 const TOTGray2: React.CSSProperties = { backgroundColor: '#808080', color: '#FFFFFF', fontSize: '7px', padding: '2px 3px', border: Bc, fontWeight: 'bold', textAlign: 'center', verticalAlign: 'middle' };
 const L2: React.CSSProperties = { backgroundColor: '#D9D9D9', color: '#000000', fontSize: '7px', padding: '2px 3px', border: Bc, fontWeight: '500', verticalAlign: 'top', overflow: 'hidden' };
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Normaliza a data salva (já em DD/MM/AAAA, ou por extenso "DD de mês de AAAA")
+// para DD/MM/AAAA — formato exigido neste documento.
+function formatDataBR(raw: string): string {
+  const str = raw.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  const match = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (match) {
+    const monthIndex = MESES_PT.indexOf(match[2]);
+    if (monthIndex !== -1) {
+      return `${match[1].padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${match[3]}`;
+    }
+  }
+  return str;
+}
+
 export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicitacaoPreviewProps) {
   const [generating, setGenerating] = useState(false);
 
@@ -187,10 +204,10 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
 
   const dataInicioOperacao = (() => {
     const raw = projectData?.data_inicio_operacao;
-    if (raw) return String(raw);
+    if (raw) return formatDataBR(String(raw));
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   })();
   const dataAssinatura = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const localAssinatura = [projectData?.client_city, projectData?.client_state].filter(Boolean).join(' - ');

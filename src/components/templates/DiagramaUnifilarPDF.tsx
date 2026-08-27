@@ -597,7 +597,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={CX + 55} y={957} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
           <Text x={CX + 55} y={966} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
           <Text x={CX + 55} y={975} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-          <Text x={CX + 55} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+          <Text x={CX + 55} y={984} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_isc)} A</Text>
           <Text x={CX + 55} y={993} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
           <Text x={CX + 55} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
           <Text x={CX + 55} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
@@ -790,7 +790,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
                   <Text key={`mod-t2-${i}`} x={cCX + 55} y={957 + miQccShift} fontSize={5.5} fill="#000">Modelo: {fv(pd.modulos_modelo)}</Text>
                   <Text key={`mod-t3-${i}`} x={cCX + 55} y={966 + miQccShift} fontSize={5.5} fill="#000">Potencia do modulo: {fv(pd.modulos_potencia_wp)} W</Text>
                   <Text key={`mod-t4-${i}`} x={cCX + 55} y={975 + miQccShift} fontSize={5.5} fill="#000">Tensao do modulo: {fv(pd.modulos_vpmp)} V</Text>
-                  <Text key={`mod-t5-${i}`} x={cCX + 55} y={984 + miQccShift} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_ipmp)} A</Text>
+                  <Text key={`mod-t5-${i}`} x={cCX + 55} y={984 + miQccShift} fontSize={5.5} fill="#000">Corrente de saida do modulo: {fv(pd.modulos_isc)} A</Text>
                   <Text key={`mod-t6-${i}`} x={cCX + 55} y={993 + miQccShift} fontSize={5.5} fill="#000">Quantidade: {qtdDescr}</Text>
                   <Text key={`mod-t7-${i}`} x={cCX + 55} y={1002 + miQccShift} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
                   <Text key={`mod-t8-${i}`} x={cCX + 55} y={1011 + miQccShift} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>

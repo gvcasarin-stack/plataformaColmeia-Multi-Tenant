@@ -667,7 +667,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={CX + 55} y="957" fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
           <text x={CX + 55} y="966" fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
           <text x={CX + 55} y="975" fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
-          <text x={CX + 55} y="984" fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
+          <text x={CX + 55} y="984" fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_isc)} A</text>
           <text x={CX + 55} y="993" fontSize="5.5">Quantidade: {qtdDescr}</text>
           <text x={CX + 55} y="1002" fontSize="5.5">Potência total: {potKwp} kWp</text>
           <text x={CX + 55} y="1011" fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
@@ -879,7 +879,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                       <text x={cCX + 55} y={957 + miQccShift} fontSize="5.5">Modelo: {fv(pd.modulos_modelo)}</text>
                       <text x={cCX + 55} y={966 + miQccShift} fontSize="5.5">Potência do módulo: {fv(pd.modulos_potencia_wp)} W</text>
                       <text x={cCX + 55} y={975 + miQccShift} fontSize="5.5">Tensão do módulo: {fv(pd.modulos_vpmp)} V</text>
-                      <text x={cCX + 55} y={984 + miQccShift} fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_ipmp)} A</text>
+                      <text x={cCX + 55} y={984 + miQccShift} fontSize="5.5">Corrente de saída do módulo: {fv(pd.modulos_isc)} A</text>
                       <text x={cCX + 55} y={993 + miQccShift} fontSize="5.5">Quantidade: {qtdDescr}</text>
                       <text x={cCX + 55} y={1002 + miQccShift} fontSize="5.5">Potência total: {potKwp} kWp</text>
                       <text x={cCX + 55} y={1011 + miQccShift} fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
