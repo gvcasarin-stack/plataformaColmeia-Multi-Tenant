@@ -112,6 +112,14 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
   const CHECKED = '☒';
   const UNCHECKED = '☐';
 
+  // Modalidade de Compensação — reflete o que foi selecionado no Conferir
+  // Informações (não existe opção correspondente a "Múltiplas Unidades
+  // Consumidoras" no formulário de origem, então essa linha nunca marca).
+  const modalidadeComp = get('modalidade_compensacao');
+  const isAutoconsumoLocal = modalidadeComp === 'Autoconsumo Local';
+  const isAutoconsumoRemoto = modalidadeComp === 'Autoconsumo Remoto';
+  const isGeracaoCompartilhada = modalidadeComp === 'Geração Compartilhada';
+
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
   // ✅ Lista real de inversores cadastrados (podem ser de modelos diferentes) — em vez
   // dos campos legados únicos, que só refletiam um modelo mesmo com vários cadastrados.
@@ -287,10 +295,10 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
             <td style={L}>2.5 Modalidade de Compensação de Excedentes</td>
             <td style={V}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', lineHeight: '1.6' }}>
-                <span>{CHECKED} Autoconsumo local</span>
-                <span>{UNCHECKED} Autoconsumo remoto</span>
+                <span>{isAutoconsumoLocal ? CHECKED : UNCHECKED} Autoconsumo local</span>
+                <span>{isAutoconsumoRemoto ? CHECKED : UNCHECKED} Autoconsumo remoto</span>
                 <span>{UNCHECKED} Múltiplas Unidades Consumidoras</span>
-                <span>{UNCHECKED} Geração compartilhada</span>
+                <span>{isGeracaoCompartilhada ? CHECKED : UNCHECKED} Geração compartilhada</span>
               </div>
             </td>
           </tr>

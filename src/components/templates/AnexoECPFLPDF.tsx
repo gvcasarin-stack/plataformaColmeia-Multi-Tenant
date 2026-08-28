@@ -108,6 +108,14 @@ export function AnexoECPFLPDF({
 }: AnexoECPFLPDFProps) {
   const get = (key: string) => projectData[key] || '';
 
+  // Modalidade de Compensação — reflete o que foi selecionado no Conferir
+  // Informações (não existe opção correspondente a "Múltiplas Unidades
+  // Consumidoras" no formulário de origem, então essa linha nunca marca).
+  const modalidadeComp = get('modalidade_compensacao');
+  const isAutoconsumoLocal = modalidadeComp === 'Autoconsumo Local';
+  const isAutoconsumoRemoto = modalidadeComp === 'Autoconsumo Remoto';
+  const isGeracaoCompartilhada = modalidadeComp === 'Geração Compartilhada';
+
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
   // ✅ Lista real de inversores cadastrados (podem ser de modelos diferentes) — em vez
   // dos campos legados únicos, que só refletiam um modelo mesmo com vários cadastrados.
@@ -269,10 +277,10 @@ export function AnexoECPFLPDF({
           <View style={s.row} wrap={false}>
             <View style={s.l}><Text>2.5 Modalidade de Compensação de Excedentes</Text></View>
             <View style={[s.v, { width: '68%' }]}>
-              <CheckboxLine checked={true} label="Autoconsumo local" />
-              <CheckboxLine checked={false} label="Autoconsumo remoto" />
+              <CheckboxLine checked={isAutoconsumoLocal} label="Autoconsumo local" />
+              <CheckboxLine checked={isAutoconsumoRemoto} label="Autoconsumo remoto" />
               <CheckboxLine checked={false} label="Múltiplas Unidades Consumidoras" />
-              <CheckboxLine checked={false} label="Geração compartilhada" />
+              <CheckboxLine checked={isGeracaoCompartilhada} label="Geração compartilhada" />
             </View>
           </View>
           <View style={s.row} wrap={false}>
