@@ -168,6 +168,12 @@ export function EquipamentoListItem(props: Props) {
   const [expanded, setExpanded] = useState(false);
   const [savingToCatalog, setSavingToCatalog] = useState(false);
   const [catalogSaved, setCatalogSaved] = useState(false);
+  // Última "foto" dos valores que vieram do catálogo (ao puxar um modelo, ou logo
+  // após salvar/atualizar) — usada para detectar automaticamente se o usuário
+  // editou algo depois e oferecer atualizar o catálogo (ver hasCatalogDrift).
+  const [catalogSnapshot, setCatalogSnapshot] = useState<Record<string, any> | null>(null);
+  const [updatingCatalog, setUpdatingCatalog] = useState(false);
+  const [catalogUpdated, setCatalogUpdated] = useState(false);
 
   // Autocomplete state
   const [fabricanteInput, setFabricanteInput] = useState('');
@@ -215,11 +221,37 @@ export function EquipamentoListItem(props: Props) {
     debounceRef.current = setTimeout(() => searchCatalog(fabricanteInput ? `${fabricanteInput} ${val}` : val), 300);
   }
 
+  // Monta o mesmo "formato de comparação" (valores numéricos já convertidos) a
+  // partir de um item do catálogo — usado como base do snapshot em fillFromCatalog.
+  function catalogPayloadFromCatItem(cat: EquipmentCatalogItem): Record<string, any> {
+    return tipo === 'modulo'
+      ? {
+          tipo: 'modulo',
+          fabricante: cat.fabricante, modelo: cat.modelo,
+          potencia_wp: cat.potencia_wp ?? null, voc: cat.voc ?? null, isc: cat.isc ?? null,
+          vpmp: cat.vpmp ?? null, ipmp: cat.ipmp ?? null, eficiencia: cat.eficiencia ?? null,
+          comprimento_m: cat.comprimento_m ?? null, largura_m: cat.largura_m ?? null,
+          area_unitaria_m2: cat.area_unitaria_m2 ?? null, peso_kg: cat.peso_kg ?? null,
+        }
+      : {
+          tipo: 'inversor',
+          fabricante: cat.fabricante, modelo: cat.modelo,
+          potencia_kw: cat.potencia_kw ?? null, potencia_max_saida: cat.potencia_max_saida ?? null,
+          tensao: cat.tensao ?? null, tensao_max_ca: cat.tensao_max_ca ?? null, tensao_min_ca: cat.tensao_min_ca ?? null,
+          faixa_tensao: cat.faixa_tensao ?? null, vcc_max: cat.vcc_max ?? null, icc_max: cat.icc_max ?? null,
+          vpmp_max: cat.vpmp_max ?? null, vpmp_min: cat.vpmp_min ?? null, vcc_partida: cat.vcc_partida ?? null,
+          corrente_nominal: cat.corrente_nominal ?? null, quantidade_mppt: cat.quantidade_mppt ?? null,
+          entradas_por_mppt: cat.entradas_por_mppt ?? null, tipo_conexao_saida: cat.tipo_conexao_saida ?? null,
+          fator_potencia: cat.fator_potencia ?? null, rendimento: cat.rendimento ?? null, dht_corrente: cat.dht_corrente ?? null,
+        };
+  }
+
   function fillFromCatalog(cat: EquipmentCatalogItem) {
     setFabricanteInput(cat.fabricante);
     setModeloInput(cat.modelo);
     setSuggestions([]);
     setShowSugg(false);
+    setCatalogSnapshot(catalogPayloadFromCatItem(cat));
 
     if (tipo === 'modulo') {
       const updated: ModuloItem = {
@@ -395,53 +427,91 @@ export function EquipamentoListItem(props: Props) {
 
   const hasCatalogId = !!(props.item as any).catalog_id;
 
+  // Monta o payload de catálogo a partir dos campos atuais do formulário — salva
+  // exatamente o que estiver preenchido no momento (campos vazios viram null).
+  // Reaproveitado tanto pra criar quanto pra atualizar, e pra comparar com o
+  // snapshot (detecção de divergência).
+  function buildCatalogPayload(): Record<string, any> {
+    const parseN = (v: string | undefined | null) => {
+      const n = parseFloat(String(v || '').replace(',', '.'));
+      return isNaN(n) ? null : n;
+    };
+    return tipo === 'modulo'
+      ? {
+          tipo: 'modulo',
+          fabricante: m.fabricante,
+          modelo: m.modelo,
+          potencia_wp: parseN(m.potencia_wp),
+          voc: parseN(m.voc),
+          isc: parseN(m.isc),
+          vpmp: parseN(m.vpmp),
+          ipmp: parseN(m.ipmp),
+          eficiencia: parseN(m.eficiencia),
+          comprimento_m: parseN(m.comprimento_m),
+          largura_m: parseN(m.largura_m),
+          area_unitaria_m2: parseN(m.area_unitaria_m2),
+          peso_kg: parseN(m.peso_kg),
+        }
+      : {
+          tipo: 'inversor',
+          fabricante: inv.fabricante,
+          modelo: inv.modelo,
+          potencia_kw: parseN(inv.potencia),
+          potencia_max_saida: parseN(inv.potencia_max_saida),
+          tensao: inv.tensao || null,
+          tensao_max_ca: parseN(inv.tensao_max_ca),
+          tensao_min_ca: parseN(inv.tensao_min_ca),
+          faixa_tensao: inv.faixa_tensao || null,
+          vcc_max: parseN(inv.vcc_max),
+          icc_max: parseN(inv.icc_max),
+          vpmp_max: parseN(inv.vpmp_max),
+          vpmp_min: parseN(inv.vpmp_min),
+          vcc_partida: parseN(inv.vcc_partida),
+          corrente_nominal: parseN(inv.corrente_nominal),
+          quantidade_mppt: parseN(inv.quantidade_mppt),
+          entradas_por_mppt: parseN(inv.entradas_por_mppt),
+          tipo_conexao_saida: inv.tipo_conexao_saida || null,
+          fator_potencia: inv.fator_potencia || null,
+          rendimento: parseN(inv.rendimento),
+          dht_corrente: parseN(inv.dht_corrente),
+        };
+  }
+
+  // Divergência entre o que está preenchido agora e o que veio do catálogo (só é
+  // avaliada quando já existe um snapshot desta sessão — puxado do catálogo ou
+  // salvo/atualizado agora há pouco).
+  const hasCatalogDrift = hasCatalogId && !!catalogSnapshot &&
+    JSON.stringify(buildCatalogPayload()) !== JSON.stringify(catalogSnapshot);
+
+  async function handleUpdateCatalog() {
+    const catalogId = (props.item as any).catalog_id;
+    if (!catalogId || updatingCatalog) return;
+    setUpdatingCatalog(true);
+    try {
+      const payload = buildCatalogPayload();
+      const resp = await fetch(`/api/admin/equipment-catalog/${catalogId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await resp.json();
+      if (result.success && result.data) {
+        setCatalogSnapshot(catalogPayloadFromCatItem(result.data));
+        setCatalogUpdated(true);
+        setTimeout(() => setCatalogUpdated(false), 3000);
+      }
+    } catch {
+      // silent
+    } finally {
+      setUpdatingCatalog(false);
+    }
+  }
+
   async function handleSaveToCatalog() {
     if (savingToCatalog || hasCatalogId || !isFilled) return;
     setSavingToCatalog(true);
     try {
-      const parseN = (v: string | undefined | null) => {
-        const n = parseFloat(String(v || '').replace(',', '.'));
-        return isNaN(n) ? null : n;
-      };
-      const payload: Record<string, any> = tipo === 'modulo'
-        ? {
-            tipo: 'modulo',
-            fabricante: m.fabricante,
-            modelo: m.modelo,
-            potencia_wp: parseN(m.potencia_wp),
-            voc: parseN(m.voc),
-            isc: parseN(m.isc),
-            vpmp: parseN(m.vpmp),
-            ipmp: parseN(m.ipmp),
-            eficiencia: parseN(m.eficiencia),
-            comprimento_m: parseN(m.comprimento_m),
-            largura_m: parseN(m.largura_m),
-            area_unitaria_m2: parseN(m.area_unitaria_m2),
-            peso_kg: parseN(m.peso_kg),
-          }
-        : {
-            tipo: 'inversor',
-            fabricante: inv.fabricante,
-            modelo: inv.modelo,
-            potencia_kw: parseN(inv.potencia),
-            potencia_max_saida: parseN(inv.potencia_max_saida),
-            tensao: inv.tensao || null,
-            tensao_max_ca: parseN(inv.tensao_max_ca),
-            tensao_min_ca: parseN(inv.tensao_min_ca),
-            faixa_tensao: inv.faixa_tensao || null,
-            vcc_max: parseN(inv.vcc_max),
-            icc_max: parseN(inv.icc_max),
-            vpmp_max: parseN(inv.vpmp_max),
-            vpmp_min: parseN(inv.vpmp_min),
-            vcc_partida: parseN(inv.vcc_partida),
-            corrente_nominal: parseN(inv.corrente_nominal),
-            quantidade_mppt: parseN(inv.quantidade_mppt),
-            entradas_por_mppt: parseN(inv.entradas_por_mppt),
-            tipo_conexao_saida: inv.tipo_conexao_saida || null,
-            fator_potencia: inv.fator_potencia || null,
-            rendimento: parseN(inv.rendimento),
-            dht_corrente: parseN(inv.dht_corrente),
-          };
+      const payload = buildCatalogPayload();
       const resp = await fetch('/api/admin/equipment-catalog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -449,6 +519,7 @@ export function EquipamentoListItem(props: Props) {
       });
       const result = await resp.json();
       if (result.success && result.data?.id) {
+        setCatalogSnapshot(catalogPayloadFromCatItem(result.data));
         if (tipo === 'modulo') {
           (props as EquipamentoListItemModuloProps).onUpdate({ ...m, catalog_id: result.data.id });
           (props as EquipamentoListItemModuloProps).onAfterCatalogSave?.();
@@ -470,6 +541,59 @@ export function EquipamentoListItem(props: Props) {
   const totalStrings = parseInt(String(m.total_strings || '0')) || 0;
   let stringsModulos: string[] = [];
   try { stringsModulos = JSON.parse(m.strings_modulos || '[]'); } catch { stringsModulos = []; }
+
+  // Botão "Salvar no catálogo" — colocado abaixo dos parâmetros elétricos (não
+  // logo após Fabricante/Modelo/Potência) de propósito, pra que o fluxo natural
+  // de preenchimento passe por esses campos antes de chegar no botão. Depois de
+  // salvo/vinculado, vira "No catálogo" — ou, se algo for editado depois e
+  // divergir do que está salvo, um botão pra atualizar o catálogo.
+  const catalogButton = (
+    <div className="flex justify-end mt-1">
+      {hasCatalogId ? (
+        hasCatalogDrift ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={updatingCatalog}
+            onClick={handleUpdateCatalog}
+            className="text-[11px] h-7 px-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 dark:border-amber-700 dark:text-amber-400"
+          >
+            {updatingCatalog
+              ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Atualizando...</>
+              : catalogUpdated
+              ? <><CheckCircle2 className="h-3 w-3 mr-1" />Atualizado!</>
+              : 'Catálogo desatualizado — Atualizar'
+            }
+          </Button>
+        ) : (
+          <span className="text-[11px] text-green-600 dark:text-green-400 flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3" /> No catálogo
+          </span>
+        )
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={!isFilled || savingToCatalog}
+          onClick={handleSaveToCatalog}
+          className={`text-[11px] h-7 px-2 transition-colors ${
+            isFilled
+              ? 'border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-700 dark:text-green-400'
+              : 'border-red-200 text-red-400 opacity-50 cursor-not-allowed dark:border-red-800 dark:text-red-600'
+          }`}
+        >
+          {savingToCatalog
+            ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Salvando...</>
+            : catalogSaved
+            ? <><CheckCircle2 className="h-3 w-3 mr-1" />Salvo!</>
+            : 'Salvar no catálogo'
+          }
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -609,35 +733,6 @@ export function EquipamentoListItem(props: Props) {
                 </div>
               </div>
             )}
-
-            {/* Salvar no catálogo */}
-            <div className="flex justify-end mt-1">
-              {hasCatalogId ? (
-                <span className="text-[11px] text-green-600 dark:text-green-400 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> No catálogo
-                </span>
-              ) : (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!isFilled || savingToCatalog}
-                  onClick={handleSaveToCatalog}
-                  className={`text-[11px] h-7 px-2 transition-colors ${
-                    isFilled
-                      ? 'border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 dark:border-green-700 dark:text-green-400'
-                      : 'border-red-200 text-red-400 opacity-50 cursor-not-allowed dark:border-red-800 dark:text-red-600'
-                  }`}
-                >
-                  {savingToCatalog
-                    ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Salvando...</>
-                    : catalogSaved
-                    ? <><CheckCircle2 className="h-3 w-3 mr-1" />Salvo!</>
-                    : 'Salvar no catálogo'
-                  }
-                </Button>
-              )}
-            </div>
           </div>
 
           {/* Módulo: parâmetros elétricos */}
@@ -662,6 +757,8 @@ export function EquipamentoListItem(props: Props) {
                   <Field label="Peso (kg)" value={m.peso_kg || ''} onChange={v => updateField('peso_kg', v)} suffix="kg" placeholder="32,0" />
                 </div>
               </div>
+
+              {catalogButton}
 
               {/* Arranjo / Strings */}
               {!hideStrings && <div>
@@ -931,6 +1028,9 @@ export function EquipamentoListItem(props: Props) {
                   />
                 </div>
               </div>
+
+              {catalogButton}
+
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Proteção CA</p>
                 <div className="grid grid-cols-2 gap-2">

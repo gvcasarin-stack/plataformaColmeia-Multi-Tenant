@@ -1350,7 +1350,15 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
 
     if (field.type === 'cpfl_padrao_select') {
       const tensao = localFields.tensao_atendimento || ''
-      const options = tensao === '220/380' ? CPFL_PADRAO_220_380 : CPFL_PADRAO_127_220
+      // "220" sozinho (Monofásico) é ambíguo — pode ser fase-fase de uma rede
+      // 127/220 (Tab. 1A) ou fase-neutro de uma rede 220/380 (Tab. 1B), então
+      // mostra as duas listas combinadas. "127" só existe em rede 127/220,
+      // então continua mostrando só a Tab. 1A (nenhuma opção da Tab. 1B faz
+      // sentido nesse caso). Bifásico/Trifásico (valor composto) não mudam.
+      const options =
+        tensao === '220/380' ? CPFL_PADRAO_220_380 :
+        tensao === '220' ? [...CPFL_PADRAO_127_220, ...CPFL_PADRAO_220_380] :
+        CPFL_PADRAO_127_220
       const fases = value ? CPFL_PADRAO_FASES[value] : null
       return (
         <div className="space-y-1">
