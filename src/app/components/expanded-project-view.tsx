@@ -2924,7 +2924,8 @@ export const ExpandedProjectView = ({
                           <SelectContent>
                             <SelectItem value="Equatorial">Equatorial</SelectItem>
                             <SelectItem value="CPFL">CPFL / RGE</SelectItem>
-                            <SelectItem value="Energisa">Energisa (Em breve)</SelectItem>
+                            {/* Habilitada só para superadmin por enquanto, pra testar antes de liberar geral */}
+                            <SelectItem value="Energisa" disabled={!isSuperAdmin}>Energisa (Em breve)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

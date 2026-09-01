@@ -113,7 +113,14 @@ function PDFChaveSeccionadora({ x, y }: { x: number; y: number }) {
 
 export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaUnifilarPDFProps) {
   const pd = projectData || {};
-  const isCPFL = String(pd.distribuidora || '').toLowerCase().includes('cpfl');
+  const distribuidoraStr = String(pd.distribuidora || '').toLowerCase();
+  const isCPFL = distribuidoraStr.includes('cpfl');
+  const isEquatorial = distribuidoraStr.includes('equatorial');
+  const isEnergisa = distribuidoraStr.includes('energisa');
+  // Placa interna (dentro do retangulo do Padrao de Entrada) tambem aparece
+  // para Equatorial e Energisa, seguindo o mesmo padrao da CPFL — so a placa
+  // externa (com o texto normativo) e exclusiva CPFL.
+  const hasPlacaInterna = isCPFL || isEquatorial || isEnergisa;
 
   const modQtd    = getTotalModulosQtd(pd);
   const potTotal  = getTotalKwp(pd);
@@ -965,8 +972,8 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           </View>
         )}
 
-        {/* Placa de Advertência (CPFL) — segunda ocorrência, ao lado esquerdo do D1 */}
-        {isCPFL && placaAdvertencia && (
+        {/* Placa de Advertência (CPFL/Equatorial/Energisa) — segunda ocorrência, dentro do Padrão de Entrada */}
+        {hasPlacaInterna && placaAdvertencia && (
           <View style={{
             position: 'absolute',
             left: placaImg2Left,

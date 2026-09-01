@@ -103,12 +103,18 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const hasStringbox = fv(pd.setup_quadro_cc, 'nao') !== 'nao';
   const distribuidora = String(pd.distribuidora || '');
   const isCPFL = distribuidora.toLowerCase().includes('cpfl');
+  const isEquatorial = distribuidora.toLowerCase().includes('equatorial');
+  const isEnergisa = distribuidora.toLowerCase().includes('energisa');
+  // Placa interna (dentro do retângulo do Padrão de Entrada) também aparece
+  // para Equatorial e Energisa, seguindo o mesmo padrão da CPFL — só a placa
+  // externa (com o texto normativo, ao lado esquerdo da folha) é exclusiva CPFL.
+  const hasPlacaInterna = isCPFL || isEquatorial || isEnergisa;
 
   // Placa de Advertência cadastrada no Acervo Técnico da distribuidora
   // (mesmo mecanismo já usado no Memorial Descritivo)
   const [placaAdvertencia, setPlacaAdvertencia] = useState<{ nome: string; imagem_url: string } | null>(null);
   useEffect(() => {
-    if (!isCPFL) return;
+    if (!hasPlacaInterna) return;
     const params = new URLSearchParams({ distribuidora, categoria: 'placa_advertencia' });
     fetch(`/api/acervo-tecnico?${params.toString()}`)
       .then(res => res.json())
@@ -120,7 +126,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCPFL, distribuidora]);
+  }, [hasPlacaInterna, distribuidora]);
 
   const numInversores = (pd.setup_mais_de_um_inversor === 'sim' && pd.setup_tipo_inversor !== 'microinversor')
     ? (parseInt(String(pd.setup_total_inversores || '2')) || 2) : 1;
@@ -423,10 +429,11 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <text x={topCX - 96} y="96"  fontSize="5.8">{`${nFaseRL} #${secaoFase}mm² (F)`}</text>
           <text x={topCX - 96} y="105" fontSize="5.8">{`1 #${secaoNeutro}mm² (N)`}</text>
 
-          {/* Placa de Advertência (CPFL) — dentro do Padrão de Entrada. Sem DPS, ao
-              lado esquerdo do D1 (posição de sempre); com DPS, ao lado direito
-              (acima do MEDIDOR), já que o lado esquerdo passa a ser do DPS. */}
-          {isCPFL && placaAdvertencia && (
+          {/* Placa de Advertência (CPFL/Equatorial/Energisa) — dentro do Padrão de
+              Entrada. Sem DPS, ao lado esquerdo do D1 (posição de sempre); com DPS,
+              ao lado direito (acima do MEDIDOR), já que o lado esquerdo passa a ser
+              do DPS. */}
+          {hasPlacaInterna && placaAdvertencia && (
             <image
               href={placaAdvertencia.imagem_url}
               x={placa2X} y={placa2Y} width={42} height={45}
