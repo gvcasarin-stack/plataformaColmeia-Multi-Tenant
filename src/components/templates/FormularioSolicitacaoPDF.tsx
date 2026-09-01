@@ -381,6 +381,17 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
 
   const modulosList = getAllModulos(pd);
   const inversoresList = getAllInversores(pd);
+
+  // Tabela "Dados dos Inversores" nao tem coluna de Quantidade (diferente da
+  // tabela de Modulos, que tem) — entao, pra informar corretamente quando ha
+  // mais de um inversor fisico, repete a linha de cada modelo pela sua
+  // quantidade (2 inversores do mesmo modelo -> 2 linhas iguais; modelos
+  // diferentes ja geravam uma linha cada, isso continua igual).
+  const inversoresExpandidos = inversoresList.flatMap((inv) => {
+    const qty = Math.max(1, parseInt(String(inv.quantidade || '1')) || 1);
+    return Array.from({ length: qty }, () => inv);
+  });
+
   const kwpTotal = getTotalKwp(pd);
   const potenciaKwp = kwpTotal > 0 ? fmtBR(kwpTotal) : '___';
 
@@ -899,7 +910,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
             <View style={[s.chBlue2, { width: '10%' }]}><Text>Rendimento (%)</Text></View>
             <View style={[s.chBlue2, { width: '10%' }]}><Text>DHT de Corrente (%)</Text></View>
           </View>
-          {inversoresList.map((inv, i) => (
+          {inversoresExpandidos.map((inv, i) => (
             <View key={i} style={s.row}>
               <View style={[s.d2, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
               <View style={[s.d2, { width: '14%', textAlign: 'center' }]}><Text>{inv.fabricante || v('inversores_fabricante', pd)}</Text></View>
@@ -912,9 +923,9 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
               <View style={[s.d2, { width: '10%', textAlign: 'center' }]}><Text>{inv.dht_corrente || v('inversores_dht_corrente', pd)}</Text></View>
             </View>
           ))}
-          {Array.from({ length: Math.max(0, 30 - inversoresList.length) }).map((_, i) => (
+          {Array.from({ length: Math.max(0, 30 - inversoresExpandidos.length) }).map((_, i) => (
             <View key={i} style={s.row}>
-              <View style={[s.dPeach2, { width: '4%', textAlign: 'center' }]}><Text>{inversoresList.length + i + 1}</Text></View>
+              <View style={[s.dPeach2, { width: '4%', textAlign: 'center' }]}><Text>{inversoresExpandidos.length + i + 1}</Text></View>
               <View style={[s.dPeach2, { width: '14%' }]}><Text></Text></View>
               <View style={[s.dPeach2, { width: '16%' }]}><Text></Text></View>
               <View style={[s.dPeach2, { width: '12%' }]}><Text></Text></View>

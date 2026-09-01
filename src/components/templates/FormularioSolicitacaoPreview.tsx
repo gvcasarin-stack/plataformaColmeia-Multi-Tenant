@@ -165,6 +165,16 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
   const modulosList = getAllModulos(projectData);
   const inversoresList = getAllInversores(projectData);
 
+  // Tabela "Dados dos Inversores" não tem coluna de Quantidade (diferente da
+  // tabela de Módulos, que tem) — então, pra informar corretamente quando há
+  // mais de um inversor físico, repete a linha de cada modelo pela sua
+  // quantidade (2 inversores do mesmo modelo → 2 linhas iguais; modelos
+  // diferentes já geravam uma linha cada, isso continua igual).
+  const inversoresExpandidos = inversoresList.flatMap((inv) => {
+    const qty = Math.max(1, parseInt(String(inv.quantidade || '1')) || 1);
+    return Array.from({ length: qty }, () => inv);
+  });
+
   const kwpTotal = getTotalKwp(projectData);
   const potenciaKwp = kwpTotal > 0 ? fmtBR(kwpTotal) : null;
 
@@ -192,7 +202,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
 
   // Linhas vazias para completar as tabelas
   const emptyModuloRows = Array.from({ length: Math.max(0, 10 - modulosList.length) });
-  const emptyInversorRows = Array.from({ length: Math.max(0, 30 - inversoresList.length) });
+  const emptyInversorRows = Array.from({ length: Math.max(0, 30 - inversoresExpandidos.length) });
 
   const modalidadeComp = String(projectData?.modalidade_compensacao || '');
   const modalidadeBanner = (() => {
@@ -804,8 +814,8 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 </tr>
               </thead>
               <tbody>
-                {/* Uma linha por modelo de inversor */}
-                {inversoresList.map((inv, i) => (
+                {/* Uma linha por inversor físico (modelos repetidos pela quantidade) */}
+                {inversoresExpandidos.map((inv, i) => (
                   <tr key={i}>
                     <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.fabricante || <V>{`{{inversores_fabricante}}`}</V>}</td>
@@ -821,7 +831,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                 {/* Linhas vazias */}
                 {emptyInversorRows.map((_, i) => (
                   <tr key={i}>
-                    <td style={{ ...DPeach2, textAlign: 'center' }}>{inversoresList.length + i + 1}</td>
+                    <td style={{ ...DPeach2, textAlign: 'center' }}>{inversoresExpandidos.length + i + 1}</td>
                     <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                     <td style={DPeach2}></td><td style={DPeach2}></td><td style={DPeach2}></td>
                     <td style={DPeach2}></td><td style={DPeach2}></td>

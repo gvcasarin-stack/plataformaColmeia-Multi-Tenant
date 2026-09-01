@@ -2923,9 +2923,8 @@ export const ExpandedProjectView = ({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Equatorial">Equatorial</SelectItem>
-                            <SelectItem value="CPFL">CPFL</SelectItem>
-                            <SelectItem value="RGE" disabled>RGE (Em breve)</SelectItem>
-                            <SelectItem value="Energisa" disabled>Energisa (Em breve)</SelectItem>
+                            <SelectItem value="CPFL">CPFL / RGE</SelectItem>
+                            <SelectItem value="Energisa">Energisa (Em breve)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -3166,7 +3165,11 @@ export const ExpandedProjectView = ({
                                       <FileOutput className="h-6 w-6 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div className="flex-1">
-                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Formulário de Solicitação de Acesso</h4>
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">
+                                        {selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa')
+                                          ? 'Solicitação de Acesso + Memorial + Levantamento de Carga Padrão Energisa'
+                                          : 'Formulário de Solicitação de Acesso'}
+                                      </h4>
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                         Formulário para solicitação de acesso junto à distribuidora {selectedDistribuidoraGerarProjeto}.
                                       </p>
