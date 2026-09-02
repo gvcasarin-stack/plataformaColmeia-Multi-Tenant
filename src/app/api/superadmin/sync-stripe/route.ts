@@ -73,11 +73,11 @@ export async function POST(request: NextRequest) {
     for (const org of orgs) {
       try {
         const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
-        // cancel_at_period_end = true: Stripe mantém status 'active' mas assinatura será cancelada
-        const effectiveStatus = (subscription.status === 'active' && subscription.cancel_at_period_end)
-          ? 'canceled'
-          : subscription.status;
-        const newStatus = mapStripeStatus(effectiveStatus);
+        // cancel_at_period_end = true: o Stripe mantém status 'active' até o fim do
+        // período já pago (current_period_end) e só passa para 'canceled' quando esse
+        // período efetivamente termina. O acesso deve ser mantido até lá, então usamos
+        // o status real do Stripe (sem antecipar o cancelamento).
+        const newStatus = mapStripeStatus(subscription.status);
 
         if (newStatus !== org.subscription_status) {
           const { error: updateError } = await supabase
