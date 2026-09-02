@@ -109,6 +109,8 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   // para Equatorial e Energisa, seguindo o mesmo padrão da CPFL — só a placa
   // externa (com o texto normativo, ao lado esquerdo da folha) é exclusiva CPFL.
   const hasPlacaInterna = isCPFL || isEquatorial || isEnergisa;
+  // Placa interna 30% maior para Equatorial/Energisa (CPFL mantém o tamanho original)
+  const placaInternaSize = (isEquatorial || isEnergisa) ? 1.3 : 1;
 
   // Placa de Advertência cadastrada no Acervo Técnico da distribuidora
   // (mesmo mecanismo já usado no Memorial Descritivo)
@@ -120,8 +122,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
       .then(res => res.json())
       .then(result => {
         const items = result.data || [];
-        if (items.length > 0 && items[0].imagem_url) {
-          setPlacaAdvertencia({ nome: items[0].nome, imagem_url: items[0].imagem_url });
+        // Equatorial tem mais de um arquivo cadastrado no acervo; para o Diagrama
+        // Unifilar usamos especificamente a versão "Sem medidas".
+        const escolhida = isEquatorial
+          ? (items.find((it: any) => String(it.nome || '').toLowerCase().includes('sem medidas')) || items[0])
+          : items[0];
+        if (escolhida && escolhida.imagem_url) {
+          setPlacaAdvertencia({ nome: escolhida.nome, imagem_url: escolhida.imagem_url });
         }
       })
       .catch(() => {});
@@ -436,7 +443,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {hasPlacaInterna && placaAdvertencia && (
             <image
               href={placaAdvertencia.imagem_url}
-              x={placa2X} y={placa2Y} width={42} height={45}
+              x={placa2X} y={placa2Y} width={42 * placaInternaSize} height={45 * placaInternaSize}
               preserveAspectRatio="xMidYMid meet"
             />
           )}

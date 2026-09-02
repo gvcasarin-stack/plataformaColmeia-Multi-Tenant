@@ -121,6 +121,8 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   // para Equatorial e Energisa, seguindo o mesmo padrao da CPFL — so a placa
   // externa (com o texto normativo) e exclusiva CPFL.
   const hasPlacaInterna = isCPFL || isEquatorial || isEnergisa;
+  // Placa interna 30% maior para Equatorial/Energisa (CPFL mantém o tamanho original)
+  const placaInternaSize = (isEquatorial || isEnergisa) ? 1.3 : 1;
 
   const modQtd    = getTotalModulosQtd(pd);
   const potTotal  = getTotalKwp(pd);
@@ -336,6 +338,8 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const placaImgTop = PAGE_PADDING + (44 - VB_MINY) * SVG_SCALE;
   const placaImgW = 42 * SVG_SCALE;
   const placaImgH = 45 * SVG_SCALE;
+  const placaImg2W = placaImgW * placaInternaSize;
+  const placaImg2H = placaImgH * placaInternaSize;
   // Altura do Svg em pontos, escalada junto com o VB_H (mesma técnica do "top"
   // do logo abaixo) — com YSHIFT=0 fica exatamente igual ao valor de sempre.
   const SVG_H = (numInversores >= 4 ? 1385 : (numInversores >= 3 ? 1385 : 992)) + YSHIFT * SVG_SCALE;
@@ -978,8 +982,8 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
             position: 'absolute',
             left: placaImg2Left,
             top: placaImg2Top,
-            width: placaImgW,
-            height: placaImgH,
+            width: placaImg2W,
+            height: placaImg2H,
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
