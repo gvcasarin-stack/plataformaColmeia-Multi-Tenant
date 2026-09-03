@@ -433,19 +433,29 @@ export function RegisterForm() {
       devLog.log("[RegisterForm] handleSubmit: ANTES de chamar signUpWithPassword. Dados do formulário:", formData);
 
       // Preparar dados para options.data, limpando e tratando valores
-      // Descobrir o slug do tenant a partir do hostname atual
+      // Descobrir o slug do tenant atual via API (funciona tanto para subdomínios
+      // *.gerenciamentofotovoltaico.com.br quanto para domínio próprio, pois usa
+      // os headers x-tenant-id/x-tenant-slug já resolvidos pelo middleware)
       let tenantSlug: string | null = null;
-      if (typeof window !== 'undefined') {
-        try {
-          const host = window.location.hostname || '';
-          const root = 'gerenciamentofotovoltaico.com.br';
-          const isMain = host === root || host === `www.${root}`;
-          const isRegistro = host === `registro.${root}`;
-          const isSub = host.endsWith(`.${root}`) && !isMain && !isRegistro;
-          if (isSub) {
-            tenantSlug = host.split('.')[0];
-          }
-        } catch {}
+      try {
+        const tenantResponse = await fetch('/api/tenant/organization', { method: 'GET' });
+        if (tenantResponse.ok) {
+          const tenantResult = await tenantResponse.json();
+          tenantSlug = tenantResult?.data?.slug || null;
+        }
+      } catch (tenantError) {
+        devLog.error("[RegisterForm] handleSubmit: Erro ao identificar a organização atual:", tenantError);
+      }
+
+      if (!tenantSlug) {
+        devLog.error("[RegisterForm] handleSubmit: Não foi possível identificar a organização (tenant) para este cadastro.");
+        setLoading(false);
+        toast({
+          title: "Erro ao identificar a empresa",
+          description: "Não foi possível identificar a organização deste link de cadastro. Atualize a página e tente novamente ou entre em contato com a empresa.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const metadata = {
