@@ -92,6 +92,7 @@ const GROUP_DOCS: Record<string, string[]> = {
   'Coordenadas UTM (Padrão de Entrada)': ['planta', 'acesso'],
   'Planta de Situação': ['planta'],
   'Dimensionamento dos Cabos': ['unifilar'],
+  'Energisa GD': ['energisa-gd'],
 };
 
 const DOC_FILTER_OPTIONS: { value: string; label: string }[] = [
@@ -99,6 +100,7 @@ const DOC_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'unifilar', label: 'Diagrama Unifilar' },
   { value: 'planta', label: 'Planta de Situação' },
   { value: 'acesso', label: 'Acesso à Rede' },
+  { value: 'energisa-gd', label: 'Formulário GD Energisa' },
 ];
 
 const PVC_TEMP_OPTIONS = [
@@ -187,6 +189,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'cliente_email', label: 'E-mail do Cliente', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados do Cliente', validate: 'email' },
   { key: 'cliente_celular', label: 'Celular do Cliente', type: 'text', required: true, placeholder: 'Ex: (48) 9 9900-0387', group: 'Dados do Cliente', validate: 'phone' },
   { key: 'cliente_telefone_fixo', label: 'Telefone Fixo do Cliente', type: 'text', required: false, group: 'Dados do Cliente', validate: 'phone' },
+
+  // Energisa GD — pacote de 6 folhas (Formulário de Orçamento de Conexão, Relação de Carga,
+  // Checklist, Memorial Descritivo, Ajustes de Proteções, Diagrama Unifilar)
+  { key: 'numero_endereco_cliente', label: 'Número do Endereço', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: false, placeholder: 'Ex: 0', group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'bairro_cliente', label: 'Bairro', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
 
   // Responsável Legal
   { key: 'responsavel_legal_nome', label: 'Nome do Responsável Legal', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Legal' },

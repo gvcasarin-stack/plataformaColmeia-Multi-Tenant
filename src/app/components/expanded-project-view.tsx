@@ -66,6 +66,7 @@ import { AnexoFCPFLPreview } from '@/components/templates/AnexoFCPFLPreview'
 import { AnexoECPFLPreview } from '@/components/templates/AnexoECPFLPreview'
 import { FormularioRegistroANEELPreview } from '@/components/templates/FormularioRegistroANEELPreview'
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
+import { EnergisaGDPreview } from '@/components/templates/EnergisaGDPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
 import { PlantaSituacaoPreview } from '@/components/templates/PlantaSituacaoPreview'
@@ -541,6 +542,9 @@ export const ExpandedProjectView = ({
     cliente_email: (project as any).cliente_email || '',
     cliente_celular: (project as any).cliente_celular || '',
     cliente_telefone_fixo: (project as any).cliente_telefone_fixo || '',
+    // Formulário GD Energisa (Folha 1)
+    numero_endereco_cliente: (project as any).numero_endereco_cliente || '',
+    bairro_cliente: (project as any).bairro_cliente || '',
     responsavel_legal_nome: (project as any).responsavel_legal_nome || '',
     responsavel_legal_telefone: (project as any).responsavel_legal_telefone || '',
     responsavel_legal_email: (project as any).responsavel_legal_email || '',
@@ -3405,11 +3409,17 @@ export const ExpandedProjectView = ({
                             <div className="mt-6">
                               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                 <FileOutput className="h-5 w-5 text-green-500" />
-                                Pré-visualização — Formulário de Solicitação de Acesso
+                                {selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa')
+                                  ? 'Pré-visualização — Solicitação de Acesso + Memorial + Levantamento de Carga (Energisa)'
+                                  : 'Pré-visualização — Formulário de Solicitação de Acesso'}
                               </h3>
                               <div className="rounded-md border border-green-200 dark:border-green-700 p-4 max-h-[600px] overflow-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-2">
-                                  <FormularioSolicitacaoPreview distribuidora={selectedDistribuidoraGerarProjeto} projectData={gerarProjetoFields} />
+                                  {selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') ? (
+                                    <EnergisaGDPreview projectData={gerarProjetoFields} />
+                                  ) : (
+                                    <FormularioSolicitacaoPreview distribuidora={selectedDistribuidoraGerarProjeto} projectData={gerarProjetoFields} />
+                                  )}
                                 </div>
                               </div>
                             </div>
