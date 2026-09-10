@@ -222,6 +222,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   // que são do Ramal de Entrada — usados no Memorial Descritivo, campo diferente).
   const secaoFase   = fv(pd.secao_fase_rl_mm2, '10,0');
   const secaoNeutro = fv(pd.secao_neutro_rl_mm2, '10,0');
+  // Seção do Ramal de Entrada (mesmos campos usados no Memorial Descritivo, item 6.5).
+  const secaoFaseEntrada   = fv(pd.secao_fase_mm2, '10,0');
+  const secaoNeutroEntrada = fv(pd.secao_neutro_mm2, '10,0');
 
   const djPolos    = parseInt(fv(pd.disjuntor_polos, '1')) || 1;
   const djCorr     = fv(pd.disjuntor_corrente_a, '40');
@@ -309,12 +312,20 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   const topBR = hasDpsEntrada ? topCX + 175 : topCX + 120;
   const padraoEntradaBH = hasDpsEntrada ? 200 : 150;
   const padraoEntradaBottom = 42 + padraoEntradaBH;
+  // Legenda do Ramal de Entrada (Energisa) — inserida no vão entre o Padrão de
+  // Entrada e o Quadro de Distribuição, que hoje fica vazio. Usa o mesmo padrão
+  // visual da legenda do Ramal de Ligação (acima), com os campos do Ramal de
+  // Entrada. Precisa de espaço vertical extra, somado ao YSHIFT abaixo.
+  const hasRamalEntradaLegend = isEnergisa;
+  const RAMAL_ENTRADA_GAP = 58;
+  const ramalEntradaY = padraoEntradaBottom + 22;
   // Tudo que fica abaixo do Padrão de Entrada (Quadro de Distribuição em diante)
   // desce a mesma quantidade que o retângulo cresceu, pra sobrar espaço lá dentro
   // sem espremer o resto do diagrama. Vira um <g transform="translate(0,Y)"> mais
-  // abaixo — com YSHIFT=0 (caso sem DPS) o translate não faz nada, e o restante
-  // do diagrama fica byte-a-byte igual ao de sempre.
-  const YSHIFT = padraoEntradaBH - 150;
+  // abaixo — com YSHIFT=0 (caso sem DPS e sem legenda do Ramal de Entrada) o
+  // translate não faz nada, e o restante do diagrama fica byte-a-byte igual ao
+  // de sempre.
+  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0);
   // A altura do viewBox precisa crescer junto com o YSHIFT, senão o selo (que fica
   // no fim do desenho, dentro do <g> deslocado) passa do limite inferior e é
   // cortado. Com YSHIFT=0 (sem DPS) o valor fica exatamente 1295, como sempre foi.
@@ -478,6 +489,18 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
           {/* Terra — lower-right corner of PADRÃO DE ENTRADA (same style as QUADRO DIST) */}
           <Terra x={topBR - 18} y={padraoEntradaBottom} />
+
+          {/* Legenda do Ramal de Entrada (Energisa) — no vão entre o Padrão de Entrada
+              e o Quadro de Distribuição, mesmo padrão visual da legenda do Ramal de
+              Ligação acima. */}
+          {hasRamalEntradaLegend && (
+            <>
+              <text x={topCX - 96} y={ramalEntradaY}      fontSize="5.8" fontWeight="bold">Ramal de Entrada</text>
+              <text x={topCX - 96} y={ramalEntradaY + 9}  fontSize="5.8" fontWeight="bold">HEPR/XLPE 90°C</text>
+              <text x={topCX - 96} y={ramalEntradaY + 18} fontSize="5.8">{`${nFaseRL} #${secaoFaseEntrada}mm² (F)`}</text>
+              <text x={topCX - 96} y={ramalEntradaY + 27} fontSize="5.8">{`1 #${secaoNeutroEntrada}mm² (N)`}</text>
+            </>
+          )}
           </g>
 
           {/* ═══ TUDO A PARTIR DAQUI (Quadro de Distribuição em diante) desce YSHIFT

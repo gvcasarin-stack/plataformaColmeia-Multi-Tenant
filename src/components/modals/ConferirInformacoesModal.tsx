@@ -706,7 +706,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
         groupNames.push(field.group);
       }
     }
-    const PRIORITY_GROUPS = ['Dados do Cliente', 'Dados do Projeto', 'Dados da Unidade Consumidora'];
+    const PRIORITY_GROUPS = ['Dados do Cliente', 'Dados do Projeto', 'Dados da Unidade Consumidora', 'Padrão de Entrada', 'Coordenadas UTM (Padrão de Entrada)'];
     const orderedGroups = [
       ...PRIORITY_GROUPS.filter(g => groupNames.includes(g)),
       ...groupNames.filter(g => !PRIORITY_GROUPS.includes(g)),
