@@ -786,31 +786,31 @@ export default function AssinaturasPage() {
                 </span>
                 <strong>{organization?.plan?.max_storage_gb || stripePlans.basico.features.max_storage_gb}GB</strong>&nbsp;storage
               </div>
-            </div>
 
-            {/* Mostrar features extras apenas se não estiver ativo */}
-            {!(organization.subscription_status === 'active' && !organization.is_trial) && (
-              <div className="space-y-2 pb-3 border-b border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
-                    <Mail className="h-3.5 w-3.5" />
-                  </span>
-                  <strong>Suporte por Email</strong>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
-                    <FileText className="h-3.5 w-3.5" />
-                  </span>
-                  <strong>Relatórios Básicos</strong>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </span>
-                  <strong>Integrações Essenciais</strong>
-                </div>
-              </div>
-            )}
+              {/* Mostrar features extras apenas se não estiver ativo */}
+              {!(organization.subscription_status === 'active' && !organization.is_trial) && (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
+                      <Mail className="h-3.5 w-3.5" />
+                    </span>
+                    <strong>Suporte por Email</strong>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
+                      <FileText className="h-3.5 w-3.5" />
+                    </span>
+                    <strong>Relatórios Básicos</strong>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">
+                      <Sparkles className="h-3.5 w-3.5" />
+                    </span>
+                    <strong>Integrações Essenciais</strong>
+                  </div>
+                </>
+              )}
+            </div>
 
             {organization.subscription_status === 'active' && !organization.is_trial ? (
               // Plano ativo - mostrar informações da assinatura
@@ -904,10 +904,8 @@ export default function AssinaturasPage() {
                   <span className="block text-[10px] text-gray-400 leading-tight">vs {stripePlans.basico.features.max_storage_gb}GB atual</span>
                 </span>
               </div>
-            </div>
 
-            {/* Features condicionais baseadas no status do plano básico */}
-            <div className="space-y-2 pb-3 border-b border-gray-100 dark:border-gray-700">
+              {/* Features condicionais baseadas no status do plano básico */}
               <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 flex-shrink-0">
                   <Shield className="h-3.5 w-3.5" />

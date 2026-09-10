@@ -194,6 +194,17 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   // Checklist, Memorial Descritivo, Ajustes de Proteções, Diagrama Unifilar)
   { key: 'numero_endereco_cliente', label: 'Número do Endereço', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: false, placeholder: 'Ex: 0', group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'bairro_cliente', label: 'Bairro', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'numero_fases', label: 'N° de Fases', type: 'select', required: false, options: [{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }], group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'cabos_por_fase', label: 'Cabos por Fase', type: 'text', required: false, defaultValue: '1', group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'dps_ca_ka', label: 'DPS CA (kA)', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'dps_cc_ka', label: 'DPS CC (kA)', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'disjuntor_cc_corrente_a', label: 'Disjuntor CC (A)', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'potencia_trafo', label: 'Potência Trafo', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'numero_hastes', label: 'Nº de Hastes (Aterramento)', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'necessita_autotrafo', label: 'Necessita de Autotrafo ou Transformador de Acoplamento?', type: 'select', required: false, options: [{ value: 'SIM', label: 'Sim' }, { value: 'NÃO', label: 'Não' }], group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'potencia_autotrafo', label: 'Potência do Autotrafo', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'atendimento_trafo_exclusivo', label: 'Atendimento com Trafo Exclusivo (Grupo A e Rurais)?', type: 'select', required: false, options: [{ value: 'SIM', label: 'Sim' }, { value: 'NÃO', label: 'Não' }], group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'potencia_trafo_exclusivo', label: 'Potência do Trafo Exclusivo', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
 
   // Responsável Legal
   { key: 'responsavel_legal_nome', label: 'Nome do Responsável Legal', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Legal' },
