@@ -119,6 +119,11 @@ export function ListaRateioEquatorialPDF({ projectData }: ListaRateioEquatorialP
                 <Text style={{ width: '40%', paddingVertical: 2, paddingHorizontal: 8 }}>Percentual do Excedente</Text>
                 <Text style={{ width: '60%', paddingVertical: 2, paddingHorizontal: 8, borderLeftWidth: B, borderColor: BC }}>Prencher as porcentagens</Text>
               </View>
+            ) : isOrdem ? (
+              <View style={[s.val, { width: '68%', flexDirection: 'row', paddingVertical: 0, paddingHorizontal: 0 }]}>
+                <Text style={{ width: '40%', paddingVertical: 2, paddingHorizontal: 8 }}>Ordem de Prioridade</Text>
+                <Text style={{ width: '60%', paddingVertical: 2, paddingHorizontal: 8, borderLeftWidth: B, borderColor: BC }}>Preencher as beneficiárias na ordem desejada</Text>
+              </View>
             ) : (
               <Text style={[s.val, { width: '68%' }]}>{v('forma_alocacao_creditos', projectData)}</Text>
             )}
@@ -157,24 +162,21 @@ export function ListaRateioEquatorialPDF({ projectData }: ListaRateioEquatorialP
           )}
 
           {isOrdem && (
-            <View style={[s.tbl, { width: 380 }]}>
+            <View style={[s.tbl, { width: 220 }]}>
               <View style={s.row}>
-                <Text style={[s.head, { width: '30%' }]}>Conta Contrato</Text>
-                <Text style={[s.head, { width: '35%' }]}>Classe de Consumo</Text>
-                <Text style={[s.head, { width: '35%' }]}>Endereço</Text>
+                <Text style={[s.head, { width: '50%' }]}>Ordem</Text>
+                <Text style={[s.head, { width: '50%' }]}>Conta Contrato</Text>
               </View>
               {ordenadas.map((b, i) => (
                 <View style={s.row} key={i}>
-                  <Text style={[s.cell, { width: '30%' }]}>{b.conta_contrato}</Text>
-                  <Text style={[s.cell, { width: '35%' }]}> </Text>
-                  <Text style={[s.cell, { width: '35%' }]}> </Text>
+                  <Text style={[s.cell, { width: '50%' }]}>{b.ordem !== undefined ? String(b.ordem) : ''}</Text>
+                  <Text style={[s.cell, { width: '50%' }]}>{b.conta_contrato}</Text>
                 </View>
               ))}
               {emptyRows.map((_, i) => (
                 <View style={s.row} key={`empty-${i}`}>
-                  <Text style={[s.cell, { width: '30%' }]}> </Text>
-                  <Text style={[s.cell, { width: '35%' }]}> </Text>
-                  <Text style={[s.cell, { width: '35%' }]}> </Text>
+                  <Text style={[s.cell, { width: '50%' }]}> </Text>
+                  <Text style={[s.cell, { width: '50%' }]}> </Text>
                 </View>
               ))}
             </View>

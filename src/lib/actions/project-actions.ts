@@ -2126,6 +2126,8 @@ export async function getProjectAction(projectId: string): Promise<{
       disjuntor_tensao_v: data.disjuntor_tensao_v || undefined,
       tipo_fornecimento: data.tipo_fornecimento || undefined,
       modalidade_compensacao: data.modalidade_compensacao || undefined,
+      forma_alocacao_creditos: data.forma_alocacao_creditos || undefined,
+      rateio_beneficiarias: data.rateio_beneficiarias || undefined,
       planta_situacao_url: data.planta_situacao_url || undefined,
       planta_situacao_config: data.planta_situacao_config || undefined,
       caixa_medicao_id: data.caixa_medicao_id || undefined,

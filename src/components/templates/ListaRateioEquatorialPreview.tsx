@@ -134,6 +134,13 @@ export function ListaRateioEquatorialPreview({ projectData }: ListaRateioEquator
                       <div style={{ width: '60%', padding: '2px 8px', borderLeft: B }}>Prencher as porcentagens</div>
                     </div>
                   </td>
+                ) : isOrdem ? (
+                  <td style={{ ...VAL, padding: 0 }} colSpan={3}>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ width: '40%', padding: '2px 8px' }}>Ordem de Prioridade</div>
+                      <div style={{ width: '60%', padding: '2px 8px', borderLeft: B }}>Preencher as beneficiárias na ordem desejada</div>
+                    </div>
+                  </td>
                 ) : (
                   <td style={VAL} colSpan={3}><V>{`{{forma_alocacao_creditos}}`}</V></td>
                 )}
@@ -147,23 +154,20 @@ export function ListaRateioEquatorialPreview({ projectData }: ListaRateioEquator
           {/* ===== TABELA DE RATEIO ===== */}
           <div style={{ paddingLeft: '65px', paddingTop: '34px' }}>
             {isOrdem ? (
-              <table style={{ ...T, width: '520px', tableLayout: 'fixed' }}>
+              <table style={{ ...T, width: '290px', tableLayout: 'fixed' }}>
                 <tbody>
                   <tr>
-                    <td style={{ ...HEAD, width: '150px' }}>Conta Contrato</td>
-                    <td style={{ ...HEAD, width: '200px' }}>Classe de Consumo</td>
-                    <td style={{ ...HEAD, width: '170px' }}>Endereço</td>
+                    <td style={{ ...HEAD, width: '50%' }}>Ordem</td>
+                    <td style={{ ...HEAD, width: '50%' }}>Conta Contrato</td>
                   </tr>
                   {ordenadas.map((b, i) => (
                     <tr key={i}>
+                      <td style={CELL}>{b.ordem ?? ''}</td>
                       <td style={CELL}>{b.conta_contrato}</td>
-                      <td style={CELL}>&nbsp;</td>
-                      <td style={CELL}>&nbsp;</td>
                     </tr>
                   ))}
                   {emptyRows.map((_, i) => (
                     <tr key={`empty-${i}`}>
-                      <td style={CELL}>&nbsp;</td>
                       <td style={CELL}>&nbsp;</td>
                       <td style={CELL}>&nbsp;</td>
                     </tr>
