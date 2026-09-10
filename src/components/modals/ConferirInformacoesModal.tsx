@@ -493,11 +493,10 @@ interface BeneficiariasRateioSectionProps {
 }
 
 function BeneficiariasRateioSection({ formaAlocacao, beneficiarias, onChangeFormaAlocacao, onChangeBeneficiarias }: BeneficiariasRateioSectionProps) {
-  // Sempre pelo menos 2 linhas (Beneficiária 01 e 02), igual ao formulário da distribuidora
-  const list = beneficiarias.length >= 2 ? beneficiarias : [
-    ...beneficiarias,
-    ...Array.from({ length: 2 - beneficiarias.length }, () => ({ conta_contrato: '' })),
-  ];
+  // Sempre pelo menos 1 linha (Beneficiária 01) — as demais só são criadas
+  // quando o usuário clica em "Adicionar Beneficiária", pra não salvar uma
+  // segunda linha em branco sem necessidade.
+  const list = beneficiarias.length >= 1 ? beneficiarias : [{ conta_contrato: '' }];
   const isPercentual = formaAlocacao === 'Percentual do Excedente';
   const isOrdem = formaAlocacao === 'Ordem de Prioridade';
 
@@ -511,7 +510,7 @@ function BeneficiariasRateioSection({ formaAlocacao, beneficiarias, onChangeForm
   };
 
   const removeRow = (index: number) => {
-    if (list.length <= 2) return; // mantém sempre no mínimo 2
+    if (list.length <= 1) return; // mantém sempre no mínimo 1
     onChangeBeneficiarias(list.filter((_, i) => i !== index));
   };
 
@@ -590,7 +589,7 @@ function BeneficiariasRateioSection({ formaAlocacao, beneficiarias, onChangeForm
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0 flex-shrink-0 text-gray-400 hover:text-red-500 disabled:opacity-30"
-                disabled={list.length <= 2}
+                disabled={list.length <= 1}
                 onClick={() => removeRow(index)}
                 title="Remover beneficiária"
               >

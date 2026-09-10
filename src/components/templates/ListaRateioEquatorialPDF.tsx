@@ -114,7 +114,14 @@ export function ListaRateioEquatorialPDF({ projectData }: ListaRateioEquatorialP
           </View>
           <View style={s.row}>
             <Text style={[s.lblFill, { width: '32%' }]}>Forma de alocação dos créditos</Text>
-            <Text style={[s.val, { width: '68%' }]}>{v('forma_alocacao_creditos', projectData)}</Text>
+            {isPercentual ? (
+              <View style={[s.val, { width: '68%', flexDirection: 'row', paddingVertical: 0, paddingHorizontal: 0 }]}>
+                <Text style={{ width: '40%', paddingVertical: 2, paddingHorizontal: 8 }}>Percentual do Excedente</Text>
+                <Text style={{ width: '60%', paddingVertical: 2, paddingHorizontal: 8, borderLeftWidth: B, borderColor: BC }}>Prencher as porcentagens</Text>
+              </View>
+            ) : (
+              <Text style={[s.val, { width: '68%' }]}>{v('forma_alocacao_creditos', projectData)}</Text>
+            )}
           </View>
         </View>
 

@@ -127,7 +127,16 @@ export function ListaRateioEquatorialPreview({ projectData }: ListaRateioEquator
               </tr>
               <tr>
                 <td style={LBL_FILL}>Forma de alocação dos créditos</td>
-                <td style={VAL} colSpan={3}><V>{`{{forma_alocacao_creditos}}`}</V></td>
+                {isPercentual ? (
+                  <td style={{ ...VAL, padding: 0 }} colSpan={3}>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ width: '40%', padding: '2px 8px' }}>Percentual do Excedente</div>
+                      <div style={{ width: '60%', padding: '2px 8px', borderLeft: B }}>Prencher as porcentagens</div>
+                    </div>
+                  </td>
+                ) : (
+                  <td style={VAL} colSpan={3}><V>{`{{forma_alocacao_creditos}}`}</V></td>
+                )}
               </tr>
               <tr>
                 <td style={{ ...CELL, border: B }} colSpan={4}>&nbsp;</td>
