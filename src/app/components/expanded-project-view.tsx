@@ -519,6 +519,8 @@ export const ExpandedProjectView = ({
     disjuntor_tensao_v: (project as any).disjuntor_tensao_v || '',
     tipo_fornecimento: (project as any).tipo_fornecimento || '',
     modalidade_compensacao: (project as any).modalidade_compensacao || '',
+    forma_alocacao_creditos: (project as any).forma_alocacao_creditos || '',
+    rateio_beneficiarias: (project as any).rateio_beneficiarias || [],
     planta_situacao_url: (project as any).planta_situacao_url || '',
     caixa_medicao_id: (project as any).caixa_medicao_id || '',
     cpfl_tipo_poste_padrao: (project as any).cpfl_tipo_poste_padrao || '',

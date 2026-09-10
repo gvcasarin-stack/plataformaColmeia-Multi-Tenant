@@ -695,32 +695,25 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     setCopyBannerDismissed(false);
     cepLastLookedUp.current = null;
 
-    // Calcula a ordem dos grupos (incompletos primeiro) e quais começam abertos, uma única vez por abertura
+    // Calcula a ordem dos grupos (fixa, com "Dados do Projeto" e "Dados da Unidade
+    // Consumidora" logo após "Dados do Cliente") e abre só o primeiro grupo por padrão,
+    // uma única vez por abertura
     const activeDistribuidora = formatted.distribuidora || '';
-    const skipped = initSkippedFields(formatted);
-    const isFilled = (key: string): boolean => {
-      if (skipped.has(key)) return true;
-      const val = formatted[key];
-      if (key === 'havera_beneficiarias') return val === true || val === false;
-      if (key === 'planta_situacao_url') return !!val;
-      if (typeof val === 'number') return val > 0;
-      return !!val && String(val).trim() !== '';
-    };
     const groupNames: string[] = [];
-    const groupComplete: Record<string, boolean> = {};
     for (const field of FIELD_DEFINITIONS) {
       if (field.onlyForDistribuidoras && !field.onlyForDistribuidoras.includes(activeDistribuidora)) continue;
       if (field.hideForDistribuidoras && field.hideForDistribuidoras.includes(activeDistribuidora)) continue;
       if (!groupNames.includes(field.group)) {
         groupNames.push(field.group);
-        groupComplete[field.group] = true;
       }
-      if (field.required && !isFilled(field.key)) groupComplete[field.group] = false;
     }
-    const incomplete = groupNames.filter(g => !groupComplete[g]);
-    const complete = groupNames.filter(g => groupComplete[g]);
-    setGroupOrder([...incomplete, ...complete]);
-    setOpenGroups(new Set(incomplete));
+    const PRIORITY_GROUPS = ['Dados do Cliente', 'Dados do Projeto', 'Dados da Unidade Consumidora'];
+    const orderedGroups = [
+      ...PRIORITY_GROUPS.filter(g => groupNames.includes(g)),
+      ...groupNames.filter(g => !PRIORITY_GROUPS.includes(g)),
+    ];
+    setGroupOrder(orderedGroups);
+    setOpenGroups(new Set(orderedGroups.length > 0 ? [orderedGroups[0]] : []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
