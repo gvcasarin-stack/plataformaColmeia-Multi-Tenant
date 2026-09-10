@@ -19,11 +19,12 @@ const PLACEHOLDER_MAP: Record<string, string> = {
 // FormularioSolicitacaoPreview.tsx: tabelas HTML com border/padding inline).
 const B = '1px solid #000000';
 const T: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: '11px', lineHeight: '1.3' };
-const LBL: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', border: B, whiteSpace: 'nowrap' };
+const LBL: React.CSSProperties = { backgroundColor: '#FFFFFF', color: '#000000', fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', border: B, whiteSpace: 'nowrap' };
 const LBL_FILL: React.CSSProperties = { ...LBL, backgroundColor: '#D9D9D9' };
-const VAL: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', border: B, textAlign: 'center' };
-const HEAD: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', border: B, textAlign: 'center' };
-const CELL: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '11px', padding: '4px 8px', border: B, textAlign: 'center' };
+const VAL: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', border: B, textAlign: 'center' };
+const ROW_H = '28px';
+const HEAD: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '11px', fontWeight: 'bold', padding: '0 8px', height: ROW_H, boxSizing: 'border-box', border: B, textAlign: 'center' };
+const CELL: React.CSSProperties = { backgroundColor: '#FFFFFF', fontSize: '11px', padding: '0 8px', height: ROW_H, boxSizing: 'border-box', border: B, textAlign: 'center' };
 const GREEN: React.CSSProperties = { ...CELL, backgroundColor: '#4CAF50', color: '#FFFFFF', fontWeight: 'bold' };
 
 export function ListaRateioEquatorialPreview({ projectData }: ListaRateioEquatorialPreviewProps) {
@@ -69,8 +70,12 @@ export function ListaRateioEquatorialPreview({ projectData }: ListaRateioEquator
   };
 
   const formaAlocacao = String(projectData?.forma_alocacao_creditos || '');
-  const isPercentual = formaAlocacao === 'Percentual do Excedente';
+  // Enquanto a forma de alocação ainda não foi escolhida em "Conferir Informações",
+  // mostramos a grade "Percentual do Excedente" vazia como padrão — o documento
+  // fica sempre com a cara final (folha preenchida), em vez de aparecer em branco.
   const isOrdem = formaAlocacao === 'Ordem de Prioridade';
+  const isPercentual = !isOrdem;
+
   const beneficiarias: { conta_contrato: string; percentual?: number; ordem?: number }[] = Array.isArray(projectData?.rateio_beneficiarias)
     ? projectData.rateio_beneficiarias
     : [];
@@ -79,117 +84,114 @@ export function ListaRateioEquatorialPreview({ projectData }: ListaRateioEquator
     ? [...beneficiarias].sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
     : beneficiarias;
 
-  const totalRows = 20;
+  const totalRows = 30;
   const emptyRows = Array.from({ length: Math.max(0, totalRows - beneficiarias.length) });
 
   return (
     <>
-      <div style={{ width: '794px', padding: '24px', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', backgroundColor: '#FFFFFF', color: '#000000' }}>
+      {/* ===== Folha A4 ===== */}
+      <div style={{ background: '#6b6f76', padding: '28px 16px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '900px', minHeight: '1273px', background: '#FFFFFF', padding: '65px 58px', boxShadow: '0 8px 28px rgba(0,0,0,.35)', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', color: '#000000' }}>
 
-        {/* ===== CABEÇALHO ===== */}
-        <table style={{ ...T, marginBottom: 0 }}>
-          <tbody>
-            <tr>
-              <td style={{ ...CELL, width: '150px', textAlign: 'center', padding: '10px 8px' }}>
-                <img src="/images/logo-equatorial.png" style={{ maxWidth: '128px', width: '100%', objectFit: 'contain' }} alt="Grupo Equatorial" />
-              </td>
-              <td style={{ ...CELL, textAlign: 'center' }}>
-                <div style={{ fontSize: '14.5px', fontWeight: 'bold', lineHeight: 1.35 }}>
-                  LISTA DE RATEIO PARA AS UNIDADES CONSUMIDORAS PARTICIPANTES DO SISTEMA DE COMPENSAÇÃO
-                </div>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '3px' }}>
-                  (Autoconsumo Remoto, Geração Compartilhada e EMUC)
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          {/* ===== CABEÇALHO ===== */}
+          <table style={{ ...T, marginBottom: 0 }}>
+            <tbody>
+              <tr>
+                <td style={{ ...CELL, width: '150px', textAlign: 'center', padding: '10px 8px' }}>
+                  <img src="/images/logo-equatorial.png" style={{ maxWidth: '128px', width: '100%', objectFit: 'contain' }} alt="Grupo Equatorial" />
+                </td>
+                <td style={{ ...CELL, textAlign: 'center' }}>
+                  <div style={{ fontSize: '14.5px', fontWeight: 'bold', lineHeight: 1.35 }}>
+                    LISTA DE RATEIO PARA AS UNIDADES CONSUMIDORAS PARTICIPANTES DO SISTEMA DE COMPENSAÇÃO
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '3px' }}>
+                    (Autoconsumo Remoto, Geração Compartilhada e EMUC)
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        {/* ===== IDENTIFICAÇÃO ===== */}
-        <table style={{ ...T, marginTop: '-1px' }}>
-          <tbody>
-            <tr>
-              <td style={{ ...LBL, borderTop: 'none' }}>Conta Contrato da Unidade Geradora</td>
-              <td style={{ ...VAL, borderTop: 'none' }}><V>{`{{conta_contrato}}`}</V></td>
-              <td style={{ ...LBL, borderTop: 'none' }}>Data solicitação</td>
-              <td style={{ ...VAL, borderTop: 'none' }}><V>{`{{data_documento}}`}</V></td>
-            </tr>
-            <tr>
-              <td style={LBL_FILL}>Enquadramento</td>
-              <td style={VAL} colSpan={3}><V>{`{{modalidade_compensacao}}`}</V></td>
-            </tr>
-            <tr>
-              <td style={LBL_FILL}>Forma de alocação dos créditos</td>
-              <td style={VAL} colSpan={3}><V>{`{{forma_alocacao_creditos}}`}</V></td>
-            </tr>
-            <tr>
-              <td style={{ ...CELL, border: B }} colSpan={4}>&nbsp;</td>
-            </tr>
-          </tbody>
-        </table>
+          {/* ===== IDENTIFICAÇÃO ===== */}
+          <table style={{ ...T, marginTop: '-1px' }}>
+            <tbody>
+              <tr>
+                <td style={{ ...LBL, borderTop: 'none' }}>Conta Contrato da Unidade Geradora</td>
+                <td style={{ ...VAL, borderTop: 'none' }}><V>{`{{conta_contrato}}`}</V></td>
+                <td style={{ ...LBL, borderTop: 'none' }}>Data solicitação</td>
+                <td style={{ ...VAL, borderTop: 'none' }}><V>{`{{data_documento}}`}</V></td>
+              </tr>
+              <tr>
+                <td style={LBL_FILL}>Enquadramento</td>
+                <td style={VAL} colSpan={3}><V>{`{{modalidade_compensacao}}`}</V></td>
+              </tr>
+              <tr>
+                <td style={LBL_FILL}>Forma de alocação dos créditos</td>
+                <td style={VAL} colSpan={3}><V>{`{{forma_alocacao_creditos}}`}</V></td>
+              </tr>
+              <tr>
+                <td style={{ ...CELL, border: B }} colSpan={4}>&nbsp;</td>
+              </tr>
+            </tbody>
+          </table>
 
-        {/* ===== TABELA DE RATEIO ===== */}
-        <div style={{ paddingLeft: '65px', paddingTop: '10px' }}>
-          {isPercentual ? (
-            <table style={{ ...T, width: '290px' }}>
-              <tbody>
-                <tr><td style={HEAD}>% Total</td></tr>
-                <tr><td style={totalPercentual === 100 ? GREEN : { ...CELL, backgroundColor: '#FEF3C7', fontWeight: 'bold' }}>{totalPercentual}</td></tr>
-                <tr>
-                  <td style={{ ...HEAD, padding: 0 }}>
-                    <table style={{ ...T, tableLayout: 'fixed' }}>
-                      <tbody>
-                        <tr>
-                          <td style={{ ...HEAD, width: '50%' }}>% do Excedente</td>
-                          <td style={{ ...HEAD, width: '50%' }}>Conta Contrato</td>
-                        </tr>
-                        {beneficiarias.map((b, i) => (
-                          <tr key={i}>
-                            <td style={CELL}>{b.percentual ?? ''}</td>
-                            <td style={CELL}>{b.conta_contrato}</td>
-                          </tr>
-                        ))}
-                        {emptyRows.map((_, i) => (
-                          <tr key={`empty-${i}`}>
-                            <td style={CELL}>&nbsp;</td>
-                            <td style={CELL}>&nbsp;</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          ) : isOrdem ? (
-            <table style={{ ...T, width: '520px', tableLayout: 'fixed' }}>
-              <tbody>
-                <tr>
-                  <td style={{ ...HEAD, width: '150px' }}>Conta Contrato</td>
-                  <td style={{ ...HEAD, width: '200px' }}>Classe de Consumo</td>
-                  <td style={{ ...HEAD, width: '170px' }}>Endereço</td>
-                </tr>
-                {ordenadas.map((b, i) => (
-                  <tr key={i}>
-                    <td style={CELL}>{b.conta_contrato}</td>
-                    <td style={CELL}>&nbsp;</td>
-                    <td style={CELL}>&nbsp;</td>
+          {/* ===== TABELA DE RATEIO ===== */}
+          <div style={{ paddingLeft: '65px', paddingTop: '34px' }}>
+            {isOrdem ? (
+              <table style={{ ...T, width: '520px', tableLayout: 'fixed' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ ...HEAD, width: '150px' }}>Conta Contrato</td>
+                    <td style={{ ...HEAD, width: '200px' }}>Classe de Consumo</td>
+                    <td style={{ ...HEAD, width: '170px' }}>Endereço</td>
                   </tr>
-                ))}
-                {emptyRows.map((_, i) => (
-                  <tr key={`empty-${i}`}>
-                    <td style={CELL}>&nbsp;</td>
-                    <td style={CELL}>&nbsp;</td>
-                    <td style={CELL}>&nbsp;</td>
+                  {ordenadas.map((b, i) => (
+                    <tr key={i}>
+                      <td style={CELL}>{b.conta_contrato}</td>
+                      <td style={CELL}>&nbsp;</td>
+                      <td style={CELL}>&nbsp;</td>
+                    </tr>
+                  ))}
+                  {emptyRows.map((_, i) => (
+                    <tr key={`empty-${i}`}>
+                      <td style={CELL}>&nbsp;</td>
+                      <td style={CELL}>&nbsp;</td>
+                      <td style={CELL}>&nbsp;</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table style={{ ...T, width: '290px', tableLayout: 'fixed' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ ...HEAD, width: '50%' }}>% Total</td>
+                    <td style={{ border: 'none', width: '50%', height: ROW_H, boxSizing: 'border-box' }}></td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p style={{ fontSize: '11px', color: '#FF6B00', fontStyle: 'italic' }}>
-              Selecione a Forma de Alocação dos Créditos em "Conferir Informações do Projeto" para preencher esta lista.
-            </p>
-          )}
+                  <tr>
+                    <td style={{ ...(totalPercentual === 100 ? GREEN : { ...CELL, backgroundColor: '#FEF3C7', fontWeight: 'bold' }), width: '50%' }}>{totalPercentual}</td>
+                    <td style={{ border: 'none', width: '50%', height: ROW_H, boxSizing: 'border-box' }}></td>
+                  </tr>
+                  <tr>
+                    <td style={{ ...HEAD, width: '50%' }}>% do Excedente</td>
+                    <td style={{ ...HEAD, width: '50%' }}>Conta Contrato</td>
+                  </tr>
+                  {beneficiarias.map((b, i) => (
+                    <tr key={i}>
+                      <td style={CELL}>{b.percentual ?? ''}</td>
+                      <td style={CELL}>{b.conta_contrato}</td>
+                    </tr>
+                  ))}
+                  {emptyRows.map((_, i) => (
+                    <tr key={`empty-${i}`}>
+                      <td style={CELL}>&nbsp;</td>
+                      <td style={CELL}>&nbsp;</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
 

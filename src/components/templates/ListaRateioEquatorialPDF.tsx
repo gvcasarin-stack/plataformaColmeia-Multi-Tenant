@@ -35,27 +35,27 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row' },
   lbl: {
     backgroundColor: '#FFFFFF', color: '#000000', fontFamily: 'Helvetica-Bold', fontSize: 9,
-    paddingVertical: 4, paddingHorizontal: 8,
+    paddingVertical: 2, paddingHorizontal: 8,
     borderTopWidth: B, borderRightWidth: B, borderBottomWidth: B, borderColor: BC,
   },
   lblFill: {
     backgroundColor: '#D9D9D9', color: '#000000', fontFamily: 'Helvetica-Bold', fontSize: 9,
-    paddingVertical: 4, paddingHorizontal: 8,
+    paddingVertical: 2, paddingHorizontal: 8,
     borderTopWidth: B, borderRightWidth: B, borderBottomWidth: B, borderColor: BC,
   },
   val: {
     backgroundColor: '#FFFFFF', fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center',
-    paddingVertical: 4, paddingHorizontal: 8,
+    paddingVertical: 2, paddingHorizontal: 8,
     borderTopWidth: B, borderRightWidth: B, borderBottomWidth: B, borderColor: BC,
   },
   head: {
     backgroundColor: '#FFFFFF', fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center',
-    paddingVertical: 4, paddingHorizontal: 8,
+    paddingVertical: 4, paddingHorizontal: 8, height: 20,
     borderTopWidth: B, borderRightWidth: B, borderBottomWidth: B, borderColor: BC,
   },
   cell: {
     backgroundColor: '#FFFFFF', fontSize: 9, textAlign: 'center',
-    paddingVertical: 4, paddingHorizontal: 8,
+    paddingVertical: 4, paddingHorizontal: 8, height: 20,
     borderTopWidth: B, borderRightWidth: B, borderBottomWidth: B, borderColor: BC,
   },
   green: { backgroundColor: '#4CAF50', color: '#FFFFFF', fontFamily: 'Helvetica-Bold' },
@@ -70,8 +70,10 @@ export function ListaRateioEquatorialPDF({ projectData }: ListaRateioEquatorialP
     : '/images/logo-equatorial.png';
 
   const formaAlocacao = String(projectData?.forma_alocacao_creditos || '');
-  const isPercentual = formaAlocacao === 'Percentual do Excedente';
+  // Enquanto a forma de alocação ainda não foi escolhida, gera o PDF já com a
+  // grade "Percentual do Excedente" vazia como padrão (mesma regra do preview).
   const isOrdem = formaAlocacao === 'Ordem de Prioridade';
+  const isPercentual = !isOrdem;
   const beneficiarias: { conta_contrato: string; percentual?: number; ordem?: number }[] = Array.isArray(projectData?.rateio_beneficiarias)
     ? projectData.rateio_beneficiarias
     : [];
@@ -80,7 +82,7 @@ export function ListaRateioEquatorialPDF({ projectData }: ListaRateioEquatorialP
     ? [...beneficiarias].sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
     : beneficiarias;
 
-  const totalRows = 18;
+  const totalRows = 30;
   const emptyRows = Array.from({ length: Math.max(0, totalRows - beneficiarias.length) });
 
   return (
@@ -120,9 +122,13 @@ export function ListaRateioEquatorialPDF({ projectData }: ListaRateioEquatorialP
         <View style={{ marginTop: 14, marginLeft: 65 }}>
           {isPercentual && (
             <View style={[s.tbl, { width: 220 }]}>
-              <View style={s.row}><Text style={[s.head, { width: '100%' }]}>% Total</Text></View>
               <View style={s.row}>
-                <Text style={[s.cell, totalPercentual === 100 ? s.green : s.amber, { width: '100%' }]}>{String(totalPercentual)}</Text>
+                <Text style={[s.head, { width: '50%' }]}>% Total</Text>
+                <Text style={{ width: '50%', height: 20 }}></Text>
+              </View>
+              <View style={s.row}>
+                <Text style={[s.cell, totalPercentual === 100 ? s.green : s.amber, { width: '50%' }]}>{String(totalPercentual)}</Text>
+                <Text style={{ width: '50%', height: 20 }}></Text>
               </View>
               <View style={s.row}>
                 <Text style={[s.head, { width: '50%' }]}>% do Excedente</Text>
