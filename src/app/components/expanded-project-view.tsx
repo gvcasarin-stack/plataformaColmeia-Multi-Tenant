@@ -70,6 +70,7 @@ import { EnergisaGDPreview } from '@/components/templates/EnergisaGDPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
 import { PlantaSituacaoPreview } from '@/components/templates/PlantaSituacaoPreview'
+import { ListaRateioEquatorialPreview } from '@/components/templates/ListaRateioEquatorialPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
 import { SetupProjetoModal, SETUP_DEFAULTS } from '@/components/modals/SetupProjetoModal'
 import type { SetupProjetoData } from '@/components/modals/SetupProjetoModal'
@@ -3264,7 +3265,36 @@ export const ExpandedProjectView = ({
                                 </CardContent>
                               </Card>
 
-                              {(['Autoconsumo Remoto', 'Geração Compartilhada'].includes(gerarProjetoFields.modalidade_compensacao)) && (
+                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && gerarProjetoFields.modalidade_compensacao === 'Autoconsumo Remoto' && (
+                                <Card
+                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'lista-rateio' ? null : 'lista-rateio')}
+                                  className={`border cursor-pointer group transition-all duration-200 ${
+                                    activeTemplatePreview === 'lista-rateio'
+                                      ? 'border-teal-500 dark:border-teal-400 shadow-md ring-2 ring-teal-200 dark:ring-teal-800'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`p-2 rounded-lg transition-colors ${
+                                        activeTemplatePreview === 'lista-rateio'
+                                          ? 'bg-teal-100 dark:bg-teal-900/50'
+                                          : 'bg-teal-50 dark:bg-teal-900/30 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50'
+                                      }`}>
+                                        <FileText className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">Lista de Rateio</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Lista de rateio para as unidades consumidoras participantes do sistema de compensação (Equatorial).
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
+                              {!selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && (['Autoconsumo Remoto', 'Geração Compartilhada'].includes(gerarProjetoFields.modalidade_compensacao)) && (
                                 <Card className="border border-gray-200 dark:border-gray-700 opacity-70 cursor-not-allowed">
                                   <CardContent className="p-5">
                                     <div className="flex items-start gap-3">
@@ -3285,6 +3315,20 @@ export const ExpandedProjectView = ({
 
                             </div>
                           </div>
+
+                          {activeTemplatePreview === 'lista-rateio' && selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-teal-500" />
+                                Pré-visualização — Lista de Rateio (Equatorial)
+                              </h3>
+                              <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[700px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <ListaRateioEquatorialPreview projectData={gerarProjetoFields} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {activeTemplatePreview === 'anexo-f' && selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && (
                             <div className="mt-6">

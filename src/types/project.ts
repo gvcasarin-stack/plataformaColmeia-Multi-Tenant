@@ -257,6 +257,8 @@ export interface Project {
   disjuntor_tensao_v?: string;
   tipo_fornecimento?: string;
   modalidade_compensacao?: string;
+  forma_alocacao_creditos?: string;
+  rateio_beneficiarias?: { conta_contrato: string; percentual?: number; ordem?: number }[];
   planta_situacao_url?: string;
   planta_situacao_config?: string;
 

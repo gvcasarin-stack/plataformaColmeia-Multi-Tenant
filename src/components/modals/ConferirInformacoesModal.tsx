@@ -204,8 +204,6 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'distribuidora', label: 'Distribuidora', icon: <Factory className="h-3.5 w-3.5" />, type: 'select', required: true, options: DISTRIBUIDORAS.map(d => ({ value: d, label: d })), group: 'Dados do Projeto' },
   { key: 'potencia', label: 'Potência (kWp)', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, suffix: 'kWp', group: 'Dados do Projeto' },
   { key: 'tipo_fornecimento', label: 'Classificação da Usina', icon: <Settings className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Microgeração Distribuída', label: 'Microgeração Distribuída' }, { value: 'Minigeração Distribuída', label: 'Minigeração Distribuída' }], group: 'Dados do Projeto' },
-  { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
-  { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
   { key: 'data_documento', label: 'Data do Documento', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
   { key: 'tipo_solicitacao', label: 'Tipo de Solicitação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, span2: true, options: [
     { value: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA', label: 'LIGAÇÃO NOVA DE UNIDADE CONSUMIDORA COM GERAÇÃO DISTRIBUÍDA' },
@@ -218,6 +216,8 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'possui_cargas_especiais', label: 'Possui Cargas Especiais?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
   { key: 'carga_declarada_kw', label: 'Carga Declarada da UC (kW)', icon: <Zap className="h-3.5 w-3.5" />, type: 'default_with_custom', required: true, suffix: 'kW', defaultValue: '8,00', group: 'Dados do Projeto' },
   { key: 'data_inicio_operacao', label: 'Data Início de Operação', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
+  { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
+  { key: 'havera_beneficiarias', label: 'Compensação de Créditos (Beneficiárias)', type: 'select', required: true, options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], group: 'Dados do Projeto' },
 
   // Responsável Técnico
   { key: 'responsavel_nome', label: 'Nome Completo', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Técnico' },
@@ -458,6 +458,153 @@ function computeStringsGlobals(invList: InversorItem[]): { modulos_total_strings
   }
   if (!hasData) return null;
   return { modulos_total_strings: String(total), modulos_strings_modulos: JSON.stringify(modules) };
+}
+
+// Formas de alocação dos créditos entre unidades beneficiárias (usado hoje
+// pela Equatorial em projetos "Autoconsumo Remoto"). Alimenta o documento
+// "Lista de Rateio".
+const FORMA_ALOCACAO_OPTIONS = [
+  { value: 'Percentual do Excedente', label: 'Percentual do Excedente' },
+  { value: 'Ordem de Prioridade', label: 'Ordem de Prioridade' },
+];
+
+interface RateioBeneficiaria {
+  conta_contrato: string;
+  percentual?: number;
+  ordem?: number;
+}
+
+interface BeneficiariasRateioSectionProps {
+  formaAlocacao?: string;
+  beneficiarias: RateioBeneficiaria[];
+  onChangeFormaAlocacao: (value: string) => void;
+  onChangeBeneficiarias: (list: RateioBeneficiaria[]) => void;
+}
+
+function BeneficiariasRateioSection({ formaAlocacao, beneficiarias, onChangeFormaAlocacao, onChangeBeneficiarias }: BeneficiariasRateioSectionProps) {
+  // Sempre pelo menos 2 linhas (Beneficiária 01 e 02), igual ao formulário da distribuidora
+  const list = beneficiarias.length >= 2 ? beneficiarias : [
+    ...beneficiarias,
+    ...Array.from({ length: 2 - beneficiarias.length }, () => ({ conta_contrato: '' })),
+  ];
+  const isPercentual = formaAlocacao === 'Percentual do Excedente';
+  const isOrdem = formaAlocacao === 'Ordem de Prioridade';
+
+  const updateRow = (index: number, patch: Partial<RateioBeneficiaria>) => {
+    const next = list.map((row, i) => (i === index ? { ...row, ...patch } : row));
+    onChangeBeneficiarias(next);
+  };
+
+  const addRow = () => {
+    onChangeBeneficiarias([...list, { conta_contrato: '' }]);
+  };
+
+  const removeRow = (index: number) => {
+    if (list.length <= 2) return; // mantém sempre no mínimo 2
+    onChangeBeneficiarias(list.filter((_, i) => i !== index));
+  };
+
+  const totalPercentual = list.reduce((sum, row) => sum + (Number(row.percentual) || 0), 0);
+
+  return (
+    <div className="mb-3 rounded-md border border-teal-200 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-900/10 p-3 space-y-3">
+      <div className="max-w-xs">
+        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+          Forma de alocação dos créditos <span className="text-red-500">*</span>
+        </Label>
+        <Select value={formaAlocacao || ''} onValueChange={onChangeFormaAlocacao}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            {FORMA_ALOCACAO_OPTIONS.map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {(isPercentual || isOrdem) && (
+        <div className="space-y-2">
+          {list.map((row, index) => (
+            <div key={index} className="flex items-end gap-2">
+              <div className="w-24 flex-shrink-0">
+                <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+                  {`Beneficiária ${String(index + 1).padStart(2, '0')}`}
+                </Label>
+              </div>
+              <div className="flex-1 min-w-0">
+                <Label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Conta Contrato</Label>
+                <Input
+                  value={row.conta_contrato}
+                  onChange={(e) => updateRow(index, { conta_contrato: e.target.value })}
+                  className="h-8 text-sm"
+                  placeholder="Nº da conta contrato"
+                />
+              </div>
+              {isPercentual && (
+                <div className="w-28 flex-shrink-0">
+                  <Label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Percentual (%)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={row.percentual ?? ''}
+                    onChange={(e) => updateRow(index, { percentual: e.target.value === '' ? undefined : Number(e.target.value) })}
+                    className="h-8 text-sm"
+                    placeholder="0"
+                  />
+                </div>
+              )}
+              {isOrdem && (
+                <div className="w-28 flex-shrink-0">
+                  <Label className="text-[11px] text-gray-500 dark:text-gray-400 mb-1 block">Ordem</Label>
+                  <Select
+                    value={row.ordem ? String(row.ordem) : ''}
+                    onValueChange={(val) => updateRow(index, { ordem: Number(val) })}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Ordem" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {list.map((_, i) => (
+                        <SelectItem key={i + 1} value={String(i + 1)}>{`${i + 1}º`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 flex-shrink-0 text-gray-400 hover:text-red-500 disabled:opacity-30"
+                disabled={list.length <= 2}
+                onClick={() => removeRow(index)}
+                title="Remover beneficiária"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+
+          <div className="flex items-center justify-between pt-1">
+            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={addRow}>
+              + Adicionar Beneficiária
+            </Button>
+            {isPercentual && (
+              <Badge
+                variant="secondary"
+                className={`text-xs ${totalPercentual === 100 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'}`}
+              >
+                Total: {totalPercentual}%
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ConferirInformacoesModal({ open, onClose, fields, onSave, projectId }: ConferirInformacoesModalProps) {
@@ -818,6 +965,9 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       }
       if (key === 'cpfl_tipo_poste_padrao' && typeof value === 'string') {
         updates.caixa_medicao_tipo = value;
+      }
+      if (key === 'modalidade_compensacao' && value === 'Autoconsumo Remoto') {
+        updates.havera_beneficiarias = true;
       }
       return { ...prev, ...updates };
     });
@@ -2105,6 +2255,14 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                   );
                 })}
               </div>
+              {groupName === 'Dados do Projeto' && localFields.havera_beneficiarias === true && (
+                <BeneficiariasRateioSection
+                  formaAlocacao={localFields.forma_alocacao_creditos}
+                  beneficiarias={localFields.rateio_beneficiarias || []}
+                  onChangeFormaAlocacao={(v) => handleFieldChange('forma_alocacao_creditos', v)}
+                  onChangeBeneficiarias={(list) => handleFieldChange('rateio_beneficiarias', list)}
+                />
+              )}
               </>)}
             </div>
             );
