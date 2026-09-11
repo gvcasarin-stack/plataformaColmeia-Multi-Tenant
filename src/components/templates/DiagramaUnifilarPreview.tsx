@@ -318,7 +318,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   // Entrada. Precisa de espaço vertical extra, somado ao YSHIFT abaixo.
   const hasRamalEntradaLegend = isEnergisa;
   const RAMAL_ENTRADA_GAP = 58;
-  const ramalEntradaY = padraoEntradaBottom + 22;
+  const ramalEntradaTapY = padraoEntradaBottom + 43;
   // Tudo que fica abaixo do Padrão de Entrada (Quadro de Distribuição em diante)
   // desce a mesma quantidade que o retângulo cresceu, pra sobrar espaço lá dentro
   // sem espremer o resto do diagrama. Vira um <g transform="translate(0,Y)"> mais
@@ -343,8 +343,12 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   // Ligação); com DPS, o lado esquerdo passa a ser ocupado pelo DPS, então ela
   // vai para o lado direito (acima do MEDIDOR), mais para baixo (a caixa cresceu
   // e sobrou espaço) e levemente à esquerda, para otimizar o espaço.
-  const placa2X = hasDpsEntrada ? topCX + 112 : topCX - 96;
-  const placa2Y = hasDpsEntrada ? 146 : 132;
+  // Energisa: placa de advertência um pouco mais para baixo e levemente para a
+  // esquerda (ajuste fino de posição).
+  const placa2XEnergisaShift = isEnergisa ? -10 : 0;
+  const placa2X = (hasDpsEntrada ? topCX + 112 : topCX - 96) + placa2XEnergisaShift;
+  const placa2YEnergisaShift = isEnergisa ? 10 : 0;
+  const placa2Y = (hasDpsEntrada ? 146 : 132) + placa2YEnergisaShift;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
   const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
@@ -491,14 +495,14 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           <Terra x={topBR - 18} y={padraoEntradaBottom} />
 
           {/* Legenda do Ramal de Entrada (Energisa) — no vão entre o Padrão de Entrada
-              e o Quadro de Distribuição, mesmo padrão visual da legenda do Ramal de
-              Ligação acima. */}
+              e o Quadro de Distribuição, do lado direito da linha principal, mesmo
+              padrão visual da derivação "Cabos CA" (linha tracejada + texto à direita). */}
           {hasRamalEntradaLegend && (
             <>
-              <text x={topCX - 96} y={ramalEntradaY}      fontSize="5.8" fontWeight="bold">Ramal de Entrada</text>
-              <text x={topCX - 96} y={ramalEntradaY + 9}  fontSize="5.8" fontWeight="bold">HEPR/XLPE 90°C</text>
-              <text x={topCX - 96} y={ramalEntradaY + 18} fontSize="5.8">{`${nFaseRL} #${secaoFaseEntrada}mm² (F)`}</text>
-              <text x={topCX - 96} y={ramalEntradaY + 27} fontSize="5.8">{`1 #${secaoNeutroEntrada}mm² (N)`}</text>
+              <line x1={topCX} y1={ramalEntradaTapY} x2={topCX + 12} y2={ramalEntradaTapY} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
+              <text x={topCX + 15} y={ramalEntradaTapY - 7} fontSize="5.5" fontWeight="bold">Ramal de Entrada - HEPR/XLPE 90°C</text>
+              <text x={topCX + 15} y={ramalEntradaTapY + 1} fontSize="5.5">{`${nFaseRL} #${secaoFaseEntrada}mm² (F)`}</text>
+              <text x={topCX + 15} y={ramalEntradaTapY + 9} fontSize="5.5">{`1 #${secaoNeutroEntrada}mm² (N)`}</text>
             </>
           )}
           </g>

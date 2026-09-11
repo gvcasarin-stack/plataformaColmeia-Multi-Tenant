@@ -303,7 +303,7 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   // Entrada. Precisa de espaco vertical extra, somado ao YSHIFT abaixo.
   const hasRamalEntradaLegend = isEnergisa;
   const RAMAL_ENTRADA_GAP = 58;
-  const ramalEntradaY = padraoEntradaBottom + 22;
+  const ramalEntradaTapY = padraoEntradaBottom + 43;
   // Tudo que fica abaixo do Padrao de Entrada (Quadro de Distribuicao em diante)
   // desce a mesma quantidade que o retangulo cresceu — com YSHIFT=0 (sem DPS e
   // sem legenda do Ramal de Entrada) o translate nao faz nada e o resto do
@@ -359,8 +359,12 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   // esquerdo do D1 (posição de sempre); com DPS, ao lado direito (acima do
   // MEDIDOR), mais para baixo (a caixa cresceu e sobrou espaço) e levemente à
   // esquerda, já que o lado esquerdo passa a ser do DPS.
-  const placa2X = hasDpsEntrada ? topCX + 112 : topCX - 96;
-  const placa2Y = hasDpsEntrada ? 146 : 132;
+  // Energisa: placa de advertencia um pouco mais para baixo e levemente para a
+  // esquerda (ajuste fino de posicao).
+  const placa2XEnergisaShift = isEnergisa ? -10 : 0;
+  const placa2X = (hasDpsEntrada ? topCX + 112 : topCX - 96) + placa2XEnergisaShift;
+  const placa2YEnergisaShift = isEnergisa ? 10 : 0;
+  const placa2Y = (hasDpsEntrada ? 146 : 132) + placa2YEnergisaShift;
   const placaImg2Left = PAGE_PADDING + (placa2X - VB_MINX) * SVG_SCALE;
   const placaImg2Top = PAGE_PADDING + (placa2Y - VB_MINY) * SVG_SCALE;
 
@@ -446,14 +450,14 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <PDFTerra x={topBR - 18} y={padraoEntradaBottom} />
 
           {/* Legenda do Ramal de Entrada (Energisa) — no vao entre o Padrao de Entrada
-              e o Quadro de Distribuicao, mesmo padrao visual da legenda do Ramal de
-              Ligacao acima. */}
+              e o Quadro de Distribuicao, do lado direito da linha principal, mesmo
+              padrao visual da derivacao "Cabos CA" (linha tracejada + texto a direita). */}
           {hasRamalEntradaLegend && (
             <>
-              <Text x={topCX - 96} y={ramalEntradaY}      fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">Ramal de Entrada</Text>
-              <Text x={topCX - 96} y={ramalEntradaY + 9}  fontSize={5.8} fontFamily="Helvetica-Bold" fill="#000">HEPR/XLPE 90°C</Text>
-              <Text x={topCX - 96} y={ramalEntradaY + 18} fontSize={5.8} fill="#000">{`${nFaseRL} #${secaoFaseEntrada}mm² (F)`}</Text>
-              <Text x={topCX - 96} y={ramalEntradaY + 27} fontSize={5.8} fill="#000">{`1 #${secaoNeutroEntrada}mm² (N)`}</Text>
+              <Line x1={topCX} y1={ramalEntradaTapY} x2={topCX + 12} y2={ramalEntradaTapY} stroke="#000" strokeWidth={0.6} strokeDasharray="3,2" />
+              <Text x={topCX + 15} y={ramalEntradaTapY - 7} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Ramal de Entrada - HEPR/XLPE 90°C</Text>
+              <Text x={topCX + 15} y={ramalEntradaTapY + 1} fontSize={5.5} fill="#000">{`${nFaseRL} #${secaoFaseEntrada}mm² (F)`}</Text>
+              <Text x={topCX + 15} y={ramalEntradaTapY + 9} fontSize={5.5} fill="#000">{`1 #${secaoNeutroEntrada}mm² (N)`}</Text>
             </>
           )}
           </G>
