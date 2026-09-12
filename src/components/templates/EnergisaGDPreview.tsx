@@ -178,7 +178,8 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
   };
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '800px', margin: '0 auto', padding: '8px' }}>
+    <>
+    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '900px', margin: '0 auto', padding: '8px' }}>
 
       {/* ══════════════════ Folha 1: Formulário de Orçamento de Conexão ══════════════════ */}
       <SheetLabel n={1} />
@@ -404,6 +405,12 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           ))}
         </tbody>
       </table>
+    </div>
+
+    {/* Folhas 4-6: no artifact de referência essas folhas usam um container mais
+        largo (1300px) que as folhas 1-3 (900px), para acomodar a tabela de 16
+        colunas da folha 4 e o diagrama/legenda da folha 6 sem ficarem espremidos. */}
+    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '1300px', margin: '0 auto', padding: '8px' }}>
 
       {/* ══════════════════ Folha 4: Memorial Descritivo UFV-Solar ══════════════════ */}
       <SheetLabel n={4} />
@@ -813,5 +820,6 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
         </Button>
       </div>
     </div>
+    </>
   );
 }

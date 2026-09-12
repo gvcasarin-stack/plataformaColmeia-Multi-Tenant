@@ -345,7 +345,7 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
   // e sobrou espaço) e levemente à esquerda, para otimizar o espaço.
   // Energisa: placa de advertência um pouco mais para baixo e levemente para a
   // esquerda (ajuste fino de posição).
-  const placa2XEnergisaShift = isEnergisa ? -10 : 0;
+  const placa2XEnergisaShift = isEnergisa ? -20 : 0;
   const placa2X = (hasDpsEntrada ? topCX + 112 : topCX - 96) + placa2XEnergisaShift;
   const placa2YEnergisaShift = isEnergisa ? 10 : 0;
   const placa2Y = (hasDpsEntrada ? 146 : 132) + placa2YEnergisaShift;
