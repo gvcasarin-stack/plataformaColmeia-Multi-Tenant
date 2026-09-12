@@ -46,12 +46,29 @@ const VAL: React.CSSProperties = {
 const VALC: React.CSSProperties = { ...VAL, textAlign: 'center' };
 
 const HDR_PLAIN: React.CSSProperties = { ...VAL, textAlign: 'center', fontWeight: 800, color: '#111' };
+const HDR_ORANGE: React.CSSProperties = { ...HDR_PLAIN, color: '#E07B18' };
 const BAR2: React.CSSProperties = { ...LBL, backgroundColor: '#f2b48a', color: '#1a1a1a', textAlign: 'center' };
 const RED_CELL: React.CSSProperties = { ...VAL, backgroundColor: '#c0392b', color: '#fff', fontWeight: 800, textAlign: 'center' };
 const HL_YELLOW: React.CSSProperties = { backgroundColor: '#F7F0DA' };
 const WARN: React.CSSProperties = { color: '#e00000' };
 const CORAL: React.CSSProperties = { backgroundColor: '#f2b48a' };
 const PEACH: React.CSSProperties = { backgroundColor: '#f6dcc3' };
+const V6_TAG: React.CSSProperties = { fontSize: '7.5pt', fontWeight: 700, padding: '2px 0 0', textAlign: 'left', border: 'none' };
+
+const MESES_PT = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+// data_documento vem em DD/MM/AAAA (ou por extenso) — usado só para derivar mês/ano
+// da "Previsão de ligação" da folha 4, mesmo padrão de parsing do Diagrama Unifilar.
+function parseMesAno(raw: string): { mes: string; ano: string } {
+  const str = String(raw || '').trim();
+  let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return { mes: MESES_PT[parseInt(m[2], 10) - 1] || '', ano: m[3] };
+  m = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (m) {
+    const idx = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'].indexOf(m[2]);
+    if (idx !== -1) return { mes: MESES_PT[idx], ano: m[3] };
+  }
+  return { mes: '', ano: '' };
+}
 
 function SheetLabel({ n }: { n: number }) {
   return (
@@ -139,6 +156,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
   const get = (key: string) => projectData[key] || '';
   const isPessoaJuridica = get('cpf_cnpj_cliente_final').replace(/\D/g, '').length > 11;
   const checklistSecoes = buildChecklistSecoes(isPessoaJuridica);
+  const previsaoLigacao = parseMesAno(get('data_documento'));
 
   const modulosList = getAllModulos(projectData);
   const inversoresList = getAllInversores(projectData);
@@ -192,23 +210,23 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
         <tbody>
           <tr><td colSpan={12} style={BAR}>1. IDENTIFICAÇÃO DA UNIDADE CONSUMIDORA - UC</td></tr>
           <tr>
-            <td colSpan={3} style={LBL}>Código do cliente (UC):</td>
-            <td colSpan={5} style={VALC}>{get('conta_contrato')}</td>
+            <td colSpan={2} style={LBL}>Código do cliente (UC):</td>
+            <td colSpan={6} style={VALC}>{get('conta_contrato')}</td>
             <td colSpan={1} style={LBL}>Classe:</td>
             <td colSpan={3} style={VALC}>{get('classe_uc')}</td>
           </tr>
           <tr>
-            <td colSpan={3} style={LBL}>Titular da UC:</td>
-            <td colSpan={9} style={VALC}>{get('nomeClienteFinal').toUpperCase()}</td>
+            <td colSpan={2} style={LBL}>Titular da UC:</td>
+            <td colSpan={10} style={VALC}>{get('nomeClienteFinal').toUpperCase()}</td>
           </tr>
           <tr>
-            <td colSpan={3} style={LBL}>Logradouro:</td>
-            <td colSpan={9} style={VALC}>{get('endereco_local').toUpperCase()}</td>
+            <td colSpan={2} style={LBL}>Logradouro:</td>
+            <td colSpan={10} style={VALC}>{get('endereco_local').toUpperCase()}</td>
           </tr>
           <tr>
-            <td colSpan={1} style={LBL}>N°:</td>
+            <td colSpan={2} style={LBL}>N°:</td>
             <td colSpan={1} style={VALC}>{get('numero_endereco_cliente')}</td>
-            <td colSpan={2} style={LBL}>Bairro:</td>
+            <td colSpan={1} style={LBL}>Bairro:</td>
             <td colSpan={2} style={VALC}>{get('bairro_cliente')}</td>
             <td colSpan={1} style={LBL}>UF:</td>
             <td colSpan={1} style={VALC}>{get('client_state')}</td>
@@ -228,30 +246,32 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             <td colSpan={4} style={VALC}>{get('cliente_celular')}</td>
           </tr>
           <tr>
-            <td colSpan={3} style={LBL}>CNPJ/CPF:</td>
-            <td colSpan={9} style={VALC}>{get('cpf_cnpj_cliente_final')}</td>
+            <td colSpan={2} style={LBL}>CNPJ/CPF:</td>
+            <td colSpan={10} style={VALC}>{get('cpf_cnpj_cliente_final')}</td>
           </tr>
 
           <tr><td colSpan={12} style={BAR}>2. DADOS DA UNIDADE CONSUMIDORA NO ATO DA VISTORIA - UC</td></tr>
           <tr>
-            <td colSpan={4} style={LBL}>Potência Instalada (kW):</td>
-            <td colSpan={2} style={VALC}>{potenciaInversoresKw ? potenciaInversoresKw.toFixed(0) : ''}</td>
+            <td colSpan={3} style={LBL}>Potência Instalada (kW):</td>
+            <td colSpan={3} style={VALC}>{potenciaInversoresKw ? potenciaInversoresKw.toFixed(0) : ''}</td>
             <td colSpan={4} style={LBL}>Tensão de Atendimento (V):</td>
             <td colSpan={2} style={VALC}>{get('tensao_atendimento')}</td>
           </tr>
           <tr>
             <td colSpan={3} style={LBL}>Tipo de Conexão:</td>
-            <td colSpan={9} style={VALC}>{get('tipo_conexao').toUpperCase()}</td>
+            <td colSpan={3} style={VALC}>{get('tipo_conexao').toUpperCase()}</td>
+            <td colSpan={6} style={{ backgroundColor: '#c9c9c9', border: '1px solid #aaa' }}>&nbsp;</td>
           </tr>
           <tr>
             <td colSpan={3} style={LBL}>Tipo de Ramal:</td>
-            <td colSpan={9} style={VALC}>{get('tipo_ramal').toUpperCase()}</td>
+            <td colSpan={3} style={VALC}>{get('tipo_ramal').toUpperCase()}</td>
+            <td colSpan={6} style={{ backgroundColor: '#c9c9c9', border: '1px solid #aaa' }}>&nbsp;</td>
           </tr>
 
           <tr><td colSpan={12} style={BAR}>3. DADOS DA GERAÇÃO</td></tr>
           <tr>
-            <td colSpan={5} style={LBL}>Potência Instalada de Geração (kWp):</td>
-            <td colSpan={7} style={VALC}>{potenciaGeracaoKwp ? potenciaGeracaoKwp.toFixed(2).replace('.', ',') : ''}</td>
+            <td colSpan={3} style={LBL}>Potência Instalada de Geração (kWp):</td>
+            <td colSpan={9} style={VALC}>{potenciaGeracaoKwp ? potenciaGeracaoKwp.toFixed(2).replace('.', ',') : ''}</td>
           </tr>
           <tr>
             <td colSpan={3} style={LBL}>Tipo da Fonte de Geração:</td>
@@ -271,6 +291,12 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             <td colSpan={2} style={LBL}>E-mail:</td>
             <td colSpan={5} style={VAL}>geracaodistribuida.eto@energisa.com.br</td>
           </tr>
+          <tr>
+            <td colSpan={3} style={LBL}>Responsável/Área:</td>
+            <td colSpan={2} style={VALC}>DCMD/COPC</td>
+            <td colSpan={2} style={{ ...LBL, textAlign: 'center', backgroundColor: '#d9d9d9' }}>LINK GISA</td>
+            <td colSpan={5} style={VALC}>https://l.ead.me/bbThiX</td>
+          </tr>
 
           <tr><td colSpan={12} style={BAR}>6. DADOS DO RESPONSÁVEL TÉCNICO:</td></tr>
           <tr>
@@ -283,6 +309,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             <td colSpan={2} style={LBL}>E-mail:</td>
             <td colSpan={4} style={VAL}>{get('responsavel_legal_email')}</td>
           </tr>
+          <tr><td colSpan={12} style={V6_TAG}>V6</td></tr>
         </tbody>
       </table>
 
@@ -377,6 +404,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             <td style={{ ...LBL, textAlign: 'center' }}>TOTAL</td>
             <td style={VALC}></td>
           </tr>
+          <tr><td colSpan={6} style={V6_TAG}>V6</td></tr>
         </tbody>
       </table>
 
@@ -524,18 +552,58 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
         </tbody>
       </table>
 
+      <table style={{ ...T, marginTop: '0', tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '10.09%' }} /><col style={{ width: '10.09%' }} /><col style={{ width: '12%' }} />
+          <col style={{ width: '5.32%' }} /><col style={{ width: '18.75%' }} /><col style={{ width: '12.75%' }} />
+          <col style={{ width: '12.25%' }} /><col style={{ width: '6%' }} /><col style={{ width: '6%' }} /><col style={{ width: '6.75%' }} />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td style={HDR_ORANGE} rowSpan={2}>Tipo Tensão:</td>
+            <td style={HDR_ORANGE} rowSpan={2}>Cabos por fase:</td>
+            <td style={HDR_ORANGE} rowSpan={2}>Potência De Geração (kW):</td>
+            <td style={HDR_ORANGE} rowSpan={2}>Bitola Fase:</td>
+            <td style={HDR_ORANGE} rowSpan={2}>Bitola Neutro:</td>
+            <td style={HDR_ORANGE} rowSpan={2}>Bitola Terra:</td>
+            <td style={HDR_ORANGE} rowSpan={2}>Sistema GD já instalado?</td>
+            <td style={{ ...HDR_ORANGE, textAlign: 'center' }} colSpan={2}>Previsão de ligação (Mês)</td>
+            <td style={HDR_ORANGE} rowSpan={2}>Zona:</td>
+          </tr>
+          <tr>
+            <td style={HDR_ORANGE}>Mês:</td>
+            <td style={HDR_ORANGE}>Ano:</td>
+          </tr>
+          <tr>
+            <td style={{ ...VALC, fontWeight: 'bold' }}>BAIXA</td>
+            <td style={VALC}>{get('cabos_por_fase') || '1'}</td>
+            <td style={{ ...VALC, fontWeight: 'bold' }}>{fmtBR(getTotalInversorKw(projectData))}</td>
+            <td style={VALC}>{get('secao_fase_mm2')}</td>
+            <td style={VALC}>{get('secao_neutro_mm2')}</td>
+            <td style={VALC}>{get('secao_aterramento_mm2')}</td>
+            <td style={{ ...VALC, fontWeight: 'bold' }}>NÃO</td>
+            <td style={VALC}>{previsaoLigacao.mes}</td>
+            <td style={VALC}>{previsaoLigacao.ano}</td>
+            <td style={{ ...VALC, fontWeight: 'bold' }}>URBANO</td>
+          </tr>
+        </tbody>
+      </table>
+
       <table style={{ ...T, marginTop: '0' }}>
         <tbody>
           <tr><td style={{ ...LBL, textAlign: 'center', verticalAlign: 'top', width: '10.09%' }}>Observações:</td><td style={{ ...VAL, height: '58px', width: '89.91%' }}>&nbsp;</td></tr>
         </tbody>
       </table>
+      <div style={V6_TAG}>V6</div>
 
-      <div style={{ fontWeight: 800, fontSize: '11pt', textAlign: 'center', padding: '6px 0 3px' }}>2. CARACTERÍSTICAS DA GERAÇÃO DA UNIDADE CONSUMIDORA</div>
+      <table style={{ ...T, marginTop: '0' }}>
+        <tbody><tr><td style={BAR}>2. CARACTERÍSTICAS DA GERAÇÃO DA UNIDADE CONSUMIDORA</td></tr></tbody>
+      </table>
       <div style={{ fontWeight: 800, fontSize: '9pt', textAlign: 'center', color: '#E07B18', padding: '4px 0' }}>Estrutura dos painéis utilizados na usina:</div>
-      <table style={T}>
+      <table style={{ ...T, tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '15%' }} />
-          <col style={{ width: '19.5%' }} /><col style={{ width: '13%' }} /><col style={{ width: '14%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} />
+          <col style={{ width: '6%' }} /><col style={{ width: '8%' }} /><col style={{ width: '22%' }} />
+          <col style={{ width: '26%' }} /><col style={{ width: '14%' }} /><col style={{ width: '12%' }} /><col style={{ width: '12%' }} />
         </colgroup>
         <tbody>
           <tr>
@@ -569,10 +637,10 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
       </table>
 
       <div style={{ fontWeight: 800, fontSize: '9pt', textAlign: 'center', color: '#E07B18', padding: '10px 0 4px' }}>Estrutura do(s) inversor(es) utilizado(s) na usina:</div>
-      <table style={T}>
+      <table style={{ ...T, tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '15%' }} />
-          <col style={{ width: '19.5%' }} /><col style={{ width: '13%' }} /><col style={{ width: '14%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} />
+          <col style={{ width: '6%' }} /><col style={{ width: '8%' }} /><col style={{ width: '22%' }} />
+          <col style={{ width: '26%' }} /><col style={{ width: '13%' }} /><col style={{ width: '13%' }} /><col style={{ width: '12%' }} />
         </colgroup>
         <tbody>
           <tr>
@@ -603,27 +671,39 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
         </tbody>
       </table>
 
-      <table style={{ ...T, marginTop: '14px' }}>
+      <table style={{ ...T, marginTop: '14px', tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '50%' }} /><col style={{ width: '12%' }} /><col style={{ width: '14%' }} /><col style={{ width: '24%' }} />
+        </colgroup>
         <tbody>
           <tr>
-            <td style={{ ...BAR }}>NECESSITA DE AUTOTRAFO OU DE TRANSFORMADOR DE ACOPLAMENTO?</td>
-            <td style={{ ...RED_CELL, width: '10%' }}>{get('necessita_autotrafo') || ' '}</td>
+            <td colSpan={2} style={{ ...BAR }}>NECESSITA DE AUTOTRAFO OU DE TRANSFORMADOR DE ACOPLAMENTO?</td>
+            <td style={{ ...RED_CELL }}>{get('necessita_autotrafo') || ' '}</td>
+            <td style={{ border: 'none' }}></td>
           </tr>
           <tr>
+            <td style={{ border: 'none' }}></td>
             <td style={{ ...LBL, textAlign: 'right' }}>POTÊNCIA:</td>
             <td style={VAL}>{get('potencia_autotrafo')}</td>
+            <td style={{ border: 'none' }}></td>
           </tr>
         </tbody>
       </table>
-      <table style={{ ...T, marginTop: '10px' }}>
+      <table style={{ ...T, marginTop: '10px', tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '50%' }} /><col style={{ width: '12%' }} /><col style={{ width: '14%' }} /><col style={{ width: '24%' }} />
+        </colgroup>
         <tbody>
           <tr>
-            <td style={{ ...BAR }}>ATENDIMENTO COM TRAFO EXCLUSIVO (GRUPO &quot;A&quot; E CONSUMIDORES RURAIS)?</td>
-            <td style={{ ...RED_CELL, width: '10%' }}>{get('atendimento_trafo_exclusivo') || ' '}</td>
+            <td colSpan={2} style={{ ...BAR }}>ATENDIMENTO COM TRAFO EXCLUSIVO (GRUPO &quot;A&quot; E CONSUMIDORES RURAIS)?</td>
+            <td style={{ ...RED_CELL }}>{get('atendimento_trafo_exclusivo') || ' '}</td>
+            <td style={{ border: 'none' }}></td>
           </tr>
           <tr>
+            <td style={{ border: 'none' }}></td>
             <td style={{ ...LBL, textAlign: 'right' }}>POTÊNCIA:</td>
             <td style={VAL}>{get('potencia_trafo_exclusivo')}</td>
+            <td style={{ border: 'none' }}></td>
           </tr>
         </tbody>
       </table>
