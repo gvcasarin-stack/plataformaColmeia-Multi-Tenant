@@ -203,7 +203,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
       <SheetLabel n={1} />
       <DocHeader title="FORMULÁRIO DE ORÇAMENTO DE CONEXÃO" subtitle="GERAÇÃO DISTRIBUÍDA" />
 
-      <table style={T}>
+      <table style={{ ...T, tableLayout: 'fixed' }}>
         <colgroup>
           {Array.from({ length: 12 }).map((_, i) => <col key={i} style={{ width: `${100 / 12}%` }} />)}
         </colgroup>
@@ -319,7 +319,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
       <SheetLabel n={2} />
       <DocHeader title="FORMULÁRIO DE RELAÇÃO DE CARGA" subtitle="E CÁLCULO DE DEMANDA" />
 
-      <table style={T}>
+      <table style={{ ...T, tableLayout: 'fixed' }}>
         <colgroup>
           {Array.from({ length: 12 }).map((_, i) => <col key={i} style={{ width: `${100 / 12}%` }} />)}
         </colgroup>
@@ -448,7 +448,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
         <div style={{ width: '88px' }} />
       </div>
 
-      <table style={T}>
+      <table style={{ ...T, tableLayout: 'fixed' }}>
         <colgroup>
           {Array.from({ length: 16 }).map((_, i) => <col key={i} style={{ width: '6.25%' }} />)}
         </colgroup>
@@ -596,6 +596,10 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
       </table>
       <div style={V6_TAG}>V6</div>
 
+      {/* Moldura fina (borda esquerda/direita) ao redor de toda a seção 2, igual ao
+          "section2-frame" do artifact — só a borda externa, sem remover as bordas
+          próprias de cada tabela interna. */}
+      <div style={{ borderLeft: '1px solid #000', borderRight: '1px solid #000' }}>
       <table style={{ ...T, marginTop: '0' }}>
         <tbody><tr><td style={BAR}>2. CARACTERÍSTICAS DA GERAÇÃO DA UNIDADE CONSUMIDORA</td></tr></tbody>
       </table>
@@ -707,6 +711,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           </tr>
         </tbody>
       </table>
+      </div>
 
       <SignatureBlock label="Assinatura do Projetista" />
 
