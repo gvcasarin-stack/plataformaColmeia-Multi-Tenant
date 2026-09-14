@@ -545,9 +545,9 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             <td colSpan={3} style={{ ...LBL, textAlign: 'center' }}>Y (LAT)</td>
           </tr>
           <tr>
-            <td colSpan={3} style={VALC}>{get('coord_utm_fuso')}</td>
-            <td colSpan={4} style={VALC}>{get('coord_utm_x')}</td>
-            <td colSpan={3} style={VALC}>{get('coord_utm_y')}</td>
+            <td colSpan={3} style={VALC}>{get('coord_utm_fuso') || ' '}</td>
+            <td colSpan={4} style={VALC}>{get('coord_utm_x') || ' '}</td>
+            <td colSpan={3} style={VALC}>{get('coord_utm_y') || ' '}</td>
           </tr>
         </tbody>
       </table>
