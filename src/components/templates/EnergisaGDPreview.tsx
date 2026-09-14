@@ -622,18 +622,18 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             const areaLinha = m ? (parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0) * qty : 0;
             return (
               <tr key={i}>
-                <td style={VALC}>{m ? i + 1 : ''}</td>
-                <td style={VALC}>{m ? qty : ''}</td>
-                <td style={VALC}>{m?.fabricante || ''}</td>
-                <td style={VALC}>{m?.modelo || ''}</td>
-                <td style={VALC}>{m ? fmtBR(areaLinha) : ''}</td>
-                <td style={VALC}>{m ? fmtBR(unitKw) : ''}</td>
-                <td style={VALC}>{m ? fmtBR(unitKw * qty) : ''}</td>
+                <td style={VALC}>{m ? i + 1 : ' '}</td>
+                <td style={VALC}>{m ? qty : ' '}</td>
+                <td style={VALC}>{m?.fabricante || ' '}</td>
+                <td style={VALC}>{m?.modelo || ' '}</td>
+                <td style={VALC}>{m ? fmtBR(areaLinha) : ' '}</td>
+                <td style={VALC}>{m ? fmtBR(unitKw) : ' '}</td>
+                <td style={VALC}>{m ? fmtBR(unitKw * qty) : ' '}</td>
               </tr>
             );
           })}
           <tr>
-            <td colSpan={4} style={VAL}></td>
+            <td colSpan={4} style={VAL}>&nbsp;</td>
             <td style={{ ...LBL, textAlign: 'center' }}>Área Total: {fmtBR(areaTotalArranjos)}m²</td>
             <td colSpan={2} style={{ ...LBL, textAlign: 'center' }}>Potência Total (kW): {fmtBR(getTotalKwpFromModulos(projectData))}</td>
           </tr>
@@ -658,18 +658,18 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             const qty = inv ? parseFloat(String(inv.quantidade || '0').replace(',', '.')) || 0 : 0;
             return (
               <tr key={i}>
-                <td style={VALC}>{inv ? i + 1 : ''}</td>
-                <td style={VALC}>{inv ? qty : ''}</td>
-                <td style={VALC}>{inv?.fabricante || ''}</td>
-                <td style={VALC}>{inv?.modelo || ''}</td>
-                <td style={VALC}>{inv ? fmtBR(unitKw) : ''}</td>
-                <td style={VALC}>{inv ? fmtBR(unitKw * qty) : ''}</td>
-                <td style={VALC}>{inv?.tensao || ''}</td>
+                <td style={VALC}>{inv ? i + 1 : ' '}</td>
+                <td style={VALC}>{inv ? qty : ' '}</td>
+                <td style={VALC}>{inv?.fabricante || ' '}</td>
+                <td style={VALC}>{inv?.modelo || ' '}</td>
+                <td style={VALC}>{inv ? fmtBR(unitKw) : ' '}</td>
+                <td style={VALC}>{inv ? fmtBR(unitKw * qty) : ' '}</td>
+                <td style={VALC}>{inv?.tensao || ' '}</td>
               </tr>
             );
           })}
           <tr>
-            <td colSpan={5} style={VAL}></td>
+            <td colSpan={5} style={VAL}>&nbsp;</td>
             <td colSpan={2} style={{ ...LBL, textAlign: 'center' }}>Potência Total (kW): {fmtBR(getTotalInversorKw(projectData))}</td>
           </tr>
         </tbody>
