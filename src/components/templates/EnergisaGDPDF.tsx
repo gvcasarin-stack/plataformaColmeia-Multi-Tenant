@@ -10,7 +10,7 @@ interface EnergisaGDPDFProps {
 }
 
 const B = 0.75;
-const BC = '#888888';
+const BC = '#aaaaaa';
 const COL = 100 / 12;
 
 const s = StyleSheet.create({
@@ -136,6 +136,18 @@ const s = StyleSheet.create({
   sectionTitle: { textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 11, marginTop: 6, marginBottom: 3 },
   paragraph: { fontSize: 8, lineHeight: 1.4, textAlign: 'justify', marginBottom: 4 },
   h3: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', textDecoration: 'underline', marginTop: 5, marginBottom: 2 },
+  hdrOrange: {
+    backgroundColor: '#FFFFFF',
+    color: '#E07B18',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 6.5,
+    padding: 3,
+    textAlign: 'center',
+    borderRightWidth: B,
+    borderBottomWidth: B,
+    borderColor: BC,
+  },
+  v6Tag: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', marginTop: 2 },
 });
 
 // largura em % de N colunas de 16, para a tabela da Folha 4 (grid 16 colunas)
@@ -146,6 +158,21 @@ function w16(cols: number) {
 // largura em % de N colunas de 12, para colSpan de tabelas 12-col
 function w(cols: number) {
   return { width: `${COL * cols}%` as const };
+}
+
+const MESES_PT = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+// data_documento vem em DD/MM/AAAA (ou por extenso) — usado só para derivar mês/ano
+// da "Previsão de ligação" da folha 4, mesmo padrão de parsing da pré-visualização.
+function parseMesAno(raw: string): { mes: string; ano: string } {
+  const str = String(raw || '').trim();
+  let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return { mes: MESES_PT[parseInt(m[2], 10) - 1] || '', ano: m[3] };
+  m = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (m) {
+    const idx = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'].indexOf(m[2]);
+    if (idx !== -1) return { mes: MESES_PT[idx], ano: m[3] };
+  }
+  return { mes: '', ano: '' };
 }
 
 function buildChecklistSecoes(isPessoaJuridica: boolean): { titulo: string; itens: [string, string][] }[] {
@@ -213,6 +240,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
   const potenciaInversoresKw = getTotalInversorKw(projectData);
   const isPessoaJuridica = get('cpf_cnpj_cliente_final').replace(/\D/g, '').length > 11;
   const checklistSecoes = buildChecklistSecoes(isPessoaJuridica);
+  const previsaoLigacao = parseMesAno(get('data_documento'));
 
   const modulosList = getAllModulos(projectData);
   const inversoresList = getAllInversores(projectData);
@@ -234,23 +262,23 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.bar, w(12)]}>1. IDENTIFICAÇÃO DA UNIDADE CONSUMIDORA - UC</Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w(3)]}>Código do cliente (UC):</Text>
-            <Text style={[s.valc, w(5)]}>{get('conta_contrato')}</Text>
+            <Text style={[s.lbl, w(2)]}>Código do cliente (UC):</Text>
+            <Text style={[s.valc, w(6)]}>{get('conta_contrato')}</Text>
             <Text style={[s.lbl, w(1)]}>Classe:</Text>
             <Text style={[s.valc, w(3)]}>{get('classe_uc')}</Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w(3)]}>Titular da UC:</Text>
-            <Text style={[s.valc, w(9)]}>{get('nomeClienteFinal').toUpperCase()}</Text>
+            <Text style={[s.lbl, w(2)]}>Titular da UC:</Text>
+            <Text style={[s.valc, w(10)]}>{get('nomeClienteFinal').toUpperCase()}</Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w(3)]}>Logradouro:</Text>
-            <Text style={[s.valc, w(9)]}>{get('endereco_local').toUpperCase()}</Text>
+            <Text style={[s.lbl, w(2)]}>Logradouro:</Text>
+            <Text style={[s.valc, w(10)]}>{get('endereco_local').toUpperCase()}</Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w(1)]}>N°:</Text>
+            <Text style={[s.lbl, w(2)]}>N°:</Text>
             <Text style={[s.valc, w(1)]}>{get('numero_endereco_cliente')}</Text>
-            <Text style={[s.lbl, w(2)]}>Bairro:</Text>
+            <Text style={[s.lbl, w(1)]}>Bairro:</Text>
             <Text style={[s.valc, w(2)]}>{get('bairro_cliente')}</Text>
             <Text style={[s.lbl, w(1)]}>UF:</Text>
             <Text style={[s.valc, w(1)]}>{get('client_state')}</Text>
@@ -270,34 +298,36 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.valc, w(4)]}>{get('cliente_celular')}</Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w(3)]}>CNPJ/CPF:</Text>
-            <Text style={[s.valc, w(9)]}>{get('cpf_cnpj_cliente_final')}</Text>
+            <Text style={[s.lbl, w(2)]}>CNPJ/CPF:</Text>
+            <Text style={[s.valc, w(10)]}>{get('cpf_cnpj_cliente_final')}</Text>
           </View>
 
           <View style={s.row} wrap={false}>
             <Text style={[s.bar, w(12)]}>2. DADOS DA UNIDADE CONSUMIDORA NO ATO DA VISTORIA - UC</Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w(4)]}>Potência Instalada (kW):</Text>
-            <Text style={[s.valc, w(2)]}>{potenciaInversoresKw ? potenciaInversoresKw.toFixed(0) : ''}</Text>
+            <Text style={[s.lbl, w(3)]}>Potência Instalada (kW):</Text>
+            <Text style={[s.valc, w(3)]}>{potenciaInversoresKw ? potenciaInversoresKw.toFixed(0) : ''}</Text>
             <Text style={[s.lbl, w(4)]}>Tensão de Atendimento (V):</Text>
             <Text style={[s.valc, w(2)]}>{get('tensao_atendimento')}</Text>
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.lbl, w(3)]}>Tipo de Conexão:</Text>
-            <Text style={[s.valc, w(9)]}>{get('tipo_conexao').toUpperCase()}</Text>
+            <Text style={[s.valc, w(3)]}>{get('tipo_conexao').toUpperCase()}</Text>
+            <Text style={[s.val, w(6), { backgroundColor: '#c9c9c9' }]}></Text>
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.lbl, w(3)]}>Tipo de Ramal:</Text>
-            <Text style={[s.valc, w(9)]}>{get('tipo_ramal').toUpperCase()}</Text>
+            <Text style={[s.valc, w(3)]}>{get('tipo_ramal').toUpperCase()}</Text>
+            <Text style={[s.val, w(6), { backgroundColor: '#c9c9c9' }]}></Text>
           </View>
 
           <View style={s.row} wrap={false}>
             <Text style={[s.bar, w(12)]}>3. DADOS DA GERAÇÃO</Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w(5)]}>Potência Instalada de Geração (kWp):</Text>
-            <Text style={[s.valc, w(7)]}>{potenciaGeracaoKwp ? potenciaGeracaoKwp.toFixed(2).replace('.', ',') : ''}</Text>
+            <Text style={[s.lbl, w(3)]}>Potência Instalada de Geração (kWp):</Text>
+            <Text style={[s.valc, w(9)]}>{potenciaGeracaoKwp ? potenciaGeracaoKwp.toFixed(2).replace('.', ',') : ''}</Text>
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.lbl, w(3)]}>Tipo da Fonte de Geração:</Text>
@@ -319,6 +349,12 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.lbl, w(2)]}>E-mail:</Text>
             <Text style={[s.val, w(5)]}>geracaodistribuida.eto@energisa.com.br</Text>
           </View>
+          <View style={s.row} wrap={false}>
+            <Text style={[s.lbl, w(3)]}>Responsável/Área:</Text>
+            <Text style={[s.valc, w(2)]}>DCMD/COPC</Text>
+            <Text style={[s.lblGray, w(2), { textAlign: 'center' }]}>LINK GISA</Text>
+            <Text style={[s.valc, w(5)]}>https://l.ead.me/bbThiX</Text>
+          </View>
 
           <View style={s.row} wrap={false}>
             <Text style={[s.bar, w(12)]}>6. DADOS DO RESPONSÁVEL TÉCNICO:</Text>
@@ -332,6 +368,9 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.valc, w(4)]}>{get('responsavel_legal_telefone')}</Text>
             <Text style={[s.lbl, w(2)]}>E-mail:</Text>
             <Text style={[s.val, w(4)]}>{get('responsavel_legal_email')}</Text>
+          </View>
+          <View style={s.row} wrap={false}>
+            <Text style={[s.v6Tag, { width: '100%', borderBottomWidth: 0 }]}>V6</Text>
           </View>
         </View>
 
@@ -419,6 +458,9 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.lbl, { width: '14%', textAlign: 'center' }]}>TOTAL</Text>
             <Text style={[s.valc, { width: '14%' }]}></Text>
           </View>
+          <View style={s.row} wrap={false}>
+            <Text style={[s.v6Tag, { width: '100%', borderBottomWidth: 0 }]}>V6</Text>
+          </View>
         </View>
 
         <View style={s.sig}>
@@ -450,7 +492,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
       </Page>
 
       {/* ══════════════════ Folha 4: Memorial Descritivo UFV-Solar ══════════════════ */}
-      <Page size="A4" style={s.page}>
+      <Page size="A4" orientation="landscape" style={s.page}>
         <Text style={s.sheetLabel}>Folha 4 de 6</Text>
         <View style={s.docHeader}>
           <Image src={imgUrl('/images/logo-grupo-energisa.png')} style={s.docHeaderLogo} />
@@ -556,9 +598,36 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.val, w16(6)]}></Text>
-            <Text style={[s.valc, w16(3)]}>{get('coord_utm_fuso')}</Text>
-            <Text style={[s.valc, w16(4)]}>{get('coord_utm_x')}</Text>
-            <Text style={[s.valc, w16(3)]}>{get('coord_utm_y')}</Text>
+            <Text style={[s.valc, w16(3)]}>{get('coord_utm_fuso') || ' '}</Text>
+            <Text style={[s.valc, w16(4)]}>{get('coord_utm_x') || ' '}</Text>
+            <Text style={[s.valc, w16(3)]}>{get('coord_utm_y') || ' '}</Text>
+          </View>
+        </View>
+
+        <View style={s.tbl}>
+          <View style={s.row} wrap={false}>
+            <Text style={[s.hdrOrange, { width: '10.09%' }]}>Tipo Tensão:</Text>
+            <Text style={[s.hdrOrange, { width: '10.09%' }]}>Cabos por fase:</Text>
+            <Text style={[s.hdrOrange, { width: '12%' }]}>Potência De Geração (kW):</Text>
+            <Text style={[s.hdrOrange, { width: '5.32%' }]}>Bitola Fase:</Text>
+            <Text style={[s.hdrOrange, { width: '18.75%' }]}>Bitola Neutro:</Text>
+            <Text style={[s.hdrOrange, { width: '12.75%' }]}>Bitola Terra:</Text>
+            <Text style={[s.hdrOrange, { width: '12.25%' }]}>Sistema GD já instalado?</Text>
+            <Text style={[s.hdrOrange, { width: '6%' }]}>Previsão de ligação - Mês:</Text>
+            <Text style={[s.hdrOrange, { width: '6%' }]}>Ano:</Text>
+            <Text style={[s.hdrOrange, { width: '6.75%' }]}>Zona:</Text>
+          </View>
+          <View style={s.row} wrap={false}>
+            <Text style={[s.valc, { width: '10.09%', fontFamily: 'Helvetica-Bold' }]}>BAIXA</Text>
+            <Text style={[s.valc, { width: '10.09%' }]}>{get('cabos_por_fase') || '1'}</Text>
+            <Text style={[s.valc, { width: '12%', fontFamily: 'Helvetica-Bold' }]}>{fmtBR(getTotalInversorKw(projectData))}</Text>
+            <Text style={[s.valc, { width: '5.32%' }]}>{get('secao_fase_mm2') || ' '}</Text>
+            <Text style={[s.valc, { width: '18.75%' }]}>{get('secao_neutro_mm2') || ' '}</Text>
+            <Text style={[s.valc, { width: '12.75%' }]}>{get('secao_aterramento_mm2') || ' '}</Text>
+            <Text style={[s.valc, { width: '12.25%', fontFamily: 'Helvetica-Bold' }]}>NÃO</Text>
+            <Text style={[s.valc, { width: '6%' }]}>{previsaoLigacao.mes || ' '}</Text>
+            <Text style={[s.valc, { width: '6%' }]}>{previsaoLigacao.ano || ' '}</Text>
+            <Text style={[s.valc, { width: '6.75%', fontFamily: 'Helvetica-Bold' }]}>URBANO</Text>
           </View>
         </View>
 
@@ -568,18 +637,26 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.val, { width: '89.91%', minHeight: 40 }]}></Text>
           </View>
         </View>
+        <Text style={s.v6Tag}>V6</Text>
 
-        <Text style={s.sectionTitle}>2. CARACTERÍSTICAS DA GERAÇÃO DA UNIDADE CONSUMIDORA</Text>
+        {/* Moldura fina (borda esquerda/direita) ao redor de toda a seção 2, igual à
+            pré-visualização e ao artifact de referência ("section2-frame"). */}
+        <View style={{ borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#000000' }}>
+        <View style={s.tbl}>
+          <View style={s.row} wrap={false}>
+            <Text style={[s.bar, { width: '100%' }]}>2. CARACTERÍSTICAS DA GERAÇÃO DA UNIDADE CONSUMIDORA</Text>
+          </View>
+        </View>
         <Text style={s.subhead}>Estrutura dos painéis utilizados na usina:</Text>
         <View style={s.tbl}>
           <View style={s.row} wrap={false}>
-            <Text style={[s.hdrPlain, { width: '7%' }]}>N°</Text>
-            <Text style={[s.hdrPlain, { width: '7%' }]}>Qtd.</Text>
-            <Text style={[s.hdrPlain, { width: '15%' }]}>Fabricante</Text>
-            <Text style={[s.hdrPlain, { width: '19.5%' }]}>Modelo dos painéis</Text>
-            <Text style={[s.hdrPlain, { width: '13%' }]}>Área total do arranjo (M²)</Text>
-            <Text style={[s.hdrPlain, { width: '14%' }]}>Potência (kW)</Text>
-            <Text style={[s.hdrPlain, { width: '13%' }]}>Subtotal (kW)</Text>
+            <Text style={[s.hdrPlain, { width: '6%' }]}>N°</Text>
+            <Text style={[s.hdrPlain, { width: '8%' }]}>Qtd.</Text>
+            <Text style={[s.hdrPlain, { width: '22%' }]}>Fabricante</Text>
+            <Text style={[s.hdrPlain, { width: '26%' }]}>Modelo dos painéis</Text>
+            <Text style={[s.hdrPlain, { width: '14%' }]}>Área total do arranjo (M²)</Text>
+            <Text style={[s.hdrPlain, { width: '12%' }]}>Potência (kW)</Text>
+            <Text style={[s.hdrPlain, { width: '12%' }]}>Subtotal (kW)</Text>
           </View>
           {Array.from({ length: Math.max(modulosList.length, 5) }).map((_, i) => {
             const m = modulosList[i];
@@ -588,33 +665,33 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             const areaLinha = m ? (parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0) * qty : 0;
             return (
               <View key={i} style={s.row} wrap={false}>
-                <Text style={[s.valc, { width: '7%' }]}>{m ? i + 1 : ''}</Text>
-                <Text style={[s.valc, { width: '7%' }]}>{m ? qty : ''}</Text>
-                <Text style={[s.valc, { width: '15%' }]}>{m?.fabricante || ''}</Text>
-                <Text style={[s.valc, { width: '19.5%' }]}>{m?.modelo || ''}</Text>
-                <Text style={[s.valc, { width: '13%' }]}>{m ? fmtBR(areaLinha) : ''}</Text>
-                <Text style={[s.valc, { width: '14%' }]}>{m ? fmtBR(unitKw) : ''}</Text>
-                <Text style={[s.valc, { width: '13%' }]}>{m ? fmtBR(unitKw * qty) : ''}</Text>
+                <Text style={[s.valc, { width: '6%' }]}>{m ? i + 1 : ' '}</Text>
+                <Text style={[s.valc, { width: '8%' }]}>{m ? qty : ' '}</Text>
+                <Text style={[s.valc, { width: '22%' }]}>{m?.fabricante || ' '}</Text>
+                <Text style={[s.valc, { width: '26%' }]}>{m?.modelo || ' '}</Text>
+                <Text style={[s.valc, { width: '14%' }]}>{m ? fmtBR(areaLinha) : ' '}</Text>
+                <Text style={[s.valc, { width: '12%' }]}>{m ? fmtBR(unitKw) : ' '}</Text>
+                <Text style={[s.valc, { width: '12%' }]}>{m ? fmtBR(unitKw * qty) : ' '}</Text>
               </View>
             );
           })}
           <View style={s.row} wrap={false}>
-            <Text style={[s.val, { width: '48.5%' }]}></Text>
-            <Text style={[s.lbl, { width: '13%', textAlign: 'center' }]}>Área Total: {fmtBR(areaTotalArranjos)}m²</Text>
-            <Text style={[s.lbl, { width: '27%', textAlign: 'center' }]}>Potência Total (kW): {fmtBR(getTotalKwpFromModulos(projectData))}</Text>
+            <Text style={[s.val, { width: '62%' }]}></Text>
+            <Text style={[s.lbl, { width: '14%', textAlign: 'center' }]}>Área Total: {fmtBR(areaTotalArranjos)}m²</Text>
+            <Text style={[s.lbl, { width: '24%', textAlign: 'center' }]}>Potência Total (kW): {fmtBR(getTotalKwpFromModulos(projectData))}</Text>
           </View>
         </View>
 
         <Text style={s.subhead}>Estrutura do(s) inversor(es) utilizado(s) na usina:</Text>
         <View style={s.tbl}>
           <View style={s.row} wrap={false}>
-            <Text style={[s.hdrPlain, { width: '7%' }]}>N°</Text>
-            <Text style={[s.hdrPlain, { width: '7%' }]}>Qtd.</Text>
-            <Text style={[s.hdrPlain, { width: '15%' }]}>Fabricante</Text>
-            <Text style={[s.hdrPlain, { width: '19.5%' }]}>Modelo do(s) inversor(es)</Text>
+            <Text style={[s.hdrPlain, { width: '6%' }]}>N°</Text>
+            <Text style={[s.hdrPlain, { width: '8%' }]}>Qtd.</Text>
+            <Text style={[s.hdrPlain, { width: '22%' }]}>Fabricante</Text>
+            <Text style={[s.hdrPlain, { width: '26%' }]}>Modelo do(s) inversor(es)</Text>
             <Text style={[s.hdrPlain, { width: '13%' }]}>Potência (kW)</Text>
-            <Text style={[s.hdrPlain, { width: '14%' }]}>Subtotal (kW)</Text>
-            <Text style={[s.hdrPlain, { width: '13%' }]}>Tensão nominal (V)</Text>
+            <Text style={[s.hdrPlain, { width: '13%' }]}>Subtotal (kW)</Text>
+            <Text style={[s.hdrPlain, { width: '12%' }]}>Tensão nominal (V)</Text>
           </View>
           {Array.from({ length: Math.max(inversoresList.length, 5) }).map((_, i) => {
             const inv = inversoresList[i];
@@ -622,42 +699,49 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             const qty = inv ? parseFloat(String(inv.quantidade || '0').replace(',', '.')) || 0 : 0;
             return (
               <View key={i} style={s.row} wrap={false}>
-                <Text style={[s.valc, { width: '7%' }]}>{inv ? i + 1 : ''}</Text>
-                <Text style={[s.valc, { width: '7%' }]}>{inv ? qty : ''}</Text>
-                <Text style={[s.valc, { width: '15%' }]}>{inv?.fabricante || ''}</Text>
-                <Text style={[s.valc, { width: '19.5%' }]}>{inv?.modelo || ''}</Text>
-                <Text style={[s.valc, { width: '13%' }]}>{inv ? fmtBR(unitKw) : ''}</Text>
-                <Text style={[s.valc, { width: '14%' }]}>{inv ? fmtBR(unitKw * qty) : ''}</Text>
-                <Text style={[s.valc, { width: '13%' }]}>{inv?.tensao || ''}</Text>
+                <Text style={[s.valc, { width: '6%' }]}>{inv ? i + 1 : ' '}</Text>
+                <Text style={[s.valc, { width: '8%' }]}>{inv ? qty : ' '}</Text>
+                <Text style={[s.valc, { width: '22%' }]}>{inv?.fabricante || ' '}</Text>
+                <Text style={[s.valc, { width: '26%' }]}>{inv?.modelo || ' '}</Text>
+                <Text style={[s.valc, { width: '13%' }]}>{inv ? fmtBR(unitKw) : ' '}</Text>
+                <Text style={[s.valc, { width: '13%' }]}>{inv ? fmtBR(unitKw * qty) : ' '}</Text>
+                <Text style={[s.valc, { width: '12%' }]}>{inv?.tensao || ' '}</Text>
               </View>
             );
           })}
           <View style={s.row} wrap={false}>
-            <Text style={[s.val, { width: '61.5%' }]}></Text>
-            <Text style={[s.lbl, { width: '27%', textAlign: 'center' }]}>Potência Total (kW): {fmtBR(getTotalInversorKw(projectData))}</Text>
+            <Text style={[s.val, { width: '75%' }]}></Text>
+            <Text style={[s.lbl, { width: '25%', textAlign: 'center' }]}>Potência Total (kW): {fmtBR(getTotalInversorKw(projectData))}</Text>
           </View>
         </View>
 
         <View style={[s.tbl, { marginTop: 10 }]}>
           <View style={s.row} wrap={false}>
-            <Text style={[s.bar, { width: '85%' }]}>NECESSITA DE AUTOTRAFO OU DE TRANSFORMADOR DE ACOPLAMENTO?</Text>
-            <Text style={[s.redCell, { width: '15%' }]}>{get('necessita_autotrafo') || ' '}</Text>
+            <Text style={[s.bar, { width: '62%' }]}>NECESSITA DE AUTOTRAFO OU DE TRANSFORMADOR DE ACOPLAMENTO?</Text>
+            <Text style={[s.redCell, { width: '14%' }]}>{get('necessita_autotrafo') || ' '}</Text>
+            <Text style={{ width: '24%' }}></Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, { width: '85%', textAlign: 'right' }]}>POTÊNCIA:</Text>
-            <Text style={[s.val, { width: '15%' }]}>{get('potencia_autotrafo')}</Text>
+            <Text style={{ width: '50%' }}></Text>
+            <Text style={[s.lbl, { width: '12%', textAlign: 'right' }]}>POTÊNCIA:</Text>
+            <Text style={[s.val, { width: '14%' }]}>{get('potencia_autotrafo')}</Text>
+            <Text style={{ width: '24%' }}></Text>
           </View>
         </View>
 
         <View style={[s.tbl, { marginTop: 8 }]}>
           <View style={s.row} wrap={false}>
-            <Text style={[s.bar, { width: '85%' }]}>ATENDIMENTO COM TRAFO EXCLUSIVO (GRUPO &quot;A&quot; E CONSUMIDORES RURAIS)?</Text>
-            <Text style={[s.redCell, { width: '15%' }]}>{get('atendimento_trafo_exclusivo') || ' '}</Text>
+            <Text style={[s.bar, { width: '62%' }]}>ATENDIMENTO COM TRAFO EXCLUSIVO (GRUPO &quot;A&quot; E CONSUMIDORES RURAIS)?</Text>
+            <Text style={[s.redCell, { width: '14%' }]}>{get('atendimento_trafo_exclusivo') || ' '}</Text>
+            <Text style={{ width: '24%' }}></Text>
           </View>
           <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, { width: '85%', textAlign: 'right' }]}>POTÊNCIA:</Text>
-            <Text style={[s.val, { width: '15%' }]}>{get('potencia_trafo_exclusivo')}</Text>
+            <Text style={{ width: '50%' }}></Text>
+            <Text style={[s.lbl, { width: '12%', textAlign: 'right' }]}>POTÊNCIA:</Text>
+            <Text style={[s.val, { width: '14%' }]}>{get('potencia_trafo_exclusivo')}</Text>
+            <Text style={{ width: '24%' }}></Text>
           </View>
+        </View>
         </View>
 
         <View style={s.sig}>
@@ -667,7 +751,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
       </Page>
 
       {/* ══════════════════ Folha 5: Ajustes de Proteções / Requisitos de Segurança ══════════════════ */}
-      <Page size="A4" style={s.page}>
+      <Page size="A4" orientation="landscape" style={s.page}>
         <Text style={s.sheetLabel}>Folha 5 de 6</Text>
 
         <View style={s.tbl}>
