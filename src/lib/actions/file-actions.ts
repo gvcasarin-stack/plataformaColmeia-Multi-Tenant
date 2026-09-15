@@ -219,8 +219,17 @@ export async function uploadProjectFileAction(
       };
     }
 
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = [
+      'application/pdf', 'image/jpeg', 'image/png', 'image/jpg',
+      'image/heic', 'image/heif',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+    // Arquivos CAD (.dwg) não têm um MIME type padronizado — navegadores relatam
+    // valores inconsistentes (às vezes vazio) — então validamos também pela extensão.
+    const allowedExtensions = ['.dwg'];
+    const hasAllowedExtension = allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+    if (!allowedTypes.includes(file.type) && !hasAllowedExtension) {
       devLog.log('🚨 [CRITICAL ERROR] TIPO DE ARQUIVO NÃO PERMITIDO:', {
         fileType: file.type,
         allowedTypes,

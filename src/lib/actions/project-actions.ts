@@ -2093,6 +2093,8 @@ export async function getProjectAction(projectId: string): Promise<{
       disjuntorPadraoEntrada: data.disjuntor_padrao_entrada || undefined,
       cpf_cnpj_cliente_final: data.cpf_cnpj_cliente_final || undefined,
       endereco_local: data.endereco_local || undefined,
+      numero_endereco_cliente: data.numero_endereco_cliente || undefined,
+      bairro_cliente: data.bairro_cliente || undefined,
       numero_uc: data.numero_uc || undefined,
       havera_beneficiarias: data.havera_beneficiarias || false,
       client_city: data.client_city || undefined,

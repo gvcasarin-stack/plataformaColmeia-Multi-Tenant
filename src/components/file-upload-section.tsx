@@ -27,7 +27,13 @@ export function FileUploadSection({
   onUpload,
   maxFiles = 5,
   maxSize = 10 * 1024 * 1024, // 10MB default
-  allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
+  allowedTypes = [
+    'application/pdf', 'image/jpeg', 'image/png', 'image/jpg',
+    'image/heic', 'image/heif',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.dwg',
+  ],
   onUploadSuccess
 }: FileUploadSectionProps) {
   const [uploading, setUploading] = useState(false)
@@ -259,8 +265,12 @@ export function FileUploadSection({
       'image/jpeg': '.jpg,.jpeg',
       'image/jpg': '.jpg',
       'image/png': '.png',
+      'image/heic': '.heic',
+      'image/heif': '.heif',
       'application/msword': '.doc',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+      'application/vnd.ms-excel': '.xls',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
     };
     
     return allowedTypes
