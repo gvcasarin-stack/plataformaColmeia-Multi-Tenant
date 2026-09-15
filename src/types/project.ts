@@ -245,6 +245,19 @@ export interface Project {
   disjuntor_quadro_ca_corrente_a?: string;
   disjuntor_quadro_ca_polos?: string;
 
+  // ✅ Formulário GD Energisa - campos específicos
+  numero_fases?: string;
+  cabos_por_fase?: string;
+  dps_ca_ka?: string;
+  dps_cc_ka?: string;
+  disjuntor_cc_corrente_a?: string;
+  potencia_trafo?: string;
+  numero_hastes?: string;
+  necessita_autotrafo?: string;
+  potencia_autotrafo?: string;
+  atendimento_trafo_exclusivo?: string;
+  potencia_trafo_exclusivo?: string;
+
   // ✅ Cabeamento CA por inversor e cabeamento geral (agrupadas)
   cabo_quadro_ca_secao_mm2?: string;
   cabo_quadro_ca_capacidade_corrente_a?: string;
