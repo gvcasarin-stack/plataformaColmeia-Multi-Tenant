@@ -711,9 +711,10 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           </tr>
         </tbody>
       </table>
-      </div>
 
       <SignatureBlock label="Assinatura do Projetista" />
+      <div style={{ marginTop: '15px', borderTop: '1px solid #000' }} />
+      </div>
 
       {/* ══════════════════ Folha 5: Ajustes de Proteções / Requisitos de Segurança ══════════════════ */}
       <SheetLabel n={5} />

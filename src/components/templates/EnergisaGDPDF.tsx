@@ -590,32 +590,58 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.valc, w16(2)]}>{get('numero_hastes')}</Text>
             <Text style={[s.valc, w16(3)]}>{get('carga_declarada_kw')}</Text>
           </View>
-          <View style={s.row} wrap={false}>
-            <Text style={[s.lbl, w16(6), { textAlign: 'center' }]}>Coordenadas do padrão de entrada em UTM:</Text>
-            <Text style={[s.lbl, w16(3), { textAlign: 'center' }]}>FUSO</Text>
-            <Text style={[s.lbl, w16(4), { textAlign: 'center' }]}>X (LONG)</Text>
-            <Text style={[s.lbl, w16(3), { textAlign: 'center' }]}>Y (LAT)</Text>
-          </View>
-          <View style={s.row} wrap={false}>
-            <Text style={[s.val, w16(6)]}></Text>
-            <Text style={[s.valc, w16(3)]}>{get('coord_utm_fuso') || ' '}</Text>
-            <Text style={[s.valc, w16(4)]}>{get('coord_utm_x') || ' '}</Text>
-            <Text style={[s.valc, w16(3)]}>{get('coord_utm_y') || ' '}</Text>
+          <View style={[s.row, { alignItems: 'stretch' }]} wrap={false}>
+            <View style={[s.lbl, w16(6), { justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Coordenadas do padrão de entrada em UTM:</Text>
+            </View>
+            <View style={[w16(10), { flexDirection: 'column' }]}>
+              <View style={s.row}>
+                <Text style={[s.lbl, { width: '30%', textAlign: 'center' }]}>FUSO</Text>
+                <Text style={[s.lbl, { width: '40%', textAlign: 'center' }]}>X (LONG)</Text>
+                <Text style={[s.lbl, { width: '30%', textAlign: 'center' }]}>Y (LAT)</Text>
+              </View>
+              <View style={s.row}>
+                <Text style={[s.valc, { width: '30%' }]}>{get('coord_utm_fuso') || ' '}</Text>
+                <Text style={[s.valc, { width: '40%' }]}>{get('coord_utm_x') || ' '}</Text>
+                <Text style={[s.valc, { width: '30%' }]}>{get('coord_utm_y') || ' '}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
         <View style={s.tbl}>
-          <View style={s.row} wrap={false}>
-            <Text style={[s.hdrOrange, { width: '10.09%' }]}>Tipo Tensão:</Text>
-            <Text style={[s.hdrOrange, { width: '10.09%' }]}>Cabos por fase:</Text>
-            <Text style={[s.hdrOrange, { width: '12%' }]}>Potência De Geração (kW):</Text>
-            <Text style={[s.hdrOrange, { width: '5.32%' }]}>Bitola Fase:</Text>
-            <Text style={[s.hdrOrange, { width: '18.75%' }]}>Bitola Neutro:</Text>
-            <Text style={[s.hdrOrange, { width: '12.75%' }]}>Bitola Terra:</Text>
-            <Text style={[s.hdrOrange, { width: '12.25%' }]}>Sistema GD já instalado?</Text>
-            <Text style={[s.hdrOrange, { width: '6%' }]}>Previsão de ligação - Mês:</Text>
-            <Text style={[s.hdrOrange, { width: '6%' }]}>Ano:</Text>
-            <Text style={[s.hdrOrange, { width: '6.75%' }]}>Zona:</Text>
+          <View style={[s.row, { alignItems: 'stretch' }]} wrap={false}>
+            <View style={[s.hdrOrange, { width: '10.09%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Tipo Tensão:</Text>
+            </View>
+            <View style={[s.hdrOrange, { width: '10.09%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Cabos por fase:</Text>
+            </View>
+            <View style={[s.hdrOrange, { width: '12%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Potência De Geração (kW):</Text>
+            </View>
+            <View style={[s.hdrOrange, { width: '5.32%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Bitola Fase:</Text>
+            </View>
+            <View style={[s.hdrOrange, { width: '18.75%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Bitola Neutro:</Text>
+            </View>
+            <View style={[s.hdrOrange, { width: '12.75%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Bitola Terra:</Text>
+            </View>
+            <View style={[s.hdrOrange, { width: '12.25%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Sistema GD já instalado?</Text>
+            </View>
+            <View style={{ width: '12%', flexDirection: 'column' }}>
+              <Text style={[s.hdrOrange, { width: '100%' }]}>Previsão de ligação (Mês)</Text>
+              <View style={s.row}>
+                <Text style={[s.hdrOrange, { width: '50%' }]}>Mês:</Text>
+                <Text style={[s.hdrOrange, { width: '50%' }]}>Ano:</Text>
+              </View>
+            </View>
+            <View style={[s.hdrOrange, { width: '6.75%', justifyContent: 'center' }]}>
+              <Text style={{ textAlign: 'center' }}>Zona:</Text>
+            </View>
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.valc, { width: '10.09%', fontFamily: 'Helvetica-Bold' }]}>BAIXA</Text>
@@ -639,9 +665,10 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
         </View>
         <Text style={s.v6Tag}>V6</Text>
 
-        {/* Moldura fina (borda esquerda/direita) ao redor de toda a seção 2, igual à
-            pré-visualização e ao artifact de referência ("section2-frame"). */}
-        <View style={{ borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#000000' }}>
+        {/* Moldura fina (borda esquerda/direita) ao redor de toda a seção 2, igual ao
+            artifact de referência ("section2-frame") — mesma espessura sutil (B) dos
+            demais traços da tabela, estendendo até depois da assinatura. */}
+        <View style={{ borderLeftWidth: B, borderRightWidth: B, borderColor: '#000000' }}>
         <View style={s.tbl}>
           <View style={s.row} wrap={false}>
             <Text style={[s.bar, { width: '100%' }]}>2. CARACTERÍSTICAS DA GERAÇÃO DA UNIDADE CONSUMIDORA</Text>
@@ -742,11 +769,12 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={{ width: '24%' }}></Text>
           </View>
         </View>
-        </View>
 
         <View style={s.sig}>
           <View style={s.sigLine} />
           <Text style={s.sigText}>Assinatura do Projetista</Text>
+        </View>
+        <View style={{ marginTop: 15, borderTopWidth: B, borderColor: '#000000' }} />
         </View>
       </Page>
 
@@ -929,16 +957,16 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
               </Text>
             </View>
 
-            <View style={{ position: 'relative', width: '64%', marginLeft: '20%' }}>
+            <View style={{ position: 'relative', width: '64%', marginLeft: '30%' }}>
               <Image src={imgUrl('/images/unifilar-energisa.png')} style={{ width: '100%', height: 'auto' }} />
               <Text style={{ position: 'absolute', top: '21%', left: '1.5%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>13,8 kV</Text>
               <Text style={{ position: 'absolute', top: '15%', left: '47%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('disjuntor_corrente_a') ? `${get('disjuntor_corrente_a')}A` : ''}</Text>
-              <Text style={{ position: 'absolute', top: '18%', left: '85%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('disjuntor_quadro_ca_corrente_a') ? `${get('disjuntor_quadro_ca_corrente_a')}A` : ''}</Text>
-              <Text style={{ position: 'absolute', top: '33%', left: '81%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('dps_ca_ka') ? `${get('dps_ca_ka')}kA` : ''}</Text>
+              <Text style={{ position: 'absolute', top: '18%', left: '88%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('disjuntor_quadro_ca_corrente_a') ? `${get('disjuntor_quadro_ca_corrente_a')}A` : ''}</Text>
+              <Text style={{ position: 'absolute', top: '33%', left: '84%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('dps_ca_ka') ? `${get('dps_ca_ka')}kA` : ''}</Text>
               <Text style={{ position: 'absolute', top: '73%', left: '26%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{fmtBR(getTotalInversorKw(projectData))} kW</Text>
               <Text style={{ position: 'absolute', top: '92%', left: '76%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{fmtBR(getTotalKwpFromModulos(projectData))} kWp</Text>
-              <Text style={{ position: 'absolute', top: '57%', left: '50%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('disjuntor_cc_corrente_a') ? `${get('disjuntor_cc_corrente_a')}A` : ''}</Text>
-              <Text style={{ position: 'absolute', top: '75%', left: '50%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('dps_cc_ka') ? `${get('dps_cc_ka')}kA` : ''}</Text>
+              <Text style={{ position: 'absolute', top: '57%', left: '52%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('disjuntor_cc_corrente_a') ? `${get('disjuntor_cc_corrente_a')}A` : ''}</Text>
+              <Text style={{ position: 'absolute', top: '75%', left: '52%', fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{get('dps_cc_ka') ? `${get('dps_cc_ka')}kA` : ''}</Text>
             </View>
 
             <View style={{ marginLeft: '40%', marginRight: '3%', marginTop: 8 }}>
