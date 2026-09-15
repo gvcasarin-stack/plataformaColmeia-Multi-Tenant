@@ -292,7 +292,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'numero_poste_transformador', label: 'Nº Poste / Transformador', type: 'text', required: false, group: 'Dados da Unidade Consumidora' },
 
   // Padrão de Entrada
-  { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada', hideForDistribuidoras: ['CPFL'] },
+  { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada', hideForDistribuidoras: ['CPFL', 'Energisa'] },
   { key: 'cpfl_tipo_poste_padrao', label: 'Caixa de Medição ou Tipo de Poste Padrão', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'select', required: true, options: [
     { value: 'Anexo A (Multi 100) - GED 14945', label: 'Anexo A (Multi 100) - GED 14945' },
     { value: 'Anexo B (Multi 100) - GED 14945', label: 'Anexo B (Multi 100) - GED 14945' },
@@ -385,8 +385,27 @@ function formatPhone(val: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 3)} ${d.slice(3, 7)}-${d.slice(7)}`;
 }
 
+// Detecta CPF (11 dígitos) ou CNPJ (12-14 dígitos) pela quantidade de dígitos
+// digitados e aplica a pontuação correspondente progressivamente, mesmo padrão
+// usado em formatCEP/formatPhone.
+function formatCpfCnpj(val: string): string {
+  const d = val.replace(/\D/g, '').slice(0, 14);
+  if (d.length <= 11) {
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  }
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
 const PHONE_FIELDS = new Set(['cliente_celular', 'responsavel_legal_telefone']);
 const CEP_FIELDS = new Set(['cliente_cep']);
+const CPF_CNPJ_FIELDS = new Set(['cpf_cnpj_cliente_final']);
 
 const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
@@ -666,6 +685,9 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     }
     for (const key of CEP_FIELDS) {
       if (formatted[key]) formatted[key] = formatCEP(String(formatted[key]));
+    }
+    for (const key of CPF_CNPJ_FIELDS) {
+      if (formatted[key]) formatted[key] = formatCpfCnpj(String(formatted[key]));
     }
     setLocalFields(formatted);
     setSkippedFields(initSkippedFields(formatted));
@@ -1724,6 +1746,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
             v = formatPhone(v);
           } else if (CEP_FIELDS.has(field.key)) {
             v = formatCEP(v);
+          } else if (CPF_CNPJ_FIELDS.has(field.key)) {
+            v = formatCpfCnpj(v);
           }
           handleFieldChange(field.key, v);
         }}

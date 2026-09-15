@@ -865,10 +865,8 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ width: 220 }}>
+            <Text style={{ textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, textDecoration: 'underline', marginBottom: 2 }}>Dados do Projeto:</Text>
             <View style={[s.tbl, { marginTop: 0, marginBottom: 5 }]}>
-              <View style={s.row} wrap={false}>
-                <Text style={{ width: '100%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, padding: '2 6 4' }}>Dados do Projeto:</Text>
-              </View>
               {[
                 ['Tensão Nominal (V):', get('tensao_atendimento'), true],
                 ['N° de fases:', get('numero_fases') || '1', false],
@@ -885,10 +883,8 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
               ))}
             </View>
 
+            <Text style={{ textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, textDecoration: 'underline', marginBottom: 2 }}>Módulo(s) solar(es):</Text>
             <View style={[s.tbl, { marginTop: 0, marginBottom: 5 }]}>
-              <View style={s.row} wrap={false}>
-                <Text style={{ width: '100%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, padding: '2 6 4' }}>Módulo(s) solar(es):</Text>
-              </View>
               {[
                 ['Fabricante:', modulosList[0]?.fabricante || '', false],
                 ['Modelo:', modulosList[0]?.modelo || '', false],
@@ -902,10 +898,8 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
               ))}
             </View>
 
+            <Text style={{ textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, textDecoration: 'underline', marginBottom: 2 }}>Inversor(es):</Text>
             <View style={[s.tbl, { marginTop: 0, marginBottom: 5 }]}>
-              <View style={s.row} wrap={false}>
-                <Text style={{ width: '100%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, padding: '2 6 4' }}>Inversor(es):</Text>
-              </View>
               {[
                 ['Fabricante:', inversoresList[0]?.fabricante || '', false],
                 ['Modelo:', inversoresList[0]?.modelo || '', false],
@@ -921,10 +915,8 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
               ))}
             </View>
 
+            <Text style={{ textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, textDecoration: 'underline', marginBottom: 2 }}>Localização da UC:</Text>
             <View style={[s.tbl, { marginTop: 0, marginBottom: 5 }]}>
-              <View style={s.row} wrap={false}>
-                <Text style={{ width: '100%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 7, padding: '2 6 4' }}>Localização da UC:</Text>
-              </View>
               {[
                 ['Código (UC):', get('conta_contrato'), false],
                 ['Titular:', get('nomeClienteFinal').toUpperCase(), false],
