@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-import { getAllModulos, getAllInversores, getTotalKwpFromModulos, getTotalInversorKw, fmtBR } from '@/lib/utils/equipmentParser';
+import { getAllModulos, getAllInversores, getTotalKwpFromModulos, getTotalInversorKw, getAllCargas, getCargaPotenciaTotalKw, getCargaDemandaKw, getTotalPotenciaCargas, getTotalDemandaCargas, fmtBR } from '@/lib/utils/equipmentParser';
 
 function imgUrl(path: string) {
   return typeof window !== 'undefined' ? `${window.location.origin}${path}` : path;
@@ -244,6 +244,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
 
   const modulosList = getAllModulos(projectData);
   const inversoresList = getAllInversores(projectData);
+  const cargasList = getAllCargas(projectData);
   const areaTotalArranjos = modulosList.reduce((acc, m) => {
     const areaUnit = parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0;
     const qty = parseFloat(String(m.quantidade || '0').replace(',', '.')) || 0;
@@ -440,23 +441,38 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.bar, { width: '14%' }]}>FATOR DE DEMANDA</Text>
             <Text style={[s.bar, { width: '14%' }]}>DEMANDA (kW)</Text>
           </View>
-          {Array.from({ length: 16 }).map((_, i) => (
-            <View key={i} style={s.row} wrap={false}>
-              <Text style={[s.val, { width: '12%' }]}> </Text>
-              <Text style={[s.val, { width: '26%' }]}></Text>
-              <Text style={[s.val, { width: '16%' }]}></Text>
-              <Text style={[s.val, { width: '18%' }]}></Text>
-              <Text style={[s.val, { width: '14%' }]}></Text>
-              <Text style={[s.val, { width: '14%' }]}></Text>
-            </View>
-          ))}
+          {Array.from({ length: Math.max(cargasList.length, 16) }).map((_, i) => {
+            const item = cargasList[i];
+            if (!item) {
+              return (
+                <View key={i} style={s.row} wrap={false}>
+                  <Text style={[s.val, { width: '12%' }]}> </Text>
+                  <Text style={[s.val, { width: '26%' }]}></Text>
+                  <Text style={[s.val, { width: '16%' }]}></Text>
+                  <Text style={[s.val, { width: '18%' }]}></Text>
+                  <Text style={[s.val, { width: '14%' }]}></Text>
+                  <Text style={[s.val, { width: '14%' }]}></Text>
+                </View>
+              );
+            }
+            return (
+              <View key={i} style={s.row} wrap={false}>
+                <Text style={[s.valc, { width: '12%' }]}>{item.quantidade}</Text>
+                <Text style={[s.val, { width: '26%' }]}>{item.equipamento}</Text>
+                <Text style={[s.valc, { width: '16%' }]}>{item.potencia_unitaria_w}</Text>
+                <Text style={[s.valc, { width: '18%' }]}>{fmtBR(getCargaPotenciaTotalKw(item))}</Text>
+                <Text style={[s.valc, { width: '14%' }]}>{item.fator_demanda}</Text>
+                <Text style={[s.valc, { width: '14%' }]}>{fmtBR(getCargaDemandaKw(item))}</Text>
+              </View>
+            );
+          })}
           <View style={s.row} wrap={false}>
             <Text style={[s.val, { width: '12%', borderRightWidth: 0 }]}></Text>
             <Text style={[s.val, { width: '26%', borderRightWidth: 0 }]}></Text>
             <Text style={[s.lbl, { width: '16%', textAlign: 'center' }]}>TOTAL</Text>
-            <Text style={[s.valc, { width: '18%' }]}></Text>
+            <Text style={[s.valc, { width: '18%' }]}>{cargasList.length > 0 ? fmtBR(getTotalPotenciaCargas(cargasList)) : ''}</Text>
             <Text style={[s.lbl, { width: '14%', textAlign: 'center' }]}>TOTAL</Text>
-            <Text style={[s.valc, { width: '14%' }]}></Text>
+            <Text style={[s.valc, { width: '14%' }]}>{cargasList.length > 0 ? fmtBR(getTotalDemandaCargas(cargasList)) : ''}</Text>
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.v6Tag, { width: '100%', borderBottomWidth: 0 }]}>V6</Text>

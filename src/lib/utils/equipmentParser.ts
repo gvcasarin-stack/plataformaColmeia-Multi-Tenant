@@ -93,6 +93,14 @@ export interface InversorItem {
   status?: 'existente' | 'novo';
 }
 
+// Item da Relação de Carga (Folha 2 do Formulário de Solicitação de Acesso — Energisa)
+export interface CargaItem {
+  quantidade: string;
+  equipamento: string;
+  potencia_unitaria_w: string;
+  fator_demanda: string;
+}
+
 function parseNum(val: string | number | undefined): number {
   if (val === undefined || val === null || val === '') return 0;
   return parseFloat(String(val).replace(',', '.')) || 0;
@@ -256,6 +264,32 @@ export function getStatusTag(items: Array<{ status?: string }>): string {
   if (set.size === 0) return '';
   if (set.size > 1) return '(EXISTENTE E NOVO)';
   return set.has('existente') ? '(EXISTENTE)' : '(NOVO)';
+}
+
+// Retorna todos os itens da Relação de Carga do projeto (Energisa)
+export function getAllCargas(pd: Record<string, any> | undefined): CargaItem[] {
+  if (!pd) return [];
+  return parseJsonList<CargaItem>(pd.energisa_relacao_cargas);
+}
+
+// Potência total (kW) de um item da Relação de Carga: quantidade × pot. unitária (W) / 1000
+export function getCargaPotenciaTotalKw(item: CargaItem): number {
+  return (parseNum(item.quantidade) * parseNum(item.potencia_unitaria_w)) / 1000;
+}
+
+// Demanda (kW) de um item da Relação de Carga: potência total × fator de demanda
+export function getCargaDemandaKw(item: CargaItem): number {
+  return getCargaPotenciaTotalKw(item) * parseNum(item.fator_demanda);
+}
+
+// Soma da potência total (kW) de todos os itens da Relação de Carga
+export function getTotalPotenciaCargas(list: CargaItem[]): number {
+  return list.reduce((acc, item) => acc + getCargaPotenciaTotalKw(item), 0);
+}
+
+// Soma da demanda (kW) de todos os itens da Relação de Carga
+export function getTotalDemandaCargas(list: CargaItem[]): number {
+  return list.reduce((acc, item) => acc + getCargaDemandaKw(item), 0);
 }
 
 // Formata número para padrão BR com N casas decimais

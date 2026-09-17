@@ -2250,6 +2250,7 @@ export async function getProjectAction(projectId: string): Promise<{
       setup_concluido: data.setup_concluido || undefined,
       modulos_lista: data.modulos_lista || undefined,
       inversores_lista: data.inversores_lista || undefined,
+      energisa_relacao_cargas: data.energisa_relacao_cargas || undefined,
 
       status: data.status || 'nao-iniciado', // ✅ CORRIGIDO: Usar slug ao invés de name
       prioridade: data.prioridade || 'Baixa',

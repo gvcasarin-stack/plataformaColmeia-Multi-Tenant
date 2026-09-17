@@ -637,6 +637,7 @@ export const ExpandedProjectView = ({
     setup_concluido: (project as any).setup_concluido || '',
     modulos_lista: (project as any).modulos_lista || '',
     inversores_lista: (project as any).inversores_lista || '',
+    energisa_relacao_cargas: (project as any).energisa_relacao_cargas || '',
     planta_situacao_config: (project as any).planta_situacao_config || '',
   });
   const conferirProgress = useConferirProgress(gerarProjetoFields);

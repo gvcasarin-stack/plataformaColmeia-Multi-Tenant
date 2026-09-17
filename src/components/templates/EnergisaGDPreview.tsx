@@ -3,7 +3,7 @@
 import { useState, Fragment } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
-import { getAllModulos, getAllInversores, getTotalKwpFromModulos, getTotalInversorKw, fmtBR } from '@/lib/utils/equipmentParser';
+import { getAllModulos, getAllInversores, getTotalKwpFromModulos, getTotalInversorKw, getAllCargas, getCargaPotenciaTotalKw, getCargaDemandaKw, getTotalPotenciaCargas, getTotalDemandaCargas, fmtBR } from '@/lib/utils/equipmentParser';
 
 interface EnergisaGDPreviewProps {
   projectData?: Record<string, any>;
@@ -160,6 +160,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
 
   const modulosList = getAllModulos(projectData);
   const inversoresList = getAllInversores(projectData);
+  const cargasList = getAllCargas(projectData);
   const areaTotalArranjos = modulosList.reduce((acc, m) => {
     const areaUnit = parseFloat(String(m.area_unitaria_m2 || '0').replace(',', '.')) || 0;
     const qty = parseFloat(String(m.quantidade || '0').replace(',', '.')) || 0;
@@ -386,23 +387,38 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             <td style={BAR}>FATOR DE<br />DEMANDA</td>
             <td style={BAR}>DEMANDA<br />(kW)</td>
           </tr>
-          {Array.from({ length: 16 }).map((_, i) => (
-            <tr key={i}>
-              <td style={VAL}>&nbsp;</td>
-              <td style={VAL}></td>
-              <td style={VAL}></td>
-              <td style={VAL}></td>
-              <td style={VAL}></td>
-              <td style={VAL}></td>
-            </tr>
-          ))}
+          {Array.from({ length: Math.max(cargasList.length, 16) }).map((_, i) => {
+            const item = cargasList[i];
+            if (!item) {
+              return (
+                <tr key={i}>
+                  <td style={VAL}>&nbsp;</td>
+                  <td style={VAL}></td>
+                  <td style={VAL}></td>
+                  <td style={VAL}></td>
+                  <td style={VAL}></td>
+                  <td style={VAL}></td>
+                </tr>
+              );
+            }
+            return (
+              <tr key={i}>
+                <td style={VALC}>{item.quantidade}</td>
+                <td style={VAL}>{item.equipamento}</td>
+                <td style={VALC}>{item.potencia_unitaria_w}</td>
+                <td style={VALC}>{fmtBR(getCargaPotenciaTotalKw(item))}</td>
+                <td style={VALC}>{item.fator_demanda}</td>
+                <td style={VALC}>{fmtBR(getCargaDemandaKw(item))}</td>
+              </tr>
+            );
+          })}
           <tr>
             <td style={{ ...VAL, borderBottom: 'none', borderLeft: 'none', borderRight: 'none' }}></td>
             <td style={{ ...VAL, borderBottom: 'none', borderLeft: 'none', borderRight: 'none' }}></td>
             <td style={{ ...LBL, textAlign: 'center' }}>TOTAL</td>
-            <td style={VALC}></td>
+            <td style={VALC}>{cargasList.length > 0 ? fmtBR(getTotalPotenciaCargas(cargasList)) : ''}</td>
             <td style={{ ...LBL, textAlign: 'center' }}>TOTAL</td>
-            <td style={VALC}></td>
+            <td style={VALC}>{cargasList.length > 0 ? fmtBR(getTotalDemandaCargas(cargasList)) : ''}</td>
           </tr>
           <tr><td colSpan={6} style={V6_TAG}>V6</td></tr>
         </tbody>

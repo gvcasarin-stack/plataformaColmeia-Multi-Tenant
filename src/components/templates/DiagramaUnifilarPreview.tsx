@@ -384,16 +384,42 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
     }
   };
 
+  // Moldura ABNT (contorno de folha de engenharia): acrescenta margem ao redor
+  // de todo o conteúdo já existente — apenas amplia o viewBox para fora, sem
+  // mover nenhuma coordenada interna do diagrama — e desenha o contorno da
+  // folha nessa margem, com a margem esquerda maior (reserva de encadernação),
+  // seguindo a mesma proporção usada no PDF (padrão ABNT NBR 10068).
+  const ABNT_M_LEFT = 45;
+  const ABNT_M_TOP = 15;
+  const ABNT_M_RIGHT = 15;
+  const ABNT_M_BOTTOM = 15;
+  const contentMinX = numInversores >= 4 ? -100 : (numInversores >= 3 ? -25 : 0);
+  const contentWidth = numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060);
+  const contentMinY = -25;
+  const frameMinX = contentMinX - ABNT_M_LEFT;
+  const frameMinY = contentMinY - ABNT_M_TOP;
+  const frameWidth = contentWidth + ABNT_M_LEFT + ABNT_M_RIGHT;
+  const frameHeight = vbHeight + ABNT_M_TOP + ABNT_M_BOTTOM;
+
   return (
     <>
       <div style={{ overflow: 'auto' }}>
         <svg
-          viewBox={numInversores >= 4 ? `-100 -25 1200 ${vbHeight}` : (numInversores >= 3 ? `-25 -25 1085 ${vbHeight}` : `0 -25 1060 ${vbHeight}`)}
+          viewBox={`${frameMinX} ${frameMinY} ${frameWidth} ${frameHeight}`}
           width="100%"
-          style={{ maxWidth: numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060), display: 'block', margin: '0 auto' }}
+          style={{ maxWidth: frameWidth, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >
+          <rect
+            x={frameMinX + 2}
+            y={frameMinY + 2}
+            width={frameWidth - 4}
+            height={frameHeight - 4}
+            fill="none"
+            stroke="#000"
+            strokeWidth="2.5"
+          />
 
           {/* Com 1 inversor, todo o circuito (menos a placa CPFL do canto, que fica
               sempre fixa no canto esquerdo da folha) desloca hShift px pra direita —

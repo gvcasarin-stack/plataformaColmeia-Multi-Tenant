@@ -225,6 +225,9 @@ export interface Project {
   modulos_lista?: string;
   inversores_lista?: string;
 
+  // Relação de Carga (Folha 2 do Formulário de Solicitação de Acesso — Energisa)
+  energisa_relacao_cargas?: string;
+
   // Dimensionamento dos Cabos
   cabo_isolacao_material?: string;
   cabo_cc_secao_mm2?: string;

@@ -17,8 +17,9 @@ import {
   HelpCircle, Eye, EyeOff, ArrowRight, Copy, CloudUpload, Check
 } from 'lucide-react';
 import { EquipamentoListEditor } from './EquipamentoListEditor';
-import { getAllModulos, getAllInversores, parseStringsModulos } from '@/lib/utils/equipmentParser';
-import type { ModuloItem, InversorItem, InversorUnitConfig } from '@/lib/utils/equipmentParser';
+import { RelacaoCargasEditor } from './RelacaoCargasEditor';
+import { getAllModulos, getAllInversores, parseStringsModulos, getAllCargas } from '@/lib/utils/equipmentParser';
+import type { ModuloItem, InversorItem, InversorUnitConfig, CargaItem } from '@/lib/utils/equipmentParser';
 import { validarEmail, validarCEP, validarTelefone, validarCPForCNPJ } from '@/lib/utils/validators';
 import { buscarEnderecoPorCEP } from '@/lib/utils/cep';
 
@@ -659,6 +660,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
   // Listas de múltiplos modelos (novo formato)
   const [modulosList, setModulosList] = useState<ModuloItem[]>([]);
   const [inversoresList, setInversoresList] = useState<InversorItem[]>([]);
+  // Relação de Carga (Folha 2 do Formulário de Solicitação de Acesso — Energisa)
+  const [cargasList, setCargasList] = useState<CargaItem[]>([]);
 
   // ── Melhorias de UX: busca, navegação, revisão, autosave, cópia de dados ──
   const [groupOrder, setGroupOrder] = useState<string[]>([]);
@@ -673,6 +676,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
   const originalFieldsRef = useRef<Record<string, any>>(fields);
   const skipAutosaveDebounceRef = useRef(true);
   const autosaveDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipCargasDebounceRef = useRef(true);
+  const cargasDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cepLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cepLastLookedUp = useRef<string | null>(null);
 
@@ -704,10 +709,12 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     setModulosList(mods.length > 0 ? mods : [{ fabricante: '', modelo: '', potencia_wp: '', quantidade: '1' }]);
     const invs = getAllInversores(fields);
     setInversoresList(invs.length > 0 ? invs : [{ fabricante: '', modelo: '', potencia: '', quantidade: '1' }]);
+    setCargasList(getAllCargas(fields));
 
     // Reinicia estado das melhorias de UX a cada abertura do modal
     originalFieldsRef.current = fields;
     skipAutosaveDebounceRef.current = true;
+    skipCargasDebounceRef.current = true;
     setSearchTerm('');
     setDocFilter(null);
     setReviewMode(false);
@@ -926,6 +933,26 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, localFields]);
+
+  // Autosave com debounce dedicado para a Relação de Carga (Energisa) — não faz parte de
+  // localFields (mesma convenção de modulosList/inversoresList), então precisa do próprio gatilho.
+  useEffect(() => {
+    if (!open) return;
+    if (skipCargasDebounceRef.current) {
+      skipCargasDebounceRef.current = false;
+      return;
+    }
+    if (cargasDebounceTimer.current) clearTimeout(cargasDebounceTimer.current);
+    cargasDebounceTimer.current = setTimeout(() => {
+      if (isSaving) return;
+      setAutosaveStatus('saving');
+      setAutoSavePending(true);
+    }, 2500);
+    return () => {
+      if (cargasDebounceTimer.current) clearTimeout(cargasDebounceTimer.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, cargasList]);
 
   // Quando o autosave embrionário (linhas acima, disparado via autoSavePending) termina,
   // reflete "salvo" no indicador por alguns segundos.
@@ -1278,11 +1305,12 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       ...(computeStringsGlobals(inversoresList) || {}),
       modulos_lista: JSON.stringify(modulosList),
       inversores_lista: JSON.stringify(inversoresList),
+      energisa_relacao_cargas: JSON.stringify(cargasList),
       _autoSave: true,
     };
     onSave(dataToSave).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSavePending, modulosList, inversoresList]);
+  }, [autoSavePending, modulosList, inversoresList, cargasList]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -1298,6 +1326,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
         // Salva as listas completas no novo formato
         modulos_lista: JSON.stringify(modulosList),
         inversores_lista: JSON.stringify(inversoresList),
+        energisa_relacao_cargas: JSON.stringify(cargasList),
       };
 
       if (plantaFile) {
@@ -2214,6 +2243,19 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {groupName === 'Energisa GD' && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Relação de Carga</p>
+                  <div className="mb-3 rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-3">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <Info className="h-3.5 w-3.5 inline mr-1" />
+                      Usada na Folha 2 do Formulário de Solicitação de Acesso (Relação de Carga e Cálculo de Demanda). Potência total e demanda de cada linha são calculadas automaticamente.
+                    </p>
+                  </div>
+                  <RelacaoCargasEditor items={cargasList} onChange={setCargasList} />
                 </div>
               )}
 
