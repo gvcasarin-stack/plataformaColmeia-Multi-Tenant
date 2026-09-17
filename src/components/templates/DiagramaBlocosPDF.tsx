@@ -277,31 +277,9 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
     ? formatDataBR(String(pd.data_documento))
     : (() => { const d = new Date(); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; })();
 
-  // Moldura ABNT NBR 10068 (contorno de folha de engenharia): margem esquerda
-  // de 25mm (reserva de encadernação) e 7mm nas demais bordas (padrão A4) —
-  // convertidas para pontos. Cabe folgada dentro do padding já existente da
-  // página (60pt horizontal / 40pt vertical), então nada do conteúdo precisa
-  // ser redimensionado ou reposicionado para acomodá-la.
-  const MM = 2.834645669;
-  const ABNT_MARGIN_LEFT = 25 * MM;
-  const ABNT_MARGIN_OTHER = 7 * MM;
-  const PAGE_W = 595.28;
-  const PAGE_H = 841.89;
-
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <View
-          style={{
-            position: 'absolute',
-            left: ABNT_MARGIN_LEFT,
-            top: ABNT_MARGIN_OTHER,
-            width: PAGE_W - ABNT_MARGIN_LEFT - ABNT_MARGIN_OTHER,
-            height: PAGE_H - ABNT_MARGIN_OTHER * 2,
-            borderWidth: 1.5,
-            borderColor: '#000000',
-          }}
-        />
         {numInversores === 1 ? (
           <>
             {/* 1. Módulos */}

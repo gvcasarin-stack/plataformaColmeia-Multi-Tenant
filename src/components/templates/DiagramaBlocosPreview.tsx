@@ -175,11 +175,6 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
 
   return (
     <>
-      {/* Moldura ABNT (contorno de folha de engenharia) — mesma proporção usada
-          no Diagrama Unifilar: margem esquerda maior (reserva de encadernação),
-          conforme NBR 10068. Envolve o diagrama existente sem alterar nenhum
-          tamanho/posição interno dele. */}
-      <div style={{ width: 'fit-content', margin: '0 auto', border: '2.5px solid #000000', padding: '15px 15px 15px 45px' }}>
       {/* Diagrama */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px', fontFamily: 'Arial, sans-serif' }}>
         {numInversores === 1 ? (
@@ -480,7 +475,6 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           </div>
 
         </div>
-      </div>
       </div>
 
       {/* Botão PDF */}

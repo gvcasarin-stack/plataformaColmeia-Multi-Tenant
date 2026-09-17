@@ -336,40 +336,24 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   // Seal column centers
   const MID_CTR = 439; // center of middle col (178-700)
 
-  // Moldura ABNT NBR 10068 (contorno de folha de engenharia): margem esquerda
-  // de 25mm (reserva de encadernação, igual para todos os tamanhos) e margem
-  // de 7mm (A2/A3) ou 10mm (A0/A1) nas demais bordas — convertidas para pontos
-  // (1mm = 2,8346pt, mesma unidade do <Page> do react-pdf). O Svg é redesenhado
-  // para caber exatamente dentro dessa moldura (mesma técnica de sempre: só a
-  // escala geral diminui um pouco para abrir espaço para a margem — nenhuma
-  // coordenada interna do diagrama muda, a posição relativa de cada elemento
-  // continua idêntica).
-  const MM = 2.834645669;
-  const ABNT_MARGIN_LEFT = 25 * MM;
-  const ABNT_MARGIN_OTHER = (numInversores >= 4 ? 10 : 7) * MM;
-  // Tamanhos reais das folhas (em pontos), iguais aos usados pelo <Page> abaixo.
-  const PAGE_W = numInversores >= 4 ? 1683.78 : (numInversores >= 3 ? 1190.55 : 841.89);
-  const PAGE_H = numInversores >= 4 ? 2383.94 : (numInversores >= 3 ? 1683.78 : 1190.55);
-
   // Placa de Advertência — mesma conversão viewBox→pontos do Page usada no
   // logo abaixo (Svg width/height ≠ viewBox, então a posição em pontos
   // precisa ser escalada; ver bloco do logo mais adiante).
-  const SVG_W = PAGE_W - ABNT_MARGIN_LEFT - ABNT_MARGIN_OTHER;
+  const SVG_W = numInversores >= 4 ? 1280 : (numInversores >= 3 ? 1160 : 812);
   const VB_MINX = numInversores >= 4 ? -100 : (numInversores >= 3 ? -25 : 0);
   const VB_W = numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060);
   const VB_MINY = -25;
   const SVG_SCALE = SVG_W / VB_W;
-  const PAGE_PADDING_LEFT = ABNT_MARGIN_LEFT;
-  const PAGE_PADDING_TOP = ABNT_MARGIN_OTHER;
-  const placaImgLeft = PAGE_PADDING_LEFT + (14 - VB_MINX) * SVG_SCALE;
-  const placaImgTop = PAGE_PADDING_TOP + (44 - VB_MINY) * SVG_SCALE;
+  const PAGE_PADDING = 15;
+  const placaImgLeft = PAGE_PADDING + (14 - VB_MINX) * SVG_SCALE;
+  const placaImgTop = PAGE_PADDING + (44 - VB_MINY) * SVG_SCALE;
   const placaImgW = 42 * SVG_SCALE;
   const placaImgH = 45 * SVG_SCALE;
   const placaImg2W = placaImgW * placaInternaSize;
   const placaImg2H = placaImgH * placaInternaSize;
   // Altura do Svg em pontos, escalada junto com o VB_H (mesma técnica do "top"
   // do logo abaixo) — com YSHIFT=0 fica exatamente igual ao valor de sempre.
-  const SVG_H = VB_H * SVG_SCALE;
+  const SVG_H = (numInversores >= 4 ? 1385 : (numInversores >= 3 ? 1385 : 992)) + YSHIFT * SVG_SCALE;
 
   // Segunda ocorrência da placa — dentro do Padrão de Entrada. Sem DPS, ao lado
   // esquerdo do D1 (posição de sempre); com DPS, ao lado direito (acima do
@@ -381,39 +365,12 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const placa2X = (hasDpsEntrada ? topCX + 112 : topCX - 96) + placa2XEnergisaShift;
   const placa2YEnergisaShift = isEnergisa ? 10 : 0;
   const placa2Y = (hasDpsEntrada ? 146 : 132) + placa2YEnergisaShift;
-  const placaImg2Left = PAGE_PADDING_LEFT + (placa2X - VB_MINX) * SVG_SCALE;
-  const placaImg2Top = PAGE_PADDING_TOP + (placa2Y - VB_MINY) * SVG_SCALE;
-
-  // Retângulo da moldura ABNT: começa exatamente na margem e ocupa toda a
-  // largura/altura útil da folha (a mesma largura do Svg; a altura é a da
-  // folha inteira menos as margens, podendo sobrar um pouco de área em branco
-  // abaixo do diagrama — como já acontecia antes desta moldura existir).
-  const FRAME_W = SVG_W;
-  const FRAME_H = PAGE_H - ABNT_MARGIN_OTHER * 2;
+  const placaImg2Left = PAGE_PADDING + (placa2X - VB_MINX) * SVG_SCALE;
+  const placaImg2Top = PAGE_PADDING + (placa2Y - VB_MINY) * SVG_SCALE;
 
   return (
     <Document>
-      <Page
-        size={numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A3')}
-        style={{
-          paddingTop: ABNT_MARGIN_OTHER,
-          paddingRight: ABNT_MARGIN_OTHER,
-          paddingBottom: ABNT_MARGIN_OTHER,
-          paddingLeft: ABNT_MARGIN_LEFT,
-          backgroundColor: '#FFFFFF',
-        }}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            left: ABNT_MARGIN_LEFT,
-            top: ABNT_MARGIN_OTHER,
-            width: FRAME_W,
-            height: FRAME_H,
-            borderWidth: 1.5,
-            borderColor: '#000000',
-          }}
-        />
+      <Page size={numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A3')} style={{ padding: 15, backgroundColor: '#FFFFFF' }}>
         <Svg width={SVG_W} height={SVG_H} viewBox={`${VB_MINX} ${VB_MINY} ${VB_W} ${VB_H}`}>
 
           {/* Com 1 inversor, todo o circuito (menos o texto da placa CPFL do canto,
@@ -1006,16 +963,14 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
         {/* Logo fora do SVG com posição absoluta sobre a coluna direita do selo.
             Fica fora do <G> de baixo (que só existe dentro do Svg), então acompanha
             o mesmo deslocamento manualmente, convertido para pontos pela mesma
-            escala usada nas outras posições absolutas desta página (mesma técnica
-            da placa de advertência acima — coordenadas do selo no Svg: x=787,
-            y=1132, largura=182, altura=112, ver Preview). */}
+            escala usada nas outras posições absolutas desta página. */}
         {pd.logo_empresa_url && (
           <View style={{
             position: 'absolute',
-            left: PAGE_PADDING_LEFT + (787 - VB_MINX) * SVG_SCALE,
-            top: PAGE_PADDING_TOP + (1132 - VB_MINY) * SVG_SCALE + YSHIFT * SVG_SCALE,
-            width: 182 * SVG_SCALE,
-            height: 112 * SVG_SCALE,
+            left: numInversores >= 3 ? 883 : 618,
+            top: (numInversores >= 3 ? 1252 : 901) + YSHIFT * SVG_SCALE,
+            width: numInversores >= 3 ? 195 : 139,
+            height: numInversores >= 3 ? 120 : 86,
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
