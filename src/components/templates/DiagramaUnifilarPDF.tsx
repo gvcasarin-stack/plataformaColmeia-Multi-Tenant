@@ -365,7 +365,11 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const placa2X = (hasDpsEntrada ? topCX + 112 : topCX - 96) + placa2XEnergisaShift;
   const placa2YEnergisaShift = isEnergisa ? 10 : 0;
   const placa2Y = (hasDpsEntrada ? 146 : 132) + placa2YEnergisaShift;
-  const placaImg2Left = PAGE_PADDING + (placa2X - VB_MINX) * SVG_SCALE;
+  // Na pré-visualização esta 2ª placa fica dentro do <g transform={hShiftTransform}>
+  // (desloca hShift pts com 1 só inversor) — como aqui ela é desenhada fora do Svg
+  // (imagem sobreposta em posição absoluta), precisa somar esse mesmo deslocamento
+  // manualmente, senão a posição diverge da pré-visualização quando há 1 inversor.
+  const placaImg2Left = PAGE_PADDING + (placa2X + hShift - VB_MINX) * SVG_SCALE;
   const placaImg2Top = PAGE_PADDING + (placa2Y - VB_MINY) * SVG_SCALE;
 
   return (
