@@ -59,7 +59,7 @@ const ESTADOS_BR = [
   { value: 'TO', label: 'Tocantins (TO)' },
 ];
 
-type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom' | 'temp_fator_select' | 'strings_config' | 'cpfl_padrao_select';
+type FieldType = 'text' | 'number' | 'select' | 'select_or_custom' | 'date' | 'image' | 'acervo_select' | 'default_with_custom' | 'strings_config' | 'cpfl_padrao_select';
 
 interface FieldDef {
   key: string;
@@ -105,17 +105,8 @@ const DOC_FILTER_OPTIONS: { value: string; label: string }[] = [
 ];
 
 // Cabos CC fotovoltaicos são sempre HEPR/XLPO 1,8 kV (não há mais escolha de
-// material de isolação nesta seção — os fatores de temperatura correspondem
-// à tabela de isolação 90ºC).
+// material de isolação nesta seção).
 const CABO_CC_ISOLACAO_FIXO = 'Cabos CC Fotovoltaico - Cobre HEPR/XLPO 1,8 kV';
-
-const EPR_TEMP_OPTIONS = [
-  { value: '1,04', label: '1,04 (25ºC)' },
-  { value: '0,96', label: '0,96 (35ºC)' },
-  { value: '0,91', label: '0,91 (40ºC)' },
-  { value: '0,87', label: '0,87 (45ºC)' },
-  { value: '0,82', label: '0,82 (50ºC)' },
-];
 
 const AGRUPAMENTO_OPTIONS = [
   { value: '1', label: '1 (sem agrupamento)' },
@@ -255,8 +246,15 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   // Dimensionamento dos Cabos CC
   { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: CABO_CC_ISOLACAO_FIXO, label: CABO_CC_ISOLACAO_FIXO }], group: 'Dimensionamento dos Cabos CC' },
   { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 4', suffix: 'mm²', group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_fator_temperatura', label: 'CC — Temperatura Ambiente', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, suffix: 'ºC', options: [
+    { value: '20', label: '20ºC' },
+    { value: '25', label: '25ºC' },
+    { value: '30', label: '30ºC' },
+    { value: '35', label: '35ºC' },
+    { value: '40', label: '40ºC' },
+    { value: '45', label: '45ºC' },
+    { value: '50', label: '50ºC' },
+  ], group: 'Dimensionamento dos Cabos CC' },
   { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos CC' },
   { key: 'cabo_cc_metodo_instalacao', label: 'Método de Instalação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [
     { value: 'C1', label: 'C1 - Cabos instalados ao livre' },
@@ -264,6 +262,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'C3', label: 'C3 - Cabo em eletroduto diretamente enterrado' },
     { value: 'C4', label: 'C4 - Cabos em eletroduto não metálico em parede' },
   ], group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', help: 'Definida com base no material de isolação, na seção, na temperatura ambiente, no fator de agrupamento e no método de instalação selecionados acima.', group: 'Dimensionamento dos Cabos CC' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
@@ -1534,29 +1533,6 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
             />
           )}
         </div>
-      );
-    }
-
-    if (field.type === 'temp_fator_select') {
-      // Material de Isolação (cabo CC) é sempre HEPR/XLPO 1,8 kV — tabela de
-      // fatores de correção por temperatura fica fixa na de isolação 90ºC.
-      const opts = EPR_TEMP_OPTIONS;
-
-      return (
-        <Select
-          value={value}
-          onValueChange={(val) => handleFieldChange(field.key, val)}
-          disabled={isSkipped}
-        >
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder="Selecione a temperatura" />
-          </SelectTrigger>
-          <SelectContent position="popper" side="bottom" className="max-h-60">
-            {(opts || []).map(opt => (
-              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       );
     }
 

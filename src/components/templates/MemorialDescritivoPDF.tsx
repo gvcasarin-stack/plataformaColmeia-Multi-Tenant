@@ -353,12 +353,13 @@ export function MemorialDescritivoPDF({
   const secaoNeutroRL = projectData?.secao_neutro_rl_mm2;
   const hasRL = secaoFaseRL && secaoNeutroRL;
 
+  // Cabo CC não tem fator de correção por temperatura (diferente do cabo CA) —
+  // a temperatura já está embutida na capacidade de corrente básica do cabo.
   const caboCCCapacidade = parseFloat(String(projectData?.cabo_cc_capacidade_corrente_a || '0')) || 0;
-  const caboCCFatorTemp = parseFloat(String(projectData?.cabo_cc_fator_temperatura || '1')) || 1;
   const caboCCFatorAgrup = parseFloat(String(projectData?.cabo_cc_fator_agrupamento || '1')) || 1;
   const caboCCFinal =
     caboCCCapacidade > 0
-      ? (caboCCCapacidade * caboCCFatorTemp * caboCCFatorAgrup).toFixed(2).replace('.', ',')
+      ? (caboCCCapacidade * caboCCFatorAgrup).toFixed(2).replace('.', ',')
       : null;
 
   const caboCACapacidade = parseFloat(String(projectData?.cabo_ca_capacidade_corrente_a || '0')) || 0;
@@ -1125,10 +1126,10 @@ export function MemorialDescritivoPDF({
           <Li>{`Seção Transversal [mm²]: ${v('cabo_cc_secao_mm2', projectData)}`}</Li>
           <Li>Método de Instalação: B1 (Cabos instalados ao ar livre), em temperatura ambiente de 40º C, instalação ao ar livre exposta ao sol, modo de instalação 1.</Li>
           <Li>{`Capacidade de corrente básica do cabo: ${v('cabo_cc_capacidade_corrente_a', projectData)} A`}</Li>
-          <Li>{`Fator de correção por temperatura: ${v('cabo_cc_fator_temperatura', projectData)}`}</Li>
+          <Li>{`Temperatura Ambiente: ${v('cabo_cc_fator_temperatura', projectData)} ºC`}</Li>
           <Li>{`Fator de Agrupamento: ${v('cabo_cc_fator_agrupamento', projectData)}`}</Li>
           {caboCCFinal ? (
-            <Li>{`Capacidade final do cabo (A) = ${caboCCCapacidade} × ${caboCCFatorTemp.toFixed(2).replace('.', ',')} × ${caboCCFatorAgrup.toFixed(2).replace('.', ',')} = ${caboCCFinal} A`}</Li>
+            <Li>{`Capacidade final do cabo (A) = ${caboCCCapacidade} × ${caboCCFatorAgrup.toFixed(2).replace('.', ',')} = ${caboCCFinal} A`}</Li>
           ) : (
             <Li>Capacidade final do cabo (A) = aguardando preenchimento dos dados</Li>
           )}

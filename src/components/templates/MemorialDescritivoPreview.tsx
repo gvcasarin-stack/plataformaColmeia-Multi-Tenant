@@ -344,10 +344,11 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
   };
 
   // Dimensionamento dos Cabos — Capacidade Final
+  // Cabo CC não tem fator de correção por temperatura (diferente do cabo CA) —
+  // a temperatura já está embutida na capacidade de corrente básica do cabo.
   const caboCCCapacidade = parseFloat(String(projectData?.cabo_cc_capacidade_corrente_a || '0')) || 0;
-  const caboCCFatorTemp = parseFloat(String(projectData?.cabo_cc_fator_temperatura || '1')) || 1;
   const caboCCFatorAgrup = parseFloat(String(projectData?.cabo_cc_fator_agrupamento || '1')) || 1;
-  const caboCCFinal = caboCCCapacidade > 0 ? (caboCCCapacidade * caboCCFatorTemp * caboCCFatorAgrup).toFixed(2).replace('.', ',') : null;
+  const caboCCFinal = caboCCCapacidade > 0 ? (caboCCCapacidade * caboCCFatorAgrup).toFixed(2).replace('.', ',') : null;
 
   const caboCACapacidade = parseFloat(String(projectData?.cabo_ca_capacidade_corrente_a || '0')) || 0;
   const caboCAFatorTemp = parseFloat(String(projectData?.cabo_ca_fator_temperatura || '1')) || 1;
@@ -1125,11 +1126,11 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
           <li>Seção Transversal [mm²]: <V>{`{{cabo_cc_secao_mm2}}`}</V></li>
           <li>Método de Instalação: B1 (Cabos instalados ao ar livre), em temperatura ambiente de 40º C, instalação ao ar livre exposta ao sol, modo de instalação 1.</li>
           <li>Capacidade de corrente básica do cabo: <V>{`{{cabo_cc_capacidade_corrente_a}}`}</V> A</li>
-          <li>Fator de correção por temperatura: <V>{`{{cabo_cc_fator_temperatura}}`}</V></li>
+          <li>Temperatura Ambiente: <V>{`{{cabo_cc_fator_temperatura}}`}</V> ºC</li>
           <li>Fator de Agrupamento: <V>{`{{cabo_cc_fator_agrupamento}}`}</V></li>
           {caboCCFinal ? (
             <li>
-              Capacidade final do cabo (A) = {caboCCCapacidade} × {caboCCFatorTemp.toFixed(2).replace('.', ',')} × {caboCCFatorAgrup.toFixed(2).replace('.', ',')} = <strong>{caboCCFinal} A</strong>
+              Capacidade final do cabo (A) = {caboCCCapacidade} × {caboCCFatorAgrup.toFixed(2).replace('.', ',')} = <strong>{caboCCFinal} A</strong>
             </li>
           ) : (
             <li className="text-gray-400 italic">Capacidade final do cabo (A) = aguardando preenchimento dos dados</li>
