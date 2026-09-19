@@ -425,7 +425,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
             <div style={{ display: 'flex', flexDirection: 'row', height: '90px' }}>
               <div style={{ flex: 1, borderRight: '0.6px solid #000', display: 'flex', flexDirection: 'column' }}>
                 {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((label, i) => {
-                  const values = [dataDoc, 'S/ ESCALA', 'A3', '1/1', 'R0'];
+                  const values = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
                   const h = i < 4 ? '16px' : '26px';
                   return (
                     <div key={label} style={{ height: h, borderBottom: i < 4 ? '0.5px solid #000' : undefined, padding: '1px 3px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: i < 4 ? 'space-between' : 'center', gap: i >= 4 ? '2px' : undefined, overflow: 'hidden' }}>

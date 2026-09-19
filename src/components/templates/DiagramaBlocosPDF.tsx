@@ -487,7 +487,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
               <View style={s.sealSubLeft}>
                 <View style={s.sealSubRow}><Text style={s.sealSubLabel}>DATA</Text><Text style={s.sealSubValue}>{dataDoc}</Text></View>
                 <View style={s.sealSubRow}><Text style={s.sealSubLabel}>ESCALA</Text><Text style={s.sealSubValue}>S/ ESCALA</Text></View>
-                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>TAMANHO</Text><Text style={s.sealSubValue}>A3</Text></View>
+                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>TAMANHO</Text><Text style={s.sealSubValue}>A4</Text></View>
                 <View style={s.sealSubRow}><Text style={s.sealSubLabel}>FOLHA</Text><Text style={s.sealSubValue}>1/1</Text></View>
                 <View style={s.sealSubRowLast}><Text style={s.sealSubLabel}>REVISAO</Text><Text style={s.sealSubValue}>R0</Text></View>
               </View>
