@@ -117,6 +117,9 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
   const isCPFL = distribuidoraStr.includes('cpfl');
   const isEquatorial = distribuidoraStr.includes('equatorial');
   const isEnergisa = distribuidoraStr.includes('energisa');
+  // Mesma logica da pre-visualizacao: "(ACOPLADO AO INVERSOR FV)" so aparece
+  // quando NAO ha Quadro de Protecao CC (Stringbox) configurado no Setup do Projeto.
+  const hasStringbox = fv(pd.setup_quadro_cc, 'nao') !== 'nao';
   // Placa interna (dentro do retangulo do Padrao de Entrada) tambem aparece
   // para Equatorial e Energisa, seguindo o mesmo padrao da CPFL — so a placa
   // externa (com o texto normativo) e exclusiva CPFL.
@@ -614,9 +617,13 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
           <Text x={BR - 8} y={720} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
           <Text x={BR - 8} y={732} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
 
-          {/* (ACOPLADO AO INVERSOR FV) — inside box, upper-left corner */}
-          <Text x={BX + 6} y={721} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
-          <Text x={BX + 6} y={730} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+          {/* (ACOPLADO AO INVERSOR FV) — inside box, upper-left corner — so quando NAO ha Stringbox */}
+          {!hasStringbox && (
+            <>
+              <Text x={BX + 6} y={721} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
+              <Text x={BX + 6} y={730} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+            </>
+          )}
 
           <Text x={228} y={758} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
           <Text x={228} y={767} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
@@ -811,8 +818,12 @@ export function DiagramaUnifilarPDF({ projectData, placaAdvertencia }: DiagramaU
                   <Rect key={`qcc-r-${i}`} x={cCX - 120} y={708 + miQccShift} width={240} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
                   <Text key={`qcc-t1-${i}`} x={cCX + 115} y={720 + miQccShift} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">QUADRO DE</Text>
                   <Text key={`qcc-t2-${i}`} x={cCX + 115} y={730 + miQccShift} fontSize={7} fontFamily="Helvetica-Bold" textAnchor="end" fill="#000">PROTECAO CC</Text>
-                  <Text key={`dpscc-la-${i}`} x={cCX - 115} y={721 + miQccShift} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
-                  <Text key={`dpscc-lb-${i}`} x={cCX - 115} y={730 + miQccShift} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+                  {!hasStringbox && (
+                    <>
+                      <Text key={`dpscc-la-${i}`} x={cCX - 115} y={721 + miQccShift} fontSize={5.5} fill="#000">(ACOPLADO AO</Text>
+                      <Text key={`dpscc-lb-${i}`} x={cCX - 115} y={730 + miQccShift} fontSize={5.5} fill="#000">INVERSOR FV)</Text>
+                    </>
+                  )}
                   <Text key={`dpscc-l0-${i}`} x={cCX - 115} y={758 + miQccShift} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">DPS CC</Text>
                   <Text key={`dpscc-l1-${i}`} x={cCX - 115} y={767 + miQccShift} fontSize={5.5} fill="#000">1040 Vcc, 18-40 kA</Text>
                   <Text key={`dpscc-l2-${i}`} x={cCX - 115} y={776 + miQccShift} fontSize={5.5} fill="#000">Classe II</Text>
