@@ -915,7 +915,7 @@ export function FormularioSolicitacaoPDF({ projectData }: FormularioSolicitacaoP
               <View style={[s.d2, { width: '4%', textAlign: 'center' }]}><Text>{i + 1}</Text></View>
               <View style={[s.d2, { width: '14%', textAlign: 'center' }]}><Text>{inv.fabricante || v('inversores_fabricante', pd)}</Text></View>
               <View style={[s.d2, { width: '16%', textAlign: 'center' }]}><Text>{inv.modelo || v('inversores_modelo', pd)}</Text></View>
-              <View style={[s.d2, { width: '12%', textAlign: 'center' }]}><Text>{inv.potencia || v('inversores_potencia', pd)}</Text></View>
+              <View style={[s.d2, { width: '12%', textAlign: 'center' }]}><Text>{inv.potencia ? fmtBR(parseFloat(String(inv.potencia).replace(',', '.'))) : v('inversores_potencia', pd)}</Text></View>
               <View style={[s.d2, { width: '13%', textAlign: 'center' }]}><Text>{inv.faixa_tensao || v('inversores_faixa_tensao', pd)}</Text></View>
               <View style={[s.d2, { width: '10%', textAlign: 'center' }]}><Text>{inv.corrente_nominal || v('inversores_corrente_nominal', pd)}</Text></View>
               <View style={[s.d2, { width: '11%', textAlign: 'center' }]}><Text>{inv.fator_potencia || v('inversores_fator_potencia', pd)}</Text></View>

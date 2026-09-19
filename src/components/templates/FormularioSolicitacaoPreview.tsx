@@ -820,7 +820,7 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
                     <td style={{ ...D2, textAlign: 'center', color: '#4472C4' }}>{i + 1}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.fabricante || <V>{`{{inversores_fabricante}}`}</V>}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.modelo || <V>{`{{inversores_modelo}}`}</V>}</td>
-                    <td style={{ ...D2, textAlign: 'center' }}>{inv.potencia || <V>{`{{inversores_potencia}}`}</V>}</td>
+                    <td style={{ ...D2, textAlign: 'center' }}>{inv.potencia ? fmtBR(parseFloat(String(inv.potencia).replace(',', '.'))) : <V>{`{{inversores_potencia}}`}</V>}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.faixa_tensao || <V>{`{{inversores_faixa_tensao}}`}</V>}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.corrente_nominal || <V>{`{{inversores_corrente_nominal}}`}</V>}</td>
                     <td style={{ ...D2, textAlign: 'center' }}>{inv.fator_potencia || <V>{`{{inversores_fator_potencia}}`}</V>}</td>
