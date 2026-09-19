@@ -92,7 +92,7 @@ const GROUP_DOCS: Record<string, string[]> = {
   'Dados da Unidade Consumidora': ['acesso'],
   'Coordenadas UTM (Padrão de Entrada)': ['planta', 'acesso'],
   'Planta de Situação': ['planta'],
-  'Dimensionamento dos Cabos': ['unifilar'],
+  'Dimensionamento dos Cabos CC': ['unifilar'],
   'Energisa GD': ['energisa-gd'],
 };
 
@@ -255,6 +255,13 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_peso_kg', label: 'Peso [kg]', type: 'default_with_custom', required: true, suffix: 'kg', defaultValue: '22,2', group: 'Módulos Fotovoltaicos' },
   { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: (fields) => { const qty = parseFloat(String(fields.modulos_quantidade || '0')); return qty > 0 ? (qty * 2.5).toFixed(2).replace('.', ',') : ''; }, group: 'Módulos Fotovoltaicos' },
 
+  // Dimensionamento dos Cabos CC
+  { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'PVC - 70ºC', label: 'PVC - 70ºC' }, { value: 'EPR/XLPE - 70ºC', label: 'EPR/XLPE - 70ºC' }], group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 4', suffix: 'mm²', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos CC' },
+
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
   { key: 'inversores_fabricante', label: 'Fabricante dos Inversores', type: 'text', required: true, group: 'Inversores Fotovoltaicos' },
@@ -316,18 +323,11 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'coord_utm_x', label: 'X (Long)', type: 'text', required: true, placeholder: 'Ex: 345678.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
   { key: 'coord_utm_y', label: 'Y (Lat)', type: 'text', required: true, placeholder: 'Ex: 7654321.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
   // Coordenadas Lat/Long — somente CPFL
-  { key: 'latitude', label: 'Latitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -8.050944', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'], help: 'Coordenada obtida via GPS ou mapa (ex: Google Maps), em graus decimais.' },
-  { key: 'longitude', label: 'Longitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -48.491528', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'] },
+  { key: 'latitude', label: 'Latitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -8.050944', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL', 'Energisa'], help: 'Coordenada obtida via GPS ou mapa (ex: Google Maps), em graus decimais.' },
+  { key: 'longitude', label: 'Longitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -48.491528', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL', 'Energisa'] },
 
   // Planta de Situação (Imagem)
   { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação' },
-
-  // Dimensionamento dos Cabos
-  { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'PVC - 70ºC', label: 'PVC - 70ºC' }, { value: 'EPR/XLPE - 70ºC', label: 'EPR/XLPE - 70ºC' }], group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 4', suffix: 'mm²', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos' },
-  { key: 'cabo_cc_fator_agrupamento', label: 'CC — Fator de Agrupamento', type: 'select', required: true, options: AGRUPAMENTO_OPTIONS, group: 'Dimensionamento dos Cabos' },
 ];
 
 interface ConferirInformacoesModalProps {
