@@ -11,10 +11,29 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{forma_alocacao_creditos}}': 'forma_alocacao_creditos',
 };
 
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+// Normaliza a data (já em DD/MM/AAAA, ou por extenso "DD de mês de AAAA", como
+// data_documento é salvo) para DD/MM/AAAA — mesma conversão do Diagrama Unifilar.
+function formatDataBR(raw: string): string {
+  const str = raw.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+  const match = str.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})$/i);
+  if (match) {
+    const monthIndex = MESES_PT.indexOf(match[2]);
+    if (monthIndex !== -1) {
+      return `${match[1].padStart(2, '0')}/${String(monthIndex + 1).padStart(2, '0')}/${match[3]}`;
+    }
+  }
+  return str;
+}
+
 function v(placeholder: string, projectData?: Record<string, any>): string {
   const fieldKey = PLACEHOLDER_MAP[`{{${placeholder}}}`];
   const raw = fieldKey && projectData ? projectData[fieldKey] : undefined;
-  if (raw !== undefined && raw !== null && raw !== '') return String(raw);
+  if (raw !== undefined && raw !== null && raw !== '') {
+    return fieldKey === 'data_documento' ? formatDataBR(String(raw)) : String(raw);
+  }
   return '___';
 }
 
