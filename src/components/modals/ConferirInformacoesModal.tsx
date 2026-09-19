@@ -104,13 +104,10 @@ const DOC_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'energisa-gd', label: 'Formulário GD Energisa' },
 ];
 
-const PVC_TEMP_OPTIONS = [
-  { value: '1,06', label: '1,06 (25ºC)' },
-  { value: '0,94', label: '0,94 (35ºC)' },
-  { value: '0,87', label: '0,87 (40ºC)' },
-  { value: '0,79', label: '0,79 (45ºC)' },
-  { value: '0,71', label: '0,71 (50ºC)' },
-];
+// Cabos CC fotovoltaicos são sempre HEPR/XLPO 1,8 kV (não há mais escolha de
+// material de isolação nesta seção — os fatores de temperatura correspondem
+// à tabela de isolação 90ºC).
+const CABO_CC_ISOLACAO_FIXO = 'Cabos CC Fotovoltaico - Cobre HEPR/XLPO 1,8 kV';
 
 const EPR_TEMP_OPTIONS = [
   { value: '1,04', label: '1,04 (25ºC)' },
@@ -256,7 +253,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'modulos_area_m2', label: 'Área do Arranjo (m²)', type: 'default_with_custom', required: true, suffix: 'm²', defaultValue: (fields) => { const qty = parseFloat(String(fields.modulos_quantidade || '0')); return qty > 0 ? (qty * 2.5).toFixed(2).replace('.', ',') : ''; }, group: 'Módulos Fotovoltaicos' },
 
   // Dimensionamento dos Cabos CC
-  { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'PVC - 70ºC', label: 'PVC - 70ºC' }, { value: 'EPR/XLPE - 70ºC', label: 'EPR/XLPE - 70ºC' }], group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: CABO_CC_ISOLACAO_FIXO, label: CABO_CC_ISOLACAO_FIXO }], group: 'Dimensionamento dos Cabos CC' },
   { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 4', suffix: 'mm²', group: 'Dimensionamento dos Cabos CC' },
   { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', group: 'Dimensionamento dos Cabos CC' },
   { key: 'cabo_cc_fator_temperatura', label: 'CC — Fator de Correção por Temperatura', type: 'temp_fator_select', required: true, group: 'Dimensionamento dos Cabos CC' },
@@ -694,6 +691,9 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     for (const key of CPF_CNPJ_FIELDS) {
       if (formatted[key]) formatted[key] = formatCpfCnpj(String(formatted[key]));
     }
+    // Material de Isolação do Dimensionamento dos Cabos CC não é mais uma escolha
+    // (PVC/EPR) — normaliza projetos antigos que ainda tenham um desses valores salvos.
+    formatted.cabo_isolacao_material = CABO_CC_ISOLACAO_FIXO;
     setLocalFields(formatted);
     setSkippedFields(initSkippedFields(formatted));
     setCustomOverrides(initCustomOverrides(fields));
@@ -1532,14 +1532,9 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     }
 
     if (field.type === 'temp_fator_select') {
-      const material = localFields.cabo_isolacao_material;
-      const isPVC = material === 'PVC - 70ºC';
-      const isEPR = typeof material === 'string' && material.startsWith('EPR');
-      const opts = isPVC ? PVC_TEMP_OPTIONS : isEPR ? EPR_TEMP_OPTIONS : null;
-
-      if (!material) {
-        return <p className="text-xs text-amber-600 italic">Selecione o Material de Isolação primeiro.</p>;
-      }
+      // Material de Isolação (cabo CC) é sempre HEPR/XLPO 1,8 kV — tabela de
+      // fatores de correção por temperatura fica fixa na de isolação 90ºC.
+      const opts = EPR_TEMP_OPTIONS;
 
       return (
         <Select
