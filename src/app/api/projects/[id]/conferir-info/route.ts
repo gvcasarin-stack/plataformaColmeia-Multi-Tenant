@@ -44,6 +44,7 @@ const CONFERIR_FIELDS = [
   // Dimensionamento dos Cabos
   'cabo_isolacao_material',
   'cabo_cc_secao_mm2', 'cabo_cc_capacidade_corrente_a', 'cabo_cc_fator_temperatura', 'cabo_cc_fator_agrupamento',
+  'cabo_cc_metodo_instalacao', 'cabo_cc_metodo_instalacao_arranjo',
   'cabo_ca_secao_mm2', 'cabo_ca_capacidade_corrente_a', 'cabo_ca_fator_temperatura', 'cabo_ca_fator_agrupamento',
   // Relação de Carga (Folha 2 do Formulário de Solicitação de Acesso — Energisa)
   'energisa_relacao_cargas',
