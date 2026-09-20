@@ -169,18 +169,41 @@ const TABELA_CAPACIDADE_C1_30C: Record<string, { protegido: number[]; exposto: n
   '400,00': { protegido: [880, 901, 998, 952], exposto: [682, 710, 842, 780] },
 };
 
+// Tabela C.3 (NBR 5410) — mesmo Método C1, temperatura ambiente de 40ºC,
+// condutor a 90ºC. Mesma estrutura e mesma ordem de modo 1 a 4 da Tabela C.1.
+const TABELA_CAPACIDADE_C1_40C: Record<string, { protegido: number[]; exposto: number[] }> = {
+  '1,5': { protegido: [24, 23, 27, 23], exposto: [20, 19, 24, 20] },
+  '2,5': { protegido: [32, 31, 36, 32], exposto: [26, 26, 32, 26] },
+  '4,00': { protegido: [42, 41, 48, 42], exposto: [35, 34, 42, 35] },
+  '6,00': { protegido: [53, 53, 61, 54], exposto: [44, 43, 53, 45] },
+  '10,00': { protegido: [74, 74, 85, 76], exposto: [61, 60, 74, 62] },
+  '16,00': { protegido: [98, 98, 112, 101], exposto: [79, 79, 97, 83] },
+  '25,00': { protegido: [131, 131, 149, 136], exposto: [104, 105, 127, 110] },
+  '35,00': { protegido: [163, 164, 185, 170], exposto: [128, 130, 157, 137] },
+  '50,00': { protegido: [205, 208, 233, 215], exposto: [159, 163, 197, 173] },
+  '70,00': { protegido: [255, 259, 291, 270], exposto: [196, 201, 244, 216] },
+  '95,00': { protegido: [307, 313, 350, 326], exposto: [233, 241, 291, 259] },
+  '120,00': { protegido: [360, 367, 411, 384], exposto: [271, 281, 340, 304] },
+  '150,00': { protegido: [415, 424, 473, 444], exposto: [308, 321, 388, 349] },
+  '185,00': { protegido: [474, 484, 539, 508], exposto: [347, 363, 439, 397] },
+  '240,00': { protegido: [568, 581, 645, 611], exposto: [411, 431, 523, 475] },
+  '300,00': { protegido: [656, 671, 746, 708], exposto: [471, 494, 601, 547] },
+  '400,00': { protegido: [790, 808, 897, 854], exposto: [558, 586, 716, 656] },
+};
+
 // Tabelas de capacidade de corrente disponíveis para o Método C1, por
-// temperatura ambiente. Por enquanto só existem 20ºC (Tabela C.1) e 30ºC
-// (Tabela C.2); para as demais temperaturas o campo de Capacidade de
-// Corrente Básica continua editável manualmente.
+// temperatura ambiente. Por enquanto só existem 20ºC (Tabela C.1), 30ºC
+// (Tabela C.2) e 40ºC (Tabela C.3); para as demais temperaturas o campo
+// de Capacidade de Corrente Básica continua editável manualmente.
 const TABELAS_CAPACIDADE_C1: Record<string, Record<string, { protegido: number[]; exposto: number[] }>> = {
   '20': TABELA_CAPACIDADE_C1_20C,
   '30': TABELA_CAPACIDADE_C1_30C,
+  '40': TABELA_CAPACIDADE_C1_40C,
 };
 
 // Deduz automaticamente a Capacidade de Corrente Básica (A) do cabo CC quando
 // Método de Instalação = C1, a Temperatura Ambiente tiver tabela disponível
-// (20ºC ou 30ºC) e Seção + Arranjo (que já inclui a exposição ao sol)
+// (20ºC, 30ºC ou 40ºC) e Seção + Arranjo (que já inclui a exposição ao sol)
 // estiverem selecionados. Fora dessas condições retorna '' e o campo
 // permanece em preenchimento manual normal.
 function getCapacidadeCorrenteC1(fields: Record<string, any>): string {
@@ -355,7 +378,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'C3', label: 'C3 - Cabo em eletroduto diretamente enterrado' },
     { value: 'C4', label: 'C4 - Cabos em eletroduto não metálico em parede' },
   ], group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteC1, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2 (NBR 5410) quando o Método de Instalação for C1, a Temperatura Ambiente for 20ºC ou 30ºC e a Seção e o Arranjo estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteC1, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2/C.3 (NBR 5410) quando o Método de Instalação for C1, a Temperatura Ambiente for 20ºC, 30ºC ou 40ºC e a Seção e o Arranjo estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
