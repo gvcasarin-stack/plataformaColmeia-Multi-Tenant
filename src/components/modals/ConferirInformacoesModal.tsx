@@ -317,13 +317,53 @@ function getCapacidadeCorrenteC2(fields: Record<string, any>): string {
   return val === undefined ? '' : String(val);
 }
 
+// Tabela C.9 (NBR 5410) — Capacidade de condução de corrente (A) para cabos
+// CC em eletroduto diretamente enterrado, Método C3, condutor a 90ºC. Já
+// cobre as 3 temperaturas ambiente disponíveis para o Método C3 (20ºC, 30ºC
+// e 40ºC) numa única tabela — por isso o seletor "CC — Temperatura
+// Ambiente" mostra somente essas 3 opções quando o Método C3 é selecionado.
+const TABELA_CAPACIDADE_C3: Record<string, Record<string, number>> = {
+  '1,5': { '20': 22, '30': 20, '40': 19 },
+  '2,5': { '20': 29, '30': 27, '40': 24 },
+  '4,00': { '20': 37, '30': 34, '40': 31 },
+  '6,00': { '20': 46, '30': 42, '40': 39 },
+  '10,00': { '20': 62, '30': 58, '40': 53 },
+  '16,00': { '20': 79, '30': 74, '40': 67 },
+  '25,00': { '20': 102, '30': 94, '40': 86 },
+  '35,00': { '20': 124, '30': 115, '40': 105 },
+  '50,00': { '20': 151, '30': 140, '40': 128 },
+  '70,00': { '20': 186, '30': 172, '40': 157 },
+  '95,00': { '20': 217, '30': 201, '40': 183 },
+  '120,00': { '20': 250, '30': 232, '40': 212 },
+  '150,00': { '20': 287, '30': 266, '40': 243 },
+  '185,00': { '20': 321, '30': 297, '40': 271 },
+  '240,00': { '20': 380, '30': 352, '40': 321 },
+  '300,00': { '20': 429, '30': 397, '40': 362 },
+  '400,00': { '20': 503, '30': 466, '40': 425 },
+};
+
+// Deduz automaticamente a Capacidade de Corrente Básica (A) do cabo CC quando
+// Método de Instalação = C3, a Temperatura Ambiente for 20ºC, 30ºC ou 40ºC
+// (únicas tabeladas) e a Seção estiver selecionada. Fora dessas condições
+// retorna '' e o campo permanece em preenchimento manual.
+function getCapacidadeCorrenteC3(fields: Record<string, any>): string {
+  if (fields.cabo_cc_metodo_instalacao !== 'C3') return '';
+  const temperatura = String(fields.cabo_cc_fator_temperatura || '');
+  if (!['20', '30', '40'].includes(temperatura)) return '';
+  const row = TABELA_CAPACIDADE_C3[String(fields.cabo_cc_secao_mm2 || '')];
+  if (!row) return '';
+  const val = row[temperatura];
+  return val === undefined ? '' : String(val);
+}
+
 // Ponto único usado pelo campo "CC — Capacidade de Corrente Básica (A)":
-// despacha para a dedução do Método C1 ou C2 conforme o método selecionado.
-// Para qualquer outro método (ou combinação ainda não tabelada) retorna ''
-// e o campo permanece em preenchimento manual normal.
+// despacha para a dedução do Método C1, C2 ou C3 conforme o método
+// selecionado. Para qualquer outro método (ou combinação ainda não
+// tabelada) retorna '' e o campo permanece em preenchimento manual normal.
 function getCapacidadeCorrenteBasica(fields: Record<string, any>): string {
   if (fields.cabo_cc_metodo_instalacao === 'C1') return getCapacidadeCorrenteC1(fields);
   if (fields.cabo_cc_metodo_instalacao === 'C2') return getCapacidadeCorrenteC2(fields);
+  if (fields.cabo_cc_metodo_instalacao === 'C3') return getCapacidadeCorrenteC3(fields);
   return '';
 }
 
@@ -484,7 +524,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'C3', label: 'C3 - Cabo em eletroduto diretamente enterrado' },
     { value: 'C4', label: 'C4 - Cabos em eletroduto não metálico em parede' },
   ], group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteBasica, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2/C.3 (Método C1, NBR 5410) ou pelas Tabelas C.6/C.7/C.8 (Método C2, NBR 5410) quando a Temperatura Ambiente, a Seção e o Arranjo/Profundidade estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteBasica, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2/C.3 (Método C1, NBR 5410), C.6/C.7/C.8 (Método C2, NBR 5410) ou C.9 (Método C3, NBR 5410) quando a Temperatura Ambiente, a Seção e o Arranjo/Profundidade (quando aplicável) estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
@@ -1691,6 +1731,8 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       const selectOptions =
         field.key === 'tensao_atendimento' && localFields.tipo_conexao === 'Monofásico'
           ? [{ value: '127', label: '127 V' }, { value: '220', label: '220 V' }]
+          : field.key === 'cabo_cc_fator_temperatura' && localFields.cabo_cc_metodo_instalacao === 'C3'
+          ? field.options?.filter(opt => ['20', '30', '40'].includes(opt.value))
           : field.options;
       return (
         <Select
