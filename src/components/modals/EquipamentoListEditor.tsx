@@ -45,6 +45,7 @@ const EMPTY_INVERSOR: InversorItem = {
   vcc_partida: '', corrente_nominal: '', quantidade_mppt: '', entradas_por_mppt: '',
   tipo_conexao_saida: '', fator_potencia: '', rendimento: '', dht_corrente: '',
   disjuntor_ca_corrente_a: '', disjuntor_ca_polos: '',
+  cabo_ca_material_isolacao: '',
   tipo_conexao_rede_ca: '',
   faixa_tensao: '176 - 242',
   fator_potencia: '1 (Ajustável)', dht_corrente: '< 3',

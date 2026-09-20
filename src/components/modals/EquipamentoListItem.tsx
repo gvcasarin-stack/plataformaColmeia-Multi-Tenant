@@ -139,6 +139,11 @@ const BITOLA_CA_OPTIONS = [
   '70', '95', '120', '150', '185', '240', '300', '400', '500', '630', '800', '1000',
 ].map(v => ({ value: v, label: `${v} mm²` }));
 
+const MATERIAL_ISOLACAO_CA_OPTIONS = [
+  { value: 'PVC 70ºC', label: 'PVC 70ºC' },
+  { value: 'EPR/XLPE 90ºC', label: 'EPR/XLPE 90ºC' },
+];
+
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface EquipamentoListItemModuloProps {
@@ -308,6 +313,7 @@ export function EquipamentoListItem(props: Props) {
         // Mantém campos de proteção e cabeamento do item atual
         disjuntor_ca_corrente_a: (props.item as InversorItem).disjuntor_ca_corrente_a || '',
         disjuntor_ca_polos: (props.item as InversorItem).disjuntor_ca_polos || '',
+        cabo_ca_material_isolacao: (props.item as InversorItem).cabo_ca_material_isolacao || '',
         cabo_ca_secao_mm2: (props.item as InversorItem).cabo_ca_secao_mm2 || '',
         cabo_ca_secao_fase_mm2: (props.item as InversorItem).cabo_ca_secao_fase_mm2 || '',
         cabo_ca_secao_neutro_mm2: (props.item as InversorItem).cabo_ca_secao_neutro_mm2 || '',
@@ -1055,6 +1061,13 @@ export function EquipamentoListItem(props: Props) {
                     onChange={v => updateField('disjuntor_ca_polos', v)}
                     options={DISJUNTOR_POLOS_OPTIONS}
                     placeholder="Polos"
+                  />
+                  <SelectField
+                    label="Material de Isolação"
+                    value={inv.cabo_ca_material_isolacao || ''}
+                    onChange={v => updateField('cabo_ca_material_isolacao', v)}
+                    options={MATERIAL_ISOLACAO_CA_OPTIONS}
+                    placeholder="Selecione"
                   />
                 </div>
               </div>
