@@ -221,6 +221,64 @@ function getCapacidadeCorrenteC1(fields: Record<string, any>): string {
   return val === undefined ? '' : String(val);
 }
 
+// Tabela C.6 (NBR 5410) — Capacidade de condução de corrente (A) para cabos CC
+// diretamente enterrados, Método C2, temperatura ambiente de 20ºC, condutor
+// a 90ºC. Índice interno = profundidade de instalação (0,5m a 1,00m), na
+// mesma notação do seletor "Profundidade — Método C2".
+const TABELA_CAPACIDADE_C2_20C: Record<string, Record<string, number>> = {
+  '1,5': { '0,5': 27, '0,6': 27, '0,7': 26, '0,8': 26, '0,9': 26, '1,00': 26 },
+  '2,5': { '0,5': 35, '0,6': 35, '0,7': 35, '0,8': 34, '0,9': 34, '1,00': 34 },
+  '4,00': { '0,5': 46, '0,6': 45, '0,7': 45, '0,8': 44, '0,9': 44, '1,00': 43 },
+  '6,00': { '0,5': 57, '0,6': 56, '0,7': 55, '0,8': 55, '0,9': 54, '1,00': 54 },
+  '10,00': { '0,5': 77, '0,6': 75, '0,7': 75, '0,8': 74, '0,9': 73, '1,00': 73 },
+  '16,00': { '0,5': 98, '0,6': 96, '0,7': 95, '0,8': 94, '0,9': 93, '1,00': 93 },
+  '25,00': { '0,5': 125, '0,6': 123, '0,7': 121, '0,8': 120, '0,9': 119, '1,00': 118 },
+  '35,00': { '0,5': 150, '0,6': 148, '0,7': 146, '0,8': 144, '0,9': 143, '1,00': 142 },
+  '50,00': { '0,5': 183, '0,6': 180, '0,7': 178, '0,8': 176, '0,9': 174, '1,00': 172 },
+  '70,00': { '0,5': 222, '0,6': 218, '0,7': 215, '0,8': 212, '0,9': 210, '1,00': 208 },
+  '95,00': { '0,5': 259, '0,6': 254, '0,7': 250, '0,8': 247, '0,9': 244, '1,00': 242 },
+  '120,00': { '0,5': 296, '0,6': 291, '0,7': 287, '0,8': 283, '0,9': 280, '1,00': 277 },
+  '150,00': { '0,5': 334, '0,6': 328, '0,7': 323, '0,8': 319, '0,9': 315, '1,00': 312 },
+  '185,00': { '0,5': 374, '0,6': 366, '0,7': 361, '0,8': 356, '0,9': 352, '1,00': 348 },
+  '240,00': { '0,5': 436, '0,6': 427, '0,7': 420, '0,8': 415, '0,9': 410, '1,00': 405 },
+  '300,00': { '0,5': 493, '0,6': 483, '0,7': 475, '0,8': 469, '0,9': 463, '1,00': 458 },
+  '400,00': { '0,5': 577, '0,6': 565, '0,7': 555, '0,8': 547, '0,9': 540, '1,00': 534 },
+};
+
+// Tabelas de capacidade de corrente disponíveis para o Método C2, por
+// temperatura ambiente. Por enquanto só existe 20ºC (Tabela C.6); para as
+// demais temperaturas o campo de Capacidade de Corrente Básica continua
+// editável manualmente.
+const TABELAS_CAPACIDADE_C2: Record<string, Record<string, Record<string, number>>> = {
+  '20': TABELA_CAPACIDADE_C2_20C,
+};
+
+// Deduz automaticamente a Capacidade de Corrente Básica (A) do cabo CC quando
+// Método de Instalação = C2, a Temperatura Ambiente tiver tabela disponível
+// (por enquanto só 20ºC) e Seção + Profundidade estiverem selecionadas. Fora
+// dessas condições retorna '' e o campo permanece em preenchimento manual.
+function getCapacidadeCorrenteC2(fields: Record<string, any>): string {
+  if (fields.cabo_cc_metodo_instalacao !== 'C2') return '';
+  const tabela = TABELAS_CAPACIDADE_C2[String(fields.cabo_cc_fator_temperatura || '')];
+  if (!tabela) return '';
+  const profundidade = String(fields.cabo_cc_metodo_instalacao_profundidade || '');
+  if (!profundidade) return '';
+  const row = tabela[String(fields.cabo_cc_secao_mm2 || '')];
+  if (!row) return '';
+  const val = row[profundidade];
+  return val === undefined ? '' : String(val);
+}
+
+// Ponto único usado pelo campo "CC — Capacidade de Corrente Básica (A)":
+// despacha para a dedução do Método C1 ou C2 conforme o método selecionado.
+// Para qualquer outro método (ou combinação ainda não tabelada) retorna ''
+// e o campo permanece em preenchimento manual normal.
+function getCapacidadeCorrenteBasica(fields: Record<string, any>): string {
+  if (fields.cabo_cc_metodo_instalacao === 'C1') return getCapacidadeCorrenteC1(fields);
+  if (fields.cabo_cc_metodo_instalacao === 'C2') return getCapacidadeCorrenteC2(fields);
+  return '';
+}
+
 const CPFL_PADRAO_127_220 = [
   { value: 'A1', label: 'A1 - GED 13 (Tab. 1A)' },
   { value: 'A2', label: 'A2 - GED 13 (Tab. 1A)' },
@@ -378,7 +436,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'C3', label: 'C3 - Cabo em eletroduto diretamente enterrado' },
     { value: 'C4', label: 'C4 - Cabos em eletroduto não metálico em parede' },
   ], group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteC1, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2/C.3 (NBR 5410) quando o Método de Instalação for C1, a Temperatura Ambiente for 20ºC, 30ºC ou 40ºC e a Seção e o Arranjo estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteBasica, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2/C.3 (Método C1, NBR 5410) ou pela Tabela C.6 (Método C2, NBR 5410) quando a Temperatura Ambiente, a Seção e o Arranjo/Profundidade estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
@@ -916,7 +974,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia, localFields.inversores_corrente_nominal, localFields.cabo_cc_secao_mm2, localFields.cabo_cc_metodo_instalacao, localFields.cabo_cc_fator_temperatura, localFields.cabo_cc_metodo_instalacao_arranjo]);
+  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia, localFields.inversores_corrente_nominal, localFields.cabo_cc_secao_mm2, localFields.cabo_cc_metodo_instalacao, localFields.cabo_cc_fator_temperatura, localFields.cabo_cc_metodo_instalacao_arranjo, localFields.cabo_cc_metodo_instalacao_profundidade]);
 
   useEffect(() => {
     if (!open) return;
