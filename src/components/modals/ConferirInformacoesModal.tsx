@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { Fragment, useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -2298,55 +2298,14 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                 </div>
               )}
 
-              {groupName === 'Dimensionamento dos Cabos CC' && localFields.cabo_cc_metodo_instalacao === 'C1' && (
-                <div className="mb-4 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20 p-4">
-                  <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1.5">
-                    <Zap className="h-3.5 w-3.5" />
-                    Arranjo dos Cabos Unipolares — Método C1
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
-                    Método C1 (cabos instalados ao livre) exige informar o arranjo dos cabos unipolares e se ficam protegidos ou expostos ao sol.
-                  </p>
-                  <div>
-                    <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
-                      Arranjo <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={localFields.cabo_cc_metodo_instalacao_arranjo || ''}
-                      onValueChange={(v) => setLocalFields(prev => ({ ...prev, cabo_cc_metodo_instalacao_arranjo: v }))}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Protegido do Sol</SelectLabel>
-                          <SelectItem value="1_protegido">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
-                          <SelectItem value="2_protegido">2) Dois cabos unipolares encostados um ao outro, na vertical</SelectItem>
-                          <SelectItem value="3_protegido">3) Dois cabos unipolares espaçados em, pelo menos 0,75 x diâmetro externo</SelectItem>
-                          <SelectItem value="4_protegido">4) Dois cabos unipolares espaçados em, pelo menos um diâmetro externo, na vertical</SelectItem>
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>Exposto ao Sol</SelectLabel>
-                          <SelectItem value="1_exposto">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
-                          <SelectItem value="2_exposto">2) Dois cabos unipolares encostados um ao outro, na vertical</SelectItem>
-                          <SelectItem value="3_exposto">3) Dois cabos unipolares espaçados em, pelo menos 0,75 x diâmetro externo</SelectItem>
-                          <SelectItem value="4_exposto">4) Dois cabos unipolares espaçados em, pelo menos um diâmetro externo, na vertical</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3">
                 {visibleFields.map(field => {
                   const invalid = isFieldInvalid(field);
                   const fromCadastro = !invalid && isFieldFromCadastro(field.key);
                   const isMatch = fieldMatchesSearch(field);
                   return (
+                  <Fragment key={field.key}>
                   <div
-                    key={field.key}
                     ref={(el) => { fieldRefs.current[field.key] = el; }}
                     tabIndex={-1}
                     className={`flex items-start gap-3 group rounded-md -mx-1 px-1 py-0.5 transition-colors ${field.span2 ? 'lg:col-span-2' : ''} ${isMatch ? 'ring-1 ring-blue-300 dark:ring-blue-700 bg-blue-50/50 dark:bg-blue-950/20' : ''} ${searchTerm.trim() && !isMatch ? 'opacity-40' : ''}`}
@@ -2401,6 +2360,47 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                       </div>
                     )}
                   </div>
+                  {groupName === 'Dimensionamento dos Cabos CC' && field.key === 'cabo_cc_metodo_instalacao' && localFields.cabo_cc_metodo_instalacao === 'C1' && (
+                    <div className="lg:col-span-2 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20 p-4">
+                      <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5" />
+                        Arranjo dos Cabos Unipolares — Método C1
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+                        Método C1 (cabos instalados ao livre) exige informar o arranjo dos cabos unipolares e se ficam protegidos ou expostos ao sol.
+                      </p>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+                          Arranjo <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={localFields.cabo_cc_metodo_instalacao_arranjo || ''}
+                          onValueChange={(v) => setLocalFields(prev => ({ ...prev, cabo_cc_metodo_instalacao_arranjo: v }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel>Protegido do Sol</SelectLabel>
+                              <SelectItem value="1_protegido">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
+                              <SelectItem value="2_protegido">2) Dois cabos unipolares encostados um ao outro, na vertical</SelectItem>
+                              <SelectItem value="3_protegido">3) Dois cabos unipolares espaçados em, pelo menos 0,75 x diâmetro externo</SelectItem>
+                              <SelectItem value="4_protegido">4) Dois cabos unipolares espaçados em, pelo menos um diâmetro externo, na vertical</SelectItem>
+                            </SelectGroup>
+                            <SelectGroup>
+                              <SelectLabel>Exposto ao Sol</SelectLabel>
+                              <SelectItem value="1_exposto">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
+                              <SelectItem value="2_exposto">2) Dois cabos unipolares encostados um ao outro, na vertical</SelectItem>
+                              <SelectItem value="3_exposto">3) Dois cabos unipolares espaçados em, pelo menos 0,75 x diâmetro externo</SelectItem>
+                              <SelectItem value="4_exposto">4) Dois cabos unipolares espaçados em, pelo menos um diâmetro externo, na vertical</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                  </Fragment>
                   );
                 })}
               </div>
