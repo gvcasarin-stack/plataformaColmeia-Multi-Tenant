@@ -2454,6 +2454,38 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                       </div>
                     </div>
                   )}
+                  {groupName === 'Dimensionamento dos Cabos CC' && field.key === 'cabo_cc_metodo_instalacao' && localFields.cabo_cc_metodo_instalacao === 'C2' && (
+                    <div className="lg:col-span-2 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20 p-4">
+                      <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5" />
+                        Profundidade — Método C2
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+                        Método C2 (cabo diretamente enterrado) exige informar a profundidade de instalação do cabo.
+                      </p>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+                          Profundidade <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={localFields.cabo_cc_metodo_instalacao_profundidade || ''}
+                          onValueChange={(v) => setLocalFields(prev => ({ ...prev, cabo_cc_metodo_instalacao_profundidade: v }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0,5">0,5 m</SelectItem>
+                            <SelectItem value="0,6">0,6 m</SelectItem>
+                            <SelectItem value="0,7">0,7 m</SelectItem>
+                            <SelectItem value="0,8">0,8 m</SelectItem>
+                            <SelectItem value="0,9">0,9 m</SelectItem>
+                            <SelectItem value="1,00">1,00 m</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
                   </Fragment>
                   );
                 })}

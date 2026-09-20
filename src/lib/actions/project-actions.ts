@@ -2234,6 +2234,7 @@ export async function getProjectAction(projectId: string): Promise<{
       cabo_cc_fator_agrupamento: data.cabo_cc_fator_agrupamento || undefined,
       cabo_cc_metodo_instalacao: data.cabo_cc_metodo_instalacao || undefined,
       cabo_cc_metodo_instalacao_arranjo: data.cabo_cc_metodo_instalacao_arranjo || undefined,
+      cabo_cc_metodo_instalacao_profundidade: data.cabo_cc_metodo_instalacao_profundidade || undefined,
       cabo_ca_secao_mm2: data.cabo_ca_secao_mm2 || undefined,
       cabo_ca_capacidade_corrente_a: data.cabo_ca_capacidade_corrente_a || undefined,
       cabo_ca_fator_temperatura: data.cabo_ca_fator_temperatura || undefined,
