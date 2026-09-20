@@ -268,13 +268,37 @@ const TABELA_CAPACIDADE_C2_30C: Record<string, Record<string, number>> = {
   '400,00': { '0,5': 534, '0,6': 523, '0,7': 514, '0,8': 506, '0,9': 500, '1,00': 495 },
 };
 
+// Tabela C.8 (NBR 5410) — mesmo Método C2, temperatura ambiente de 40ºC,
+// condutor a 90ºC. Mesma estrutura e mesma notação de profundidade da
+// Tabela C.6.
+const TABELA_CAPACIDADE_C2_40C: Record<string, Record<string, number>> = {
+  '1,5': { '0,5': 23, '0,6': 22, '0,7': 22, '0,8': 22, '0,9': 22, '1,00': 22 },
+  '2,5': { '0,5': 30, '0,6': 29, '0,7': 29, '0,8': 29, '0,9': 29, '1,00': 28 },
+  '4,00': { '0,5': 39, '0,6': 38, '0,7': 38, '0,8': 37, '0,9': 37, '1,00': 37 },
+  '6,00': { '0,5': 48, '0,6': 47, '0,7': 47, '0,8': 46, '0,9': 46, '1,00': 46 },
+  '10,00': { '0,5': 65, '0,6': 64, '0,7': 63, '0,8': 62, '0,9': 62, '1,00': 61 },
+  '16,00': { '0,5': 83, '0,6': 81, '0,7': 80, '0,8': 80, '0,9': 79, '1,00': 78 },
+  '25,00': { '0,5': 105, '0,6': 104, '0,7': 102, '0,8': 101, '0,9': 100, '1,00': 99 },
+  '35,00': { '0,5': 127, '0,6': 125, '0,7': 123, '0,8': 122, '0,9': 121, '1,00': 120 },
+  '50,00': { '0,5': 155, '0,6': 152, '0,7': 150, '0,8': 148, '0,9': 147, '1,00': 146 },
+  '70,00': { '0,5': 187, '0,6': 184, '0,7': 181, '0,8': 179, '0,9': 177, '1,00': 176 },
+  '95,00': { '0,5': 219, '0,6': 215, '0,7': 212, '0,8': 209, '0,9': 207, '1,00': 205 },
+  '120,00': { '0,5': 251, '0,6': 246, '0,7': 242, '0,8': 239, '0,9': 236, '1,00': 234 },
+  '150,00': { '0,5': 282, '0,6': 277, '0,7': 273, '0,8': 269, '0,9': 266, '1,00': 264 },
+  '185,00': { '0,5': 316, '0,6': 310, '0,7': 305, '0,8': 301, '0,9': 297, '1,00': 294 },
+  '240,00': { '0,5': 368, '0,6': 361, '0,7': 355, '0,8': 350, '0,9': 346, '1,00': 343 },
+  '300,00': { '0,5': 417, '0,6': 408, '0,7': 402, '0,8': 396, '0,9': 391, '1,00': 387 },
+  '400,00': { '0,5': 488, '0,6': 477, '0,7': 469, '0,8': 462, '0,9': 457, '1,00': 452 },
+};
+
 // Tabelas de capacidade de corrente disponíveis para o Método C2, por
-// temperatura ambiente. Por enquanto só existem 20ºC (Tabela C.6) e 30ºC
-// (Tabela C.7); para as demais temperaturas o campo de Capacidade de
-// Corrente Básica continua editável manualmente.
+// temperatura ambiente. Por enquanto só existem 20ºC (Tabela C.6), 30ºC
+// (Tabela C.7) e 40ºC (Tabela C.8); para as demais temperaturas o campo
+// de Capacidade de Corrente Básica continua editável manualmente.
 const TABELAS_CAPACIDADE_C2: Record<string, Record<string, Record<string, number>>> = {
   '20': TABELA_CAPACIDADE_C2_20C,
   '30': TABELA_CAPACIDADE_C2_30C,
+  '40': TABELA_CAPACIDADE_C2_40C,
 };
 
 // Deduz automaticamente a Capacidade de Corrente Básica (A) do cabo CC quando
@@ -460,7 +484,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'C3', label: 'C3 - Cabo em eletroduto diretamente enterrado' },
     { value: 'C4', label: 'C4 - Cabos em eletroduto não metálico em parede' },
   ], group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteBasica, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2/C.3 (Método C1, NBR 5410) ou pelas Tabelas C.6/C.7 (Método C2, NBR 5410) quando a Temperatura Ambiente, a Seção e o Arranjo/Profundidade estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteBasica, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2/C.3 (Método C1, NBR 5410) ou pelas Tabelas C.6/C.7/C.8 (Método C2, NBR 5410) quando a Temperatura Ambiente, a Seção e o Arranjo/Profundidade estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
