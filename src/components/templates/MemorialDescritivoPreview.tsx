@@ -121,6 +121,9 @@ const PLACEHOLDER_MAP: Record<string, string> = {
   '{{cabo_cc_fator_temperatura}}': 'cabo_cc_fator_temperatura',
   '{{cabo_cc_fator_agrupamento}}': 'cabo_cc_fator_agrupamento',
   '{{cabo_ca_secao_mm2}}': 'cabo_ca_secao_mm2',
+  '{{cabo_ca_secao_fase_mm2}}': 'cabo_ca_secao_fase_mm2',
+  '{{cabo_ca_secao_neutro_mm2}}': 'cabo_ca_secao_neutro_mm2',
+  '{{cabo_ca_secao_terra_mm2}}': 'cabo_ca_secao_terra_mm2',
   '{{cabo_ca_capacidade_corrente_a}}': 'cabo_ca_capacidade_corrente_a',
   '{{cabo_ca_fator_temperatura}}': 'cabo_ca_fator_temperatura',
   '{{cabo_ca_fator_agrupamento}}': 'cabo_ca_fator_agrupamento',
@@ -263,6 +266,9 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
     'secao_neutro_mm2',
     'cabo_cc_secao_mm2',
     'cabo_ca_secao_mm2',
+    'cabo_ca_secao_fase_mm2',
+    'cabo_ca_secao_neutro_mm2',
+    'cabo_ca_secao_terra_mm2',
   ];
 
   const handleSpacingChange = useCallback((id: string, delta: number) => {
@@ -1141,13 +1147,16 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
           const inversList = getAllInversores(projectData);
           const totalUnits = inversList.reduce((acc, inv) => acc + (parseInt(String(inv.quantidade || '1')) || 1), 0);
           const isAgrupadas = String(projectData?.setup_configuracao_saidas || '') === 'agrupadas';
-          const units: Array<{ n: number; secao: string; cap: number; ft: number; fa: number }> = [];
+          const units: Array<{ n: number; secaoFase: string; secaoNeutro: string; secaoTerra: string; cap: number; ft: number; fa: number }> = [];
           inversList.forEach(inv => {
             const qty = parseInt(String(inv.quantidade || '1')) || 1;
+            const secaoLegado = String(inv.cabo_ca_secao_mm2 || projectData?.cabo_ca_secao_mm2 || '');
             for (let u = 0; u < qty; u++) {
               units.push({
                 n: units.length + 1,
-                secao: String(inv.cabo_ca_secao_mm2 || projectData?.cabo_ca_secao_mm2 || ''),
+                secaoFase: String(inv.cabo_ca_secao_fase_mm2 || secaoLegado),
+                secaoNeutro: String(inv.cabo_ca_secao_neutro_mm2 || secaoLegado),
+                secaoTerra: String(inv.cabo_ca_secao_terra_mm2 || secaoLegado),
                 cap: parseFloat(String(inv.cabo_ca_capacidade_corrente_a || projectData?.cabo_ca_capacidade_corrente_a || '0')) || 0,
                 ft: parseFloat(String(inv.cabo_ca_fator_temperatura || projectData?.cabo_ca_fator_temperatura || '1')) || 1,
                 fa: parseFloat(String(inv.cabo_ca_fator_agrupamento || projectData?.cabo_ca_fator_agrupamento || '1')) || 1,
@@ -1155,7 +1164,8 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
             }
           });
           if (units.length === 0) {
-            units.push({ n: 1, secao: String(projectData?.cabo_ca_secao_mm2 || ''), cap: caboCACapacidade, ft: caboCAFatorTemp, fa: caboCAFatorAgrup });
+            const secaoLegado = String(projectData?.cabo_ca_secao_mm2 || '');
+            units.push({ n: 1, secaoFase: secaoLegado, secaoNeutro: secaoLegado, secaoTerra: secaoLegado, cap: caboCACapacidade, ft: caboCAFatorTemp, fa: caboCAFatorAgrup });
           }
           const qSecao = String(projectData?.cabo_quadro_ca_secao_mm2 || '');
           const qCap = parseFloat(String(projectData?.cabo_quadro_ca_capacidade_corrente_a || '0')) || 0;
@@ -1164,7 +1174,7 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
           const qFinal = qCap > 0 ? (qCap * qFt * qFa).toFixed(2).replace('.', ',') : null;
           return (
             <>
-              {units.map(({ n, secao, cap, ft, fa }) => {
+              {units.map(({ n, secaoFase, secaoNeutro, secaoTerra, cap, ft, fa }) => {
                 const final = cap > 0 ? (cap * ft * fa).toFixed(2).replace('.', ',') : null;
                 const label = totalUnits <= 1 ? 'Cabos CA' : `Cabos CA — Inversor ${n}`;
                 return (
@@ -1173,7 +1183,9 @@ export function MemorialDescritivoPreview({ distribuidora, projectData, onSaveCa
                     <ul className="list-disc list-inside mb-4">
                       <li>Isolação: PVC</li>
                       <li>Isolamento: 1,0 kV</li>
-                      <li>Seção Transversal [mm²]: {secao ? <V>{secao}</V> : <V>{`{{cabo_ca_secao_mm2}}`}</V>}</li>
+                      <li>Seção Transversal do(s) Condutor(es) Fase [mm²]: {secaoFase ? <V>{secaoFase}</V> : <V>{`{{cabo_ca_secao_fase_mm2}}`}</V>}</li>
+                      <li>Seção Transversal do Condutor Neutro [mm²]: {secaoNeutro ? <V>{secaoNeutro}</V> : <V>{`{{cabo_ca_secao_neutro_mm2}}`}</V>}</li>
+                      <li>Seção Transversal do Condutor Terra [mm²]: {secaoTerra ? <V>{secaoTerra}</V> : <V>{`{{cabo_ca_secao_terra_mm2}}`}</V>}</li>
                       <li>Método de Instalação: B1 (cabos unipolares em eletrodutos aparentes), com dois condutores carregados.</li>
                       <li>Capacidade de corrente básica do cabo: {cap > 0 ? cap : <V>{`{{cabo_ca_capacidade_corrente_a}}`}</V>} A</li>
                       <li>Fator de correção por temperatura: {cap > 0 ? ft.toFixed(2).replace('.', ',') : <V>{`{{cabo_ca_fator_temperatura}}`}</V>}</li>

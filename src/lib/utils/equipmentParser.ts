@@ -83,6 +83,9 @@ export interface InversorItem {
   disjuntor_ca_polos?: string;
   tipo_conexao_rede_ca?: string;
   cabo_ca_secao_mm2?: string;
+  cabo_ca_secao_fase_mm2?: string;
+  cabo_ca_secao_neutro_mm2?: string;
+  cabo_ca_secao_terra_mm2?: string;
   cabo_ca_capacidade_corrente_a?: string;
   cabo_ca_fator_temperatura?: string;
   cabo_ca_fator_agrupamento?: string;

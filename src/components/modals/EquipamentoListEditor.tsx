@@ -49,6 +49,7 @@ const EMPTY_INVERSOR: InversorItem = {
   faixa_tensao: '176 - 242',
   fator_potencia: '1 (Ajustável)', dht_corrente: '< 3',
   cabo_ca_secao_mm2: '', cabo_ca_capacidade_corrente_a: '',
+  cabo_ca_secao_fase_mm2: '', cabo_ca_secao_neutro_mm2: '', cabo_ca_secao_terra_mm2: '',
   cabo_ca_fator_temperatura: '', cabo_ca_fator_agrupamento: '',
 };
 

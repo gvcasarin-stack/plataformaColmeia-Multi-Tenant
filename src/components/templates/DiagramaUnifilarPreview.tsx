@@ -218,6 +218,13 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
   const caboCC     = fv(pd.cabo_cc_secao_mm2, '4,0');
   const caboCA     = fv(pd.cabo_ca_secao_mm2, '10,0');
+  // Seções por condutor do cabo CA do inversor (Fase/Neutro/Terra). Cada uma
+  // cai para o campo único legado cabo_ca_secao_mm2 (projeto) quando o
+  // projeto ainda não tem os 3 campos novos preenchidos — mantém compatível
+  // com projetos antigos.
+  const caboCaFase   = fv(pd.cabo_ca_secao_fase_mm2 || pd.cabo_ca_secao_mm2, '10,0');
+  const caboCaNeutro = fv(pd.cabo_ca_secao_neutro_mm2 || pd.cabo_ca_secao_mm2, '10,0');
+  const caboCaTerra  = fv(pd.cabo_ca_secao_terra_mm2 || pd.cabo_ca_secao_mm2, '10,0');
   // Seção do Ramal de Ligação (não confundir com secao_fase_mm2/secao_neutro_mm2,
   // que são do Ramal de Entrada — usados no Memorial Descritivo, campo diferente).
   const secaoFase   = fv(pd.secao_fase_rl_mm2, '10,0');
@@ -268,11 +275,16 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
 
   const physicalInvCabo = (() => {
     const invsList = getAllInversores(pd);
-    const result: Array<{ secao: string }> = [];
+    const result: Array<{ secaoFase: string; secaoNeutro: string; secaoTerra: string }> = [];
     for (const inv of invsList) {
       const qty = parseInt(String(inv.quantidade || '1')) || 1;
+      const secaoLegado = inv.cabo_ca_secao_mm2 || caboCA;
       for (let u = 0; u < qty; u++) {
-        result.push({ secao: inv.cabo_ca_secao_mm2 || caboCA });
+        result.push({
+          secaoFase: inv.cabo_ca_secao_fase_mm2 || secaoLegado,
+          secaoNeutro: inv.cabo_ca_secao_neutro_mm2 || secaoLegado,
+          secaoTerra: inv.cabo_ca_secao_terra_mm2 || secaoLegado,
+        });
       }
     }
     return result;
@@ -557,9 +569,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* CA cables annotation — centered on main line */}
           <line x1={CX} y1="330" x2={CX + 12} y2="330" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
           <text x={CX + 15} y="323" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-          <text x={CX + 15} y="331" fontSize="5.5">{`${caboCaFCount} #${physicalInvCabo[0]?.secao || caboCA}mm² (F)`}</text>
-          <text x={CX + 15} y="339" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secao || caboCA}mm² ${caboCaMidLabel}`}</text>
-          <text x={CX + 15} y="347" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secao || caboCA}mm² (T)`}</text>
+          <text x={CX + 15} y="331" fontSize="5.5">{`${caboCaFCount} #${physicalInvCabo[0]?.secaoFase || caboCaFase}mm² (F)`}</text>
+          <text x={CX + 15} y="339" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secaoNeutro || caboCaNeutro}mm² ${caboCaMidLabel}`}</text>
+          <text x={CX + 15} y="347" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secaoTerra || caboCaTerra}mm² (T)`}</text>
 
           {/* ═══════════════ QUADRO DE PROTEÇÃO CA ═══════════════ */}
           <rect x={BX} y="358" width={BW} height="122" fill="white" stroke="#000" strokeWidth="1.2" />
@@ -593,9 +605,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
           {/* CA cables annotation — between QUADRO CA exit and INVERSOR (same style as DIST→CA) */}
           <line x1={CX} y1="502" x2={CX + 12} y2="502" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
           <text x={CX + 15} y="495" fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-          <text x={CX + 15} y="503" fontSize="5.5">{`${caboCaFCount} #${physicalInvCabo[0]?.secao || caboCA}mm² (F)`}</text>
-          <text x={CX + 15} y="511" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secao || caboCA}mm² ${caboCaMidLabel}`}</text>
-          <text x={CX + 15} y="519" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secao || caboCA}mm² (T)`}</text>
+          <text x={CX + 15} y="503" fontSize="5.5">{`${caboCaFCount} #${physicalInvCabo[0]?.secaoFase || caboCaFase}mm² (F)`}</text>
+          <text x={CX + 15} y="511" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secaoNeutro || caboCaNeutro}mm² ${caboCaMidLabel}`}</text>
+          <text x={CX + 15} y="519" fontSize="5.5">{`1 #${physicalInvCabo[0]?.secaoTerra || caboCaTerra}mm² (T)`}</text>
 
           {/* ═══════════════ INVERSOR ═══════════════ */}
           {/* Reduced to ~1/4 size (w=120, h=55), centered at CX */}
@@ -797,9 +809,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                     {/* Cabos CA — barramento → Quadro CA */}
                     <line x1={cCX} y1={330} x2={cCX + 12} y2={330} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
                     <text x={cCX + 15} y={323} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                    <text x={cCX + 15} y={331} fontSize="5.5">{`${caboCaFCount} #${invCabo.secao}mm² (F)`}</text>
-                    <text x={cCX + 15} y={339} fontSize="5.5">{`1 #${invCabo.secao}mm² ${caboCaMidLabel}`}</text>
-                    <text x={cCX + 15} y={347} fontSize="5.5">{`1 #${invCabo.secao}mm² (T)`}</text>
+                    <text x={cCX + 15} y={331} fontSize="5.5">{`${caboCaFCount} #${invCabo.secaoFase}mm² (F)`}</text>
+                    <text x={cCX + 15} y={339} fontSize="5.5">{`1 #${invCabo.secaoNeutro}mm² ${caboCaMidLabel}`}</text>
+                    <text x={cCX + 15} y={347} fontSize="5.5">{`1 #${invCabo.secaoTerra}mm² (T)`}</text>
                     {/* QUADRO DE PROTEÇÃO CA */}
                     <rect x={cCX - 120} y={358} width={240} height={122} fill="white" stroke="#000" strokeWidth="1.2" />
                     <text x={cCX + 115} y={371} fontSize="7" fontWeight="bold" textAnchor="end">QUADRO DE</text>
@@ -834,9 +846,9 @@ export function DiagramaUnifilarPreview({ projectData }: DiagramaUnifilarPreview
                   {/* Cabos CA — QD CA → Inversor */}
                   <line x1={cCX} y1={isSaidaAgrupada ? 568 : 502} x2={cCX + 12} y2={isSaidaAgrupada ? 568 : 502} stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
                   <text x={cCX + 15} y={isSaidaAgrupada ? 561 : 495} fontSize="5.5" fontWeight="bold">Cabos CA - PVC 70°C - 1,0 kV</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 576 : 503} fontSize="5.5">{`${caboCaFCount} #${invCabo.secao}mm² (F)`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 584 : 511} fontSize="5.5">{`1 #${invCabo.secao}mm² ${caboCaMidLabel}`}</text>
-                  <text x={cCX + 15} y={isSaidaAgrupada ? 592 : 519} fontSize="5.5">{`1 #${invCabo.secao}mm² (T)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 576 : 503} fontSize="5.5">{`${caboCaFCount} #${invCabo.secaoFase}mm² (F)`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 584 : 511} fontSize="5.5">{`1 #${invCabo.secaoNeutro}mm² ${caboCaMidLabel}`}</text>
+                  <text x={cCX + 15} y={isSaidaAgrupada ? 592 : 519} fontSize="5.5">{`1 #${invCabo.secaoTerra}mm² (T)`}</text>
 
                   {/* INVERSOR */}
                   <text x={cBR + 15} y={551 + miInvShift} fontSize="8" fontWeight="bold" textAnchor="end">INVERSOR {i + 1}</text>

@@ -134,6 +134,11 @@ const TEMP_FATOR_OPTIONS = [
   { value: '0,71', label: '0,71 (PVC 50ºC)' },
 ];
 
+const BITOLA_CA_OPTIONS = [
+  '0,5', '0,75', '1', '1,5', '2,5', '4', '6', '10', '16', '25', '35', '50',
+  '70', '95', '120', '150', '185', '240', '300', '400', '500', '630', '800', '1000',
+].map(v => ({ value: v, label: `${v} mm²` }));
+
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface EquipamentoListItemModuloProps {
@@ -304,6 +309,9 @@ export function EquipamentoListItem(props: Props) {
         disjuntor_ca_corrente_a: (props.item as InversorItem).disjuntor_ca_corrente_a || '',
         disjuntor_ca_polos: (props.item as InversorItem).disjuntor_ca_polos || '',
         cabo_ca_secao_mm2: (props.item as InversorItem).cabo_ca_secao_mm2 || '',
+        cabo_ca_secao_fase_mm2: (props.item as InversorItem).cabo_ca_secao_fase_mm2 || '',
+        cabo_ca_secao_neutro_mm2: (props.item as InversorItem).cabo_ca_secao_neutro_mm2 || '',
+        cabo_ca_secao_terra_mm2: (props.item as InversorItem).cabo_ca_secao_terra_mm2 || '',
         cabo_ca_capacidade_corrente_a: (props.item as InversorItem).cabo_ca_capacidade_corrente_a || '',
         cabo_ca_fator_temperatura: (props.item as InversorItem).cabo_ca_fator_temperatura || '',
         cabo_ca_fator_agrupamento: (props.item as InversorItem).cabo_ca_fator_agrupamento || '',
@@ -1053,7 +1061,27 @@ export function EquipamentoListItem(props: Props) {
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Cabeamento CA</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="Seção Transversal (mm²)" value={inv.cabo_ca_secao_mm2 || ''} onChange={v => updateField('cabo_ca_secao_mm2', v)} suffix="mm²" placeholder="Ex: 6" />
+                  <SelectField
+                    label="Seção Transversal do(s) Condutor(es) Fase (mm²)"
+                    value={inv.cabo_ca_secao_fase_mm2 || ''}
+                    onChange={v => updateField('cabo_ca_secao_fase_mm2', v)}
+                    options={BITOLA_CA_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Seção Transversal do Condutor Neutro (mm²)"
+                    value={inv.cabo_ca_secao_neutro_mm2 || ''}
+                    onChange={v => updateField('cabo_ca_secao_neutro_mm2', v)}
+                    options={BITOLA_CA_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Seção Transversal do Condutor Terra (mm²)"
+                    value={inv.cabo_ca_secao_terra_mm2 || ''}
+                    onChange={v => updateField('cabo_ca_secao_terra_mm2', v)}
+                    options={BITOLA_CA_OPTIONS}
+                    placeholder="Selecione"
+                  />
                   <Field label="Cap. de Corrente (A)" value={inv.cabo_ca_capacidade_corrente_a || ''} onChange={v => updateField('cabo_ca_capacidade_corrente_a', v)} suffix="A" placeholder="Ex: 41" />
                   <SelectField
                     label="Fator de Temperatura"
