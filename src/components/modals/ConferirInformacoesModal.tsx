@@ -329,7 +329,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'longitude', label: 'Longitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -48.491528', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL', 'Energisa'] },
 
   // Planta de Situação (Imagem)
-  { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação' },
+  { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação', onlyForDistribuidoras: ['Equatorial'] },
 ];
 
 interface ConferirInformacoesModalProps {
