@@ -245,7 +245,25 @@ const FIELD_DEFINITIONS: FieldDef[] = [
 
   // Dimensionamento dos Cabos CC
   { key: 'cabo_isolacao_material', label: 'Material de Isolação', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: CABO_CC_ISOLACAO_FIXO, label: CABO_CC_ISOLACAO_FIXO }], group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 4', suffix: 'mm²', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_secao_mm2', label: 'CC — Seção Transversal (mm²)', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, suffix: 'mm²', options: [
+    { value: '1,5', label: '1,5 mm²' },
+    { value: '2,5', label: '2,5 mm²' },
+    { value: '4,00', label: '4,00 mm²' },
+    { value: '6,00', label: '6,00 mm²' },
+    { value: '10,00', label: '10,00 mm²' },
+    { value: '16,00', label: '16,00 mm²' },
+    { value: '25,00', label: '25,00 mm²' },
+    { value: '35,00', label: '35,00 mm²' },
+    { value: '50,00', label: '50,00 mm²' },
+    { value: '70,00', label: '70,00 mm²' },
+    { value: '95,00', label: '95,00 mm²' },
+    { value: '120,00', label: '120,00 mm²' },
+    { value: '150,00', label: '150,00 mm²' },
+    { value: '185,00', label: '185,00 mm²' },
+    { value: '240,00', label: '240,00 mm²' },
+    { value: '300,00', label: '300,00 mm²' },
+    { value: '400,00', label: '400,00 mm²' },
+  ], group: 'Dimensionamento dos Cabos CC' },
   { key: 'cabo_cc_fator_temperatura', label: 'CC — Temperatura Ambiente', icon: <Zap className="h-3.5 w-3.5" />, type: 'select', required: true, suffix: 'ºC', options: [
     { value: '20', label: '20ºC' },
     { value: '25', label: '25ºC' },
