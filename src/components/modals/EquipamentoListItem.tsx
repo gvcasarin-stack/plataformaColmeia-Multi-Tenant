@@ -144,6 +144,18 @@ const MATERIAL_ISOLACAO_CA_OPTIONS = [
   { value: 'EPR/XLPE 90ºC', label: 'EPR/XLPE 90ºC' },
 ];
 
+const METODO_INSTALACAO_CA_OPTIONS = [
+  { codigo: 'A1', descricao: 'Condutores isolados em eletroduto embutido em parede isolante' },
+  { codigo: 'A2', descricao: 'Cabo multipolar em eletroduto embutido em parede isolante' },
+  { codigo: 'B1', descricao: 'Condutores isolados em eletroduto aparente ou embutido em alvenaria' },
+  { codigo: 'B2', descricao: 'Cabo multipolar em eletroduto aparente ou embutido em alvenaria' },
+  { codigo: 'C', descricao: 'Cabos fixados diretamente sobre parede ou teto' },
+  { codigo: 'D', descricao: 'Cabo multipolar em eletroduto enterrado no solo' },
+  { codigo: 'E', descricao: 'Cabo multipolar ao ar livre' },
+  { codigo: 'F', descricao: 'Cabos unipolares ao ar livre' },
+  { codigo: 'G', descricao: 'Cabos unipolares ao ar livre, espaçados entre si' },
+].map(({ codigo, descricao }) => ({ value: codigo, label: `${codigo} - ${descricao}` }));
+
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface EquipamentoListItemModuloProps {
@@ -321,6 +333,7 @@ export function EquipamentoListItem(props: Props) {
         cabo_ca_capacidade_corrente_a: (props.item as InversorItem).cabo_ca_capacidade_corrente_a || '',
         cabo_ca_fator_temperatura: (props.item as InversorItem).cabo_ca_fator_temperatura || '',
         cabo_ca_fator_agrupamento: (props.item as InversorItem).cabo_ca_fator_agrupamento || '',
+        cabo_ca_metodo_instalacao: (props.item as InversorItem).cabo_ca_metodo_instalacao || '',
       };
       (props as EquipamentoListItemInversorProps).onUpdate(updated);
     }
@@ -1108,6 +1121,13 @@ export function EquipamentoListItem(props: Props) {
                     value={inv.cabo_ca_fator_agrupamento || ''}
                     onChange={v => updateField('cabo_ca_fator_agrupamento', v)}
                     options={AGRUPAMENTO_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Método de Instalação"
+                    value={inv.cabo_ca_metodo_instalacao || ''}
+                    onChange={v => updateField('cabo_ca_metodo_instalacao', v)}
+                    options={METODO_INSTALACAO_CA_OPTIONS}
                     placeholder="Selecione"
                   />
                 </div>
