@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -122,6 +122,50 @@ const AGRUPAMENTO_OPTIONS = [
   { value: '0,41', label: '0,41 (de 16 a 19 circuitos)' },
   { value: '0,38', label: '0,38 (>= 20 circuitos)' },
 ];
+
+// Tabela C.1 (NBR 5410) — Capacidade de condução de corrente (A) para cabos CC
+// instalados ao livre, Método C1, temperatura ambiente de 20ºC, condutor a 90ºC.
+// Índices do array = modo 1 a 4 (arranjo dos cabos unipolares), na ordem em que
+// aparecem no seletor "Arranjo dos Cabos Unipolares — Método C1".
+// Por enquanto só existe a tabela de 20ºC; para as demais temperaturas o campo
+// de Capacidade de Corrente Básica continua editável manualmente.
+const TABELA_CAPACIDADE_C1_20C: Record<string, { protegido: number[]; exposto: number[] }> = {
+  '1,5': { protegido: [29, 28, 33, 29], exposto: [26, 25, 30, 26] },
+  '2,5': { protegido: [39, 38, 44, 39], exposto: [35, 34, 41, 35] },
+  '4,00': { protegido: [51, 51, 58, 52], exposto: [46, 45, 54, 46] },
+  '6,00': { protegido: [65, 65, 74, 66], exposto: [58, 57, 69, 59] },
+  '10,00': { protegido: [91, 90, 104, 93], exposto: [80, 80, 95, 82] },
+  '16,00': { protegido: [120, 120, 137, 124], exposto: [106, 106, 125, 110] },
+  '25,00': { protegido: [160, 161, 182, 166], exposto: [139, 140, 165, 146] },
+  '35,00': { protegido: [199, 201, 226, 208], exposto: [172, 174, 205, 183] },
+  '50,00': { protegido: [251, 254, 285, 264], exposto: [215, 219, 256, 231] },
+  '70,00': { protegido: [313, 318, 356, 330], exposto: [267, 273, 319, 288] },
+  '95,00': { protegido: [376, 383, 428, 399], exposto: [319, 327, 382, 347] },
+  '120,00': { protegido: [441, 450, 502, 470], exposto: [373, 383, 447, 408] },
+  '150,00': { protegido: [508, 518, 577, 543], exposto: [426, 440, 512, 470] },
+  '185,00': { protegido: [580, 592, 657, 621], exposto: [483, 499, 580, 535] },
+  '240,00': { protegido: [694, 710, 787, 746], exposto: [575, 595, 692, 641] },
+  '300,00': { protegido: [802, 821, 910, 864], exposto: [662, 685, 797, 741] },
+  '400,00': { protegido: [965, 987, 1093, 1042], exposto: [790, 819, 953, 890] },
+};
+
+// Deduz automaticamente a Capacidade de Corrente Básica (A) do cabo CC quando
+// Método de Instalação = C1, Temperatura Ambiente = 20ºC e Seção + Arranjo
+// (que já inclui a exposição ao sol) estiverem selecionados. Fora dessas
+// condições retorna '' e o campo permanece em preenchimento manual normal.
+function getCapacidadeCorrenteC1_20C(fields: Record<string, any>): string {
+  if (fields.cabo_cc_metodo_instalacao !== 'C1') return '';
+  if (String(fields.cabo_cc_fator_temperatura || '') !== '20') return '';
+  const arranjo = String(fields.cabo_cc_metodo_instalacao_arranjo || '');
+  const match = arranjo.match(/^([1-4])_(protegido|exposto)$/);
+  if (!match) return '';
+  const modoIdx = parseInt(match[1], 10) - 1;
+  const exposicao = match[2] as 'protegido' | 'exposto';
+  const row = TABELA_CAPACIDADE_C1_20C[String(fields.cabo_cc_secao_mm2 || '')];
+  if (!row) return '';
+  const val = row[exposicao][modoIdx];
+  return val === undefined ? '' : String(val);
+}
 
 const CPFL_PADRAO_127_220 = [
   { value: 'A1', label: 'A1 - GED 13 (Tab. 1A)' },
@@ -280,7 +324,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'C3', label: 'C3 - Cabo em eletroduto diretamente enterrado' },
     { value: 'C4', label: 'C4 - Cabos em eletroduto não metálico em parede' },
   ], group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'text', required: true, placeholder: 'Ex: 36', suffix: 'A', help: 'Definida com base no material de isolação, na seção, na temperatura ambiente, no fator de agrupamento e no método de instalação selecionados acima.', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteC1_20C, help: 'Deduzida automaticamente pela Tabela C.1 (NBR 5410) quando o Método de Instalação for C1, a Temperatura Ambiente for 20ºC e a Seção e o Arranjo estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
@@ -818,7 +862,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia, localFields.inversores_corrente_nominal]);
+  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia, localFields.inversores_corrente_nominal, localFields.cabo_cc_secao_mm2, localFields.cabo_cc_metodo_instalacao, localFields.cabo_cc_fator_temperatura, localFields.cabo_cc_metodo_instalacao_arranjo]);
 
   useEffect(() => {
     if (!open) return;
@@ -2261,7 +2305,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                     Arranjo dos Cabos Unipolares — Método C1
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
-                    Método C1 (cabos instalados ao livre) exige informar o arranjo dos cabos unipolares.
+                    Método C1 (cabos instalados ao livre) exige informar o arranjo dos cabos unipolares e se ficam protegidos ou expostos ao sol.
                   </p>
                   <div>
                     <Label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
@@ -2275,10 +2319,20 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
-                        <SelectItem value="2">2) Dois cabos unipolares encostados um ao outro, na vertical</SelectItem>
-                        <SelectItem value="3">3) Dois cabos unipolares espaçados em, pelo menos 0,75 x diâmetro externo</SelectItem>
-                        <SelectItem value="4">4) Dois cabos unipolares espaçados em, pelo menos um diâmetro externo, na vertical</SelectItem>
+                        <SelectGroup>
+                          <SelectLabel>Protegido do Sol</SelectLabel>
+                          <SelectItem value="1_protegido">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
+                          <SelectItem value="2_protegido">2) Dois cabos unipolares encostados um ao outro, na vertical</SelectItem>
+                          <SelectItem value="3_protegido">3) Dois cabos unipolares espaçados em, pelo menos 0,75 x diâmetro externo</SelectItem>
+                          <SelectItem value="4_protegido">4) Dois cabos unipolares espaçados em, pelo menos um diâmetro externo, na vertical</SelectItem>
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>Exposto ao Sol</SelectLabel>
+                          <SelectItem value="1_exposto">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
+                          <SelectItem value="2_exposto">2) Dois cabos unipolares encostados um ao outro, na vertical</SelectItem>
+                          <SelectItem value="3_exposto">3) Dois cabos unipolares espaçados em, pelo menos 0,75 x diâmetro externo</SelectItem>
+                          <SelectItem value="4_exposto">4) Dois cabos unipolares espaçados em, pelo menos um diâmetro externo, na vertical</SelectItem>
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   </div>
