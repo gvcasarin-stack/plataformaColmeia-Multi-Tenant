@@ -127,8 +127,6 @@ const AGRUPAMENTO_OPTIONS = [
 // instalados ao livre, Método C1, temperatura ambiente de 20ºC, condutor a 90ºC.
 // Índices do array = modo 1 a 4 (arranjo dos cabos unipolares), na ordem em que
 // aparecem no seletor "Arranjo dos Cabos Unipolares — Método C1".
-// Por enquanto só existe a tabela de 20ºC; para as demais temperaturas o campo
-// de Capacidade de Corrente Básica continua editável manualmente.
 const TABELA_CAPACIDADE_C1_20C: Record<string, { protegido: number[]; exposto: number[] }> = {
   '1,5': { protegido: [29, 28, 33, 29], exposto: [26, 25, 30, 26] },
   '2,5': { protegido: [39, 38, 44, 39], exposto: [35, 34, 41, 35] },
@@ -149,19 +147,52 @@ const TABELA_CAPACIDADE_C1_20C: Record<string, { protegido: number[]; exposto: n
   '400,00': { protegido: [965, 987, 1093, 1042], exposto: [790, 819, 953, 890] },
 };
 
+// Tabela C.2 (NBR 5410) — mesmo Método C1, temperatura ambiente de 30ºC,
+// condutor a 90ºC. Mesma estrutura e mesma ordem de modo 1 a 4 da Tabela C.1.
+const TABELA_CAPACIDADE_C1_30C: Record<string, { protegido: number[]; exposto: number[] }> = {
+  '1,5': { protegido: [26, 26, 30, 26], exposto: [23, 22, 27, 23] },
+  '2,5': { protegido: [35, 35, 40, 35], exposto: [31, 30, 36, 31] },
+  '4,00': { protegido: [47, 46, 53, 47], exposto: [41, 40, 48, 41] },
+  '6,00': { protegido: [60, 59, 68, 60], exposto: [51, 51, 61, 52] },
+  '10,00': { protegido: [83, 82, 95, 84], exposto: [71, 71, 85, 73] },
+  '16,00': { protegido: [110, 110, 125, 113], exposto: [93, 93, 112, 97] },
+  '25,00': { protegido: [146, 147, 166, 151], exposto: [123, 124, 147, 129] },
+  '35,00': { protegido: [181, 183, 207, 189], exposto: [151, 153, 182, 161] },
+  '50,00': { protegido: [229, 232, 260, 240], exposto: [189, 193, 228, 204] },
+  '70,00': { protegido: [285, 290, 325, 301], exposto: [234, 239, 283, 254] },
+  '95,00': { protegido: [343, 349, 390, 364], exposto: [279, 287, 339, 306] },
+  '120,00': { protegido: [402, 410, 458, 428], exposto: [325, 335, 396, 359] },
+  '150,00': { protegido: [463, 473, 527, 495], exposto: [371, 384, 453, 413] },
+  '185,00': { protegido: [528, 540, 600, 566], exposto: [420, 435, 513, 470] },
+  '240,00': { protegido: [633, 647, 719, 681], exposto: [499, 518, 612, 563] },
+  '300,00': { protegido: [732, 749, 831, 789], exposto: [573, 596, 705, 650] },
+  '400,00': { protegido: [880, 901, 998, 952], exposto: [682, 710, 842, 780] },
+};
+
+// Tabelas de capacidade de corrente disponíveis para o Método C1, por
+// temperatura ambiente. Por enquanto só existem 20ºC (Tabela C.1) e 30ºC
+// (Tabela C.2); para as demais temperaturas o campo de Capacidade de
+// Corrente Básica continua editável manualmente.
+const TABELAS_CAPACIDADE_C1: Record<string, Record<string, { protegido: number[]; exposto: number[] }>> = {
+  '20': TABELA_CAPACIDADE_C1_20C,
+  '30': TABELA_CAPACIDADE_C1_30C,
+};
+
 // Deduz automaticamente a Capacidade de Corrente Básica (A) do cabo CC quando
-// Método de Instalação = C1, Temperatura Ambiente = 20ºC e Seção + Arranjo
-// (que já inclui a exposição ao sol) estiverem selecionados. Fora dessas
-// condições retorna '' e o campo permanece em preenchimento manual normal.
-function getCapacidadeCorrenteC1_20C(fields: Record<string, any>): string {
+// Método de Instalação = C1, a Temperatura Ambiente tiver tabela disponível
+// (20ºC ou 30ºC) e Seção + Arranjo (que já inclui a exposição ao sol)
+// estiverem selecionados. Fora dessas condições retorna '' e o campo
+// permanece em preenchimento manual normal.
+function getCapacidadeCorrenteC1(fields: Record<string, any>): string {
   if (fields.cabo_cc_metodo_instalacao !== 'C1') return '';
-  if (String(fields.cabo_cc_fator_temperatura || '') !== '20') return '';
+  const tabela = TABELAS_CAPACIDADE_C1[String(fields.cabo_cc_fator_temperatura || '')];
+  if (!tabela) return '';
   const arranjo = String(fields.cabo_cc_metodo_instalacao_arranjo || '');
   const match = arranjo.match(/^([1-4])_(protegido|exposto)$/);
   if (!match) return '';
   const modoIdx = parseInt(match[1], 10) - 1;
   const exposicao = match[2] as 'protegido' | 'exposto';
-  const row = TABELA_CAPACIDADE_C1_20C[String(fields.cabo_cc_secao_mm2 || '')];
+  const row = tabela[String(fields.cabo_cc_secao_mm2 || '')];
   if (!row) return '';
   const val = row[exposicao][modoIdx];
   return val === undefined ? '' : String(val);
@@ -324,7 +355,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'C3', label: 'C3 - Cabo em eletroduto diretamente enterrado' },
     { value: 'C4', label: 'C4 - Cabos em eletroduto não metálico em parede' },
   ], group: 'Dimensionamento dos Cabos CC' },
-  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteC1_20C, help: 'Deduzida automaticamente pela Tabela C.1 (NBR 5410) quando o Método de Instalação for C1, a Temperatura Ambiente for 20ºC e a Seção e o Arranjo estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
+  { key: 'cabo_cc_capacidade_corrente_a', label: 'CC — Capacidade de Corrente Básica (A)', type: 'default_with_custom', required: true, suffix: 'A', defaultValue: getCapacidadeCorrenteC1, help: 'Deduzida automaticamente pelas Tabelas C.1/C.2 (NBR 5410) quando o Método de Instalação for C1, a Temperatura Ambiente for 20ºC ou 30ºC e a Seção e o Arranjo estiverem selecionados. Para as demais combinações (ainda não tabeladas), marque "Usar outro valor" e informe manualmente.', group: 'Dimensionamento dos Cabos CC' },
 
   // Inversores Fotovoltaicos
   { key: 'inversores_quantidade', label: 'Quantidade de Inversores', icon: <Zap className="h-3.5 w-3.5" />, type: 'number', required: true, group: 'Inversores Fotovoltaicos' },
