@@ -24,7 +24,9 @@ import {
 } from '@/components/ui/select';
 import {
   validarCPForCNPJ,
+  validarCPF,
   formatarCPForCNPJ,
+  formatarCPF,
   ESTADOS_BRASIL,
   removerFormatacao
 } from '@/lib/utils/validators';
@@ -42,6 +44,8 @@ interface GenerateProcuracaoModalProps {
     client_city: string;
     client_state: string;
     distribuidora: string;
+    procuracao_responsavel_legal_nome?: string;
+    procuracao_responsavel_legal_cpf?: string;
   }) => void;
 }
 
@@ -51,6 +55,8 @@ interface ProcuracaoFormData {
   client_city: string;
   client_state: string;
   distribuidora: string;
+  procuracao_responsavel_legal_nome: string;
+  procuracao_responsavel_legal_cpf: string;
 }
 
 // Lista de distribuidoras de energia
@@ -118,6 +124,12 @@ export function GenerateProcuracaoModal({
   const watchedCpfCnpj = watch('cpf_cnpj_cliente_final');
   const watchedState = watch('client_state');
   const watchedDistribuidora = watch('distribuidora');
+  const watchedResponsavelLegalCpf = watch('procuracao_responsavel_legal_cpf');
+
+  // ✅ Detecta CNPJ (pessoa jurídica) pelo tamanho do documento — nesse caso
+  // a procuração precisa de um Responsável Legal pela UC (pessoa física)
+  // diferente da empresa que aparece no cabeçalho do documento.
+  const isCnpj = removerFormatacao(watchedCpfCnpj || '').length === 14;
 
   // Pré-preencher formulário e identificar campos faltantes
   useEffect(() => {
@@ -132,6 +144,12 @@ export function GenerateProcuracaoModal({
       setValue('client_city', project.client_city || '');
       setValue('client_state', project.client_state || '');
       setValue('distribuidora', project.distribuidora || '');
+      setValue('procuracao_responsavel_legal_nome', project.procuracao_responsavel_legal_nome || '');
+      setValue('procuracao_responsavel_legal_cpf',
+        project.procuracao_responsavel_legal_cpf
+          ? formatarCPF(project.procuracao_responsavel_legal_cpf)
+          : ''
+      );
 
       // Identificar campos faltantes
       const missing: string[] = [];
@@ -150,6 +168,15 @@ export function GenerateProcuracaoModal({
       if (!project.distribuidora) {
         missing.push('Distribuidora');
       }
+      const projetoEhCnpj = removerFormatacao(project.cpf_cnpj_cliente_final || '').length === 14;
+      if (projetoEhCnpj) {
+        if (!project.procuracao_responsavel_legal_nome) {
+          missing.push('Nome do Responsável Legal pela Unidade Consumidora');
+        }
+        if (!project.procuracao_responsavel_legal_cpf) {
+          missing.push('CPF do Responsável Legal pela Unidade Consumidora');
+        }
+      }
 
       setMissingFields(missing);
     }
@@ -164,6 +191,16 @@ export function GenerateProcuracaoModal({
       }
     }
   }, [watchedCpfCnpj, setValue]);
+
+  // Formatar CPF do Responsável Legal pela UC enquanto digita
+  useEffect(() => {
+    if (watchedResponsavelLegalCpf) {
+      const formatted = formatarCPF(watchedResponsavelLegalCpf);
+      if (formatted !== watchedResponsavelLegalCpf) {
+        setValue('procuracao_responsavel_legal_cpf', formatted);
+      }
+    }
+  }, [watchedResponsavelLegalCpf, setValue]);
 
   const handleGerarProcuracao = async () => {
     if (!project || missingFields.length > 0) return;
@@ -233,13 +270,41 @@ export function GenerateProcuracaoModal({
         return;
       }
 
+      const isCnpjSubmit = removerFormatacao(data.cpf_cnpj_cliente_final).length === 14;
+
+      // Validar Responsável Legal pela UC (obrigatório apenas para CNPJ)
+      if (isCnpjSubmit) {
+        if (!data.procuracao_responsavel_legal_nome || data.procuracao_responsavel_legal_nome.trim().length < 3) {
+          toast({
+            title: 'Responsável Legal pela UC obrigatório',
+            description: 'Informe o nome do Responsável Legal pela Unidade Consumidora.',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+        if (!validarCPF(data.procuracao_responsavel_legal_cpf)) {
+          toast({
+            title: 'CPF do Responsável Legal pela UC inválido',
+            description: 'Por favor, verifique os dígitos do CPF do Responsável Legal pela Unidade Consumidora.',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Preparar dados para envio (remover formatação do CPF/CNPJ)
       const payload = {
         nome_cliente_final: data.nome_cliente_final.toUpperCase().trim(),
         cpf_cnpj_cliente_final: removerFormatacao(data.cpf_cnpj_cliente_final),
         client_city: data.client_city.toUpperCase().trim(),
         client_state: data.client_state.toUpperCase().trim(),
-        distribuidora: data.distribuidora.trim()
+        distribuidora: data.distribuidora.trim(),
+        ...(isCnpjSubmit ? {
+          procuracao_responsavel_legal_nome: data.procuracao_responsavel_legal_nome.toUpperCase().trim(),
+          procuracao_responsavel_legal_cpf: removerFormatacao(data.procuracao_responsavel_legal_cpf)
+        } : {})
       };
 
       // ✅ CORREÇÃO: Usar Server Action ao invés de fetch
@@ -378,6 +443,67 @@ export function GenerateProcuracaoModal({
               A formatação será aplicada automaticamente
             </p>
           </div>
+
+          {/* Responsável Legal pela Unidade Consumidora — só para CNPJ, pois
+              a assinatura da procuração precisa do nome/CPF de uma pessoa
+              física (diferente da empresa que aparece no cabeçalho). */}
+          {isCnpj && (
+            <div className="space-y-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+              <p className="text-sm font-medium text-blue-900">
+                Como o CPF/CNPJ informado é um CNPJ, informe quem assina a procuração em nome da empresa:
+              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="procuracao_responsavel_legal_nome" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Nome do Responsável Legal pela Unidade Consumidora *
+                </Label>
+                <Input
+                  id="procuracao_responsavel_legal_nome"
+                  placeholder="Ex: JOÃO DA SILVA"
+                  {...register('procuracao_responsavel_legal_nome', {
+                    required: isCnpj ? 'Nome do Responsável Legal pela Unidade Consumidora é obrigatório' : false,
+                    minLength: {
+                      value: 3,
+                      message: 'Nome deve ter no mínimo 3 caracteres'
+                    }
+                  })}
+                  className={errors.procuracao_responsavel_legal_nome ? 'border-red-500' : ''}
+                  disabled={loading}
+                />
+                {errors.procuracao_responsavel_legal_nome && (
+                  <p className="text-sm text-red-500">{errors.procuracao_responsavel_legal_nome.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="procuracao_responsavel_legal_cpf" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  CPF do Responsável Legal pela Unidade Consumidora *
+                </Label>
+                <Input
+                  id="procuracao_responsavel_legal_cpf"
+                  placeholder="Ex: 000.000.000-00"
+                  {...register('procuracao_responsavel_legal_cpf', {
+                    required: isCnpj ? 'CPF do Responsável Legal pela Unidade Consumidora é obrigatório' : false,
+                    validate: (value) => {
+                      if (!isCnpj) return true;
+                      if (!validarCPF(value)) {
+                        return 'CPF inválido. Verifique os dígitos.';
+                      }
+                      return true;
+                    }
+                  })}
+                  className={errors.procuracao_responsavel_legal_cpf ? 'border-red-500' : ''}
+                  disabled={loading}
+                  maxLength={14}
+                />
+                {errors.procuracao_responsavel_legal_cpf && (
+                  <p className="text-sm text-red-500">{errors.procuracao_responsavel_legal_cpf.message}</p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Distribuidora */}
           <div className="space-y-2">

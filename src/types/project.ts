@@ -120,6 +120,13 @@ export interface Project {
   client_city?: string;
   client_state?: string;
 
+  // ✅ Responsável legal pela Unidade Consumidora, usado apenas na assinatura
+  // da Procuração quando o CPF/CNPJ do cliente é um CNPJ (pessoa jurídica) —
+  // diferente do responsável técnico (projetista) e do "Responsável Legal"
+  // de Conferir Informações do Projeto.
+  procuracao_responsavel_legal_nome?: string;
+  procuracao_responsavel_legal_cpf?: string;
+
   // ✅ NOVO CAMPO: Compensação de Créditos (opcional)
   havera_beneficiarias?: boolean;
 

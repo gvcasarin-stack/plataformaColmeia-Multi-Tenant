@@ -296,10 +296,10 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
 <strong>Assinatura</strong>
 </div>
 <div style="margin-top: 12px; font-size: 14px;">
-<strong>Nome completo:</strong> {{cliente_nome}}
+<strong>Nome completo:</strong> {{cliente_responsavel_legal_nome}}
 </div>
 <div style="margin-top: 8px; font-size: 14px;">
-<strong>CPF:</strong> {{cliente_cpf}}
+<strong>CPF:</strong> {{cliente_responsavel_legal_cpf}}
 </div>
 </div>`;
 
@@ -2190,6 +2190,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
                         </h4>
                         <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
                           <p><strong>Do Cliente:</strong> {`{{cliente_nome}}, {{cliente_tipo}}, {{cliente_rg}}, {{cliente_cpf}}, {{cliente_cnpj}}`}</p>
+                          <p><strong>Responsável Legal pela Unidade Consumidora (quem assina):</strong> {`{{cliente_responsavel_legal_nome}}, {{cliente_responsavel_legal_cpf}}`} — se o cliente for CPF, repete os dados do próprio cliente; se for CNPJ, usa o Responsável Legal pela UC informado ao gerar a procuração.</p>
                           <p><strong>Do Responsável Técnico:</strong> {`{{responsavel_nome}}, {{responsavel_cpf}}, {{responsavel_rg}}, {{responsavel_orgao_expeditor}}, {{responsavel_profissao}}, {{responsavel_registro}}, {{responsavel_instituicao}}, {{responsavel_estado}}`}</p>
                           <p><strong>Do Projeto:</strong> {`{{distribuidora}}, {{cidade}}, {{estado}}, {{data}}`}</p>
                           <p className="text-xs italic mt-2">

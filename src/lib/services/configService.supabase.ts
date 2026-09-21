@@ -475,10 +475,10 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
 <strong>Assinatura</strong>
 </div>
 <div style="margin-top: 12px; font-size: 14px;">
-<strong>Nome completo:</strong> {{cliente_nome}}
+<strong>Nome completo:</strong> {{cliente_responsavel_legal_nome}}
 </div>
 <div style="margin-top: 8px; font-size: 14px;">
-<strong>CPF:</strong> {{cliente_cpf}}
+<strong>CPF:</strong> {{cliente_responsavel_legal_cpf}}
 </div>
 </div>`;
 

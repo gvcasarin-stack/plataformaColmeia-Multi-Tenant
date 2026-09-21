@@ -63,6 +63,7 @@ import { getUserDataAdminSupabase } from "@/lib/services/authService.supabase";
 
 // ✅ VALIDAÇÃO: Importar funções de validação para dados do cliente
 import {
+  validarCPF,
   validarCPForCNPJ,
   sanitizeNome,
   validarEstado,
@@ -2099,6 +2100,8 @@ export async function getProjectAction(projectId: string): Promise<{
       havera_beneficiarias: data.havera_beneficiarias || false,
       client_city: data.client_city || undefined,
       client_state: data.client_state || undefined,
+      procuracao_responsavel_legal_nome: data.procuracao_responsavel_legal_nome || undefined,
+      procuracao_responsavel_legal_cpf: data.procuracao_responsavel_legal_cpf || undefined,
 
       tipo_conexao: data.tipo_conexao || undefined,
       tipo_ramal: data.tipo_ramal || undefined,
@@ -3233,6 +3236,8 @@ export async function editProjectAction(
  * - client_city
  * - client_state
  * - distribuidora
+ * - procuracao_responsavel_legal_nome (obrigatório apenas se CNPJ)
+ * - procuracao_responsavel_legal_cpf (obrigatório apenas se CNPJ)
  */
 export async function updateProjectClientData(
   projectId: string,
@@ -3242,6 +3247,8 @@ export async function updateProjectClientData(
     client_city: string;
     client_state: string;
     distribuidora: string;
+    procuracao_responsavel_legal_nome?: string;
+    procuracao_responsavel_legal_cpf?: string;
   },
   userId: string
 ) {
@@ -3277,6 +3284,26 @@ export async function updateProjectClientData(
         success: false,
         error: 'CPF/CNPJ inválido. Verifique os dígitos.'
       };
+    }
+
+    // ✅ VALIDAÇÃO: Responsável Legal pela UC — obrigatório apenas quando o
+    // CPF/CNPJ do cliente for um CNPJ (pessoa jurídica), pois nesse caso a
+    // assinatura da procuração precisa do nome/CPF de uma pessoa física
+    // distinta da empresa que aparece no cabeçalho.
+    const isCnpj = removerFormatacao(data.cpf_cnpj_cliente_final).length === 14;
+    if (isCnpj) {
+      if (!data.procuracao_responsavel_legal_nome || data.procuracao_responsavel_legal_nome.trim().length === 0) {
+        return {
+          success: false,
+          error: 'Nome do Responsável Legal pela Unidade Consumidora é obrigatório para cliente pessoa jurídica'
+        };
+      }
+      if (!data.procuracao_responsavel_legal_cpf || !validarCPF(data.procuracao_responsavel_legal_cpf)) {
+        return {
+          success: false,
+          error: 'CPF do Responsável Legal pela Unidade Consumidora é obrigatório e deve ser válido'
+        };
+      }
     }
 
     // ✅ VALIDAÇÃO: Cidade
@@ -3393,6 +3420,8 @@ export async function updateProjectClientData(
       client_city: sanitizeNome(data.client_city),
       client_state: estadoNormalizado,
       distribuidora: data.distribuidora.trim(),
+      procuracao_responsavel_legal_nome: isCnpj ? sanitizeNome(data.procuracao_responsavel_legal_nome!) : null,
+      procuracao_responsavel_legal_cpf: isCnpj ? removerFormatacao(data.procuracao_responsavel_legal_cpf!) : null,
       updated_at: new Date().toISOString()
     };
 
@@ -3432,7 +3461,9 @@ export async function updateProjectClientData(
         cpf_cnpj_cliente_final: updatedProject.cpf_cnpj_cliente_final,
         client_city: updatedProject.client_city,
         client_state: updatedProject.client_state,
-        distribuidora: updatedProject.distribuidora
+        distribuidora: updatedProject.distribuidora,
+        procuracao_responsavel_legal_nome: updatedProject.procuracao_responsavel_legal_nome,
+        procuracao_responsavel_legal_cpf: updatedProject.procuracao_responsavel_legal_cpf
       }
     };
 

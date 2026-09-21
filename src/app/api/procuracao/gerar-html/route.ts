@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     // dados realmente salvos (não o que veio no corpo da requisição).
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, tenant_id, owner_id, created_by, nome_cliente_final, cpf_cnpj_cliente_final, client_city, client_state, distribuidora')
+      .select('id, tenant_id, owner_id, created_by, nome_cliente_final, cpf_cnpj_cliente_final, client_city, client_state, distribuidora, procuracao_responsavel_legal_nome, procuracao_responsavel_legal_cpf')
       .eq('id', project_id)
       .eq('tenant_id', tenantId)
       .single();
@@ -83,11 +83,24 @@ export async function POST(request: NextRequest) {
     const client_city = project.client_city;
     const client_state = project.client_state;
     const distribuidora = project.distribuidora;
+    const procuracao_responsavel_legal_nome = project.procuracao_responsavel_legal_nome;
+    const procuracao_responsavel_legal_cpf = project.procuracao_responsavel_legal_cpf;
 
     // Validar campos obrigatórios (dados salvos no projeto)
     if (!nome_cliente_final || !cpf_cnpj_cliente_final || !client_city || !client_state || !distribuidora) {
       return NextResponse.json(
         { error: 'Todos os campos são obrigatórios. Salve os dados do projeto antes de gerar a procuração.' },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Cliente pessoa jurídica: a assinatura precisa do Responsável Legal
+    // pela Unidade Consumidora (pessoa física), diferente da empresa que
+    // aparece no cabeçalho da procuração.
+    const isCnpj = cpf_cnpj_cliente_final.replace(/\D/g, '').length === 14;
+    if (isCnpj && (!procuracao_responsavel_legal_nome || !procuracao_responsavel_legal_cpf)) {
+      return NextResponse.json(
+        { error: 'Nome e CPF do Responsável Legal pela Unidade Consumidora são obrigatórios para cliente pessoa jurídica. Salve os dados do projeto antes de gerar a procuração.' },
         { status: 400 }
       );
     }
@@ -158,6 +171,12 @@ export async function POST(request: NextRequest) {
     const isCpf = cpf_cnpj_cliente_final.replace(/\D/g, '').length === 11;
     const clienteTipo = isCpf ? 'inscrito(a) no CPF' : 'inscrito(a) no CNPJ';
 
+    // ✅ Quem assina a procuração: para CNPJ, é o Responsável Legal pela
+    // Unidade Consumidora (pessoa física, diferente da empresa do cabeçalho);
+    // para CPF, é o próprio cliente (outorgante e assinante são a mesma pessoa).
+    const assinanteNome = isCnpj ? (procuracao_responsavel_legal_nome || '') : nome_cliente_final;
+    const assinanteCpf = isCnpj ? formatCpfCnpj(procuracao_responsavel_legal_cpf || '') : cpfCnpjFormatado;
+
     // Preparar dados para substituição de variáveis
     const dataAtual = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -172,6 +191,10 @@ export async function POST(request: NextRequest) {
       '{{cliente_tipo}}': clienteTipo || '',
       '{{cliente_rg}}': '', // Não temos este dado no projeto
       '{{cliente_cpf}}': cpfCnpjFormatado || '',
+
+      // Quem assina a procuração (ver comentário acima de assinanteNome/assinanteCpf)
+      '{{cliente_responsavel_legal_nome}}': assinanteNome || '',
+      '{{cliente_responsavel_legal_cpf}}': assinanteCpf || '',
 
       // Dados do responsável técnico
       '{{responsavel_nome}}': responsavelTecnico.nomeCompleto || '',
