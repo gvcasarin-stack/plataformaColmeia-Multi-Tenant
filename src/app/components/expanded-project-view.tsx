@@ -244,8 +244,6 @@ export const ExpandedProjectView = ({
                       user?.profile?.role === 'admin' ||
                       user?.profile?.role === 'superadmin';
 
-  const isSuperAdmin = user?.role === 'superadmin' || user?.profile?.role === 'superadmin';
-
   const canGerarProjeto = isFullAdmin ||
     user?.role === 'colaborador' ||
     user?.profile?.role === 'colaborador';
@@ -2946,8 +2944,7 @@ export const ExpandedProjectView = ({
                           <SelectContent>
                             <SelectItem value="Equatorial">Equatorial</SelectItem>
                             <SelectItem value="CPFL">CPFL / RGE</SelectItem>
-                            {/* Habilitada só para superadmin por enquanto, pra testar antes de liberar geral */}
-                            <SelectItem value="Energisa" disabled={!isSuperAdmin}>Energisa (Em breve)</SelectItem>
+                            <SelectItem value="Energisa" disabled={!canGerarProjeto}>Energisa</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
