@@ -31,6 +31,7 @@ import { getProjectStatuses, updateStatusSLA, updateStatusRoadmapVisibility, reo
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { PackagesTab } from '@/components/admin/PackagesTab';
 import { SubscriptionPlansTab } from '@/components/admin/SubscriptionPlansTab';
+import { ProcuracaoRichEditor, ProcuracaoPreview } from '@/components/admin/ProcuracaoEditor';
 
 // Componente de Abas (Estilo Botões Azuis com Ícones)
 function Tabs({ tabs, activeTab, onTabChange }: { tabs: { id: string; label: string; icon: React.ReactNode }[]; activeTab: string; onTabChange: (tabId: string) => void }) {
@@ -2182,39 +2183,11 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
               >
                 <div className="space-y-4">
                   {editandoProcuracao ? (
-                    <>
-                      {/* Informação sobre variáveis disponíveis - APENAS no modo de edição */}
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                          Variáveis Disponíveis
-                        </h4>
-                        <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                          <p><strong>Do Cliente:</strong> {`{{cliente_nome}}, {{cliente_tipo}}, {{cliente_rg}}, {{cliente_cpf}}, {{cliente_cnpj}}`}</p>
-                          <p><strong>Responsável Legal pela Unidade Consumidora (quem assina):</strong> {`{{cliente_responsavel_legal_nome}}, {{cliente_responsavel_legal_cpf}}`} — se o cliente for CPF, repete os dados do próprio cliente; se for CNPJ, usa o Responsável Legal pela UC informado ao gerar a procuração.</p>
-                          <p><strong>Do Responsável Técnico:</strong> {`{{responsavel_nome}}, {{responsavel_cpf}}, {{responsavel_rg}}, {{responsavel_orgao_expeditor}}, {{responsavel_profissao}}, {{responsavel_registro}}, {{responsavel_instituicao}}, {{responsavel_estado}}`}</p>
-                          <p><strong>Do Projeto:</strong> {`{{distribuidora}}, {{cidade}}, {{estado}}, {{data}}`}</p>
-                          <p className="text-xs italic mt-2">
-                            <strong>Nota:</strong> Você pode usar HTML inline (como &lt;div&gt;, &lt;strong&gt;, estilos CSS) para formatar o documento.
-                          </p>
-                        </div>
-                      </div>
-                    </>
-                  ) : null}
-
-                  {editandoProcuracao ? (
-                    <Textarea
-                      value={textoProcuracao}
-                      onChange={(e) => setTextoProcuracao(e.target.value)}
-                      placeholder="Digite o texto padrão da procuração..."
-                      className="min-h-[400px] font-mono"
-                    />
+                    <ProcuracaoRichEditor value={textoProcuracao || defaultProcuracao} onChange={setTextoProcuracao} />
                   ) : (
                     <div className="rounded-md border border-gray-200 dark:border-gray-700 p-4">
                       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-                        <div 
-                          className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm"
-                          dangerouslySetInnerHTML={{ __html: textoProcuracao || defaultProcuracao }}
-                        />
+                        <ProcuracaoPreview html={textoProcuracao || defaultProcuracao} />
                       </div>
                     </div>
                   )}
