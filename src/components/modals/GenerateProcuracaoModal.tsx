@@ -390,15 +390,15 @@ export function GenerateProcuracaoModal({
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Nome do Cliente */}
+          {/* Nome do Cliente (Razão Social quando CNPJ) */}
           <div className="space-y-2">
             <Label htmlFor="nome_cliente_final" className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              Nome do Cliente Final *
+              {isCnpj ? 'Razão Social / Nome da Empresa *' : 'Nome do Cliente Final *'}
             </Label>
             <Input
               id="nome_cliente_final"
-              placeholder="Ex: JOÃO DA SILVA"
+              placeholder={isCnpj ? 'Ex: GTR SOLUÇÕES LTDA' : 'Ex: JOÃO DA SILVA'}
               {...register('nome_cliente_final', {
                 required: 'Nome do cliente é obrigatório',
                 minLength: {
