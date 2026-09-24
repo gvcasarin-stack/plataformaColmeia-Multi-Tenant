@@ -451,7 +451,7 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
 
 <div style="text-align: justify; line-height: 1.8; margin-bottom: 20px;">
 <p style="margin-bottom: 15px;">
-<strong>OUTORGANTE:</strong> Por este instrumento de procuração, <strong>{{cliente_nome}}</strong>, inscrito no CPF sob o nº <strong>{{cliente_cpf}}</strong>.
+<strong>OUTORGANTE:</strong> Por este instrumento de procuração, <strong>{{cliente_nome}}</strong>, {{cliente_tipo}} sob o nº <strong>{{cliente_cpf}}</strong>.
 </p>
 
 <p style="margin-bottom: 15px;">

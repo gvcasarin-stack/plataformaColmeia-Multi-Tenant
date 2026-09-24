@@ -272,7 +272,7 @@ Uma vez que todos os documentos sejam encaminhados, nossa equipe avaliará e em 
 
 <div style="text-align: justify; line-height: 1.8; margin-bottom: 20px;">
 <p style="margin-bottom: 15px;">
-<strong>OUTORGANTE:</strong> Por este instrumento de procuração, {{cliente_nome}}, {{cliente_tipo}}, portador do RG nº {{cliente_rg}} e inscrito no CPF sob o nº {{cliente_cpf}}.
+<strong>OUTORGANTE:</strong> Por este instrumento de procuração, {{cliente_nome}}, {{cliente_tipo}} sob o nº {{cliente_cpf}}, portador do RG nº {{cliente_rg}}.
 </p>
 
 <p style="margin-bottom: 15px;">
