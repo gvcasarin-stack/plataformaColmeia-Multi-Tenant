@@ -32,6 +32,8 @@ import {
 } from '@/lib/utils/validators';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { updateProjectClientData } from '@/lib/actions/project-actions';
+import { DISTRIBUIDORAS } from '@/lib/constants/distribuidoras';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface GenerateProcuracaoModalProps {
   open: boolean;
@@ -58,23 +60,6 @@ interface ProcuracaoFormData {
   procuracao_responsavel_legal_nome: string;
   procuracao_responsavel_legal_cpf: string;
 }
-
-// Lista de distribuidoras de energia
-const DISTRIBUIDORAS = [
-  "Enel",
-  "Copel",
-  "Cemig",
-  "CPFL",
-  "Neoenergia Cosern",
-  "Light",
-  "EDP",
-  "Celesc",
-  "Energisa",
-  "Equatorial",
-  "RGE",
-  "Amazonas Energia",
-  "Outro"
-];
 
 export function GenerateProcuracaoModal({
   open,
@@ -511,22 +496,15 @@ export function GenerateProcuracaoModal({
               <Factory className="h-4 w-4" />
               Distribuidora *
             </Label>
-            <Select
+            <SearchableSelect
               value={watchedDistribuidora}
-              onValueChange={(value) => setValue('distribuidora', value)}
+              onChange={(value) => setValue('distribuidora', value)}
+              options={DISTRIBUIDORAS}
+              placeholder="Selecione a distribuidora"
+              searchPlaceholder="Buscar distribuidora..."
               disabled={loading}
-            >
-              <SelectTrigger className={errors.distribuidora ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Selecione a distribuidora" />
-              </SelectTrigger>
-              <SelectContent className="custom-orange-scrollbar max-h-[200px]">
-                {DISTRIBUIDORAS.map((dist) => (
-                  <SelectItem key={dist} value={dist}>
-                    {dist}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              className={errors.distribuidora ? 'border-red-500' : ''}
+            />
             <input
               type="hidden"
               {...register('distribuidora', {

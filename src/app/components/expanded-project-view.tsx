@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Project, TimelineEvent, ProjectFile, UpdatedProject } from "@/types/project"
+import { DISTRIBUIDORAS } from "@/lib/constants/distribuidoras"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import {
   Edit,
   Save,
@@ -92,23 +94,6 @@ const ALLOWED_FILE_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
 const MAX_FILES = 5;
-
-// Lista de distribuidoras de energia
-const DISTRIBUIDORAS = [
-  "Enel",
-  "Copel",
-  "Cemig",
-  "CPFL",
-  "Neoenergia Cosern",
-  "Light",
-  "EDP",
-  "Celesc",
-  "Energisa",
-  "Equatorial",
-  "RGE",
-  "Amazonas Energia",
-  "Outro"
-];
 
 export interface ExpandedProjectViewProps {
   project: Project;
@@ -1950,21 +1935,15 @@ export const ExpandedProjectView = ({
             </div>
             <div>
                         <Label htmlFor="distribuidora" className="text-sm font-medium text-gray-700">Distribuidora</Label>
-                        <Select
+                        <SearchableSelect
+                          id="distribuidora"
                           value={editedProject.distribuidora || ''}
-                          onValueChange={(value) => handleChange('distribuidora', value)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Selecione uma distribuidora" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DISTRIBUIDORAS.map((distribuidora) => (
-                              <SelectItem key={distribuidora} value={distribuidora}>
-                                {distribuidora}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          onChange={(value) => handleChange('distribuidora', value)}
+                          options={DISTRIBUIDORAS}
+                          placeholder="Selecione uma distribuidora"
+                          searchPlaceholder="Buscar distribuidora..."
+                          className="mt-1"
+                        />
             </div>
             <div>
                         <Label htmlFor="potencia" className="text-sm font-medium text-gray-700">Potência (kWp)</Label>

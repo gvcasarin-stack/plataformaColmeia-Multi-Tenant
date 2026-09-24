@@ -6,30 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { useForm, Controller } from "react-hook-form"
 import { Project } from "@/types/project"
 import { generateUniqueProjectNumberAction, isProjectNumberUsedAction } from "@/lib/actions/project-actions"
 import { devLog } from "@/lib/utils/productionLogger";
 import logger from '@/lib/utils/logger'
-
-// Lista de distribuidoras de energia
-const DISTRIBUIDORAS = [
-  "Enel",
-  "Copel",
-  "Cemig",
-  "CPFL",
-  "Neoenergia Brasília",
-  "Neoenergia Cosern",
-  "Neoenergia Elektro",
-  "Neoenergia Coelba",
-  "Neoenergia Pernambuco",
-  "Celesc",
-  "Energisa",
-  "Equatorial",
-  "RGE",
-  "Amazonas Energia",
-  "Outro" // Opção para o usuário inserir uma distribuidora personalizada
-];
+import { DISTRIBUIDORAS } from "@/lib/constants/distribuidoras"
 
 interface ProjectFormProps {
   /**
@@ -233,19 +216,14 @@ export function ProjectForm({
                 control={control}
                 rules={{ required: true }}
                 render={({ field }) => (
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger id="distribuidora">
-                      <SelectValue placeholder="Selecione a distribuidora" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DISTRIBUIDORAS.map((dist) => (
-                        <SelectItem key={dist} value={dist}>{dist}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    id="distribuidora"
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={DISTRIBUIDORAS}
+                    placeholder="Selecione a distribuidora"
+                    searchPlaceholder="Buscar distribuidora..."
+                  />
                 )}
               />
             </div>

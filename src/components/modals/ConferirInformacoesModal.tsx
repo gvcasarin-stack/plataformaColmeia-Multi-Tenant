@@ -22,12 +22,8 @@ import { getAllModulos, getAllInversores, parseStringsModulos, getAllCargas } fr
 import type { ModuloItem, InversorItem, InversorUnitConfig, CargaItem } from '@/lib/utils/equipmentParser';
 import { validarEmail, validarCEP, validarTelefone, validarCPForCNPJ } from '@/lib/utils/validators';
 import { buscarEnderecoPorCEP } from '@/lib/utils/cep';
-
-const DISTRIBUIDORAS = [
-  "Enel", "Copel", "Cemig", "CPFL", "Neoenergia Cosern",
-  "Light", "EDP", "Celesc", "Energisa", "Equatorial",
-  "RGE", "Amazonas Energia", "Outro"
-];
+import { DISTRIBUIDORAS } from '@/lib/constants/distribuidoras';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 const ESTADOS_BR = [
   { value: 'AC', label: 'Acre (AC)' },
@@ -1724,6 +1720,19 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
             />
           )}
         </div>
+      );
+    }
+
+    if (field.type === 'select' && field.key === 'distribuidora') {
+      return (
+        <SearchableSelect
+          value={value || ''}
+          onChange={(val) => handleFieldChange(field.key, val)}
+          options={DISTRIBUIDORAS}
+          placeholder="Selecione"
+          searchPlaceholder="Buscar distribuidora..."
+          disabled={isSkipped}
+        />
       );
     }
 

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { useForm, Controller } from "react-hook-form"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { UserData as AuthUserData } from "@/lib/services/authService.supabase"
@@ -16,24 +17,7 @@ import { BillingInfoCard } from "@/components/project/BillingInfoCard"
 import { AdminCreateClientModal } from "@/components/modals/AdminCreateClientModal"
 import { ChevronDown, UserPlus, Check, AlertCircle, User } from 'lucide-react'
 import { ESTADOS_BRASIL } from "@/lib/utils/validators"
-
-const DISTRIBUIDORAS = [
-  "Enel",
-  "Copel",
-  "Cemig",
-  "CPFL",
-  "Neoenergia Brasília",
-  "Neoenergia Cosern",
-  "Neoenergia Elektro",
-  "Neoenergia Coelba",
-  "Neoenergia Pernambuco",
-  "Celesc",
-  "Energisa",
-  "Equatorial",
-  "RGE",
-  "Amazonas Energia",
-  "Outro",
-];
+import { DISTRIBUIDORAS } from "@/lib/constants/distribuidoras"
 
 declare global {
   interface Window {
@@ -495,24 +479,14 @@ export function ClientCreateProjectModal({ open, onOpenChange, onSubmit, isAdmin
                     control={control}
                     rules={{ required: true }}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <SelectTrigger className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all">
-                          <SelectValue placeholder="Selecione uma distribuidora" />
-                        </SelectTrigger>
-                        <SelectContent
-                          position="popper"
-                          side="bottom"
-                          align="start"
-                          sideOffset={4}
-                          avoidCollisions={false}
-                          collisionPadding={20}
-                          className="max-h-[300px] overflow-y-auto"
-                        >
-                          {DISTRIBUIDORAS.map((d) => (
-                            <SelectItem key={d} value={d}>{d}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={DISTRIBUIDORAS}
+                        placeholder="Selecione uma distribuidora"
+                        searchPlaceholder="Buscar distribuidora..."
+                        className="h-10 sm:h-11 px-3 sm:px-4 text-sm border-gray-300 focus:border-orange-400 focus:ring focus:ring-orange-200 transition-all"
+                      />
                     )}
                   />
                   {errors.distribuidora && (

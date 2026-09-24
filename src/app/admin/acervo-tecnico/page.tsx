@@ -51,12 +51,8 @@ import {
   Download,
   Eye,
 } from 'lucide-react';
-
-const DISTRIBUIDORAS = [
-  'Enel', 'Copel', 'Cemig', 'CPFL', 'Neoenergia Cosern',
-  'Light', 'EDP', 'Celesc', 'Energisa', 'Equatorial',
-  'RGE', 'Amazonas Energia', 'Outro',
-];
+import { DISTRIBUIDORAS } from '@/lib/constants/distribuidoras';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 const CATEGORIAS = [
   { value: 'caixa_medicao', label: 'Modelo da Caixa de Medição' },
@@ -960,16 +956,13 @@ export default function AcervoTecnicoPage() {
           <div className="flex flex-wrap gap-4">
             <div className="w-64">
               <Label className="text-sm font-medium mb-1 block">Distribuidora</Label>
-              <Select value={selectedDistribuidora} onValueChange={(v) => { setSelectedDistribuidora(v); setSelectedCategoria(''); }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a distribuidora" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DISTRIBUIDORAS.map(d => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={selectedDistribuidora}
+                onChange={(v) => { setSelectedDistribuidora(v); setSelectedCategoria(''); }}
+                options={DISTRIBUIDORAS}
+                placeholder="Selecione a distribuidora"
+                searchPlaceholder="Buscar distribuidora..."
+              />
             </div>
 
             {selectedDistribuidora && (
