@@ -83,18 +83,17 @@ const s = StyleSheet.create({
     borderBottomWidth: B,
     borderColor: BC,
   },
-  cellBox: {
-    height: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cell: {
+    fontSize: 7.5,
+    lineHeight: 1,
+    textAlign: 'center',
+    height: 13,
+    paddingVertical: 2.5,
+    paddingHorizontal: 4,
     borderTopWidth: B,
     borderRightWidth: B,
     borderBottomWidth: B,
     borderColor: BC,
-  },
-  cellText: {
-    fontSize: 7.5,
-    textAlign: 'center',
   },
   footLabel: {
     fontFamily: 'Helvetica-Bold',
@@ -171,10 +170,10 @@ export function AnexoG1CPFLPDF({ projectData }: AnexoG1CPFLPDFProps) {
             const right = beneficiarias[r * 2 + 1];
             return (
               <View style={s.row} key={r}>
-                <View style={[s.cellBox, { width: '35%' }]}><Text style={s.cellText}>{left?.conta_contrato || ''}</Text></View>
-                <View style={[s.cellBox, { width: '15%' }]}><Text style={s.cellText}>{left?.percentual !== undefined ? String(left.percentual) : ''}</Text></View>
-                <View style={[s.cellBox, { width: '35%' }]}><Text style={s.cellText}>{right?.conta_contrato || ''}</Text></View>
-                <View style={[s.cellBox, { width: '15%' }]}><Text style={s.cellText}>{right?.percentual !== undefined ? String(right.percentual) : ''}</Text></View>
+                <Text style={[s.cell, { width: '35%' }]}>{left?.conta_contrato || ' '}</Text>
+                <Text style={[s.cell, { width: '15%' }]}>{left?.percentual !== undefined ? String(left.percentual) : ' '}</Text>
+                <Text style={[s.cell, { width: '35%' }]}>{right?.conta_contrato || ' '}</Text>
+                <Text style={[s.cell, { width: '15%' }]}>{right?.percentual !== undefined ? String(right.percentual) : ' '}</Text>
               </View>
             );
           })}

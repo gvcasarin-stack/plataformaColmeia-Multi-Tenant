@@ -96,6 +96,15 @@ const ALLOWED_FILE_TYPES = [
 ];
 const MAX_FILES = 5;
 
+// RGE é a marca da CPFL Energia no Rio Grande do Sul — compartilha o mesmo
+// conjunto de documentos/templates na aba "Gerar Projeto" (Anexo E, Anexo F,
+// Anexo G.1), que só reconhecem o valor "CPFL". Normaliza aqui, na origem,
+// para que RGE sempre caia no mesmo grupo sem precisar duplicar a checagem
+// em cada card/preview.
+function normalizeDistribuidoraGrupo(distribuidora: string): string {
+  return distribuidora.toLowerCase() === 'rge' ? 'CPFL' : distribuidora;
+}
+
 export interface ExpandedProjectViewProps {
   project: Project;
   onClose: () => void;
@@ -460,7 +469,7 @@ export const ExpandedProjectView = ({
   const [showAddCommentSection, setShowAddCommentSection] = useState(false);
   const [showBeneficiariasUploadSection, setShowBeneficiariasUploadSection] = useState(false);
   const [showProcuracaoModal, setShowProcuracaoModal] = useState(false);
-  const [selectedDistribuidoraGerarProjeto, setSelectedDistribuidoraGerarProjeto] = useState(project.distribuidora || '');
+  const [selectedDistribuidoraGerarProjeto, setSelectedDistribuidoraGerarProjeto] = useState(normalizeDistribuidoraGrupo(project.distribuidora || ''));
   const [showConferirModal, setShowConferirModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [activeTemplatePreview, setActiveTemplatePreview] = useState<string | null>(null);
@@ -1471,7 +1480,7 @@ export const ExpandedProjectView = ({
 
     setGerarProjetoFields(prev => ({ ...prev, ...fieldsToSave }));
     setEditedProject(prev => ({ ...prev, ...fieldsToSave }));
-    setSelectedDistribuidoraGerarProjeto(fieldsToSave.distribuidora || selectedDistribuidoraGerarProjeto);
+    setSelectedDistribuidoraGerarProjeto(fieldsToSave.distribuidora ? normalizeDistribuidoraGrupo(fieldsToSave.distribuidora) : selectedDistribuidoraGerarProjeto);
 
     if (!_autoSave) {
       toast({
