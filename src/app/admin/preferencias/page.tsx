@@ -297,7 +297,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
 <strong>Assinatura</strong>
 </div>
 <div style="margin-top: 12px; font-size: 14px;">
-<strong>Nome completo:</strong> {{cliente_responsavel_legal_nome}}
+<strong>Nome do Responsável Legal:</strong> {{cliente_responsavel_legal_nome}}
 </div>
 <div style="margin-top: 8px; font-size: 14px;">
 <strong>CPF:</strong> {{cliente_responsavel_legal_cpf}}
