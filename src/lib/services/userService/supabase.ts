@@ -106,60 +106,20 @@ export const updateNotificationPreference = async (
   try {
     logger.debug('[updateNotificationPreference] Atualizando preferência:', { userId, preference, value });
 
-    // ✅ As preferências não têm colunas próprias na tabela `users` — são lidas
-    // (GET /api/user/profile) de dentro da coluna JSONB `settings.notifications`.
-    // Por isso a gravação precisa ler o `settings` atual, mesclar a chave alterada
-    // e regravar o objeto inteiro, em vez de fazer UPDATE em uma coluna solta.
-    const notificationsFieldMap = {
-      emailNotifications: 'email',
-      whatsappNotifications: 'whatsapp',
-      emailNotificacaoStatus: 'project_updates',
-      emailNotificacaoDocumentos: 'document_updates',
-      emailNotificacaoComentarios: 'comment_updates',
-    };
+    // ✅ SEGURANÇA: o acesso direto à tabela `users` pelo cliente do navegador
+    // (chave anônima) é bloqueado pelo RLS — usa a mesma rota de API com
+    // Service Role que o resto desta página já usa com sucesso (GET
+    // /api/user/profile, POST /api/user/profile/update).
+    const response = await fetch('/api/user/profile/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, preference, value }),
+    });
 
-    const notificationsField = notificationsFieldMap[preference];
-    if (!notificationsField) {
-      throw new Error(`Preferência inválida: ${preference}`);
-    }
+    const result = await response.json().catch(() => ({}));
 
-    const { data: currentUser, error: fetchError } = await supabase
-      .from('users')
-      .select('settings')
-      .eq('id', userId)
-      .single();
-
-    if (fetchError) {
-      throw fetchError;
-    }
-
-    let settings: Record<string, any> = {};
-    try {
-      if (currentUser?.settings) {
-        settings = typeof currentUser.settings === 'string' ? JSON.parse(currentUser.settings) : currentUser.settings;
-      }
-    } catch {
-      settings = {};
-    }
-
-    const updatedSettings = {
-      ...settings,
-      notifications: {
-        ...(settings.notifications || {}),
-        [notificationsField]: value,
-      },
-    };
-
-    const { error } = await supabase
-      .from('users')
-      .update({
-        settings: updatedSettings,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-
-    if (error) {
-      throw error;
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || `Erro ao atualizar preferência (status ${response.status})`);
     }
 
     logger.debug('[updateNotificationPreference] Preferência atualizada com sucesso:', { userId, preference, value });
