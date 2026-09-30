@@ -106,24 +106,54 @@ export const updateNotificationPreference = async (
   try {
     logger.debug('[updateNotificationPreference] Atualizando preferência:', { userId, preference, value });
 
-    // Mapear preferência para campo do Supabase
-    const fieldMap = {
-      emailNotifications: 'email_notifications',
-      whatsappNotifications: 'whatsapp_notifications',
-      emailNotificacaoStatus: 'email_notificacao_status',
-      emailNotificacaoDocumentos: 'email_notificacao_documentos',
-      emailNotificacaoComentarios: 'email_notificacao_comentarios',
+    // ✅ As preferências não têm colunas próprias na tabela `users` — são lidas
+    // (GET /api/user/profile) de dentro da coluna JSONB `settings.notifications`.
+    // Por isso a gravação precisa ler o `settings` atual, mesclar a chave alterada
+    // e regravar o objeto inteiro, em vez de fazer UPDATE em uma coluna solta.
+    const notificationsFieldMap = {
+      emailNotifications: 'email',
+      whatsappNotifications: 'whatsapp',
+      emailNotificacaoStatus: 'project_updates',
+      emailNotificacaoDocumentos: 'document_updates',
+      emailNotificacaoComentarios: 'comment_updates',
     };
 
-    const supabaseField = fieldMap[preference];
-    if (!supabaseField) {
+    const notificationsField = notificationsFieldMap[preference];
+    if (!notificationsField) {
       throw new Error(`Preferência inválida: ${preference}`);
     }
+
+    const { data: currentUser, error: fetchError } = await supabase
+      .from('users')
+      .select('settings')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    let settings: Record<string, any> = {};
+    try {
+      if (currentUser?.settings) {
+        settings = typeof currentUser.settings === 'string' ? JSON.parse(currentUser.settings) : currentUser.settings;
+      }
+    } catch {
+      settings = {};
+    }
+
+    const updatedSettings = {
+      ...settings,
+      notifications: {
+        ...(settings.notifications || {}),
+        [notificationsField]: value,
+      },
+    };
 
     const { error } = await supabase
       .from('users')
       .update({
-        [supabaseField]: value,
+        settings: updatedSettings,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
