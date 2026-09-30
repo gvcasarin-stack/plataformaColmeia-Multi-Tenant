@@ -120,10 +120,22 @@ function parseJsonList<T>(raw: any): T[] {
   return [];
 }
 
+// Descarta entradas "fantasma": blocos adicionados na UI (Equipamento +N) e nunca
+// preenchidos, sem fabricante/modelo/potência — só os campos com valor padrão
+// automático (quantidade, faixa de tensão etc.). Evitam linhas vazias nos documentos
+// gerados a partir de listas já salvas no banco.
+export function isModuloPreenchido(m: ModuloItem): boolean {
+  return !!(m.fabricante || m.modelo || m.potencia_wp);
+}
+
+export function isInversorPreenchido(i: InversorItem): boolean {
+  return !!(i.fabricante || i.modelo || i.potencia);
+}
+
 // Retorna todos os módulos do projeto (novo formato ou fallback para campos antigos)
 export function getAllModulos(pd: Record<string, any> | undefined): ModuloItem[] {
   if (!pd) return [];
-  const lista = parseJsonList<ModuloItem>(pd.modulos_lista);
+  const lista = parseJsonList<ModuloItem>(pd.modulos_lista).filter(isModuloPreenchido);
   if (lista.length > 0) return lista;
 
   // Fallback: campos individuais antigos
@@ -156,7 +168,7 @@ export function getAllModulos(pd: Record<string, any> | undefined): ModuloItem[]
 // Retorna todos os inversores do projeto (novo formato ou fallback)
 export function getAllInversores(pd: Record<string, any> | undefined): InversorItem[] {
   if (!pd) return [];
-  const lista = parseJsonList<InversorItem>(pd.inversores_lista);
+  const lista = parseJsonList<InversorItem>(pd.inversores_lista).filter(isInversorPreenchido);
   if (lista.length > 0) return lista;
 
   // Fallback: campos individuais antigos

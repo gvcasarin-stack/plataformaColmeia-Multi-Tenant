@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { EquipamentoListEditor } from './EquipamentoListEditor';
 import { RelacaoCargasEditor } from './RelacaoCargasEditor';
-import { getAllModulos, getAllInversores, parseStringsModulos, getAllCargas } from '@/lib/utils/equipmentParser';
+import { getAllModulos, getAllInversores, parseStringsModulos, getAllCargas, isModuloPreenchido, isInversorPreenchido } from '@/lib/utils/equipmentParser';
 import type { ModuloItem, InversorItem, InversorUnitConfig, CargaItem } from '@/lib/utils/equipmentParser';
 import { validarEmail, validarCEP, validarTelefone, validarCPForCNPJ } from '@/lib/utils/validators';
 import { buscarEnderecoPorCEP } from '@/lib/utils/cep';
@@ -1561,13 +1561,18 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
   useEffect(() => {
     if (!autoSavePending || !open) return;
     setAutoSavePending(false);
+    // Descarta blocos de Módulo/Inversor adicionados e nunca preenchidos (sem
+    // fabricante/modelo/potência) antes de persistir — evita salvar "fantasmas"
+    // que depois aparecem como linha vazia nos documentos gerados.
+    const modulosParaSalvar = modulosList.filter(isModuloPreenchido);
+    const inversoresParaSalvar = inversoresList.filter(isInversorPreenchido);
     const dataToSave = {
       ...localFields,
-      ...syncModulosOldFields(modulosList),
-      ...syncInversoresOldFields(inversoresList),
-      ...(computeStringsGlobals(inversoresList) || {}),
-      modulos_lista: JSON.stringify(modulosList),
-      inversores_lista: JSON.stringify(inversoresList),
+      ...syncModulosOldFields(modulosParaSalvar),
+      ...syncInversoresOldFields(inversoresParaSalvar),
+      ...(computeStringsGlobals(inversoresParaSalvar) || {}),
+      modulos_lista: JSON.stringify(modulosParaSalvar),
+      inversores_lista: JSON.stringify(inversoresParaSalvar),
       energisa_relacao_cargas: JSON.stringify(cargasList),
       _autoSave: true,
     };
@@ -1578,17 +1583,22 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const stringsGlobals = computeStringsGlobals(inversoresList);
+      // Descarta blocos de Módulo/Inversor adicionados e nunca preenchidos (sem
+      // fabricante/modelo/potência) antes de persistir — evita salvar "fantasmas"
+      // que depois aparecem como linha vazia nos documentos gerados.
+      const modulosParaSalvar = modulosList.filter(isModuloPreenchido);
+      const inversoresParaSalvar = inversoresList.filter(isInversorPreenchido);
+      const stringsGlobals = computeStringsGlobals(inversoresParaSalvar);
       const dataToSave = {
         ...localFields,
         // Sincroniza campos antigos do primeiro item (backward compat com templates)
-        ...syncModulosOldFields(modulosList),
-        ...syncInversoresOldFields(inversoresList),
+        ...syncModulosOldFields(modulosParaSalvar),
+        ...syncInversoresOldFields(inversoresParaSalvar),
         // Sobrescreve strings globais com dados por inversor quando disponíveis
         ...(stringsGlobals || {}),
         // Salva as listas completas no novo formato
-        modulos_lista: JSON.stringify(modulosList),
-        inversores_lista: JSON.stringify(inversoresList),
+        modulos_lista: JSON.stringify(modulosParaSalvar),
+        inversores_lista: JSON.stringify(inversoresParaSalvar),
         energisa_relacao_cargas: JSON.stringify(cargasList),
       };
 
