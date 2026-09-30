@@ -324,6 +324,15 @@ export function PlantaSituacaoPreview({ projectData, onSaveConfig }: PlantaSitua
 
   return (
     <>
+      {/* Botão PDF — fora da área impressa */}
+      <div className="mb-6 flex justify-center">
+        <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
+          {generating
+            ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
+            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação</>}
+        </Button>
+      </div>
+
       {/* Avisos */}
       {!hasToken && (
         <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-sm text-amber-800">

@@ -175,6 +175,22 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
 
   return (
     <>
+      {/* Botão PDF */}
+      <div className="mb-6 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={generating}
+          size="lg"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {generating ? (
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
+          ) : (
+            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Diagrama de Blocos</>
+          )}
+        </Button>
+      </div>
+
       {/* Diagrama */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px', fontFamily: 'Arial, sans-serif' }}>
         {numInversores === 1 ? (

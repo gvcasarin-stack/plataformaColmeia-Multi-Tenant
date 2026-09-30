@@ -64,6 +64,21 @@ export function AnexoG1CPFLPreview({ projectData }: AnexoG1CPFLPreviewProps) {
 
   return (
     <>
+      <div className="mb-6 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={generating}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {generating ? (
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
+          ) : (
+            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Anexo G.1</>
+          )}
+        </Button>
+      </div>
+
       {/* ===== Folha A4 ===== */}
       <div style={{ background: '#6b6f76', padding: '28px 16px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '794px', minHeight: '1123px', background: '#FFFFFF', padding: '54px 58px', boxShadow: '0 8px 28px rgba(0,0,0,.35)', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', color: '#000000', fontSize: '11px', lineHeight: 1.45 }}>

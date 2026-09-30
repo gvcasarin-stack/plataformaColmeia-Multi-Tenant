@@ -138,6 +138,28 @@ export function AnexoECPFLPreview({ projectData = {} }: AnexoECPFLPreviewProps) 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '800px', margin: '0 auto', padding: '8px' }}>
 
+      {/* ── Botão PDF ── */}
+      <div className="mb-6 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={downloading}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Gerando PDF...
+            </>
+          ) : (
+            <>
+              <FileDown className="mr-2 h-5 w-5" />
+              Gerar PDF do Formulário de Solicitação
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* ── Cabeçalho ── */}
       <table style={{ ...T, marginBottom: '10px' }}>
         <tbody>

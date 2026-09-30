@@ -241,6 +241,20 @@ export function FormularioSolicitacaoPreview({ projectData }: FormularioSolicita
 
   return (
     <>
+      <div className="mb-6 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={generating}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {generating ? (
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
+          ) : (
+            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Formulário</>
+          )}
+        </Button>
+      </div>
       <div
         style={{ width: '794px', padding: '18px', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', fontSize: '8px', backgroundColor: '#FFFFFF', lineHeight: '1.25', color: '#000000' }}
       >

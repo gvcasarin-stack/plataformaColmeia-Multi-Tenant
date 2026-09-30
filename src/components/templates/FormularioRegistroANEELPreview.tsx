@@ -90,6 +90,27 @@ export function FormularioRegistroANEELPreview({ projectData = {} }: FormularioR
 
   return (
     <>
+      <div className="mb-6 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={downloading}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Gerando PDF...
+            </>
+          ) : (
+            <>
+              <FileDown className="mr-2 h-5 w-5" />
+              Gerar PDF do Formulário de Registro
+            </>
+          )}
+        </Button>
+      </div>
+
       <div style={{ background: '#6b6f76', padding: '28px 16px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '794px', background: '#FFFFFF', boxShadow: '0 8px 28px rgba(0,0,0,.35)', boxSizing: 'border-box', color: '#000000', paddingBottom: '48px' }}>
 

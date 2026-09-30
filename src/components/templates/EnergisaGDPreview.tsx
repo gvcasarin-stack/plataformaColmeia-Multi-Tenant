@@ -200,6 +200,27 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
     <>
     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '900px', margin: '0 auto', padding: '8px' }}>
 
+      <div className="mb-8 flex justify-center">
+        <Button
+          onClick={handleGeneratePdf}
+          disabled={downloading}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold shadow-lg"
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Gerando PDF...
+            </>
+          ) : (
+            <>
+              <FileDown className="mr-2 h-5 w-5" />
+              Baixar PDF — Formulário GD Energisa
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* ══════════════════ Folha 1: Formulário de Orçamento de Conexão ══════════════════ */}
       <SheetLabel n={1} />
       <DocHeader title="FORMULÁRIO DE ORÇAMENTO DE CONEXÃO" subtitle="GERAÇÃO DISTRIBUÍDA" />
