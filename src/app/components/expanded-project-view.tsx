@@ -74,6 +74,7 @@ import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilar
 import { PlantaSituacaoPreview } from '@/components/templates/PlantaSituacaoPreview'
 import { ListaRateioEquatorialPreview } from '@/components/templates/ListaRateioEquatorialPreview'
 import { AnexoG1CPFLPreview } from '@/components/templates/AnexoG1CPFLPreview'
+import { PadraoEntradaEnergisaPreview } from '@/components/templates/PadraoEntradaEnergisaPreview'
 import { ConferirInformacoesModal, useConferirProgress } from '@/components/modals/ConferirInformacoesModal'
 import { SetupProjetoModal, SETUP_DEFAULTS } from '@/components/modals/SetupProjetoModal'
 import type { SetupProjetoData } from '@/components/modals/SetupProjetoModal'
@@ -3156,6 +3157,39 @@ export const ExpandedProjectView = ({
                                 </Card>
                               )}
 
+                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') &&
+                                (user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
+                                <Card
+                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'padrao-entrada' ? null : 'padrao-entrada')}
+                                  className={`border cursor-pointer group transition-all duration-200 ${
+                                    activeTemplatePreview === 'padrao-entrada'
+                                      ? 'border-emerald-500 dark:border-emerald-400 shadow-md ring-2 ring-emerald-200 dark:ring-emerald-800'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`p-2 rounded-lg transition-colors ${
+                                        activeTemplatePreview === 'padrao-entrada'
+                                          ? 'bg-emerald-100 dark:bg-emerald-900/50'
+                                          : 'bg-emerald-50 dark:bg-emerald-900/30 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50'
+                                      }`}>
+                                        <FileText className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">
+                                          Detalhe do Padrão de Entrada
+                                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
+                                        </h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Detalhe construtivo do padrão de entrada monofásico (em teste, visível só para superadmin).
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
                               {!selectedDistribuidoraGerarProjeto.toLowerCase().includes('cpfl') && <Card
                                 onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'formulario' ? null : 'formulario')}
                                 className={`border cursor-pointer group transition-all duration-200 ${
@@ -3413,6 +3447,22 @@ export const ExpandedProjectView = ({
                               <div className="rounded-md border border-emerald-200 dark:border-emerald-700 p-4 max-h-[700px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                                   <FormularioRegistroANEELPreview projectData={gerarProjetoFields} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTemplatePreview === 'padrao-entrada' &&
+                            selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') &&
+                            (user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-emerald-500" />
+                                Pré-visualização — Detalhe do Padrão de Entrada (Energisa)
+                              </h3>
+                              <div className="rounded-md border border-emerald-200 dark:border-emerald-700 p-4 max-h-[700px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <PadraoEntradaEnergisaPreview projectData={gerarProjetoFields} />
                                 </div>
                               </div>
                             </div>
