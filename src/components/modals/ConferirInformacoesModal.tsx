@@ -1042,6 +1042,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       const updates: Record<string, any> = {};
       for (const field of FIELD_DEFINITIONS) {
         if (field.type !== 'default_with_custom') continue;
+        if (field.key === 'cabo_cc_capacidade_corrente_a') continue; // recalculado em efeito próprio abaixo
         if (customOverrides.has(field.key)) continue;
         const isComputed = typeof field.defaultValue === 'function';
         const currentVal = prev[field.key];
@@ -1058,7 +1059,22 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia, localFields.inversores_corrente_nominal, localFields.cabo_cc_secao_mm2, localFields.cabo_cc_metodo_instalacao, localFields.cabo_cc_fator_temperatura, localFields.cabo_cc_metodo_instalacao_arranjo, localFields.cabo_cc_metodo_instalacao_profundidade]);
+  }, [open, localFields.modulos_quantidade, localFields.inversores_potencia, localFields.inversores_corrente_nominal]);
+
+  // Auto-fill isolado da "CC — Capacidade de Corrente Básica (A)": efeito próprio, com
+  // dependências restritas aos campos da Seção CC (em vez de reaproveitar o efeito acima,
+  // que recalcula os demais ~16 campos default_with_custom a cada alteração). Evita disparar
+  // esse recálculo maior a cada tecla digitada em Seção/Método/Arranjo/Temperatura.
+  useEffect(() => {
+    if (!open) return;
+    if (customOverrides.has('cabo_cc_capacidade_corrente_a')) return;
+    setLocalFields(prev => {
+      const defaultVal = getCapacidadeCorrenteBasica(prev);
+      if (defaultVal === undefined || defaultVal === '' || defaultVal === prev.cabo_cc_capacidade_corrente_a) return prev;
+      return { ...prev, cabo_cc_capacidade_corrente_a: defaultVal };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, localFields.cabo_cc_secao_mm2, localFields.cabo_cc_metodo_instalacao, localFields.cabo_cc_fator_temperatura, localFields.cabo_cc_metodo_instalacao_arranjo, localFields.cabo_cc_metodo_instalacao_profundidade]);
 
   useEffect(() => {
     if (!open) return;
@@ -1626,7 +1642,15 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
   };
 
   const renderFieldInput = (field: FieldDef) => {
-    const value = getFieldValue(field.key);
+    // Campos default_with_custom com defaultValue computado (função) exibem o valor
+    // calculado diretamente no mesmo render, em vez de esperar o efeito de auto-fill
+    // atualizar localFields no próximo ciclo — evita um "atraso" visual de 1 render
+    // ao digitar nas dependências (ex.: Seção CC, Método, Arranjo, Temperatura).
+    let value = getFieldValue(field.key);
+    if (field.type === 'default_with_custom' && typeof field.defaultValue === 'function' && !customOverrides.has(field.key)) {
+      const live = field.defaultValue(localFields);
+      if (live !== undefined && live !== '') value = live;
+    }
     const isSkipped = skippedFields.has(field.key);
 
     if (field.type === 'image') {
