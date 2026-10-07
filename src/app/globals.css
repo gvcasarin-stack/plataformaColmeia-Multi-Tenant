@@ -185,6 +185,21 @@ html, body {
   background: rgba(249, 115, 22, 1); /* Solid orange on hover in dark mode */
 }
 
+/* O Radix Select injeta seu próprio <style> escondendo a scrollbar nativa do viewport
+   ([data-radix-select-viewport]::-webkit-scrollbar{display:none}), para empurrar o uso
+   dos botões de scroll próprios dele (não implementados neste componente). Essa regra tem
+   a mesma especificidade da .custom-scrollbar genérica acima e pode ser inserida depois
+   dela no DOM, anulando a cor laranja — por isso a sobrescrevemos aqui com um seletor
+   mais específico. */
+[data-radix-select-viewport].custom-scrollbar {
+  scrollbar-width: thin !important;
+}
+
+[data-radix-select-viewport].custom-scrollbar::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+}
+
 /* Glass effect for cards */
 .glass-card {
   @apply bg-background/80 backdrop-blur-md border border-[color:hsla(var(--border),0.5)];
