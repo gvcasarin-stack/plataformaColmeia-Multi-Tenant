@@ -3462,7 +3462,7 @@ export const ExpandedProjectView = ({
                               </h3>
                               <div className="rounded-md border border-emerald-200 dark:border-emerald-700 p-4 max-h-[700px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                                  <PadraoEntradaEnergisaPreview projectData={gerarProjetoFields} />
+                                  <PadraoEntradaEnergisaPreview projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }} />
                                 </div>
                               </div>
                             </div>

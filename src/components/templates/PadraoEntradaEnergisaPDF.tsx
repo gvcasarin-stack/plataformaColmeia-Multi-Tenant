@@ -191,9 +191,9 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
               34mm), ocupando horizontalmente a metade DIREITA da folha
               (x 217.5–410mm, 192.5mm). 3 colunas: Produto/Data/Escala/
               Tamanho/Folha/Revisão (40mm) | Título + Proprietário e Obra +
-              Responsável Técnico (100mm) | Logo da empresa (52.5mm).
+              Responsável Técnico (110mm) | Logo da empresa (42.5mm).
               ================================================================= */}
-          <View style={{ position: 'absolute', left: mm(217.5), top: mm(253), width: mm(192.5), height: mm(34), borderTopWidth: 0.75, borderColor: '#161513', flexDirection: 'row' }}>
+          <View style={{ position: 'absolute', left: mm(217.5), top: mm(253), width: mm(192.5), height: mm(34), borderTopWidth: 0.75, borderLeftWidth: 0.75, borderColor: '#161513', flexDirection: 'row' }}>
             {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
             <View style={{ width: mm(40), borderRightWidth: 0.75, borderColor: '#161513' }}>
               <View style={{ height: mm(8.5), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
@@ -209,7 +209,7 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
             </View>
 
             {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
-            <View style={{ width: mm(100), borderRightWidth: 0.75, borderColor: '#161513' }}>
+            <View style={{ width: mm(110), borderRightWidth: 0.75, borderColor: '#161513' }}>
               <View style={{ height: mm(8.5), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Text style={[s.seloLbl, { textAlign: 'center' }]}>TÍTULO</Text>
                 <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</Text>
@@ -230,7 +230,7 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
             </View>
 
             {/* Coluna 3: Logo da empresa */}
-            <View style={{ width: mm(52.5), alignItems: 'center', justifyContent: 'center', padding: 4 }}>
+            <View style={{ width: mm(42.5), alignItems: 'center', justifyContent: 'center', padding: 4 }}>
               {logoUrl && <Image src={logoUrl} style={{ width: '100%', maxHeight: mm(24), objectFit: 'contain' }} />}
             </View>
           </View>

@@ -248,14 +248,16 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               34mm), ocupando horizontalmente a metade DIREITA da folha
               (x 217.5–410, 192.5mm). 3 colunas: Produto/Data/Escala/
               Tamanho/Folha/Revisão | Título + Proprietário e Obra +
-              Responsável Técnico | Logo da empresa.
+              Responsável Técnico | Logo da empresa (coluna da logo um
+              pouco mais estreita).
               ================================================================= */}
           <g stroke="#161513" fill="none" strokeWidth="0.5">
             <line x1="217.5" y1="253" x2="410" y2="253" />
+            <line x1="217.5" y1="253" x2="217.5" y2="287" />
             <line x1="257.5" y1="253" x2="257.5" y2="287" />
-            <line x1="357.5" y1="253" x2="357.5" y2="287" />
-            <line x1="217.5" y1="261.5" x2="357.5" y2="261.5" />
-            <line x1="257.5" y1="275" x2="357.5" y2="275" strokeWidth="0.35" />
+            <line x1="367.5" y1="253" x2="367.5" y2="287" />
+            <line x1="217.5" y1="261.5" x2="367.5" y2="261.5" />
+            <line x1="257.5" y1="275" x2="367.5" y2="275" strokeWidth="0.35" />
             <g strokeWidth="0.35">
               <line x1="217.5" y1="266.6" x2="257.5" y2="266.6" />
               <line x1="217.5" y1="271.7" x2="257.5" y2="271.7" />
@@ -265,7 +267,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
           </g>
 
           {logoUrl && (
-            <image href={logoUrl} x="361" y="258" width="46" height="24" preserveAspectRatio="xMidYMid meet" />
+            <image href={logoUrl} x="371" y="258" width="36" height="24" preserveAspectRatio="xMidYMid meet" />
           )}
 
           <g fontFamily="Arial, Helvetica, sans-serif" fill="#161513">
@@ -291,20 +293,20 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
 
             {/* TÍTULO */}
             <text x="260.5" y="257.5" fontSize="2.3" fontWeight="bold">TÍTULO</text>
-            <text x="307.5" y="260.3" fontSize="3.2" fontWeight="bold" textAnchor="middle">DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</text>
+            <text x="312.5" y="260.3" fontSize="3.2" fontWeight="bold" textAnchor="middle">DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</text>
 
             {/* Proprietário e Obra */}
-            <text x="307.5" y="264.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
-            <text x="307.5" y="267.0" fontSize="2.4" textAnchor="middle">Nome: {owner}</text>
-            <text x="307.5" y="269.7" fontSize="2.4" textAnchor="middle">Endereço: {endereco}</text>
-            <text x="307.5" y="272.4" fontSize="2.4" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
-            <text x="307.5" y="275.1" fontSize="2.4" textAnchor="middle">CEP: {cep}</text>
+            <text x="312.5" y="264.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
+            <text x="312.5" y="267.0" fontSize="2.4" textAnchor="middle">Nome: {owner}</text>
+            <text x="312.5" y="269.7" fontSize="2.4" textAnchor="middle">Endereço: {endereco}</text>
+            <text x="312.5" y="272.4" fontSize="2.4" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
+            <text x="312.5" y="275.1" fontSize="2.4" textAnchor="middle">CEP: {cep}</text>
 
             {/* Responsável Técnico */}
-            <text x="307.5" y="278.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
-            <text x="307.5" y="281.2" fontSize="2.6" fontWeight="bold" textAnchor="middle">{respNome}</text>
-            <text x="307.5" y="283.8" fontSize="2.2" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
-            <text x="307.5" y="286.4" fontSize="2.2" textAnchor="middle">CFT: {respCft}</text>
+            <text x="312.5" y="278.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
+            <text x="312.5" y="281.2" fontSize="2.6" fontWeight="bold" textAnchor="middle">{respNome}</text>
+            <text x="312.5" y="283.8" fontSize="2.2" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
+            <text x="312.5" y="286.4" fontSize="2.2" textAnchor="middle">CFT: {respCft}</text>
           </g>
         </svg>
       </div>
