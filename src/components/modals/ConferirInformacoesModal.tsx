@@ -451,9 +451,9 @@ const FIELD_DEFINITIONS: FieldDef[] = [
     { value: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'CONEXÃO DE GD EM UNIDADE CONSUMIDORA EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
     { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE SEM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
     { value: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA', label: 'AUMENTO DA POTÊNCIA DE GERAÇÃO EM UC COM GD EXISTENTE COM AUMENTO DE POTÊNCIA DISPONIBILIZADA' },
-  ], group: 'Dados do Projeto' },
-  { key: 'tarifa_branca', label: 'Tarifa Branca?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
-  { key: 'possui_cargas_especiais', label: 'Possui Cargas Especiais?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto' },
+  ], group: 'Dados do Projeto', onlyForDistribuidoras: ['Equatorial'] },
+  { key: 'tarifa_branca', label: 'Tarifa Branca?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto', onlyForDistribuidoras: ['Equatorial'] },
+  { key: 'possui_cargas_especiais', label: 'Possui Cargas Especiais?', type: 'select', required: false, options: [{ value: 'NÃO', label: 'Não' }, { value: 'SIM', label: 'Sim' }], group: 'Dados do Projeto', onlyForDistribuidoras: ['Equatorial'] },
   { key: 'carga_declarada_kw', label: 'Carga Declarada da UC (kW)', icon: <Zap className="h-3.5 w-3.5" />, type: 'default_with_custom', required: true, suffix: 'kW', defaultValue: '8,00', group: 'Dados do Projeto' },
   { key: 'data_inicio_operacao', label: 'Data Início de Operação', icon: <Calendar className="h-3.5 w-3.5" />, type: 'date', required: true, group: 'Dados do Projeto' },
   { key: 'modalidade_compensacao', label: 'Modalidade de Compensação', icon: <Info className="h-3.5 w-3.5" />, type: 'select', required: true, options: [{ value: 'Autoconsumo Local', label: 'Autoconsumo Local' }, { value: 'Autoconsumo Remoto', label: 'Autoconsumo Remoto' }, { value: 'Geração Compartilhada', label: 'Geração Compartilhada' }], group: 'Dados do Projeto' },
@@ -557,7 +557,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   // Dados da Unidade Consumidora
   { key: 'conta_contrato', label: 'Nº Conta Contrato', icon: <Building className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Dados da Unidade Consumidora' },
   { key: 'classe_uc', label: 'Classe da UC', type: 'select', required: true, options: [{ value: 'Residencial', label: 'Residencial' }, { value: 'Comercial', label: 'Comercial' }, { value: 'Industrial', label: 'Industrial' }, { value: 'Rural', label: 'Rural' }, { value: 'Poder Público', label: 'Poder Público' }], group: 'Dados da Unidade Consumidora' },
-  { key: 'numero_poste_transformador', label: 'Nº Poste / Transformador', type: 'text', required: false, group: 'Dados da Unidade Consumidora' },
+  { key: 'numero_poste_transformador', label: 'Nº Poste / Transformador', type: 'text', required: false, group: 'Dados da Unidade Consumidora', onlyForDistribuidoras: ['Equatorial'] },
 
   // Padrão de Entrada
   { key: 'caixa_medicao_id', label: 'Modelo da Caixa de Medição', icon: <FolderArchive className="h-3.5 w-3.5" />, type: 'acervo_select', required: true, acervoCategoria: 'caixa_medicao', group: 'Padrão de Entrada', hideForDistribuidoras: ['CPFL', 'Energisa'] },
