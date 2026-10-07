@@ -69,7 +69,7 @@ function SelectField({
         <SelectTrigger className="h-7 text-xs mt-0.5">
           <SelectValue placeholder={placeholder ?? 'Selecione'} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent position="popper" side="bottom" className="max-h-60">
           {options.map(o => (
             <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
           ))}
