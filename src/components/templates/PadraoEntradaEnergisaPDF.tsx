@@ -16,22 +16,20 @@ interface PadraoEntradaEnergisaPDFProps {
 const PT_PER_MM = 72 / 25.4;
 const mm = (v: number) => v * PT_PER_MM;
 
-// Desenho técnico (imagem + overlays) centralizado na metade ESQUERDA da
-// folha (x 25–217.5mm), com a mesma largura disponível (184.5mm) nos 3
-// padrões; a altura varia conforme a proporção de cada imagem de origem.
-const DRAW_X = 29;
-const DRAW_W = 184.5;
-const MONO_VB_W = 222.5, MONO_Y = 57.7, MONO_H = 181.6;
-const TRI_VB_W = 312.6, TRI_Y = 83.6, TRI_H = 129.8;
-const BI_VB_W = 312.6, BI_Y = 84.3, BI_H = 128.4;
+// Desenho técnico (imagem + overlays) usando a largura quase total da folha
+// (mesmas posições do protótipo/Preview); só o rodapé (y 253–287) divide
+// espaço com o selo.
+const MONO_X = 106.25, MONO_Y = 22, MONO_W = 222.5, MONO_H = 219, MONO_VB_W = 222.5;
+const TRI_X = 61.2, TRI_Y = 21.5, TRI_W = 312.6, TRI_H = 220, TRI_VB_W = 312.6;
+const BI_X = 61.2, BI_Y = 22.75, BI_W = 312.6, BI_H = 217.5, BI_VB_W = 312.6;
 
 // Converte uma coordenada local do desenho original (mesmas unidades usadas
 // no SVG do Preview, local ao viewBox de cada imagem) em posição absoluta
 // (pt) na página, aplicando a escala do padrão e a correção de baseline
 // (SVG <text> ancora na linha de base; react-pdf <Text> ancora no topo).
-function mkOverlay(drawYmm: number, vbW: number) {
-  const scale = mm(DRAW_W) / vbW;
-  const baseLeft = mm(DRAW_X);
+function mkOverlay(drawXmm: number, drawYmm: number, drawWmm: number, vbW: number) {
+  const scale = mm(drawWmm) / vbW;
+  const baseLeft = mm(drawXmm);
   const baseTop = mm(drawYmm);
   return (lx: number, ly: number, fontSizeLocal: number) => {
     const fontSize = fontSizeLocal * scale;
@@ -118,10 +116,12 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
   const dataDoc = formatDataBR(fv(projectData?.data_documento, new Date().toLocaleDateString('pt-BR')));
   const logoUrl = projectData?.logo_empresa_url;
 
+  const drawXmm = isTrifasico ? TRI_X : isBifasico ? BI_X : MONO_X;
   const drawYmm = isTrifasico ? TRI_Y : isBifasico ? BI_Y : MONO_Y;
+  const drawWmm = isTrifasico ? TRI_W : isBifasico ? BI_W : MONO_W;
   const drawHmm = isTrifasico ? TRI_H : isBifasico ? BI_H : MONO_H;
   const vbW = isTrifasico ? TRI_VB_W : isBifasico ? BI_VB_W : MONO_VB_W;
-  const ov = mkOverlay(drawYmm, vbW);
+  const ov = mkOverlay(drawXmm, drawYmm, drawWmm, vbW);
   const imgSrc = isTrifasico ? '/images/energisa-pde-tri.png' : isBifasico ? '/images/energisa-pde-bi.png' : '/images/energisa-pde-mono-2.png';
 
   return (
@@ -138,13 +138,10 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
           <View style={{ position: 'absolute', left: mm(0.5), top: mm(148.5), width: mm(24.5), height: 0.75, backgroundColor: '#161513' }} />
           <View style={{ position: 'absolute', left: mm(410), top: mm(148.5), width: mm(9.5), height: 0.75, backgroundColor: '#161513' }} />
 
-          {/* ===== divisória vertical: metade esquerda = desenho, metade direita = selo ===== */}
-          <View style={{ position: 'absolute', left: mm(217.5), top: mm(10), width: 0.75, height: mm(277), backgroundColor: '#161513' }} />
-
-          {/* ===== detalhe construtivo (metade esquerda) ===== */}
+          {/* ===== detalhe construtivo (largura quase total da folha) ===== */}
           <Image
             src={imgUrl(imgSrc)}
-            style={{ position: 'absolute', left: mm(DRAW_X), top: mm(drawYmm), width: mm(DRAW_W), height: mm(drawHmm) }}
+            style={{ position: 'absolute', left: mm(drawXmm), top: mm(drawYmm), width: mm(drawWmm), height: mm(drawHmm) }}
           />
 
           {isTrifasico ? (
@@ -190,58 +187,51 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
           )}
 
           {/* ===================================================================
-              SELO — formato padrão de prancha A3: ocupa exatamente a metade
-              direita da folha (x 217.5–410mm, y 10–287mm). Empilhado
-              verticalmente: Logo | Título | Produto | Proprietário e Obra |
-              Responsável Técnico | (espaço reservado) | rodapé Data/Escala/
-              Tamanho/Folha/Revisão.
+              SELO — faixa inferior (mesma altura de antes: y 253–287mm,
+              34mm), ocupando horizontalmente a metade DIREITA da folha
+              (x 217.5–410mm, 192.5mm). 3 colunas: Produto/Data/Escala/
+              Tamanho/Folha/Revisão (40mm) | Título + Proprietário e Obra +
+              Responsável Técnico (100mm) | Logo da empresa (52.5mm).
               ================================================================= */}
-          <View style={{ position: 'absolute', left: mm(217.5), top: mm(10), width: mm(192.5), height: mm(277), flexDirection: 'column' }}>
-            {/* Logo */}
-            <View style={{ height: mm(48), borderBottomWidth: 0.75, borderColor: '#161513', alignItems: 'center', justifyContent: 'center', padding: 6 }}>
-              {logoUrl && <Image src={logoUrl} style={{ maxWidth: mm(170), maxHeight: mm(38), objectFit: 'contain' }} />}
-            </View>
-
-            {/* Título */}
-            <View style={{ height: mm(22), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 8 }}>
-              <Text style={[s.seloLbl, { textAlign: 'center' }]}>TÍTULO</Text>
-              <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 3 }}>DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</Text>
-            </View>
-
-            {/* Produto */}
-            <View style={{ height: mm(14), borderBottomWidth: 0.75, borderColor: '#161513', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={s.seloLbl}>PRODUTO</Text>
-              <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', marginTop: 2 }}>GFV {potKwp} kWp</Text>
-            </View>
-
-            {/* Proprietário e Obra */}
-            <View style={{ height: mm(38), borderBottomWidth: 0.75, borderColor: '#161513', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={s.seloLbl}>Proprietário e Obra:</Text>
-              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 3 }}>Nome: {owner}</Text>
-              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 1 }}>Endereço: {endereco}</Text>
-              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 1 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
-              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 1 }}>CEP: {cep}</Text>
-            </View>
-
-            {/* Responsável Técnico */}
-            <View style={{ height: mm(32), alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={s.seloLbl}>Responsável Técnico:</Text>
-              <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 3 }}>{respNome}</Text>
-              <Text style={{ fontSize: 7, textAlign: 'center', marginTop: 1 }}>TÉCNICO EM ELETROTÉCNICA</Text>
-              <Text style={{ fontSize: 7, textAlign: 'center', marginTop: 1 }}>CFT: {respCft}</Text>
-            </View>
-
-            {/* espaço reservado */}
-            <View style={{ flex: 1 }} />
-
-            {/* rodapé: Data / Escala / Tamanho / Folha / Revisão */}
-            <View style={{ height: mm(20), borderTopWidth: 0.75, borderColor: '#161513', flexDirection: 'row' }}>
-              {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val], i) => (
-                <View key={lbl} style={{ flex: 1, borderRightWidth: i < 4 ? 0.75 : 0, borderColor: '#161513', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={[s.seloLbl, { fontSize: 5.5 }]}>{lbl}</Text>
-                  <Text style={{ fontSize: 7.5, marginTop: 2 }}>{val}</Text>
+          <View style={{ position: 'absolute', left: mm(217.5), top: mm(253), width: mm(192.5), height: mm(34), borderTopWidth: 0.75, borderColor: '#161513', flexDirection: 'row' }}>
+            {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
+            <View style={{ width: mm(40), borderRightWidth: 0.75, borderColor: '#161513' }}>
+              <View style={{ height: mm(8.5), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
+                <Text style={s.seloLbl}>PRODUTO</Text>
+                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', marginTop: 1 }}>GFV {potKwp} kWp</Text>
+              </View>
+              {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val], i, arr) => (
+                <View key={lbl} style={{ height: mm(5.1), borderBottomWidth: i < arr.length - 1 ? 0.4 : 0, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
+                  <Text style={[s.seloLbl, { fontSize: 4.5 }]}>{lbl}</Text>
+                  <Text style={{ fontSize: 5.5 }}>{val}</Text>
                 </View>
               ))}
+            </View>
+
+            {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
+            <View style={{ width: mm(100), borderRightWidth: 0.75, borderColor: '#161513' }}>
+              <View style={{ height: mm(8.5), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 4 }}>
+                <Text style={[s.seloLbl, { textAlign: 'center' }]}>TÍTULO</Text>
+                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</Text>
+              </View>
+              <View style={{ height: mm(13.5), borderBottomWidth: 0.4, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 4 }}>
+                <Text style={[s.seloLbl, { textAlign: 'center' }]}>Proprietário e Obra:</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center', marginTop: 1 }}>Nome: {owner}</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center' }}>Endereço: {endereco}</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center' }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center' }}>CEP: {cep}</Text>
+              </View>
+              <View style={{ height: mm(12), justifyContent: 'center', paddingHorizontal: 4 }}>
+                <Text style={[s.seloLbl, { textAlign: 'center' }]}>Responsável Técnico:</Text>
+                <Text style={{ fontSize: 5.6, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>{respNome}</Text>
+                <Text style={{ fontSize: 5, textAlign: 'center' }}>TÉCNICO EM ELETROTÉCNICA</Text>
+                <Text style={{ fontSize: 5, textAlign: 'center' }}>CFT: {respCft}</Text>
+              </View>
+            </View>
+
+            {/* Coluna 3: Logo da empresa */}
+            <View style={{ width: mm(52.5), alignItems: 'center', justifyContent: 'center', padding: 4 }}>
+              {logoUrl && <Image src={logoUrl} style={{ width: '100%', maxHeight: mm(24), objectFit: 'contain' }} />}
             </View>
           </View>
         </View>
