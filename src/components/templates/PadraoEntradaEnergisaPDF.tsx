@@ -9,39 +9,40 @@ interface PadraoEntradaEnergisaPDFProps {
   projectData?: Record<string, any>;
 }
 
-// Mesma proporção do protótipo escalada para 360pt de largura dentro da
-// página A4 — ver PadraoEntradaEnergisaPreview.tsx para a versão em tela
-// (SVG), que usa exatamente as mesmas posições relativas. Mono e trifásico
-// usam imagens com proporções diferentes, por isso cada um tem sua altura.
-const IMG_W = 360;
-const IMG_H_MONO = 354.25;
-const IMG_H_TRI = 253.5;
-const IMG_H_BI = 250.5;
-const B = 0.75;
+// Prancha A3 paisagem em escala real (1mm = 72/25.4pt) — mesmas posições em
+// milímetros usadas em PadraoEntradaEnergisaPreview.tsx (SVG), convertidas
+// para pontos. Isso garante que o PDF respeite o formato A3 de verdade (a
+// versão anterior desenhava tudo em uma página A4 com larguras arbitrárias).
+const PT_PER_MM = 72 / 25.4;
+const mm = (v: number) => v * PT_PER_MM;
+
+// Desenho técnico (imagem + overlays) centralizado na metade ESQUERDA da
+// folha (x 25–217.5mm), com a mesma largura disponível (184.5mm) nos 3
+// padrões; a altura varia conforme a proporção de cada imagem de origem.
+const DRAW_X = 29;
+const DRAW_W = 184.5;
+const MONO_VB_W = 222.5, MONO_Y = 57.7, MONO_H = 181.6;
+const TRI_VB_W = 312.6, TRI_Y = 83.6, TRI_H = 129.8;
+const BI_VB_W = 312.6, BI_Y = 84.3, BI_H = 128.4;
+
+// Converte uma coordenada local do desenho original (mesmas unidades usadas
+// no SVG do Preview, local ao viewBox de cada imagem) em posição absoluta
+// (pt) na página, aplicando a escala do padrão e a correção de baseline
+// (SVG <text> ancora na linha de base; react-pdf <Text> ancora no topo).
+function mkOverlay(drawYmm: number, vbW: number) {
+  const scale = mm(DRAW_W) / vbW;
+  const baseLeft = mm(DRAW_X);
+  const baseTop = mm(drawYmm);
+  return (lx: number, ly: number, fontSizeLocal: number) => {
+    const fontSize = fontSizeLocal * scale;
+    return { left: baseLeft + lx * scale, top: baseTop + ly * scale - fontSize * 0.78, fontSize };
+  };
+}
 
 const s = StyleSheet.create({
-  page: {
-    fontFamily: 'Helvetica',
-    fontSize: 8.5,
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-    color: '#000000',
-  },
-  // ✅ Moldura da prancha (mesma ideia do protótipo: quadro em volta de todo
-  // o conteúdo da folha) — aqui como borda simples ao redor de figura + selo,
-  // já que o react-pdf não desenha bem imagens dentro de <Svg>.
-  frame: { borderWidth: 1, borderColor: '#161513', padding: 14 },
-  figure: { width: IMG_W, position: 'relative', marginHorizontal: 'auto' },
+  page: { backgroundColor: '#FFFFFF', fontFamily: 'Helvetica', color: '#000000' },
   overlay: { position: 'absolute', color: '#1c3f73', fontFamily: 'Helvetica-Bold' },
-
-  // ✅ Selo no mesmo padrão do Diagrama Unifilar / Diagrama de Blocos —
-  // construído como tabela (mesma convenção de bordas usada nos demais
-  // documentos deste app), não como SVG de posição livre.
-  selo: { flexDirection: 'row', borderTopWidth: B, borderColor: '#161513', marginTop: 14 },
-  seloCol: { borderRightWidth: B, borderColor: '#161513' },
-  seloLbl: { fontSize: 5, fontFamily: 'Helvetica-Bold', color: '#444' },
-  seloVal: { fontSize: 6.5, textAlign: 'center' },
-  seloRow: { borderBottomWidth: 0.4, borderColor: '#161513', paddingVertical: 2, paddingHorizontal: 4 },
+  seloLbl: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#444' },
 });
 
 // "6" -> "6,0" (mesma notação com uma casa decimal do desenho original)
@@ -94,7 +95,8 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
   const disjuntorCorrente = get('disjuntor_corrente_a');
   const disjuntorPolosLabel = POLOS_LABEL[get('disjuntor_polos')] || '';
   // Monofásico: a imagem não traz "Monopolar", então o rótulo completo (polos + corrente)
-  // é sobreposto. Trifásico: a imagem já traz "Disjuntor Tripolar" impresso, falta só a corrente.
+  // é sobreposto. Trifásico/Bifásico: a imagem já traz o rótulo de polaridade impresso,
+  // falta só a corrente.
   const disjuntorLabel = [disjuntorPolosLabel, disjuntorCorrente ? `${disjuntorCorrente} A` : ''].filter(Boolean).join(' ');
   const disjuntorCorrenteLabel = disjuntorCorrente ? `${disjuntorCorrente} A` : '';
 
@@ -116,157 +118,130 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
   const dataDoc = formatDataBR(fv(projectData?.data_documento, new Date().toLocaleDateString('pt-BR')));
   const logoUrl = projectData?.logo_empresa_url;
 
+  const drawYmm = isTrifasico ? TRI_Y : isBifasico ? BI_Y : MONO_Y;
+  const drawHmm = isTrifasico ? TRI_H : isBifasico ? BI_H : MONO_H;
+  const vbW = isTrifasico ? TRI_VB_W : isBifasico ? BI_VB_W : MONO_VB_W;
+  const ov = mkOverlay(drawYmm, vbW);
+  const imgSrc = isTrifasico ? '/images/energisa-pde-tri.png' : isBifasico ? '/images/energisa-pde-bi.png' : '/images/energisa-pde-mono-2.png';
+
   return (
     <Document>
-      <Page size="A4" style={s.page}>
-        <View style={s.frame}>
+      <Page size="A3" orientation="landscape" style={s.page}>
+        <View style={{ position: 'relative', width: '100%', height: '100%' }}>
+          {/* ===== borda de corte + quadro de desenho (NBR 10068) ===== */}
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(0.5), width: mm(419), height: mm(296), borderWidth: 0.75, borderColor: '#161513' }} />
+          <View style={{ position: 'absolute', left: mm(25), top: mm(10), width: mm(385), height: mm(277), borderWidth: 0.75, borderColor: '#161513' }} />
+
+          {/* marcas de centragem */}
+          <View style={{ position: 'absolute', left: mm(217.5), top: mm(0.5), width: 0.75, height: mm(9.5), backgroundColor: '#161513' }} />
+          <View style={{ position: 'absolute', left: mm(217.5), top: mm(287), width: 0.75, height: mm(9.5), backgroundColor: '#161513' }} />
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(148.5), width: mm(24.5), height: 0.75, backgroundColor: '#161513' }} />
+          <View style={{ position: 'absolute', left: mm(410), top: mm(148.5), width: mm(9.5), height: 0.75, backgroundColor: '#161513' }} />
+
+          {/* ===== divisória vertical: metade esquerda = desenho, metade direita = selo ===== */}
+          <View style={{ position: 'absolute', left: mm(217.5), top: mm(10), width: 0.75, height: mm(277), backgroundColor: '#161513' }} />
+
+          {/* ===== detalhe construtivo (metade esquerda) ===== */}
+          <Image
+            src={imgUrl(imgSrc)}
+            style={{ position: 'absolute', left: mm(DRAW_X), top: mm(drawYmm), width: mm(DRAW_W), height: mm(drawHmm) }}
+          />
+
           {isTrifasico ? (
-            <View style={[s.figure, { height: IMG_H_TRI }]}>
-              <Image src={imgUrl('/images/energisa-pde-tri.png')} style={{ width: IMG_W, height: IMG_H_TRI }} />
-
-              <Text style={[s.overlay, { left: 70.0, top: 8.2, fontSize: 4.6 }]}>aço galvanizado</Text>
-
-              {caboMultiplex && (
-                <Text style={[s.overlay, { left: 50.4, top: 44.0, fontSize: 4.6 }]}>{caboMultiplex}</Text>
-              )}
-
-              <Text style={[s.overlay, { left: 95.4, top: 71.2, fontSize: 4.6 }]}>{'Ø1"'}</Text>
-
-              {caixaMedicaoCorrente && (
-                <Text style={[s.overlay, { left: 80.7, top: 90.4, fontSize: 4.2 }]}>{caixaMedicaoCorrente}</Text>
-              )}
-              {disjuntorCorrenteLabel && (
-                <Text style={[s.overlay, { left: 79.9, top: 104.7, fontSize: 4.6 }]}>{disjuntorCorrenteLabel}</Text>
-              )}
-
-              {secaoAterramento && (
-                <Text style={[s.overlay, { left: 73.5, top: 133.9, fontSize: 4.6 }]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>
-              )}
-
-              <Text style={[s.overlay, { left: 200.2, top: 124.6, fontSize: 4.0 }]}>PVC 70° - 1,0 kV</Text>
-              {secaoFase && (
-                <Text style={[s.overlay, { left: 172.5, top: 130.5, fontSize: 3.8 }]}>{`3#${secaoFase} mm² (Fases)`}</Text>
-              )}
-              {secaoNeutro && (
-                <Text style={[s.overlay, { left: 172.5, top: 136.4, fontSize: 3.8 }]}>{`1#${secaoNeutro} mm² (Neutro)`}</Text>
-              )}
-              {secaoAterramento && (
-                <Text style={[s.overlay, { left: 172.5, top: 142.2, fontSize: 3.8 }]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>
-              )}
-            </View>
+            <>
+              <Text style={[s.overlay, ov(60.8, 10.2, 4.0)]}>aço galvanizado</Text>
+              {caboMultiplex && <Text style={[s.overlay, ov(43.8, 41.3, 4.0)]}>{caboMultiplex}</Text>}
+              <Text style={[s.overlay, ov(82.8, 64.9, 4.0)]}>{'Ø1"'}</Text>
+              {caixaMedicaoCorrente && <Text style={[s.overlay, ov(70.1, 81.3, 3.6)]}>{caixaMedicaoCorrente}</Text>}
+              {disjuntorCorrenteLabel && <Text style={[s.overlay, ov(69.4, 94.0, 4.0)]}>{disjuntorCorrenteLabel}</Text>}
+              {secaoAterramento && <Text style={[s.overlay, ov(63.8, 119.4, 4.0)]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>}
+              <Text style={[s.overlay, ov(173.8, 110.9, 3.5)]}>PVC 70° - 1,0 kV</Text>
+              {secaoFase && <Text style={[s.overlay, ov(149.8, 115.9, 3.3)]}>{`3#${secaoFase} mm² (Fases)`}</Text>}
+              {secaoNeutro && <Text style={[s.overlay, ov(149.8, 121.0, 3.3)]}>{`1#${secaoNeutro} mm² (Neutro)`}</Text>}
+              {secaoAterramento && <Text style={[s.overlay, ov(149.8, 126.0, 3.3)]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>}
+            </>
           ) : isBifasico ? (
-            <View style={[s.figure, { height: IMG_H_BI }]}>
-              <Image src={imgUrl('/images/energisa-pde-bi.png')} style={{ width: IMG_W, height: IMG_H_BI }} />
-
-              <Text style={[s.overlay, { left: 100.3, top: 6.1, fontSize: 4.6 }]}>concreto</Text>
-
-              {caboMultiplex && (
-                <Text style={[s.overlay, { left: 78.7, top: 42.3, fontSize: 4.6 }]}>{caboMultiplex}</Text>
-              )}
-
-              <Text style={[s.overlay, { left: 105.7, top: 68.9, fontSize: 4.6 }]}>{'Ø3/4"'}</Text>
-              <Text style={[s.overlay, { left: 176.6, top: 66.0, fontSize: 4.6 }]}>{'Ø3/4"'}</Text>
-
-              {caixaMedicaoCorrente && (
-                <Text style={[s.overlay, { left: 197.1, top: 92.2, fontSize: 4.2 }]}>{caixaMedicaoCorrente}</Text>
-              )}
-              {disjuntorCorrenteLabel && (
-                <Text style={[s.overlay, { left: 101.8, top: 105.2, fontSize: 4.6 }]}>{disjuntorCorrenteLabel}</Text>
-              )}
-
-              {secaoAterramento && (
-                <Text style={[s.overlay, { left: 100.0, top: 131.0, fontSize: 4.6 }]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>
-              )}
-
-              <Text style={[s.overlay, { left: 221.9, top: 39.7, fontSize: 4.0 }]}>PVC 70° - 1,0 kV</Text>
-              {secaoFase && (
-                <Text style={[s.overlay, { left: 196.4, top: 45.7, fontSize: 3.8 }]}>{`2#${secaoFase} mm² (Fases)`}</Text>
-              )}
-              {secaoNeutro && (
-                <Text style={[s.overlay, { left: 196.4, top: 51.6, fontSize: 3.8 }]}>{`1#${secaoNeutro} mm² (Neutro)`}</Text>
-              )}
-              {secaoAterramento && (
-                <Text style={[s.overlay, { left: 196.4, top: 57.3, fontSize: 3.8 }]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>
-              )}
-            </View>
+            <>
+              <Text style={[s.overlay, ov(87.1, 8.45, 4.0)]}>concreto</Text>
+              {caboMultiplex && <Text style={[s.overlay, ov(68.3, 39.85, 4.0)]}>{caboMultiplex}</Text>}
+              <Text style={[s.overlay, ov(91.8, 62.95, 4.0)]}>{'Ø3/4"'}</Text>
+              <Text style={[s.overlay, ov(153.3, 60.45, 4.0)]}>{'Ø3/4"'}</Text>
+              {caixaMedicaoCorrente && <Text style={[s.overlay, ov(171.1, 82.85, 3.6)]}>{caixaMedicaoCorrente}</Text>}
+              {disjuntorCorrenteLabel && <Text style={[s.overlay, ov(88.4, 94.45, 4.0)]}>{disjuntorCorrenteLabel}</Text>}
+              {secaoAterramento && <Text style={[s.overlay, ov(86.8, 116.85, 4.0)]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>}
+              <Text style={[s.overlay, ov(192.7, 37.15, 3.5)]}>PVC 70° - 1,0 kV</Text>
+              {secaoFase && <Text style={[s.overlay, ov(170.5, 42.25, 3.3)]}>{`2#${secaoFase} mm² (Fases)`}</Text>}
+              {secaoNeutro && <Text style={[s.overlay, ov(170.5, 47.35, 3.3)]}>{`1#${secaoNeutro} mm² (Neutro)`}</Text>}
+              {secaoAterramento && <Text style={[s.overlay, ov(170.5, 52.35, 3.3)]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>}
+            </>
           ) : (
-            <View style={[s.figure, { height: IMG_H_MONO }]}>
-              <Image src={imgUrl('/images/energisa-pde-mono-2.png')} style={{ width: IMG_W, height: IMG_H_MONO }} />
-
-              {caboMultiplex && (
-                <Text style={[s.overlay, { left: 88.1, top: 57.4, fontSize: 6.5 }]}>{caboMultiplex}</Text>
-              )}
-
-              {secaoFase && (
-                <Text style={[s.overlay, { left: 256.8, top: 65.0, fontSize: 5.7 }]}>{`1#${secaoFase} mm² (Fases)`}</Text>
-              )}
-              {secaoNeutro && (
-                <Text style={[s.overlay, { left: 256.8, top: 71.8, fontSize: 5.7 }]}>{`1#${secaoNeutro} mm² (Neutro)`}</Text>
-              )}
-              {secaoAterramento && (
-                <Text style={[s.overlay, { left: 256.8, top: 78.4, fontSize: 5.7 }]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>
-              )}
-
-              <Text style={[s.overlay, { left: 125.3, top: 95.9, fontSize: 6.5 }]}>{'Ø3/4"'}</Text>
-              <Text style={[s.overlay, { left: 224.9, top: 93.0, fontSize: 6.5 }]}>{'Ø3/4"'}</Text>
-
-              {disjuntorLabel && (
-                <Text style={[s.overlay, { left: 87.9, top: 148.1, fontSize: 6.5 }]}>{disjuntorLabel}</Text>
-              )}
-
-              {conexaoAdj && (
-                <Text style={[s.overlay, { left: 263.5, top: 121.2, fontSize: 5.8 }]}>{conexaoAdj}</Text>
-              )}
-              {caixaMedicaoCorrente && (
-                <Text style={[s.overlay, { left: 254.6, top: 129.0, fontSize: 5.8 }]}>{caixaMedicaoCorrente}</Text>
-              )}
-
-              {secaoAterramento && (
-                <Text style={[s.overlay, { left: 123.7, top: 184.9, fontSize: 6.5 }]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>
-              )}
-            </View>
+            <>
+              {caboMultiplex && <Text style={[s.overlay, ov(54.45, 38.6, 4.0)]}>{caboMultiplex}</Text>}
+              {secaoFase && <Text style={[s.overlay, ov(158.75, 42.9, 3.5)]}>{`1#${secaoFase} mm² (Fases)`}</Text>}
+              {secaoNeutro && <Text style={[s.overlay, ov(158.75, 47.1, 3.5)]}>{`1#${secaoNeutro} mm² (Neutro)`}</Text>}
+              {secaoAterramento && <Text style={[s.overlay, ov(158.75, 51.2, 3.5)]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>}
+              <Text style={[s.overlay, ov(77.45, 62.4, 4.0)]}>{'Ø3/4"'}</Text>
+              <Text style={[s.overlay, ov(138.95, 60.6, 4.0)]}>{'Ø3/4"'}</Text>
+              {disjuntorLabel && <Text style={[s.overlay, ov(54.35, 94.7, 4.0)]}>{disjuntorLabel}</Text>}
+              {conexaoAdj && <Text style={[s.overlay, ov(162.85, 77.7, 3.6)]}>{conexaoAdj}</Text>}
+              {caixaMedicaoCorrente && <Text style={[s.overlay, ov(157.35, 82.5, 3.6)]}>{caixaMedicaoCorrente}</Text>}
+              {secaoAterramento && <Text style={[s.overlay, ov(76.45, 117.4, 4.0)]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>}
+            </>
           )}
 
-          {/* ===== Selo — mesmo padrão do Diagrama Unifilar / Diagrama de Blocos ===== */}
-          <View style={s.selo}>
-            {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
-            <View style={[s.seloCol, { width: '17%' }]}>
-              <View style={[s.seloRow, { height: 28, justifyContent: 'center' }]}>
-                <Text style={s.seloLbl}>PRODUTO</Text>
-                <Text style={[s.seloVal, { fontSize: 8, fontFamily: 'Helvetica-Bold', marginTop: 2 }]}>GFV {potKwp} kWp</Text>
-              </View>
-              {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val], i, arr) => (
-                <View key={lbl} style={i < arr.length - 1 ? s.seloRow : { paddingVertical: 2, paddingHorizontal: 4 }}>
-                  <Text style={s.seloLbl}>{lbl}</Text>
-                  <Text style={s.seloVal}>{val}</Text>
+          {/* ===================================================================
+              SELO — formato padrão de prancha A3: ocupa exatamente a metade
+              direita da folha (x 217.5–410mm, y 10–287mm). Empilhado
+              verticalmente: Logo | Título | Produto | Proprietário e Obra |
+              Responsável Técnico | (espaço reservado) | rodapé Data/Escala/
+              Tamanho/Folha/Revisão.
+              ================================================================= */}
+          <View style={{ position: 'absolute', left: mm(217.5), top: mm(10), width: mm(192.5), height: mm(277), flexDirection: 'column' }}>
+            {/* Logo */}
+            <View style={{ height: mm(48), borderBottomWidth: 0.75, borderColor: '#161513', alignItems: 'center', justifyContent: 'center', padding: 6 }}>
+              {logoUrl && <Image src={logoUrl} style={{ maxWidth: mm(170), maxHeight: mm(38), objectFit: 'contain' }} />}
+            </View>
+
+            {/* Título */}
+            <View style={{ height: mm(22), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 8 }}>
+              <Text style={[s.seloLbl, { textAlign: 'center' }]}>TÍTULO</Text>
+              <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 3 }}>DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</Text>
+            </View>
+
+            {/* Produto */}
+            <View style={{ height: mm(14), borderBottomWidth: 0.75, borderColor: '#161513', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={s.seloLbl}>PRODUTO</Text>
+              <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', marginTop: 2 }}>GFV {potKwp} kWp</Text>
+            </View>
+
+            {/* Proprietário e Obra */}
+            <View style={{ height: mm(38), borderBottomWidth: 0.75, borderColor: '#161513', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={s.seloLbl}>Proprietário e Obra:</Text>
+              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 3 }}>Nome: {owner}</Text>
+              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 1 }}>Endereço: {endereco}</Text>
+              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 1 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+              <Text style={{ fontSize: 7.5, textAlign: 'center', marginTop: 1 }}>CEP: {cep}</Text>
+            </View>
+
+            {/* Responsável Técnico */}
+            <View style={{ height: mm(32), alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={s.seloLbl}>Responsável Técnico:</Text>
+              <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 3 }}>{respNome}</Text>
+              <Text style={{ fontSize: 7, textAlign: 'center', marginTop: 1 }}>TÉCNICO EM ELETROTÉCNICA</Text>
+              <Text style={{ fontSize: 7, textAlign: 'center', marginTop: 1 }}>CFT: {respCft}</Text>
+            </View>
+
+            {/* espaço reservado */}
+            <View style={{ flex: 1 }} />
+
+            {/* rodapé: Data / Escala / Tamanho / Folha / Revisão */}
+            <View style={{ height: mm(20), borderTopWidth: 0.75, borderColor: '#161513', flexDirection: 'row' }}>
+              {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val], i) => (
+                <View key={lbl} style={{ flex: 1, borderRightWidth: i < 4 ? 0.75 : 0, borderColor: '#161513', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={[s.seloLbl, { fontSize: 5.5 }]}>{lbl}</Text>
+                  <Text style={{ fontSize: 7.5, marginTop: 2 }}>{val}</Text>
                 </View>
               ))}
-            </View>
-
-            {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
-            <View style={[s.seloCol, { width: '53%' }]}>
-              <View style={[s.seloRow, { height: 28, justifyContent: 'center' }]}>
-                <Text style={[s.seloLbl, { textAlign: 'center' }]}>TÍTULO</Text>
-                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 2 }}>DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</Text>
-              </View>
-              <View style={[s.seloRow, { paddingVertical: 4 }]}>
-                <Text style={[s.seloLbl, { textAlign: 'center' }]}>Proprietário e Obra:</Text>
-                <Text style={{ fontSize: 6, textAlign: 'center', marginTop: 2 }}>Nome: {owner}</Text>
-                <Text style={{ fontSize: 6, textAlign: 'center' }}>Endereço: {endereco}</Text>
-                <Text style={{ fontSize: 6, textAlign: 'center' }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
-                <Text style={{ fontSize: 6, textAlign: 'center' }}>CEP: {cep}</Text>
-              </View>
-              <View style={{ paddingVertical: 4 }}>
-                <Text style={[s.seloLbl, { textAlign: 'center' }]}>Responsável Técnico:</Text>
-                <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 2 }}>{respNome}</Text>
-                <Text style={{ fontSize: 5.5, textAlign: 'center' }}>TÉCNICO EM ELETROTÉCNICA</Text>
-                <Text style={{ fontSize: 5.5, textAlign: 'center' }}>CFT: {respCft}</Text>
-              </View>
-            </View>
-
-            {/* Coluna 3: Logo da empresa */}
-            <View style={{ width: '30%', alignItems: 'center', justifyContent: 'center', padding: 6 }}>
-              {logoUrl && <Image src={logoUrl} style={{ width: '100%', maxHeight: 60, objectFit: 'contain' }} />}
             </View>
           </View>
         </View>

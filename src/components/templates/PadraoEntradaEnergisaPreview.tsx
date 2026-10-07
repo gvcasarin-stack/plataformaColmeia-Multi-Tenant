@@ -169,13 +169,16 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
             <line x1="410" y1="148.5" x2="419.5" y2="148.5" />
           </g>
 
+          {/* ===== divisória vertical: metade esquerda = desenho, metade direita = selo ===== */}
+          <line x1="217.5" y1="10" x2="217.5" y2="287" stroke="#161513" strokeWidth="0.6" />
+
           {/* ===================================================================
-              DETALHE CONSTRUTIVO — imagem original (mono ou trifásico) +
-              campos variáveis sobrepostos, nas mesmas posições testadas no
-              protótipo. Campo de desenho útil: x 25–410, y 10–253.
+              DETALHE CONSTRUTIVO — imagem original (mono, bi ou trifásico) +
+              campos variáveis sobrepostos, centralizado na metade ESQUERDA da
+              folha (x 25–217.5), já que a metade direita agora é o selo.
               ================================================================= */}
           {isTrifasico ? (
-            <svg x="61.2" y="21.5" width="312.6" height="220" viewBox="0 0 312.6 220">
+            <svg x="29" y="83.6" width="184.5" height="129.8" viewBox="0 0 312.6 220">
               <image href="/images/energisa-pde-tri.png" x="0" y="0" width="312.6" height="220" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
@@ -197,7 +200,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               </g>
             </svg>
           ) : isBifasico ? (
-            <svg x="61.2" y="22.75" width="312.6" height="217.5" viewBox="0 0 312.6 217.5">
+            <svg x="29" y="84.3" width="184.5" height="128.4" viewBox="0 0 312.6 217.5">
               <image href="/images/energisa-pde-bi.png" x="0" y="0" width="312.6" height="217.5" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
@@ -220,7 +223,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               </g>
             </svg>
           ) : (
-            <svg x="106.25" y="22" width="222.5" height="219" viewBox="0 0 222.5 219">
+            <svg x="29" y="57.7" width="184.5" height="181.6" viewBox="0 0 222.5 219">
               <image href="/images/energisa-pde-mono-2.png" x="0" y="0" width="222.5" height="219" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
@@ -244,66 +247,69 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
           )}
 
           {/* ===================================================================
-              SELO — mesmo padrão do Diagrama Unifilar / Diagrama de Blocos
-              (Produto | Data/Escala/Tamanho/Folha/Revisão | Título +
-              Proprietário e Obra + Responsável Técnico | Logo da empresa).
-              x 25–410, y 253–287 (altura 34mm).
+              SELO — formato padrão de prancha A3 (ocupa exatamente a metade
+              direita da folha: x 217.5–410, y 10–287 → 192.5 x 277mm).
+              Empilhado verticalmente: Logo | Título | Produto | Proprietário
+              e Obra | Responsável Técnico | (espaço reservado) | Data/Escala/
+              Tamanho/Folha/Revisão no rodapé.
               ================================================================= */}
-          <g stroke="#161513" fill="none" strokeWidth="0.5">
-            <line x1="90" y1="253" x2="90" y2="287" />
-            <line x1="281" y1="253" x2="281" y2="287" />
-            <line x1="25" y1="261.5" x2="281" y2="261.5" />
-            <line x1="90" y1="275" x2="281" y2="275" strokeWidth="0.35" />
+          <g stroke="#161513" fill="none" strokeWidth="0.4">
+            <line x1="217.5" y1="58" x2="410" y2="58" />
+            <line x1="217.5" y1="80" x2="410" y2="80" />
+            <line x1="217.5" y1="94" x2="410" y2="94" />
+            <line x1="217.5" y1="132" x2="410" y2="132" />
+            <line x1="217.5" y1="267" x2="410" y2="267" strokeWidth="0.6" />
+            <line x1="217.5" y1="277" x2="410" y2="277" strokeWidth="0.35" />
             <g strokeWidth="0.35">
-              <line x1="25" y1="266.6" x2="90" y2="266.6" />
-              <line x1="25" y1="271.7" x2="90" y2="271.7" />
-              <line x1="25" y1="276.8" x2="90" y2="276.8" />
-              <line x1="25" y1="281.9" x2="90" y2="281.9" />
+              <line x1="256" y1="267" x2="256" y2="287" />
+              <line x1="294.5" y1="267" x2="294.5" y2="287" />
+              <line x1="333" y1="267" x2="333" y2="287" />
+              <line x1="371.5" y1="267" x2="371.5" y2="287" />
             </g>
           </g>
 
+          {logoUrl && (
+            <image href={logoUrl} x="227.5" y="15" width="175" height="38" preserveAspectRatio="xMidYMid meet" />
+          )}
+
           <g fontFamily="Arial, Helvetica, sans-serif" fill="#161513">
-            {/* PRODUTO */}
-            <text x="27" y="257.5" fontSize="2.3" fontWeight="bold">PRODUTO</text>
-            <text x="57.5" y="260.3" fontSize="3.6" fontWeight="bold" textAnchor="middle">GFV {potKwp} kWp</text>
-
-            {/* DATA / ESCALA / TAMANHO / FOLHA / REVISÃO */}
-            <text x="27" y="264.0" fontSize="2.0" fontWeight="bold">DATA</text>
-            <text x="57.5" y="266.1" fontSize="2.5" textAnchor="middle">{dataDoc}</text>
-
-            <text x="27" y="269.1" fontSize="2.0" fontWeight="bold">ESCALA</text>
-            <text x="57.5" y="271.2" fontSize="2.5" textAnchor="middle">S/ ESCALA</text>
-
-            <text x="27" y="274.2" fontSize="2.0" fontWeight="bold">TAMANHO</text>
-            <text x="57.5" y="276.3" fontSize="2.5" textAnchor="middle">A3</text>
-
-            <text x="27" y="279.3" fontSize="2.0" fontWeight="bold">FOLHA</text>
-            <text x="57.5" y="281.4" fontSize="2.5" textAnchor="middle">1/1</text>
-
-            <text x="27" y="284.4" fontSize="2.0" fontWeight="bold">REVISÃO</text>
-            <text x="57.5" y="286.5" fontSize="2.5" textAnchor="middle">R0</text>
-
             {/* TÍTULO */}
-            <text x="93" y="257.5" fontSize="2.3" fontWeight="bold">TÍTULO</text>
-            <text x="185.5" y="260.3" fontSize="4" fontWeight="bold" textAnchor="middle">DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</text>
+            <text x="222.5" y="63" fontSize="2.3" fontWeight="bold">TÍTULO</text>
+            <text x="313.75" y="74" fontSize="4" fontWeight="bold" textAnchor="middle">DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</text>
+
+            {/* PRODUTO */}
+            <text x="313.75" y="86" fontSize="2.3" fontWeight="bold" textAnchor="middle">PRODUTO</text>
+            <text x="313.75" y="91.5" fontSize="3.6" fontWeight="bold" textAnchor="middle">GFV {potKwp} kWp</text>
 
             {/* Proprietário e Obra */}
-            <text x="185.5" y="264.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
-            <text x="185.5" y="267.0" fontSize="2.4" textAnchor="middle">Nome: {owner}</text>
-            <text x="185.5" y="269.7" fontSize="2.4" textAnchor="middle">Endereço: {endereco}</text>
-            <text x="185.5" y="272.4" fontSize="2.4" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
-            <text x="185.5" y="275.1" fontSize="2.4" textAnchor="middle">CEP: {cep}</text>
+            <text x="313.75" y="100" fontSize="2.3" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
+            <text x="313.75" y="107" fontSize="2.6" textAnchor="middle">Nome: {owner}</text>
+            <text x="313.75" y="113.5" fontSize="2.6" textAnchor="middle">Endereço: {endereco}</text>
+            <text x="313.75" y="120" fontSize="2.6" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
+            <text x="313.75" y="126.5" fontSize="2.6" textAnchor="middle">CEP: {cep}</text>
 
             {/* Responsável Técnico */}
-            <text x="185.5" y="278.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
-            <text x="185.5" y="281.2" fontSize="2.6" fontWeight="bold" textAnchor="middle">{respNome}</text>
-            <text x="185.5" y="283.8" fontSize="2.2" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
-            <text x="185.5" y="286.4" fontSize="2.2" textAnchor="middle">CFT: {respCft}</text>
-          </g>
+            <text x="313.75" y="138" fontSize="2.3" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
+            <text x="313.75" y="146" fontSize="3" fontWeight="bold" textAnchor="middle">{respNome}</text>
+            <text x="313.75" y="152" fontSize="2.4" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
+            <text x="313.75" y="158" fontSize="2.4" textAnchor="middle">CFT: {respCft}</text>
 
-          {logoUrl && (
-            <image href={logoUrl} x="291" y="258" width="109" height="24" preserveAspectRatio="xMidYMid meet" />
-          )}
+            {/* DATA / ESCALA / TAMANHO / FOLHA / REVISÃO (rodapé, 5 colunas) */}
+            <text x="236.75" y="272.5" fontSize="2.0" fontWeight="bold" textAnchor="middle">DATA</text>
+            <text x="236.75" y="283" fontSize="2.5" textAnchor="middle">{dataDoc}</text>
+
+            <text x="275.25" y="272.5" fontSize="2.0" fontWeight="bold" textAnchor="middle">ESCALA</text>
+            <text x="275.25" y="283" fontSize="2.5" textAnchor="middle">S/ ESCALA</text>
+
+            <text x="313.75" y="272.5" fontSize="2.0" fontWeight="bold" textAnchor="middle">TAMANHO</text>
+            <text x="313.75" y="283" fontSize="2.5" textAnchor="middle">A3</text>
+
+            <text x="352.25" y="272.5" fontSize="2.0" fontWeight="bold" textAnchor="middle">FOLHA</text>
+            <text x="352.25" y="283" fontSize="2.5" textAnchor="middle">1/1</text>
+
+            <text x="390.75" y="272.5" fontSize="2.0" fontWeight="bold" textAnchor="middle">REVISÃO</text>
+            <text x="390.75" y="283" fontSize="2.5" textAnchor="middle">R0</text>
+          </g>
         </svg>
       </div>
 
