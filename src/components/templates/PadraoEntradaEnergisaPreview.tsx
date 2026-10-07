@@ -42,17 +42,18 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
   const get = (key: string) => String(projectData[key] || '').trim();
 
   // ✅ Qual padrão exibir: Tipo de Conexão (Conferir Informações > Padrão de
-  // Entrada). "Trifásico" mostra o desenho trifásico; qualquer outro valor
-  // (inclusive vazio) mostra o monofásico — o bifásico ainda não tem desenho
-  // próprio e será adicionado depois.
+  // Entrada). "Trifásico"/"Bifásico" mostram o respectivo desenho; qualquer
+  // outro valor (inclusive vazio) mostra o monofásico.
   const isTrifasico = get('tipo_conexao') === 'Trifásico';
+  const isBifasico = get('tipo_conexao') === 'Bifásico';
+  const faseQtd = isTrifasico ? '3' : isBifasico ? '2' : '1';
 
   // Campos já existentes no projeto (grupo "Padrão de Entrada" do Conferir
   // Informações) — nenhum campo novo foi criado para este documento.
   const secaoFaseRL = get('secao_fase_rl_mm2');
   const secaoNeutroRL = get('secao_neutro_rl_mm2');
   const caboMultiplex = secaoFaseRL && secaoNeutroRL
-    ? `${isTrifasico ? '3x1x' : '1x1x'}${secaoFaseRL}+${secaoNeutroRL}`
+    ? `${faseQtd}x1x${secaoFaseRL}+${secaoNeutroRL}`
     : '';
 
   const secaoFase = fmtMm2(get('secao_fase_mm2'));
@@ -151,7 +152,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
           viewBox="0 0 420 297"
           style={{ width: '100%', height: 'auto', display: 'block', minWidth: '700px' }}
           role="img"
-          aria-label={`Prancha A3 com o detalhe construtivo do padrão de entrada ${isTrifasico ? 'trifásico' : 'monofásico'}, com os campos do projeto preenchidos e selo igual ao dos demais desenhos técnicos.`}
+          aria-label={`Prancha A3 com o detalhe construtivo do padrão de entrada ${isTrifasico ? 'trifásico' : isBifasico ? 'bifásico' : 'monofásico'}, com os campos do projeto preenchidos e selo igual ao dos demais desenhos técnicos.`}
         >
           {/* ===== fundo da folha + borda de corte ===== */}
           <rect x="0" y="0" width="420" height="297" fill="#ffffff" />
@@ -193,6 +194,29 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
                 {secaoFase && <text x="149.8" y="115.9" fontSize="3.3">{`3#${secaoFase} mm² (Fases)`}</text>}
                 {secaoNeutro && <text x="149.8" y="121.0" fontSize="3.3">{`1#${secaoNeutro} mm² (Neutro)`}</text>}
                 {secaoAterramento && <text x="149.8" y="126.0" fontSize="3.3">{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</text>}
+              </g>
+            </svg>
+          ) : isBifasico ? (
+            <svg x="61.2" y="22.75" width="312.6" height="217.5" viewBox="0 0 312.6 217.5">
+              <image href="/images/energisa-pde-bi.png" x="0" y="0" width="312.6" height="217.5" preserveAspectRatio="xMidYMid meet" />
+
+              <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
+                <text x="87.1" y="8.45" fontSize="4.0">concreto</text>
+
+                {caboMultiplex && <text x="68.3" y="39.85" fontSize="4.0">{caboMultiplex}</text>}
+
+                <text x="91.8" y="62.95" fontSize="4.0">{'Ø3/4"'}</text>
+                <text x="153.3" y="60.45" fontSize="4.0">{'Ø3/4"'}</text>
+
+                {caixaMedicaoCorrente && <text x="171.1" y="82.85" fontSize="3.6">{caixaMedicaoCorrente}</text>}
+                {disjuntorCorrenteLabel && <text x="88.4" y="94.45" fontSize="4.0">{disjuntorCorrenteLabel}</text>}
+
+                {secaoAterramento && <text x="86.8" y="116.85" fontSize="4.0">{`${fmtMm2(secaoAterramento)} mm²`}</text>}
+
+                <text x="192.7" y="37.15" fontSize="3.5">PVC 70° - 1,0 kV</text>
+                {secaoFase && <text x="170.5" y="42.25" fontSize="3.3">{`2#${secaoFase} mm² (Fases)`}</text>}
+                {secaoNeutro && <text x="170.5" y="47.35" fontSize="3.3">{`1#${secaoNeutro} mm² (Neutro)`}</text>}
+                {secaoAterramento && <text x="170.5" y="52.35" fontSize="3.3">{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</text>}
               </g>
             </svg>
           ) : (

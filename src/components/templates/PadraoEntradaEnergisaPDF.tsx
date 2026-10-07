@@ -16,6 +16,7 @@ interface PadraoEntradaEnergisaPDFProps {
 const IMG_W = 360;
 const IMG_H_MONO = 354.25;
 const IMG_H_TRI = 253.5;
+const IMG_H_BI = 250.5;
 const B = 0.75;
 
 const s = StyleSheet.create({
@@ -74,14 +75,16 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
   const get = (key: string) => String(projectData[key] || '').trim();
 
   // ✅ Qual padrão exibir: Tipo de Conexão (Conferir Informações > Padrão de
-  // Entrada). "Trifásico" mostra o desenho trifásico; qualquer outro valor
-  // mostra o monofásico — o bifásico ainda não tem desenho próprio.
+  // Entrada). "Trifásico"/"Bifásico" mostram o respectivo desenho; qualquer
+  // outro valor mostra o monofásico.
   const isTrifasico = get('tipo_conexao') === 'Trifásico';
+  const isBifasico = get('tipo_conexao') === 'Bifásico';
+  const faseQtd = isTrifasico ? '3' : isBifasico ? '2' : '1';
 
   const secaoFaseRL = get('secao_fase_rl_mm2');
   const secaoNeutroRL = get('secao_neutro_rl_mm2');
   const caboMultiplex = secaoFaseRL && secaoNeutroRL
-    ? `${isTrifasico ? '3x1x' : '1x1x'}${secaoFaseRL}+${secaoNeutroRL}`
+    ? `${faseQtd}x1x${secaoFaseRL}+${secaoNeutroRL}`
     : '';
 
   const secaoFase = fmtMm2(get('secao_fase_mm2'));
@@ -149,6 +152,41 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
               )}
               {secaoAterramento && (
                 <Text style={[s.overlay, { left: 172.5, top: 142.2, fontSize: 3.8 }]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>
+              )}
+            </View>
+          ) : isBifasico ? (
+            <View style={[s.figure, { height: IMG_H_BI }]}>
+              <Image src={imgUrl('/images/energisa-pde-bi.png')} style={{ width: IMG_W, height: IMG_H_BI }} />
+
+              <Text style={[s.overlay, { left: 100.3, top: 6.1, fontSize: 4.6 }]}>concreto</Text>
+
+              {caboMultiplex && (
+                <Text style={[s.overlay, { left: 78.7, top: 42.3, fontSize: 4.6 }]}>{caboMultiplex}</Text>
+              )}
+
+              <Text style={[s.overlay, { left: 105.7, top: 68.9, fontSize: 4.6 }]}>{'Ø3/4"'}</Text>
+              <Text style={[s.overlay, { left: 176.6, top: 66.0, fontSize: 4.6 }]}>{'Ø3/4"'}</Text>
+
+              {caixaMedicaoCorrente && (
+                <Text style={[s.overlay, { left: 197.1, top: 92.2, fontSize: 4.2 }]}>{caixaMedicaoCorrente}</Text>
+              )}
+              {disjuntorCorrenteLabel && (
+                <Text style={[s.overlay, { left: 101.8, top: 105.2, fontSize: 4.6 }]}>{disjuntorCorrenteLabel}</Text>
+              )}
+
+              {secaoAterramento && (
+                <Text style={[s.overlay, { left: 100.0, top: 131.0, fontSize: 4.6 }]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>
+              )}
+
+              <Text style={[s.overlay, { left: 221.9, top: 39.7, fontSize: 4.0 }]}>PVC 70° - 1,0 kV</Text>
+              {secaoFase && (
+                <Text style={[s.overlay, { left: 196.4, top: 45.7, fontSize: 3.8 }]}>{`2#${secaoFase} mm² (Fases)`}</Text>
+              )}
+              {secaoNeutro && (
+                <Text style={[s.overlay, { left: 196.4, top: 51.6, fontSize: 3.8 }]}>{`1#${secaoNeutro} mm² (Neutro)`}</Text>
+              )}
+              {secaoAterramento && (
+                <Text style={[s.overlay, { left: 196.4, top: 57.3, fontSize: 3.8 }]}>{`1#${fmtMm2(secaoAterramento)} mm² (Terra)`}</Text>
               )}
             </View>
           ) : (
