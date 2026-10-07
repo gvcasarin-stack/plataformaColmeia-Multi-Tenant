@@ -2601,7 +2601,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent position="popper" side="bottom" className="max-h-60">
                             <SelectGroup>
                               <SelectLabel>Protegido do Sol</SelectLabel>
                               <SelectItem value="1_protegido">1) Dois cabos unipolares encostados um ao outro, na horizontal</SelectItem>
