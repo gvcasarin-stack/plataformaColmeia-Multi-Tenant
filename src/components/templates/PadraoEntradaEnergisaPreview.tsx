@@ -258,52 +258,46 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
             <line x1="367.5" y1="253" x2="367.5" y2="287" />
             <line x1="217.5" y1="261.5" x2="367.5" y2="261.5" />
             <line x1="257.5" y1="275" x2="367.5" y2="275" strokeWidth="0.35" />
-            <g strokeWidth="0.35">
-              <line x1="217.5" y1="266.6" x2="257.5" y2="266.6" />
-              <line x1="217.5" y1="271.7" x2="257.5" y2="271.7" />
-              <line x1="217.5" y1="276.8" x2="257.5" y2="276.8" />
-              <line x1="217.5" y1="281.9" x2="257.5" y2="281.9" />
-            </g>
           </g>
 
           {logoUrl && (
-            <image href={logoUrl} x="371" y="258" width="36" height="24" preserveAspectRatio="xMidYMid meet" />
+            <image href={logoUrl} x="370" y="257" width="38" height="26" preserveAspectRatio="xMidYMid meet" />
           )}
 
           <g fontFamily="Arial, Helvetica, sans-serif" fill="#161513">
             {/* PRODUTO */}
-            <text x="219.5" y="257.5" fontSize="2.3" fontWeight="bold">PRODUTO</text>
-            <text x="237.5" y="260.3" fontSize="3.6" fontWeight="bold" textAnchor="middle">GFV {potKwp} kWp</text>
+            <text x="219.5" y="257.5" fontSize="2.3" fontWeight="bold" fill="#5a5a5a">PRODUTO</text>
+            <text x="219.5" y="260.3" fontSize="3.6" fontWeight="bold">GFV {potKwp} kWp</text>
 
             {/* DATA / ESCALA / TAMANHO / FOLHA / REVISÃO */}
-            <text x="219.5" y="264.0" fontSize="2.0" fontWeight="bold">DATA</text>
-            <text x="237.5" y="266.1" fontSize="2.5" textAnchor="middle">{dataDoc}</text>
+            <text x="219.5" y="264.3" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">DATA</text>
+            <text x="219.5" y="266.6" fontSize="2.5">{dataDoc}</text>
 
-            <text x="219.5" y="269.1" fontSize="2.0" fontWeight="bold">ESCALA</text>
-            <text x="237.5" y="271.2" fontSize="2.5" textAnchor="middle">S/ ESCALA</text>
+            <text x="219.5" y="269.5" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">ESCALA</text>
+            <text x="219.5" y="271.8" fontSize="2.5">S/ ESCALA</text>
 
-            <text x="219.5" y="274.2" fontSize="2.0" fontWeight="bold">TAMANHO</text>
-            <text x="237.5" y="276.3" fontSize="2.5" textAnchor="middle">A3</text>
+            <text x="219.5" y="274.7" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">TAMANHO</text>
+            <text x="219.5" y="277.0" fontSize="2.5">A3</text>
 
-            <text x="219.5" y="279.3" fontSize="2.0" fontWeight="bold">FOLHA</text>
-            <text x="237.5" y="281.4" fontSize="2.5" textAnchor="middle">1/1</text>
+            <text x="219.5" y="279.9" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">FOLHA</text>
+            <text x="219.5" y="282.2" fontSize="2.5">1/1</text>
 
-            <text x="219.5" y="284.4" fontSize="2.0" fontWeight="bold">REVISÃO</text>
-            <text x="237.5" y="286.5" fontSize="2.5" textAnchor="middle">R0</text>
+            <text x="219.5" y="285.1" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">REVISÃO</text>
+            <text x="219.5" y="287" fontSize="2.5">R0</text>
 
             {/* TÍTULO */}
-            <text x="260.5" y="257.5" fontSize="2.3" fontWeight="bold">TÍTULO</text>
+            <text x="260.5" y="257.5" fontSize="2.3" fontWeight="bold" fill="#5a5a5a">TÍTULO</text>
             <text x="312.5" y="260.3" fontSize="3.2" fontWeight="bold" textAnchor="middle">DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</text>
 
             {/* Proprietário e Obra */}
-            <text x="312.5" y="264.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Proprietário e Obra:</text>
+            <text x="312.5" y="264.3" fontSize="2.3" fontWeight="bold" textAnchor="middle" fill="#5a5a5a">Proprietário e Obra:</text>
             <text x="312.5" y="267.0" fontSize="2.4" textAnchor="middle">Nome: {owner}</text>
             <text x="312.5" y="269.7" fontSize="2.4" textAnchor="middle">Endereço: {endereco}</text>
             <text x="312.5" y="272.4" fontSize="2.4" textAnchor="middle">Cidade: {uf ? `${cidade} - ${uf}` : cidade}</text>
             <text x="312.5" y="275.1" fontSize="2.4" textAnchor="middle">CEP: {cep}</text>
 
             {/* Responsável Técnico */}
-            <text x="312.5" y="278.3" fontSize="2.3" fontWeight="bold" textAnchor="middle">Responsável Técnico:</text>
+            <text x="312.5" y="278.3" fontSize="2.3" fontWeight="bold" textAnchor="middle" fill="#5a5a5a">Responsável Técnico:</text>
             <text x="312.5" y="281.2" fontSize="2.6" fontWeight="bold" textAnchor="middle">{respNome}</text>
             <text x="312.5" y="283.8" fontSize="2.2" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
             <text x="312.5" y="286.4" fontSize="2.2" textAnchor="middle">CFT: {respCft}</text>

@@ -40,7 +40,7 @@ function mkOverlay(drawXmm: number, drawYmm: number, drawWmm: number, vbW: numbe
 const s = StyleSheet.create({
   page: { backgroundColor: '#FFFFFF', fontFamily: 'Helvetica', color: '#000000' },
   overlay: { position: 'absolute', color: '#1c3f73', fontFamily: 'Helvetica-Bold' },
-  seloLbl: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#444' },
+  seloLbl: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' },
 });
 
 // "6" -> "6,0" (mesma notação com uma casa decimal do desenho original)
@@ -200,8 +200,8 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
                 <Text style={s.seloLbl}>PRODUTO</Text>
                 <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', marginTop: 1 }}>GFV {potKwp} kWp</Text>
               </View>
-              {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val], i, arr) => (
-                <View key={lbl} style={{ height: mm(5.1), borderBottomWidth: i < arr.length - 1 ? 0.4 : 0, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
+              {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val]) => (
+                <View key={lbl} style={{ height: mm(5.1), justifyContent: 'center', paddingHorizontal: 3 }}>
                   <Text style={[s.seloLbl, { fontSize: 4.5 }]}>{lbl}</Text>
                   <Text style={{ fontSize: 5.5 }}>{val}</Text>
                 </View>
@@ -230,8 +230,8 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
             </View>
 
             {/* Coluna 3: Logo da empresa */}
-            <View style={{ width: mm(42.5), alignItems: 'center', justifyContent: 'center', padding: 4 }}>
-              {logoUrl && <Image src={logoUrl} style={{ width: '100%', maxHeight: mm(24), objectFit: 'contain' }} />}
+            <View style={{ width: mm(42.5), alignItems: 'center', justifyContent: 'center', padding: 3 }}>
+              {logoUrl && <Image src={logoUrl} style={{ width: '100%', maxHeight: mm(26), objectFit: 'contain' }} />}
             </View>
           </View>
         </View>
