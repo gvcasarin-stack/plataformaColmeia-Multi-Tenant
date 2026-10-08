@@ -258,6 +258,12 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
             <line x1="367.5" y1="253" x2="367.5" y2="287" />
             <line x1="217.5" y1="261.5" x2="367.5" y2="261.5" />
             <line x1="257.5" y1="275" x2="367.5" y2="275" strokeWidth="0.35" />
+            <g strokeWidth="0.35">
+              <line x1="217.5" y1="266.6" x2="257.5" y2="266.6" />
+              <line x1="217.5" y1="271.7" x2="257.5" y2="271.7" />
+              <line x1="217.5" y1="276.8" x2="257.5" y2="276.8" />
+              <line x1="217.5" y1="281.9" x2="257.5" y2="281.9" />
+            </g>
           </g>
 
           {logoUrl && (
