@@ -175,7 +175,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               folha (x 25–410); só o rodapé (y 253–287) é dividido com o selo.
               ================================================================= */}
           {isTrifasico ? (
-            <svg x="66.2" y="21.5" width="312.6" height="220" viewBox="0 0 312.6 220">
+            <svg x="86.2" y="21.5" width="312.6" height="220" viewBox="0 0 312.6 220">
               <image href="/images/energisa-pde-tri.png" x="0" y="0" width="312.6" height="220" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
@@ -197,7 +197,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               </g>
             </svg>
           ) : isBifasico ? (
-            <svg x="66.2" y="22.75" width="312.6" height="217.5" viewBox="0 0 312.6 217.5">
+            <svg x="86.2" y="22.75" width="312.6" height="217.5" viewBox="0 0 312.6 217.5">
               <image href="/images/energisa-pde-bi.png" x="0" y="0" width="312.6" height="217.5" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
@@ -220,7 +220,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               </g>
             </svg>
           ) : (
-            <svg x="111.25" y="22" width="222.5" height="219" viewBox="0 0 222.5 219">
+            <svg x="131.25" y="22" width="222.5" height="219" viewBox="0 0 222.5 219">
               <image href="/images/energisa-pde-mono-2.png" x="0" y="0" width="222.5" height="219" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>

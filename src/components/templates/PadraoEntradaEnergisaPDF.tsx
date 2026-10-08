@@ -19,9 +19,9 @@ const mm = (v: number) => v * PT_PER_MM;
 // Desenho técnico (imagem + overlays) usando a largura quase total da folha
 // (mesmas posições do protótipo/Preview); só o rodapé (y 253–287) divide
 // espaço com o selo.
-const MONO_X = 111.25, MONO_Y = 22, MONO_W = 222.5, MONO_H = 219, MONO_VB_W = 222.5;
-const TRI_X = 66.2, TRI_Y = 21.5, TRI_W = 312.6, TRI_H = 220, TRI_VB_W = 312.6;
-const BI_X = 66.2, BI_Y = 22.75, BI_W = 312.6, BI_H = 217.5, BI_VB_W = 312.6;
+const MONO_X = 131.25, MONO_Y = 22, MONO_W = 222.5, MONO_H = 219, MONO_VB_W = 222.5;
+const TRI_X = 86.2, TRI_Y = 21.5, TRI_W = 312.6, TRI_H = 220, TRI_VB_W = 312.6;
+const BI_X = 86.2, BI_Y = 22.75, BI_W = 312.6, BI_H = 217.5, BI_VB_W = 312.6;
 
 // Converte uma coordenada local do desenho original (mesmas unidades usadas
 // no SVG do Preview, local ao viewBox de cada imagem) em posição absoluta
