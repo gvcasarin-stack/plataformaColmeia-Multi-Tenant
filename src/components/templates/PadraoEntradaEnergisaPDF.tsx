@@ -198,12 +198,12 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
             <View style={{ width: mm(40), borderRightWidth: 0.75, borderColor: '#161513' }}>
               <View style={{ height: mm(8.5), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
                 <Text style={s.seloLbl}>PRODUTO</Text>
-                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', marginTop: 1 }}>GFV {potKwp} kWp</Text>
+                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>GFV {potKwp} kWp</Text>
               </View>
               {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val]) => (
                 <View key={lbl} style={{ height: mm(5.1), justifyContent: 'center', paddingHorizontal: 3 }}>
                   <Text style={[s.seloLbl, { fontSize: 4.5 }]}>{lbl}</Text>
-                  <Text style={{ fontSize: 5.5 }}>{val}</Text>
+                  <Text style={{ fontSize: 5.5, textAlign: 'center' }}>{val}</Text>
                 </View>
               ))}
             </View>

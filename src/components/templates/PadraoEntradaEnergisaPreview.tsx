@@ -267,23 +267,23 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
           <g fontFamily="Arial, Helvetica, sans-serif" fill="#161513">
             {/* PRODUTO */}
             <text x="219.5" y="257.5" fontSize="2.3" fontWeight="bold" fill="#5a5a5a">PRODUTO</text>
-            <text x="219.5" y="260.3" fontSize="3.6" fontWeight="bold">GFV {potKwp} kWp</text>
+            <text x="237.5" y="260.3" fontSize="3.6" fontWeight="bold" textAnchor="middle">GFV {potKwp} kWp</text>
 
             {/* DATA / ESCALA / TAMANHO / FOLHA / REVISÃO */}
             <text x="219.5" y="264.3" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">DATA</text>
-            <text x="219.5" y="266.6" fontSize="2.5">{dataDoc}</text>
+            <text x="237.5" y="266.6" fontSize="2.5" textAnchor="middle">{dataDoc}</text>
 
             <text x="219.5" y="269.5" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">ESCALA</text>
-            <text x="219.5" y="271.8" fontSize="2.5">S/ ESCALA</text>
+            <text x="237.5" y="271.8" fontSize="2.5" textAnchor="middle">S/ ESCALA</text>
 
             <text x="219.5" y="274.7" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">TAMANHO</text>
-            <text x="219.5" y="277.0" fontSize="2.5">A3</text>
+            <text x="237.5" y="277.0" fontSize="2.5" textAnchor="middle">A3</text>
 
             <text x="219.5" y="279.9" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">FOLHA</text>
-            <text x="219.5" y="282.2" fontSize="2.5">1/1</text>
+            <text x="237.5" y="282.2" fontSize="2.5" textAnchor="middle">1/1</text>
 
             <text x="219.5" y="285.1" fontSize="2.0" fontWeight="bold" fill="#5a5a5a">REVISÃO</text>
-            <text x="219.5" y="287" fontSize="2.5">R0</text>
+            <text x="237.5" y="287" fontSize="2.5" textAnchor="middle">R0</text>
 
             {/* TÍTULO */}
             <text x="260.5" y="257.5" fontSize="2.3" fontWeight="bold" fill="#5a5a5a">TÍTULO</text>
