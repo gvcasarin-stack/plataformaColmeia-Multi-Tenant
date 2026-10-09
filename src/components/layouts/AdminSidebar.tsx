@@ -233,6 +233,14 @@ export function AdminSidebar({ collapsed: collapsedProp, onToggle: onToggleProp,
         group: "Configurações",
         visible: isFullAdmin
       },
+      {
+        href: "/admin/credenciais",
+        label: "Credenciais",
+        icon: LucideIcons.KeyRound,
+        color: "text-amber-700 dark:text-amber-400",
+        group: "Configurações",
+        visible: isFullAdmin // ✅ Apenas admin e superadmin (guarda senhas de portais)
+      },
     ];
 
     // ✅ Filtrar apenas links visíveis
