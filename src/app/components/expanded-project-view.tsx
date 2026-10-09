@@ -549,6 +549,7 @@ export const ExpandedProjectView = ({
     disjuntor_cc_corrente_a: (project as any).disjuntor_cc_corrente_a || '',
     potencia_trafo: (project as any).potencia_trafo || '',
     numero_hastes: (project as any).numero_hastes || '',
+    material_poste_padrao: (project as any).material_poste_padrao || '',
     necessita_autotrafo: (project as any).necessita_autotrafo || '',
     potencia_autotrafo: (project as any).potencia_autotrafo || '',
     atendimento_trafo_exclusivo: (project as any).atendimento_trafo_exclusivo || '',

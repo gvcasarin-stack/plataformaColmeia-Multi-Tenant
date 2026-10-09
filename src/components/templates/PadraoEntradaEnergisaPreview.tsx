@@ -70,6 +70,11 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
   const conexaoAdj = CONEXAO_ADJ[get('tipo_conexao')] || '';
   const caixaMedicaoCorrente = disjuntorCorrente ? `${disjuntorCorrente} A` : '';
 
+  // Material do Poste do Padrão (Conferir Informações > Energisa GD): usado no texto
+  // "aço galvanizado"/"concreto" das pranchas trifásico e bifásico. Sem o campo
+  // preenchido, mantém o texto padrão de cada desenho (comportamento anterior).
+  const materialPoste = get('material_poste_padrao').toLowerCase();
+
   // ✅ Selo no mesmo padrão do Diagrama Unifilar / Diagrama de Blocos (mesmos
   // campos e mesmas chaves de projeto), em vez de um selo próprio.
   const potKwp = (() => {
@@ -179,7 +184,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               <image href="/images/energisa-pde-tri.png" x="0" y="0" width="312.6" height="220" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
-                <text x="60.8" y="10.2" fontSize="4.0">aço galvanizado</text>
+                <text x="60.8" y="10.2" fontSize="4.0">{materialPoste || 'aço galvanizado'}</text>
 
                 {caboMultiplex && <text x="43.8" y="41.3" fontSize="4.0">{caboMultiplex}</text>}
 
@@ -201,7 +206,7 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
               <image href="/images/energisa-pde-bi.png" x="0" y="0" width="312.6" height="217.5" preserveAspectRatio="xMidYMid meet" />
 
               <g fontFamily="Arial, Helvetica, sans-serif" fill="#1c3f73" fontWeight={700}>
-                <text x="87.1" y="8.45" fontSize="4.0">concreto</text>
+                <text x="87.1" y="8.45" fontSize="4.0">{materialPoste || 'concreto'}</text>
 
                 {caboMultiplex && <text x="68.3" y="39.85" fontSize="4.0">{caboMultiplex}</text>}
 

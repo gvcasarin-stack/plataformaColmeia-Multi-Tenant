@@ -101,6 +101,10 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
   const conexaoAdj = CONEXAO_ADJ[get('tipo_conexao')] || '';
   const caixaMedicaoCorrente = disjuntorCorrente ? `${disjuntorCorrente} A` : '';
 
+  // Material do Poste do Padrão (Conferir Informações > Energisa GD) — ver
+  // PadraoEntradaEnergisaPreview.tsx para a mesma lógica.
+  const materialPoste = get('material_poste_padrao').toLowerCase();
+
   // Selo — mesmos campos/chaves de projeto do Diagrama Unifilar / Blocos.
   const potKwp = (() => {
     const n = parseFloat(String(projectData?.potencia || '0').replace(',', '.'));
@@ -146,7 +150,7 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
 
           {isTrifasico ? (
             <>
-              <Text style={[s.overlay, ov(60.8, 10.2, 4.0)]}>aço galvanizado</Text>
+              <Text style={[s.overlay, ov(60.8, 10.2, 4.0)]}>{materialPoste || 'aço galvanizado'}</Text>
               {caboMultiplex && <Text style={[s.overlay, ov(43.8, 41.3, 4.0)]}>{caboMultiplex}</Text>}
               <Text style={[s.overlay, ov(82.8, 64.9, 4.0)]}>{'Ø1"'}</Text>
               {caixaMedicaoCorrente && <Text style={[s.overlay, ov(70.1, 81.3, 3.6)]}>{caixaMedicaoCorrente}</Text>}
@@ -159,7 +163,7 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
             </>
           ) : isBifasico ? (
             <>
-              <Text style={[s.overlay, ov(87.1, 8.45, 4.0)]}>concreto</Text>
+              <Text style={[s.overlay, ov(87.1, 8.45, 4.0)]}>{materialPoste || 'concreto'}</Text>
               {caboMultiplex && <Text style={[s.overlay, ov(68.3, 39.85, 4.0)]}>{caboMultiplex}</Text>}
               <Text style={[s.overlay, ov(91.8, 62.95, 4.0)]}>{'Ø3/4"'}</Text>
               <Text style={[s.overlay, ov(153.3, 60.45, 4.0)]}>{'Ø3/4"'}</Text>
