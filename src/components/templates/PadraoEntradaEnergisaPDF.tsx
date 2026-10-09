@@ -192,16 +192,20 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
               DIREITA da folha (x 217.5–410mm, 192.5mm). 3 colunas: Produto/
               Data/Escala/Tamanho/Folha/Revisão (40mm) | Título + Proprietário
               e Obra + Responsável Técnico (110mm) | Logo da empresa (42.5mm).
+              Linha do cabeçalho (TÍTULO/PRODUTO) reduzida de 8.925 para 7mm
+              — o espaço ganho foi redistribuído para Proprietário e Obra
+              (15.2mm) e Responsável Técnico (13.5mm), com mais espaçamento
+              entre as linhas de cada bloco.
               ================================================================= */}
           <View style={{ position: 'absolute', left: mm(217.5), top: mm(251.3), width: mm(192.5), height: mm(35.7), borderTopWidth: 0.75, borderLeftWidth: 0.75, borderColor: '#161513', flexDirection: 'row' }}>
             {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
             <View style={{ width: mm(40), borderRightWidth: 0.75, borderColor: '#161513' }}>
-              <View style={{ height: mm(8.925), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
+              <View style={{ height: mm(7), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
                 <Text style={s.seloLbl}>PRODUTO</Text>
                 <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>GFV {potKwp} kWp</Text>
               </View>
               {[['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']].map(([lbl, val], i, arr) => (
-                <View key={lbl} style={{ height: mm(5.355), borderBottomWidth: i < arr.length - 1 ? 0.4 : 0, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
+                <View key={lbl} style={{ height: mm(5.74), borderBottomWidth: i < arr.length - 1 ? 0.4 : 0, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 3 }}>
                   <Text style={[s.seloLbl, { fontSize: 4.5 }]}>{lbl}</Text>
                   <Text style={{ fontSize: 5.5, textAlign: 'center' }}>{val}</Text>
                 </View>
@@ -210,22 +214,22 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
 
             {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
             <View style={{ width: mm(110), borderRightWidth: 0.75, borderColor: '#161513' }}>
-              <View style={{ height: mm(8.925), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 4 }}>
+              <View style={{ height: mm(7), borderBottomWidth: 0.75, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Text style={[s.seloLbl, { textAlign: 'center' }]}>TÍTULO</Text>
                 <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>DETALHE CONSTRUTIVO DO PADRÃO DE ENTRADA</Text>
               </View>
-              <View style={{ height: mm(14.175), borderBottomWidth: 0.4, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 4 }}>
+              <View style={{ height: mm(15.2), borderBottomWidth: 0.4, borderColor: '#161513', justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Text style={[s.seloLbl, { textAlign: 'center' }]}>Proprietário e Obra:</Text>
-                <Text style={{ fontSize: 5.3, textAlign: 'center', marginTop: 1 }}>Nome: {owner}</Text>
-                <Text style={{ fontSize: 5.3, textAlign: 'center' }}>Endereço: {endereco}</Text>
-                <Text style={{ fontSize: 5.3, textAlign: 'center' }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
-                <Text style={{ fontSize: 5.3, textAlign: 'center' }}>CEP: {cep}</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center', marginTop: 2 }}>Nome: {owner}</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center', marginTop: 1.6 }}>Endereço: {endereco}</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center', marginTop: 1.6 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+                <Text style={{ fontSize: 5.3, textAlign: 'center', marginTop: 1.6 }}>CEP: {cep}</Text>
               </View>
-              <View style={{ height: mm(12.6), justifyContent: 'center', paddingHorizontal: 4 }}>
+              <View style={{ height: mm(13.5), justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Text style={[s.seloLbl, { textAlign: 'center' }]}>Responsável Técnico:</Text>
-                <Text style={{ fontSize: 5.6, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>{respNome}</Text>
-                <Text style={{ fontSize: 5, textAlign: 'center' }}>TÉCNICO EM ELETROTÉCNICA</Text>
-                <Text style={{ fontSize: 5, textAlign: 'center' }}>CFT: {respCft}</Text>
+                <Text style={{ fontSize: 5.6, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 2 }}>{respNome}</Text>
+                <Text style={{ fontSize: 5, textAlign: 'center', marginTop: 1.6 }}>TÉCNICO EM ELETROTÉCNICA</Text>
+                <Text style={{ fontSize: 5, textAlign: 'center', marginTop: 1.6 }}>CFT: {respCft}</Text>
               </View>
             </View>
 
