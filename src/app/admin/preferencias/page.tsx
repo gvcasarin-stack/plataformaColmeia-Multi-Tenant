@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/hooks/useAuth';
 import {
@@ -18,149 +16,239 @@ import {
   criarConfiguracaoPadrao,
   type FaixaPotenciaPreco,
   type DadosBancarios,
-  type ResponsavelTecnico,
-  type ConfiguracaoSistema
+  type ResponsavelTecnico
 } from '@/lib/services/configService.supabase';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, Settings, BarChart3, DollarSign, Columns3, FileText, Clock, Loader2, Package, Calendar, Mail, Bell, FileUp, MessageSquare, FolderPlus, Map, Check, GripVertical, ArrowUpDown } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { PlusCircle, Trash2, DollarSign, Columns3, FileText, Loader2, Mail, FileUp, GripVertical, ChevronDown, ChevronUp, AlertTriangle, Landmark, Copy } from 'lucide-react';
 import { devLog } from "@/lib/utils/productionLogger";
 import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 import { getProjectStatuses, updateStatusSLA, updateStatusRoadmapVisibility, reorderKanbanColumns, type ProjectStatusInfo } from '@/lib/services/kanbanService';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { PackagesTab } from '@/components/admin/PackagesTab';
 import { SubscriptionPlansTab } from '@/components/admin/SubscriptionPlansTab';
-import { ProcuracaoRichEditor, ProcuracaoPreview } from '@/components/admin/ProcuracaoEditor';
+import { ProcuracaoRichEditor } from '@/components/admin/ProcuracaoEditor';
+import { CHECKLIST_PADRAO } from '@/lib/constants/checklistPadrao';
 
-// Componente de Abas (Estilo Botões Azuis com Ícones)
-function Tabs({ tabs, activeTab, onTabChange }: { tabs: { id: string; label: string; icon: React.ReactNode }[]; activeTab: string; onTabChange: (tabId: string) => void }) {
+type AreaId = 'kanban' | 'financeiro' | 'documentos' | 'comunicacao';
+
+// Última faixa de preço "sem limite" é gravada com este teto e exibida como ∞
+const FAIXA_SEM_LIMITE = 999999;
+
+const ESTADOS_BR: [string, string][] = [
+  ['AC', 'Acre'], ['AL', 'Alagoas'], ['AP', 'Amapá'], ['AM', 'Amazonas'], ['BA', 'Bahia'], ['CE', 'Ceará'],
+  ['DF', 'Distrito Federal'], ['ES', 'Espírito Santo'], ['GO', 'Goiás'], ['MA', 'Maranhão'], ['MT', 'Mato Grosso'],
+  ['MS', 'Mato Grosso do Sul'], ['MG', 'Minas Gerais'], ['PA', 'Pará'], ['PB', 'Paraíba'], ['PR', 'Paraná'],
+  ['PE', 'Pernambuco'], ['PI', 'Piauí'], ['RJ', 'Rio de Janeiro'], ['RN', 'Rio Grande do Norte'],
+  ['RS', 'Rio Grande do Sul'], ['RO', 'Rondônia'], ['RR', 'Roraima'], ['SC', 'Santa Catarina'], ['SP', 'São Paulo'],
+  ['SE', 'Sergipe'], ['TO', 'Tocantins'],
+];
+
+const inputClass =
+  'h-[38px] w-full rounded-lg border border-slate-300 bg-white px-[11px] text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-[3px] focus:ring-indigo-600/15 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+const selectClass = inputClass + ' pr-8';
+const labelClass = 'mb-[5px] block text-xs font-semibold text-slate-700 dark:text-slate-300';
+const helpClass = 'mb-3.5 max-w-[64ch] text-[12.5px] leading-normal text-slate-500 dark:text-slate-400';
+const linkClass =
+  'rounded-sm text-[12.5px] font-medium text-indigo-700 underline underline-offset-2 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 dark:text-indigo-400';
+const errorClass = 'mt-[5px] text-xs leading-snug text-red-700 dark:text-red-400';
+
+const formatNumero = (n: number, casas = 2) => (Number(n) || 0).toLocaleString('pt-BR', { maximumFractionDigits: casas });
+const formatBRL = (n: number) => `R$ ${formatNumero(n)}`;
+const formatDinheiro = (n: number | null | undefined) =>
+  n == null || isNaN(n as number) ? '' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// "3.200,50" e "3.200" são lidos como milhares; "3200.5" como decimal
+const parseDinheiro = (texto: string): number => {
+  let t = String(texto).replace(/[^\d,.]/g, '');
+  if (!t) return 0;
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  const n = Number(t);
+  return isNaN(n) ? 0 : n;
+};
+
+// ---- Máscaras e validações do responsável técnico (os dados vão para a procuração) ----
+const maskCpf = (valor: string) => {
+  const d = String(valor).replace(/\D/g, '').slice(0, 11);
+  if (d.length > 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  if (d.length > 6) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  if (d.length > 3) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  return d;
+};
+
+// (DDD) 99999-9999 ou (DDD) 9999-9999. Números com DDI (+) ou com mais de 11 dígitos ficam como digitados.
+const maskTelefone = (valor: string) => {
+  const d = valor.replace(/\D/g, '');
+  if (valor.trim().startsWith('+') || d.length > 11) return valor;
+  if (!d) return '';
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+const cpfValido = (valor: string) => {
+  const d = String(valor).replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  const digito = (len: number) => {
+    let soma = 0;
+    for (let k = 0; k < len; k++) soma += Number(d.charAt(k)) * (len + 1 - k);
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+  return digito(9) === Number(d.charAt(9)) && digito(10) === Number(d.charAt(10));
+};
+
+// Campo vazio não é erro; só o que foi preenchido errado é apontado
+const erroCpf = (v?: string) => (!v || cpfValido(v) ? '' : 'CPF inválido: confira os dígitos.');
+const erroEmail = (v?: string) => (!v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? '' : 'E-mail em formato inválido.');
+const erroTelefone = (v?: string) => {
+  if (!v || v.trim().startsWith('+')) return '';
+  const d = v.replace(/\D/g, '');
+  return d.length === 10 || d.length === 11 ? '' : 'Telefone incompleto: informe DDD e número.';
+};
+
+function PrefSwitch({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
   return (
-    <div className="flex gap-2">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={cn(
-            "inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200",
-            activeTab === tab.id
-              ? "bg-blue-600 text-white shadow-md hover:bg-blue-700"
-              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-          )}
-        >
-          {tab.icon}
-          {tab.label}
-        </button>
-      ))}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative h-5 w-9 flex-shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        checked ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
+      )}
+    >
+      <span
+        className={cn(
+          'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform',
+          checked && 'translate-x-4'
+        )}
+      />
+    </button>
+  );
+}
+
+// Seção recolhível: fechada, mostra no cabeçalho o resumo do valor atual
+function PrefSection({
+  title,
+  summary,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <section className="mb-3 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        className="group flex w-full items-center gap-3 rounded-xl px-[18px] py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+      >
+        <span className="flex-shrink-0 text-sm font-bold text-slate-900 group-hover:text-indigo-700 dark:text-white dark:group-hover:text-indigo-300">
+          {title}
+        </span>
+        <span className={cn('min-w-0 flex-1 truncate text-right text-[12.5px] tabular-nums text-slate-500 dark:text-slate-400', isOpen && 'invisible')}>
+          {summary}
+        </span>
+        <ChevronDown className={cn('h-4 w-4 flex-shrink-0 text-slate-400 transition-transform', isOpen && 'rotate-180')} />
+      </button>
+      {isOpen && <div className="px-[18px] pb-[18px] pt-0.5">{children}</div>}
+    </section>
+  );
+}
+
+// Prévia de como algo aparece para o cliente ou em um documento
+function PrefPreview({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn('rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-3.5 dark:border-slate-600 dark:bg-slate-900/40', className)}>
+      <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-400">{label}</div>
+      {children}
     </div>
   );
 }
 
-// Mapa de cores para os cards
-const colorMap: Record<string, { border: string; bg: string; icon: string }> = {
-  'blue-500': { border: '#3b82f6', bg: '#eff6ff', icon: '#3b82f6' },
-  'emerald-500': { border: '#10b981', bg: '#ecfdf5', icon: '#10b981' },
-  'violet-500': { border: '#8b5cf6', bg: '#f5f3ff', icon: '#8b5cf6' },
-  'amber-500': { border: '#f59e0b', bg: '#fffbeb', icon: '#f59e0b' },
-  'cyan-500': { border: '#06b6d4', bg: '#ecfeff', icon: '#06b6d4' },
-  'indigo-500': { border: '#6366f1', bg: '#eef2ff', icon: '#6366f1' },
-  'green-500': { border: '#22c55e', bg: '#f0fdf4', icon: '#22c55e' },
-  'rose-500': { border: '#f43f5e', bg: '#fff1f2', icon: '#f43f5e' },
-};
-
-// Componente de Seção Expansível (com Border Colorido + Ícone)
-function CollapsibleSection({
-  title,
-  description,
-  children,
-  defaultOpen = false,
-  borderColor = "blue-500",
-  icon
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  borderColor?: string;
-  icon?: React.ReactNode;
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  const colors = colorMap[borderColor] || colorMap['blue-500'];
-
+function PrefWarn({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
+      role="status"
       className={cn(
-        "border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gradient-to-br from-white to-slate-50 dark:from-gray-800 dark:to-gray-850 shadow-md transition-all duration-200",
-        isOpen && "shadow-lg",
-        !isOpen && "hover:shadow-lg"
+        'flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-[9px] text-[12.5px] leading-snug text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200',
+        className
       )}
-      style={{
-        borderLeftWidth: isOpen ? '6px' : '4px',
-        borderLeftColor: colors.border,
-      }}
     >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-200"
-      >
-        <div className="flex items-center gap-4 flex-1 text-left">
-          {icon && (
-            <div
-              className={cn(
-                "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200",
-                isOpen ? "shadow-md" : "shadow-sm"
-              )}
-              style={{
-                backgroundColor: colors.bg,
-                color: colors.icon
-              }}
-            >
-              {icon}
-            </div>
-          )}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
-            {description && (
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>
-            )}
-          </div>
-        </div>
-        <div className={cn(
-          "ml-4 text-gray-400 transition-transform duration-200",
-          isOpen ? "rotate-180" : "rotate-0"
-        )}>
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
-      {isOpen && (
-        <div className="border-t border-gray-200 dark:border-gray-700">
-          <div className="p-6 bg-white dark:bg-gray-800">
-            {children}
-          </div>
-        </div>
-      )}
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+      <div className="min-w-0">{children}</div>
     </div>
+  );
+}
+
+// Campo de dinheiro: mostra "3.200,00" e, em edição, o número cru para digitar
+function MoneyInput({
+  value,
+  onChange,
+  ariaLabel,
+  className,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  ariaLabel: string;
+  className?: string;
+}) {
+  const [texto, setTexto] = useState<string | null>(null);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      aria-label={ariaLabel}
+      autoComplete="off"
+      value={texto !== null ? texto : formatDinheiro(value)}
+      onFocus={(e) => {
+        setTexto(value == null || isNaN(value) ? '' : String(value).replace('.', ','));
+        const el = e.target;
+        requestAnimationFrame(() => el.select());
+      }}
+      onChange={(e) => {
+        setTexto(e.target.value);
+        onChange(parseDinheiro(e.target.value));
+      }}
+      onBlur={() => setTexto(null)}
+      className={cn(inputClass, 'tabular-nums', className)}
+    />
   );
 }
 
 export default function PreferenciasPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('geral');
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<string>('kanban');
   const [mensagemChecklist, setMensagemChecklist] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [editMode, setEditMode] = useState(false);
   const [originalMessage, setOriginalMessage] = useState('');
 
   // Estados para a tabela de faixas de potência
   const [faixasPotencia, setFaixasPotencia] = useState<FaixaPotenciaPreco[]>([]);
-  const [editandoTabela, setEditandoTabela] = useState(false);
   const [faixasPotenciaOriginal, setFaixasPotenciaOriginal] = useState<FaixaPotenciaPreco[]>([]);
-  const [novaPotenciaMin, setNovaPotenciaMin] = useState<string>('');
-  const [novaPotenciaMax, setNovaPotenciaMax] = useState<string>('');
-  const [novoValorPotencia, setNovoValorPotencia] = useState<string>('');
 
   // Estados para dados bancários
   const [dadosBancarios, setDadosBancarios] = useState<DadosBancarios>({
@@ -171,7 +259,6 @@ export default function PreferenciasPage() {
     documento: '',
     chavePix: ''
   });
-  const [editandoDadosBancarios, setEditandoDadosBancarios] = useState(false);
   const [dadosBancariosOriginal, setDadosBancariosOriginal] = useState<DadosBancarios>({
     banco: '',
     agencia: '',
@@ -184,13 +271,9 @@ export default function PreferenciasPage() {
   // Estados para Kanban
   const [kanbanStatuses, setKanbanStatuses] = useState<ProjectStatusInfo[]>([]);
   const [loadingKanban, setLoadingKanban] = useState(false);
-  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
   const [slaConfig, setSlaConfig] = useState<Record<string, { sla_days: number | null; sla_exclude_weekends: boolean }>>({});
-  const [editandoKanban, setEditandoKanban] = useState(false);
   const [slaConfigOriginal, setSlaConfigOriginal] = useState<Record<string, { sla_days: number | null; sla_exclude_weekends: boolean }>>({});
-  const [isReorderingColumns, setIsReorderingColumns] = useState(false);
   const [roadmapVisibility, setRoadmapVisibility] = useState<Record<string, boolean>>({});
-  const [savingRoadmapStatusId, setSavingRoadmapStatusId] = useState<string | null>(null);
 
   // Estados para Preferências de E-mail
   const [emailPreferences, setEmailPreferences] = useState({
@@ -200,7 +283,6 @@ export default function PreferenciasPage() {
     notify_comment_added: true
   });
   const [loadingEmailPrefs, setLoadingEmailPrefs] = useState(false);
-  const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
 
   // Estados para Documentos - Responsável Técnico
   const [responsavelTecnico, setResponsavelTecnico] = useState<ResponsavelTecnico>({
@@ -216,7 +298,6 @@ export default function PreferenciasPage() {
     uf: '',
     telefone: '',
   });
-  const [editandoResponsavel, setEditandoResponsavel] = useState(false);
   const [responsavelOriginal, setResponsavelOriginal] = useState<ResponsavelTecnico>({
     nomeCompleto: '',
     cpf: '',
@@ -233,7 +314,6 @@ export default function PreferenciasPage() {
 
   // Estados para Texto da Procuração
   const [textoProcuracao, setTextoProcuracao] = useState('');
-  const [editandoProcuracao, setEditandoProcuracao] = useState(false);
   const [textoProcuracaoOriginal, setTextoProcuracaoOriginal] = useState('');
 
   // Estados para Logo da Empresa
@@ -243,11 +323,21 @@ export default function PreferenciasPage() {
 
   // Estado para Precificação Manual
   const [precificacaoManual, setPrecificacaoManual] = useState(false);
-  const [salvandoPrecificacao, setSalvandoPrecificacao] = useState(false);
 
-  // Estado para controlar se o aviso de faixas vazias foi dispensado
-  const [avisoFaixasVaziasDismissed, setAvisoFaixasVaziasDismissed] = useState(false);
-  const [restaurandoFaixas, setRestaurandoFaixas] = useState(false);
+  // Valores originais do que antes era salvo na hora (agora tudo passa pela barra "Salvar alterações")
+  const [precificacaoManualOriginal, setPrecificacaoManualOriginal] = useState(false);
+  const [roadmapVisibilityOriginal, setRoadmapVisibilityOriginal] = useState<Record<string, boolean>>({});
+  const [kanbanOrderOriginal, setKanbanOrderOriginal] = useState<string[]>([]);
+  const [emailPreferencesOriginal, setEmailPreferencesOriginal] = useState({
+    notify_project_created: true,
+    notify_status_change: true,
+    notify_document_added: true,
+    notify_comment_added: true
+  });
+  const [emailPrefsLoaded, setEmailPrefsLoaded] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
+  const [procuracaoEditorKey, setProcuracaoEditorKey] = useState(0);
+  const [leaveHref, setLeaveHref] = useState<string | null>(null);
 
   const defaultChecklist = `Checklist de Documentos Necessários para o Projeto
 
@@ -366,6 +456,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
           // Carregar modo de precificação manual
           if (data.precificacaoManual !== undefined) {
             setPrecificacaoManual(data.precificacaoManual);
+            setPrecificacaoManualOriginal(data.precificacaoManual);
           }
 
           // Carregar logo da empresa
@@ -400,19 +491,21 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
     carregarConfiguracoes();
   }, [user, defaultChecklist]);
 
-  // Carregar status do Kanban quando a aba Kanban for acessada
+  // Carregar status do Kanban quando a área Kanban for acessada (é a área inicial,
+  // então espera o usuário estar disponível antes de buscar)
   useEffect(() => {
-    if (activeTab === 'kanban' && kanbanStatuses.length === 0) {
+    if (activeTab === 'kanban' && user && kanbanStatuses.length === 0) {
       carregarStatusKanban();
     }
-  }, [activeTab]);
+  }, [activeTab, user]);
 
-  // Carregar preferências de email quando a aba E-mails for acessada
+  // Carregar preferências de email na primeira vez que a área Comunicação for acessada
+  // (uma vez só, para não sobrescrever alterações ainda não salvas ao voltar para a área)
   useEffect(() => {
-    if (activeTab === 'emails' && user) {
+    if (activeTab === 'comunicacao' && user && !emailPrefsLoaded) {
       carregarPreferenciasEmail();
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, emailPrefsLoaded]);
 
   const carregarStatusKanban = async () => {
     try {
@@ -438,6 +531,8 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
         initialRoadmapVisibility[status.id] = status.visibleInRoadmap !== undefined ? status.visibleInRoadmap : true;
       });
       setRoadmapVisibility(initialRoadmapVisibility);
+      setRoadmapVisibilityOriginal({ ...initialRoadmapVisibility });
+      setKanbanOrderOriginal(statuses.map(status => status.id));
     } catch (error) {
       devLog.error('Erro ao carregar status do Kanban:', error);
       toast({
@@ -447,109 +542,6 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
       });
     } finally {
       setLoadingKanban(false);
-    }
-  };
-
-  const salvarConfiguracoesKanban = async () => {
-    try {
-      setLoadingKanban(true);
-
-      // Salvar cada status modificado
-      const promises = kanbanStatuses.map(async (status) => {
-        const config = slaConfig[status.id];
-        if (config) {
-          await updateStatusSLA(
-            status.id,
-            config.sla_days,
-            config.sla_exclude_weekends
-          );
-        }
-      });
-
-      await Promise.all(promises);
-
-      toast({
-        title: 'Configurações salvas',
-        description: 'As configurações de SLA foram atualizadas com sucesso.',
-      });
-
-      setEditandoKanban(false);
-
-      // Recarregar para refletir mudanças
-      await carregarStatusKanban();
-    } catch (error) {
-      devLog.error('Erro ao salvar configurações do Kanban:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar as configurações.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoadingKanban(false);
-    }
-  };
-
-  const cancelarEdicaoKanban = () => {
-    setSlaConfig(JSON.parse(JSON.stringify(slaConfigOriginal))); // Restaurar valores originais
-    setEditandoKanban(false);
-  };
-
-  const handleToggleRoadmapVisibility = async (statusId: string) => {
-    const current = roadmapVisibility[statusId] ?? true;
-    const next = !current;
-
-    // Atualização otimista
-    setRoadmapVisibility(prev => ({ ...prev, [statusId]: next }));
-    setSavingRoadmapStatusId(statusId);
-
-    try {
-      await updateStatusRoadmapVisibility(statusId, next);
-    } catch (error) {
-      devLog.error('Erro ao atualizar visibilidade no roadmap:', error);
-      // Reverter em caso de erro
-      setRoadmapVisibility(prev => ({ ...prev, [statusId]: current }));
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar a visibilidade no roadmap.',
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingRoadmapStatusId(null);
-    }
-  };
-
-  // Reordenar colunas do Kanban via drag-and-drop (arrastar os chips)
-  const handleColumnOrderDragEnd = async (result: DropResult) => {
-    const { destination, source } = result;
-    if (!destination || destination.index === source.index) return;
-
-    const previousOrder = kanbanStatuses;
-
-    const reordered = [...kanbanStatuses];
-    const [moved] = reordered.splice(source.index, 1);
-    reordered.splice(destination.index, 0, moved);
-
-    // Atualização otimista
-    setKanbanStatuses(reordered);
-    setIsReorderingColumns(true);
-
-    try {
-      await reorderKanbanColumns(reordered.map((s) => s.id));
-      toast({
-        title: 'Ordem atualizada',
-        description: 'A ordem das colunas do Kanban foi salva.',
-      });
-    } catch (error) {
-      devLog.error('Erro ao reordenar colunas do Kanban:', error);
-      // Reverter em caso de erro
-      setKanbanStatuses(previousOrder);
-      toast({
-        title: 'Erro ao reordenar',
-        description: 'Não foi possível salvar a nova ordem das colunas.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsReorderingColumns(false);
     }
   };
 
@@ -573,6 +565,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
       const result = await response.json();
       if (result.success && result.data) {
         setEmailPreferences(result.data);
+        setEmailPreferencesOriginal({ ...result.data });
       }
     } catch (error) {
       devLog.error('Erro ao carregar preferências de email:', error);
@@ -583,70 +576,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
       });
     } finally {
       setLoadingEmailPrefs(false);
-    }
-  };
-
-  // Função para atualizar uma preferência de email
-  const atualizarPreferenciaEmail = async (preferenciaKey: keyof typeof emailPreferences, valor: boolean) => {
-    if (!user?.id) {
-      toast({
-        title: 'Erro',
-        description: 'Usuário não autenticado. Faça login novamente.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      setSavingEmailPrefs(true);
-
-      // Atualizar estado local imediatamente para UX responsivo
-      setEmailPreferences(prev => ({
-        ...prev,
-        [preferenciaKey]: valor
-      }));
-
-      const response = await fetch('/api/admin/email-notifications', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-          [preferenciaKey]: valor
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar preferência');
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erro ao atualizar preferência');
-      }
-
-      toast({
-        title: 'Preferência atualizada',
-        description: 'Sua preferência de notificação foi salva com sucesso.',
-      });
-    } catch (error) {
-      devLog.error('Erro ao atualizar preferência de email:', error);
-
-      // Reverter mudança local em caso de erro
-      setEmailPreferences(prev => ({
-        ...prev,
-        [preferenciaKey]: !valor
-      }));
-
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar a preferência.',
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingEmailPrefs(false);
+      setEmailPrefsLoaded(true);
     }
   };
 
@@ -682,165 +612,6 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
     }
   };
 
-  const salvarMensagemChecklist = async () => {
-    if (!user) return;
-
-    try {
-      setIsLoading(true);
-      await atualizarMensagemChecklist(mensagemChecklist);
-
-      toast({
-        title: 'Alterações salvas',
-        description: 'A mensagem de checklist foi atualizada com sucesso.',
-      });
-
-      setEditMode(false);
-      setOriginalMessage(mensagemChecklist);
-
-      devLog.log('Mensagem de checklist salva com sucesso:', mensagemChecklist);
-    } catch (error) {
-      devLog.error('Erro ao salvar configurações:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar as configurações.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const cancelarEdicao = () => {
-    setMensagemChecklist(originalMessage);
-    setEditMode(false);
-  };
-
-  const adicionarFaixaPotencia = () => {
-    if (!novaPotenciaMin || !novaPotenciaMax || !novoValorPotencia) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha todos os campos da nova faixa de potência.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const min = parseFloat(novaPotenciaMin);
-    const max = parseFloat(novaPotenciaMax);
-    const valor = parseFloat(novoValorPotencia);
-
-    if (min >= max) {
-      toast({
-        title: 'Valores inválidos',
-        description: 'A potência mínima deve ser menor que a máxima.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const sobreposicao = faixasPotencia.some(
-      faixa => (min < faixa.potenciaMax && max > faixa.potenciaMin)
-    );
-
-    if (sobreposicao) {
-      toast({
-        title: 'Sobreposição de faixas',
-        description: 'Esta faixa se sobrepõe a uma faixa existente.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const novaFaixa: FaixaPotenciaPreco = {
-      potenciaMin: min,
-      potenciaMax: max,
-      valorBase: valor
-    };
-
-    const novasFaixas = [...faixasPotencia, novaFaixa].sort((a, b) => a.potenciaMin - b.potenciaMin);
-    setFaixasPotencia(novasFaixas);
-
-    setNovaPotenciaMin('');
-    setNovaPotenciaMax('');
-    setNovoValorPotencia('');
-  };
-
-  const removerFaixaPotencia = (index: number) => {
-    const novasFaixas = [...faixasPotencia];
-    novasFaixas.splice(index, 1);
-    setFaixasPotencia(novasFaixas);
-  };
-
-  const atualizarFaixaPotencia = (index: number, campo: keyof FaixaPotenciaPreco, valor: number) => {
-    const novasFaixas = [...faixasPotencia];
-    novasFaixas[index][campo] = valor;
-    setFaixasPotencia(novasFaixas);
-  };
-
-  const salvarFaixasPotencia = async () => {
-    if (!user) return;
-
-    try {
-      setIsLoading(true);
-
-      const faixasOrdenadas = [...faixasPotencia].sort((a, b) => a.potenciaMin - b.potenciaMin);
-
-      for (let i = 0; i < faixasOrdenadas.length; i++) {
-        for (let j = i + 1; j < faixasOrdenadas.length; j++) {
-          const faixa1 = faixasOrdenadas[i];
-          const faixa2 = faixasOrdenadas[j];
-
-          if (faixa1.potenciaMax > faixa2.potenciaMin && faixa2.potenciaMin < faixa1.potenciaMax) {
-            toast({
-              title: 'Sobreposição de faixas',
-              description: `As faixas ${faixa1.potenciaMin}-${faixa1.potenciaMax} e ${faixa2.potenciaMin}-${faixa2.potenciaMax} se sobrepõem.`,
-              variant: 'destructive',
-            });
-            setIsLoading(false);
-            return;
-          }
-        }
-      }
-
-      for (let i = 0; i < faixasOrdenadas.length - 1; i++) {
-        const faixaAtual = faixasOrdenadas[i];
-        const proximaFaixa = faixasOrdenadas[i + 1];
-
-        if (faixaAtual.potenciaMax !== proximaFaixa.potenciaMin) {
-          toast({
-            title: 'Atenção: Lacuna entre faixas',
-            description: `Existe uma lacuna entre ${faixaAtual.potenciaMax} e ${proximaFaixa.potenciaMin} kWp.`,
-            variant: 'default',
-          });
-        }
-      }
-
-      await atualizarFaixasPotencia(faixasOrdenadas);
-
-      toast({
-        title: 'Configurações salvas',
-        description: 'A tabela de preços por potência foi atualizada com sucesso.',
-      });
-
-      setFaixasPotenciaOriginal([...faixasOrdenadas]);
-      setEditandoTabela(false);
-    } catch (error) {
-      devLog.error('Erro ao salvar configurações:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar as configurações.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const cancelarEdicaoFaixas = () => {
-    setFaixasPotencia([...faixasPotenciaOriginal]);
-    setEditandoTabela(false);
-  };
-
   const atualizarCampoDadosBancarios = (campo: keyof DadosBancarios, valor: string) => {
     setDadosBancarios(prev => ({
       ...prev,
@@ -848,1542 +619,1110 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
     }));
   };
 
-  const cancelarEdicaoDadosBancarios = () => {
-    setDadosBancarios({...dadosBancariosOriginal});
-    setEditandoDadosBancarios(false);
+  // ═════════════ Alterações pendentes: tudo é editado na tela e gravado pela barra "Salvar alterações" ═════════════
+  const areaAtiva = activeTab as AreaId;
+  const faixasOrdenadas = [...faixasPotencia].sort((a, b) => a.potenciaMin - b.potenciaMin);
+  const ordenar = (faixas: FaixaPotenciaPreco[]) => JSON.stringify([...faixas].sort((a, b) => a.potenciaMin - b.potenciaMin));
+
+  const dirty = {
+    checklist: mensagemChecklist !== originalMessage,
+    banco: JSON.stringify(dadosBancarios) !== JSON.stringify(dadosBancariosOriginal),
+    faixas: ordenar(faixasPotencia) !== ordenar(faixasPotenciaOriginal),
+    precificacao: precificacaoManual !== precificacaoManualOriginal,
+    sla: JSON.stringify(slaConfig) !== JSON.stringify(slaConfigOriginal),
+    roadmap: JSON.stringify(roadmapVisibility) !== JSON.stringify(roadmapVisibilityOriginal),
+    ordem: kanbanOrderOriginal.length > 0 && kanbanStatuses.map(s => s.id).join('|') !== kanbanOrderOriginal.join('|'),
+    responsavel: JSON.stringify(responsavelTecnico) !== JSON.stringify(responsavelOriginal),
+    procuracao: textoProcuracao !== textoProcuracaoOriginal,
+    emails: JSON.stringify(emailPreferences) !== JSON.stringify(emailPreferencesOriginal),
+  };
+  const dirtyPorArea: Record<AreaId, boolean> = {
+    kanban: dirty.sla || dirty.roadmap || dirty.ordem,
+    financeiro: dirty.banco || dirty.faixas || dirty.precificacao,
+    documentos: dirty.responsavel || dirty.procuracao,
+    comunicacao: dirty.checklist || dirty.emails,
+  };
+  const isDirty = Object.values(dirty).some(Boolean);
+
+  const respErros = {
+    cpf: erroCpf(responsavelTecnico.cpf),
+    email: erroEmail(responsavelTecnico.email),
+    telefone: erroTelefone(responsavelTecnico.telefone),
   };
 
-  const salvarDadosBancarios = async () => {
-    if (!user) return;
+  // ---- Colunas do Kanban ----
+  const moverColuna = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= kanbanStatuses.length) return;
+    const reordered = [...kanbanStatuses];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    setKanbanStatuses(reordered);
+  };
 
-    try {
-      setIsLoading(true);
+  const handleColunasDragEnd = (result: DropResult) => {
+    const { destination, source } = result;
+    if (!destination) return;
+    moverColuna(source.index, destination.index);
+  };
 
-      await atualizarDadosBancarios(dadosBancarios);
+  const prazoDe = (statusId: string) => slaConfig[statusId]?.sla_days ?? null;
+  const prazoTotal = kanbanStatuses.reduce((total, s) => total + (Number(prazoDe(s.id)) || 0), 0);
+  const prazoMaximo = Math.max(1, ...kanbanStatuses.map(s => Number(prazoDe(s.id)) || 0));
+  const etapasVisiveis = kanbanStatuses.filter(s => roadmapVisibility[s.id] ?? true);
 
+  // ---- Tabela de preços: cada faixa começa onde a anterior termina; só o "até" é informado ----
+  const atualizarFaixaAte = (index: number, valor: number) => {
+    const faixas = faixasOrdenadas.map(f => ({ ...f }));
+    faixas[index].potenciaMax = valor;
+    if (faixas[index + 1]) faixas[index + 1].potenciaMin = valor;
+    setFaixasPotencia(faixas);
+  };
+
+  const atualizarFaixaValor = (index: number, valor: number) => {
+    const faixas = faixasOrdenadas.map(f => ({ ...f }));
+    faixas[index].valorBase = valor;
+    setFaixasPotencia(faixas);
+  };
+
+  // Divide a última faixa: ela ganha um teto e a nova passa a ser a "sem limite"
+  const adicionarFaixa = () => {
+    const faixas = faixasOrdenadas.map(f => ({ ...f }));
+    const ultima = faixas[faixas.length - 1];
+    if (!ultima) {
+      setFaixasPotencia([{ potenciaMin: 0, potenciaMax: FAIXA_SEM_LIMITE, valorBase: 0 }]);
+      return;
+    }
+    if (ultima.potenciaMax === FAIXA_SEM_LIMITE) {
+      ultima.potenciaMax = ultima.potenciaMin > 0 ? ultima.potenciaMin * 2 : 10;
+    }
+    faixas.push({ potenciaMin: ultima.potenciaMax, potenciaMax: FAIXA_SEM_LIMITE, valorBase: ultima.valorBase });
+    setFaixasPotencia(faixas);
+  };
+
+  const removerFaixa = (index: number) => {
+    const faixas = faixasOrdenadas.map(f => ({ ...f }));
+    const [removida] = faixas.splice(index, 1);
+    if (faixas[index]) {
+      // a faixa seguinte passa a começar onde a removida começava
+      faixas[index].potenciaMin = removida.potenciaMin;
+    } else if (faixas[index - 1] && removida.potenciaMax === FAIXA_SEM_LIMITE) {
+      // removeu a "sem limite": a anterior assume esse papel
+      faixas[index - 1].potenciaMax = FAIXA_SEM_LIMITE;
+    }
+    setFaixasPotencia(faixas);
+  };
+
+  const avisosFaixas: string[] = [];
+  faixasOrdenadas.forEach((faixa, i) => {
+    if (!(faixa.potenciaMax > faixa.potenciaMin)) {
+      avisosFaixas.push(`A faixa ${i + 1} precisa terminar acima de ${formatNumero(faixa.potenciaMin)} kWp, onde ela começa.`);
+    }
+    const proxima = faixasOrdenadas[i + 1];
+    if (proxima && proxima.potenciaMin > faixa.potenciaMax) {
+      avisosFaixas.push(`Há um intervalo sem preço entre ${formatNumero(faixa.potenciaMax)} e ${formatNumero(proxima.potenciaMin)} kWp.`);
+    }
+    if (proxima && proxima.potenciaMin < faixa.potenciaMax) {
+      avisosFaixas.push(`As faixas ${i + 1} e ${i + 2} se sobrepõem.`);
+    }
+  });
+  const ultimaFaixa = faixasOrdenadas[faixasOrdenadas.length - 1];
+  const faixasInvalidas = faixasOrdenadas.some((faixa, i) =>
+    !(faixa.potenciaMax > faixa.potenciaMin) ||
+    (faixasOrdenadas[i + 1] && faixasOrdenadas[i + 1].potenciaMin < faixa.potenciaMax)
+  );
+
+  // ---- Checklist: prévia no formato do evento da linha do tempo (título + parágrafos; "-" vira lista) ----
+  const checklistLinhas = mensagemChecklist.split('\n');
+  const checklistTitulo = (checklistLinhas[0] || '').trim() || 'Checklist de Documentos Necessários para o Projeto';
+  const checklistBlocos: { tipo: 'p' | 'li'; texto: string }[] = checklistLinhas.slice(1)
+    .map(linha => linha.trim())
+    .filter(Boolean)
+    .map(linha => (linha.startsWith('-') ? { tipo: 'li' as const, texto: linha.slice(1).trim() } : { tipo: 'p' as const, texto: linha }));
+
+  // ---- Salvar / descartar ----
+  const salvarTudo = async () => {
+    if (!user || savingAll) return;
+
+    if (dirty.faixas && faixasInvalidas) {
+      setActiveTab('financeiro');
       toast({
-        title: 'Configurações salvas',
-        description: 'Os dados bancários foram atualizados com sucesso.',
-      });
-
-      setDadosBancariosOriginal({...dadosBancarios});
-      setEditandoDadosBancarios(false);
-    } catch (error) {
-      devLog.error('Erro ao salvar configurações:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar as configurações.',
+        title: 'Tabela de preços com faixas inválidas',
+        description: avisosFaixas[0] || 'Confira os limites das faixas antes de salvar.',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
+      return;
     }
-  };
 
-  const alternarPrecificacaoManual = async (ativado: boolean) => {
-    if (!user) return;
+    if (dirty.responsavel && (respErros.cpf || respErros.email || respErros.telefone)) {
+      setActiveTab('documentos');
+      toast({
+        title: 'Dados do responsável técnico',
+        description: 'Corrija os campos destacados antes de salvar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSavingAll(true);
+    const falhas: string[] = [];
+    // Cada parte é gravada pela mesma função de antes; uma falha não impede as outras
+    const tentar = async (rotulo: string, acao: () => Promise<unknown>) => {
+      try {
+        const resultado = await acao();
+        if (resultado === false) {
+          falhas.push(rotulo);
+          return false;
+        }
+        return true;
+      } catch (error) {
+        devLog.error(`[Preferências] Erro ao salvar ${rotulo}:`, error);
+        falhas.push(rotulo);
+        return false;
+      }
+    };
 
     try {
-      setSalvandoPrecificacao(true);
-      setPrecificacaoManual(ativado);
+      if (dirty.checklist && await tentar('checklist de documentos', () => atualizarMensagemChecklist(mensagemChecklist))) {
+        setOriginalMessage(mensagemChecklist);
+      }
 
-      const sucesso = await atualizarPrecificacaoManual(ativado, user.id);
+      if (dirty.banco && await tentar('dados bancários', () => atualizarDadosBancarios(dadosBancarios))) {
+        setDadosBancariosOriginal({ ...dadosBancarios });
+      }
 
-      if (sucesso) {
-        toast({
-          title: 'Configuração atualizada',
-          description: ativado
-            ? 'Modo de precificação manual ativado. Novos projetos avulsos serão criados com R$ 0,00.'
-            : 'Modo de precificação manual desativado. Novos projetos avulsos usarão a tabela de preços.',
+      if (dirty.faixas && await tentar('tabela de preços', () => atualizarFaixasPotencia(faixasOrdenadas))) {
+        setFaixasPotencia(faixasOrdenadas);
+        setFaixasPotenciaOriginal(faixasOrdenadas.map(f => ({ ...f })));
+      }
+
+      if (dirty.precificacao && await tentar('precificação', () => atualizarPrecificacaoManual(precificacaoManual, user.id))) {
+        setPrecificacaoManualOriginal(precificacaoManual);
+      }
+
+      if (dirty.ordem && await tentar('ordem das colunas', () => reorderKanbanColumns(kanbanStatuses.map(s => s.id)))) {
+        setKanbanOrderOriginal(kanbanStatuses.map(s => s.id));
+      }
+
+      if (dirty.sla) {
+        const alterados = kanbanStatuses.filter(s => JSON.stringify(slaConfig[s.id]) !== JSON.stringify(slaConfigOriginal[s.id]));
+        const salvou = await tentar('prazos das etapas', () => Promise.all(
+          alterados.map(s => updateStatusSLA(s.id, slaConfig[s.id].sla_days, slaConfig[s.id].sla_exclude_weekends))
+        ));
+        if (salvou) setSlaConfigOriginal(JSON.parse(JSON.stringify(slaConfig)));
+      }
+
+      if (dirty.roadmap) {
+        const alterados = kanbanStatuses.filter(s => (roadmapVisibility[s.id] ?? true) !== (roadmapVisibilityOriginal[s.id] ?? true));
+        const salvou = await tentar('etapas visíveis para o cliente', () => Promise.all(
+          alterados.map(s => updateStatusRoadmapVisibility(s.id, roadmapVisibility[s.id] ?? true))
+        ));
+        if (salvou) setRoadmapVisibilityOriginal({ ...roadmapVisibility });
+      }
+
+      if (dirty.responsavel && await tentar('responsável técnico', () => atualizarResponsavelTecnico(responsavelTecnico))) {
+        setResponsavelOriginal({ ...responsavelTecnico });
+      }
+
+      if (dirty.procuracao && await tentar('texto da procuração', () => atualizarTextoProcuracao(textoProcuracao))) {
+        setTextoProcuracaoOriginal(textoProcuracao);
+      }
+
+      if (dirty.emails) {
+        const chaves = (Object.keys(emailPreferences) as (keyof typeof emailPreferences)[])
+          .filter(chave => emailPreferences[chave] !== emailPreferencesOriginal[chave]);
+        const salvou = await tentar('notificações por e-mail', async () => {
+          for (const chave of chaves) {
+            const response = await fetch('/api/admin/email-notifications', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: user.id, [chave]: emailPreferences[chave] }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !result.success) throw new Error(result.error || 'Erro ao atualizar preferência');
+          }
         });
+        if (salvou) setEmailPreferencesOriginal({ ...emailPreferences });
+      }
 
-        devLog.log('Modo de precificação manual alterado:', ativado);
-      } else {
-        // Reverter em caso de erro
-        setPrecificacaoManual(!ativado);
+      if (falhas.length === 0) {
         toast({
-          title: 'Erro',
-          description: 'Não foi possível atualizar a configuração de precificação.',
+          title: 'Alterações salvas',
+          description: 'As preferências foram atualizadas com sucesso.',
+        });
+      } else {
+        toast({
+          title: 'Algumas alterações não foram salvas',
+          description: `Não foi possível salvar: ${falhas.join(', ')}. O restante foi gravado.`,
           variant: 'destructive',
         });
       }
-    } catch (error) {
-      // Reverter em caso de erro
-      setPrecificacaoManual(!ativado);
-      devLog.error('Erro ao alterar precificação manual:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar a configuração de precificação.',
-        variant: 'destructive',
-      });
     } finally {
-      setSalvandoPrecificacao(false);
+      setSavingAll(false);
     }
   };
 
-  const restaurarFaixasPadrao = async () => {
-    if (!user) return;
-
-    try {
-      setRestaurandoFaixas(true);
-
-      const faixasPadrao = criarFaixasPotenciaPadrao();
-      const sucesso = await atualizarFaixasPotencia(faixasPadrao);
-
-      if (sucesso) {
-        setFaixasPotencia(faixasPadrao);
-        setFaixasPotenciaOriginal(faixasPadrao);
-        setAvisoFaixasVaziasDismissed(false);
-
-        toast({
-          title: 'Faixas restauradas',
-          description: 'As faixas de potência padrão foram restauradas com sucesso.',
-        });
-
-        devLog.log('Faixas de potência padrão restauradas');
-      } else {
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível restaurar as faixas padrão.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      devLog.error('Erro ao restaurar faixas padrão:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível restaurar as faixas padrão.',
-        variant: 'destructive',
-      });
-    } finally {
-      setRestaurandoFaixas(false);
+  const descartarTudo = () => {
+    setMensagemChecklist(originalMessage);
+    setDadosBancarios({ ...dadosBancariosOriginal });
+    setFaixasPotencia(faixasPotenciaOriginal.map(f => ({ ...f })));
+    setPrecificacaoManual(precificacaoManualOriginal);
+    setSlaConfig(JSON.parse(JSON.stringify(slaConfigOriginal)));
+    setRoadmapVisibility({ ...roadmapVisibilityOriginal });
+    if (kanbanOrderOriginal.length > 0) {
+      setKanbanStatuses(prev =>
+        kanbanOrderOriginal.map(id => prev.find(s => s.id === id)).filter(Boolean) as ProjectStatusInfo[]
+      );
     }
+    setResponsavelTecnico({ ...responsavelOriginal });
+    setTextoProcuracao(textoProcuracaoOriginal);
+    setProcuracaoEditorKey(k => k + 1); // o editor só lê o texto ao montar: remonta para refletir o descarte
+    setEmailPreferences({ ...emailPreferencesOriginal });
   };
 
-  const ativarPrecificacaoManualEFecharAviso = async () => {
-    await alternarPrecificacaoManual(true);
-    setAvisoFaixasVaziasDismissed(true);
-  };
+  // Sair com alterações pendentes: aviso do navegador ao fechar/recarregar e confirmação ao clicar em outro link
+  useEffect(() => {
+    if (!isDirty) return;
 
-  const dispensarAvisoFaixasVazias = () => {
-    setAvisoFaixasVaziasDismissed(true);
-  };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
 
-  const tabs = [
-    { id: 'geral', label: 'Geral', icon: <Settings className="h-4 w-4" /> },
-    { id: 'projetos', label: 'Projetos', icon: <FileText className="h-4 w-4" /> },
-    { id: 'kanban', label: 'Kanban', icon: <Columns3 className="h-4 w-4" /> },
-    { id: 'financeiro', label: 'Financeiro', icon: <DollarSign className="h-4 w-4" /> },
-    { id: 'documentos', label: 'Documentos', icon: <FileText className="h-4 w-4" /> },
-    { id: 'emails', label: 'E-mails', icon: <Mail className="h-4 w-4" /> }
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = (e.target as HTMLElement | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setLeaveHref(url.pathname + url.search + url.hash);
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    document.addEventListener('click', onClick, true);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      document.removeEventListener('click', onClick, true);
+    };
+  }, [isDirty]);
+
+  const areas: { id: AreaId; nome: string; desc: string; icon: React.ReactNode }[] = [
+    { id: 'kanban', nome: 'Kanban', desc: 'Colunas, prazos e o que o cliente vê', icon: <Columns3 className="h-4 w-4" /> },
+    { id: 'financeiro', nome: 'Financeiro', desc: 'Dados bancários, preços, pacotes e planos', icon: <DollarSign className="h-4 w-4" /> },
+    { id: 'documentos', nome: 'Documentos', desc: 'Logo, responsável técnico e procuração', icon: <FileText className="h-4 w-4" /> },
+    { id: 'comunicacao', nome: 'Comunicação', desc: 'Checklist de documentos e e-mails', icon: <Mail className="h-4 w-4" /> },
   ];
+  const areaInfo = areas.find(a => a.id === areaAtiva) || areas[0];
+
+  const notificacoes: { chave: keyof typeof emailPreferences; titulo: string; desc: string }[] = [
+    { chave: 'notify_project_created', titulo: 'Novo projeto criado', desc: 'Quando um cliente criar um novo projeto.' },
+    { chave: 'notify_status_change', titulo: 'Mudança de status', desc: 'Quando o status de um projeto for alterado.' },
+    { chave: 'notify_document_added', titulo: 'Documento adicionado', desc: 'Quando um documento for adicionado a um projeto.' },
+    { chave: 'notify_comment_added', titulo: 'Comentário adicionado', desc: 'Quando um comentário for adicionado a um projeto.' },
+  ];
+  const notificacoesAtivas = notificacoes.filter(n => emailPreferences[n.chave]).length;
+
+  const colunaGrid = 'grid grid-cols-[78px_minmax(0,1.4fr)_96px_minmax(36px,1fr)_84px_70px] items-center gap-3';
+  const totalVariaveis = ((textoProcuracao || defaultProcuracao).match(/\{\{\w+\}\}/g) || []).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header com Gradiente */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 p-8 text-white shadow-lg">
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold">
-            Preferências
-          </h1>
-          <p className="mt-2 text-indigo-100">
-            Configurações e preferências gerais do sistema
-          </p>
-        </div>
-
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/30"></div>
-        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-violet-500/30"></div>
+    <div>
+      {/* Faixa de topo */}
+      <div className="mb-5 rounded-[14px] bg-gradient-to-r from-indigo-600 to-violet-700 px-[22px] py-4 text-white">
+        <h1 className="text-xl font-extrabold">Preferências</h1>
+        <p className="mt-0.5 text-[12.5px] text-indigo-100">Configurações e preferências gerais do sistema</p>
       </div>
 
-      {/* Container de Conteúdo */}
-      <div className="bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-        {/* Abas */}
-        <div className="px-6 pt-6">
-          <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-        </div>
-
-        {/* Conteúdo das Abas */}
-        <div className="p-6 space-y-8">
-          {/* ABA GERAL */}
-          {activeTab === 'geral' && (
-            <>
-              <CollapsibleSection
-                title="Mensagem de Checklist"
-                description="Define a mensagem padrão que será exibida nos checklists dos projetos."
-                defaultOpen={false}
-                borderColor="blue-500"
-                icon={<FileText className="h-5 w-5" />}
+      <div className="mx-auto flex max-w-[1024px] flex-col items-start gap-4 lg:flex-row lg:gap-7">
+        {/* Menu lateral de áreas */}
+        <nav aria-label="Áreas de preferências" className="flex w-full flex-shrink-0 gap-1 overflow-x-auto lg:sticky lg:top-3.5 lg:w-[236px] lg:flex-col">
+          {areas.map((area) => {
+            const ativa = area.id === areaAtiva;
+            return (
+              <button
+                key={area.id}
+                type="button"
+                aria-current={ativa ? 'true' : undefined}
+                onClick={() => setActiveTab(area.id)}
+                className={cn(
+                  'flex flex-shrink-0 items-start gap-[11px] rounded-[10px] px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2',
+                  ativa
+                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                )}
               >
-                <div className="space-y-4">
-                  {editMode ? (
-                    <Textarea
-                      value={mensagemChecklist}
-                      onChange={(e) => setMensagemChecklist(e.target.value)}
-                      placeholder="Digite a mensagem padrão para os checklists..."
-                      className="min-h-[300px]"
-                    />
-                  ) : (
-                    <div className="rounded-md border border-gray-200 dark:border-gray-700 p-4">
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-                        <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
-                          {mensagemChecklist}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                <span className={cn('mt-0.5 flex-shrink-0', ativa ? 'text-indigo-600 dark:text-indigo-300' : 'text-slate-400')}>{area.icon}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-semibold">{area.nome}</span>
+                  <span className="mt-px hidden text-[11.5px] leading-snug text-slate-500 dark:text-slate-400 lg:block">{area.desc}</span>
+                </span>
+                {dirtyPorArea[area.id] && (
+                  <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-amber-500" title="Alterações não salvas">
+                    <span className="sr-only">Alterações não salvas</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-                  <div className="flex justify-end gap-2">
-                    {!editMode ? (
-                      <Button
-                        onClick={() => setEditMode(true)}
-                        disabled={isLoading}
-                      >
-                        Editar Checklist
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={cancelarEdicao}
-                          variant="outline"
-                          disabled={isLoading}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={salvarMensagemChecklist}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? 'Salvando...' : 'Salvar Alterações'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CollapsibleSection>
+        <div className="w-full min-w-0 flex-1 lg:max-w-[760px]">
+          <div className="mb-3.5 mt-0.5">
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">{areaInfo.nome}</h2>
+            <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">{areaInfo.desc}</p>
+          </div>
 
-              <CollapsibleSection
-                title="Dados Bancários"
-                description="Configure os dados bancários para recebimentos e pagamentos."
-                defaultOpen={false}
-                borderColor="emerald-500"
-                icon={<DollarSign className="h-5 w-5" />}
-              >
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Banco</label>
-                      <Input
-                        type="text"
-                        value={dadosBancarios.banco}
-                        onChange={(e) => atualizarCampoDadosBancarios('banco', e.target.value)}
-                        placeholder="Ex: Itaú"
-                        disabled={!editandoDadosBancarios}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Agência</label>
-                      <Input
-                        type="text"
-                        value={dadosBancarios.agencia}
-                        onChange={(e) => atualizarCampoDadosBancarios('agencia', e.target.value)}
-                        placeholder="Ex: 1234"
-                        disabled={!editandoDadosBancarios}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Conta</label>
-                      <Input
-                        type="text"
-                        value={dadosBancarios.conta}
-                        onChange={(e) => atualizarCampoDadosBancarios('conta', e.target.value)}
-                        placeholder="Ex: 12345-6"
-                        disabled={!editandoDadosBancarios}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Nome do Favorecido</label>
-                      <Input
-                        type="text"
-                        value={dadosBancarios.favorecido}
-                        onChange={(e) => atualizarCampoDadosBancarios('favorecido', e.target.value)}
-                        placeholder="Ex: Empresa de Engenharia LTDA"
-                        disabled={!editandoDadosBancarios}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">CNPJ/CPF</label>
-                      <Input
-                        type="text"
-                        value={dadosBancarios.documento}
-                        onChange={(e) => atualizarCampoDadosBancarios('documento', e.target.value)}
-                        placeholder="Ex: 12.345.678/0001-90"
-                        disabled={!editandoDadosBancarios}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Chave PIX</label>
-                      <Input
-                        type="text"
-                        value={dadosBancarios.chavePix}
-                        onChange={(e) => atualizarCampoDadosBancarios('chavePix', e.target.value)}
-                        placeholder="Ex: email@empresa.com.br"
-                        disabled={!editandoDadosBancarios}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    {!editandoDadosBancarios ? (
-                      <Button
-                        onClick={() => setEditandoDadosBancarios(true)}
-                        disabled={isLoading}
-                      >
-                        Editar Dados Bancários
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={cancelarEdicaoDadosBancarios}
-                          variant="outline"
-                          disabled={isLoading}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={salvarDadosBancarios}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? 'Salvando...' : 'Salvar Dados Bancários'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CollapsibleSection>
-            </>
-          )}
-
-          {/* ABA PROJETOS */}
-          {activeTab === 'projetos' && (
-            <div className="space-y-6">
-              {/* Tabela de Preços */}
-              <CollapsibleSection
-                title="Tabela de Preços dos Projetos"
-                description="Configure a tabela de preços base para diferentes faixas de potência dos projetos."
-                defaultOpen={false}
-                borderColor="violet-500"
-                icon={<BarChart3 className="h-5 w-5" />}
-              >
-                  <div className="space-y-4">
-                    {/* Indicador de Status: Modo Ativo */}
-                    <div className={cn(
-                      "rounded-lg border-2 p-4 transition-all duration-200 shadow-sm",
-                      precificacaoManual
-                        ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700"
-                        : "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700"
-                    )}>
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5">
-                          {precificacaoManual ? (
-                            <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                          ) : (
-                            <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className={cn(
-                            "text-base font-bold mb-1",
-                            precificacaoManual
-                              ? "text-red-900 dark:text-red-100"
-                              : "text-emerald-900 dark:text-emerald-100"
-                          )}>
-                            {precificacaoManual ? "⚠️ Precificação Manual ATIVA" : "✓ Precificação Automática ATIVA"}
-                          </h4>
-                          <p className={cn(
-                            "text-sm",
-                            precificacaoManual
-                              ? "text-red-800 dark:text-red-200"
-                              : "text-emerald-800 dark:text-emerald-200"
-                          )}>
-                            {precificacaoManual
-                              ? "Novos projetos avulsos serão criados com R$ 0,00. A tabela de preços abaixo será ignorada."
-                              : "Novos projetos avulsos usarão a tabela de preços abaixo para calcular o valor automaticamente."
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Banner de Aviso: Nenhuma Faixa Configurada */}
-                    {faixasPotencia.length === 0 && !avisoFaixasVaziasDismissed && (
-                      <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 p-6 shadow-lg">
-                        <div className="flex items-start gap-4">
-                          {/* Ícone de Alerta */}
-                          <div className="flex-shrink-0 mt-1">
-                            <svg className="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                          </div>
-
-                          {/* Conteúdo */}
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2">
-                              ⚠️ Atenção: Nenhuma faixa de potência configurada!
-                            </h3>
-                            <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
-                              Sua tabela de preços está vazia. Novos projetos avulsos serão criados com <strong>valor R$ 0,00</strong> até que você configure as faixas de potência ou ative o modo de precificação manual.
-                            </p>
-
-                            {/* Opções */}
-                            <div className="space-y-3">
-                              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                                Escolha uma das opções abaixo:
-                              </p>
-
-                              <div className="flex flex-wrap gap-3">
-                                {/* Opção 1: Restaurar Faixas Padrão */}
-                                <Button
-                                  onClick={restaurarFaixasPadrao}
-                                  disabled={restaurandoFaixas}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                  {restaurandoFaixas ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Restaurando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                      </svg>
-                                      Restaurar Faixas Padrão
-                                    </>
-                                  )}
-                                </Button>
-
-                                {/* Opção 2: Ativar Precificação Manual */}
-                                <Button
-                                  onClick={ativarPrecificacaoManualEFecharAviso}
-                                  disabled={salvandoPrecificacao}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                >
-                                  {salvandoPrecificacao ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Ativando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                      </svg>
-                                      Ativar Precificação Manual
-                                    </>
-                                  )}
-                                </Button>
-
-                                {/* Opção 3: Dispensar Aviso */}
-                                <Button
-                                  onClick={dispensarAvisoFaixasVazias}
-                                  variant="outline"
-                                  className="border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-900/40"
-                                >
-                                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  Entendi, vou adicionar manualmente
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="rounded-lg border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-gray-50 dark:bg-gray-800/50">
-                            <TableHead className="font-semibold">Potência Mínima (kWp)</TableHead>
-                            <TableHead className="font-semibold">Potência Máxima (kWp)</TableHead>
-                            <TableHead className="font-semibold">Valor Base (R$)</TableHead>
-                            {editandoTabela && <TableHead className="font-semibold w-[80px]">Ações</TableHead>}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {faixasPotencia.map((faixa, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                {editandoTabela ? (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={faixa.potenciaMin}
-                                    onChange={(e) => atualizarFaixaPotencia(index, 'potenciaMin', parseFloat(e.target.value))}
-                                  />
-                                ) : (
-                                  faixa.potenciaMin
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {editandoTabela ? (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={faixa.potenciaMax}
-                                    onChange={(e) => atualizarFaixaPotencia(index, 'potenciaMax', parseFloat(e.target.value))}
-                                  />
-                                ) : (
-                                  faixa.potenciaMax === 999999 ? '∞' : faixa.potenciaMax
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {editandoTabela ? (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={faixa.valorBase}
-                                    onChange={(e) => atualizarFaixaPotencia(index, 'valorBase', parseFloat(e.target.value))}
-                                  />
-                                ) : (
-                                  `R$ ${faixa.valorBase.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                                )}
-                              </TableCell>
-                              {editandoTabela && (
-                                <TableCell>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removerFaixaPotencia(index)}
-                                    className="text-red-500 hover:text-red-700"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              )}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    {editandoTabela && (
-                      <div className="flex gap-2 items-end pt-4 border-t">
-                        <div className="flex-1 space-y-2">
-                          <label className="text-sm font-medium">Potência Mínima (kWp)</label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={novaPotenciaMin}
-                            onChange={(e) => setNovaPotenciaMin(e.target.value)}
-                            placeholder="Ex: 5"
-                          />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <label className="text-sm font-medium">Potência Máxima (kWp)</label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={novaPotenciaMax}
-                            onChange={(e) => setNovaPotenciaMax(e.target.value)}
-                            placeholder="Ex: 10"
-                          />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <label className="text-sm font-medium">Valor Base (R$)</label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={novoValorPotencia}
-                            onChange={(e) => setNovoValorPotencia(e.target.value)}
-                            placeholder="Ex: 600"
-                          />
-                        </div>
-                        <Button
-                          onClick={adicionarFaixaPotencia}
-                          disabled={isLoading || !novaPotenciaMin || !novaPotenciaMax || !novoValorPotencia}
-                        >
-                          <PlusCircle className="h-4 w-4 mr-2" />
-                          Adicionar
-                        </Button>
-                      </div>
-                    )}
-
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                      {!editandoTabela ? (
-                        <Button
-                          onClick={() => setEditandoTabela(true)}
-                          disabled={isLoading}
-                        >
-                          Editar Tabela de Preços
-                        </Button>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={cancelarEdicaoFaixas}
-                            variant="outline"
-                            disabled={isLoading}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            onClick={salvarFaixasPotencia}
-                            disabled={isLoading}
-                          >
-                            {isLoading ? 'Salvando...' : 'Salvar Tabela de Preços'}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Controle de Precificação Manual */}
-                    <div className="pt-6 border-t space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          Controle Manual de Preços
-                        </h3>
-                      </div>
-                <div className="space-y-4">
-                  {/* Informação sobre o que é precificação manual */}
-                  <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                          O que é Precificação Manual?
-                        </h4>
-                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                          Quando ativada, todos os novos <strong>projetos avulsos</strong> criados por clientes, administradores ou colaboradores serão criados automaticamente com <strong>valor R$ 0,00</strong>. Você poderá então ajustar manualmente o preço de cada projeto conforme necessário.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Switch de controle */}
-                  <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                    <div className="flex-1">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                        Ativar Precificação Manual
-                      </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {precificacaoManual
-                          ? "Desative para voltar a usar a tabela de preços automática"
-                          : "Ative para definir preços manualmente em cada projeto"
-                        }
-                      </p>
-                    </div>
-                    <Switch
-                      checked={precificacaoManual}
-                      onCheckedChange={alternarPrecificacaoManual}
-                      disabled={salvandoPrecificacao}
-                      className="ml-4"
-                    />
-                  </div>
-
-                  {salvandoPrecificacao && (
-                    <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Salvando configuração...</span>
-                    </div>
-                  )}
-                </div>
-                    </div>
-                  </div>
-              </CollapsibleSection>
-
-              {/* Pacotes de Projetos */}
-              <CollapsibleSection
-                title="Pacotes de Projetos"
-                description="Configure pacotes de projetos que podem ser vendidos aos clientes."
-                defaultOpen={false}
-                borderColor="amber-500"
-                icon={<Package className="h-5 w-5" />}
-              >
-                <PackagesTab />
-              </CollapsibleSection>
-
-              {/* Assinatura Mensal */}
-              <CollapsibleSection
-                title="Planos de Assinatura Mensal"
-                description="Configure planos de assinatura mensal para seus clientes."
-                defaultOpen={false}
-                borderColor="cyan-500"
-                icon={<Calendar className="h-5 w-5" />}
-              >
-                <SubscriptionPlansTab />
-              </CollapsibleSection>
-            </div>
-          )}
-
-          {/* ABA KANBAN */}
-          {activeTab === 'kanban' && (
-            <>
-            <CollapsibleSection
-              title="Etapas Visíveis no Roadmap do Cliente"
-              description="Escolha quais etapas aparecem no roadmap exibido ao cliente. A ordem segue a ordem das colunas do Kanban."
-              defaultOpen={true}
-              borderColor="violet-500"
-              icon={<Map className="h-5 w-5" />}
+          {/* ═════════════ KANBAN ═════════════ */}
+          {areaAtiva === 'kanban' && (
+            <PrefSection
+              title="Colunas do Kanban"
+              defaultOpen
+              summary={`${kanbanStatuses.length} colunas · ${prazoTotal} dias no total · ${etapasVisiveis.length} ${etapasVisiveis.length === 1 ? 'visível' : 'visíveis'} para o cliente`}
             >
-              {loadingKanban ? (
+              {loadingKanban && kanbanStatuses.length === 0 ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-                  <span className="ml-3 text-gray-600">Carregando etapas...</span>
+                  <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+                  <span className="ml-3 text-sm text-slate-600 dark:text-slate-300">Carregando colunas...</span>
                 </div>
               ) : kanbanStatuses.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Map className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhuma coluna encontrada no Kanban.</p>
+                <div className="py-12 text-center text-slate-500">
+                  <Columns3 className="mx-auto mb-4 h-10 w-10 opacity-50" />
+                  <p className="text-sm">Nenhuma coluna encontrada no Kanban.</p>
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-wrap gap-2">
-                    {kanbanStatuses.map((status) => {
-                      const isVisible = roadmapVisibility[status.id] ?? true;
-                      const isSaving = savingRoadmapStatusId === status.id;
-                      return (
-                        <button
-                          key={status.id}
-                          type="button"
-                          onClick={() => handleToggleRoadmapVisibility(status.id)}
-                          disabled={isSaving}
-                          className={cn(
-                            "flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all disabled:opacity-60",
-                            isVisible
-                              ? "bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-700 dark:text-indigo-300"
-                              : "bg-gray-50 border-gray-200 text-gray-400 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-500"
-                          )}
-                        >
-                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
-                          {status.name}
-                          {isSaving ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : isVisible ? (
-                            <Check className="h-3.5 w-3.5" />
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                    A alteração é salva automaticamente ao clicar em cada etapa.
+                  <p className={helpClass}>
+                    Arraste pela alça (ou use as setas) para definir a ordem das colunas. O prazo é quantos dias a etapa pode levar
+                    antes de o projeto aparecer como atrasado; deixe vazio para não aplicar prazo.
                   </p>
-                </>
-              )}
-            </CollapsibleSection>
 
-            <CollapsibleSection
-              title="Ordem das Colunas do Kanban"
-              description="Arraste os cartões para definir a ordem em que as colunas aparecem no quadro."
-              defaultOpen={true}
-              borderColor="indigo-500"
-              icon={<ArrowUpDown className="h-5 w-5" />}
-            >
-              {loadingKanban ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-                  <span className="ml-3 text-gray-600">Carregando colunas...</span>
-                </div>
-              ) : kanbanStatuses.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Columns3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhuma coluna encontrada no Kanban.</p>
-                </div>
-              ) : (
-                <>
-                  <DragDropContext onDragEnd={handleColumnOrderDragEnd}>
-                    <Droppable droppableId="preferencias-column-order" direction="horizontal">
+                  <div className={cn(colunaGrid, 'border-b border-slate-200 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-700')}>
+                    <span>Ordem</span>
+                    <span>Coluna</span>
+                    <span>Prazo</span>
+                    <span>Proporção</span>
+                    <span className="text-center">Só dias úteis</span>
+                    <span className="text-center">Cliente vê</span>
+                  </div>
+
+                  <DragDropContext onDragEnd={handleColunasDragEnd}>
+                    <Droppable droppableId="preferencias-colunas">
                       {(provided) => (
-                        <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-2">
-                          {kanbanStatuses.map((status, index) => (
-                            <Draggable key={status.id} draggableId={status.id} index={index}>
-                              {(providedChip, snapshotChip) => (
-                                <div
-                                  ref={providedChip.innerRef}
-                                  {...providedChip.draggableProps}
-                                  {...providedChip.dragHandleProps}
-                                  className={cn(
-                                    "flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-sm font-medium select-none",
-                                    "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                                    "cursor-grab active:cursor-grabbing",
-                                    snapshotChip.isDragging && "shadow-lg ring-2 ring-indigo-400/40 border-indigo-300"
-                                  )}
-                                >
-                                  <GripVertical className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
-                                  <span className="text-gray-700 dark:text-gray-300">{status.name}</span>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
+                        <div ref={provided.innerRef} {...provided.droppableProps}>
+                          {kanbanStatuses.map((status, index) => {
+                            const prazo = prazoDe(status.id);
+                            const temPrazo = prazo !== null && prazo !== undefined;
+                            return (
+                              <Draggable key={status.id} draggableId={status.id} index={index}>
+                                {(draggable, snapshot) => (
+                                  <div
+                                    ref={draggable.innerRef}
+                                    {...draggable.draggableProps}
+                                    className={cn(
+                                      colunaGrid,
+                                      'border-b border-slate-100 bg-white py-[9px] dark:border-slate-700/60 dark:bg-slate-800',
+                                      snapshot.isDragging && 'rounded-lg border-indigo-200 shadow-lg ring-2 ring-indigo-400/40'
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-px">
+                                      <span
+                                        {...draggable.dragHandleProps}
+                                        title="Arraste para reordenar"
+                                        aria-label={`Arrastar ${status.name}`}
+                                        className="flex h-7 w-[22px] cursor-grab items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing dark:hover:bg-slate-700"
+                                      >
+                                        <GripVertical className="h-3.5 w-3.5" />
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => moverColuna(index, index - 1)}
+                                        disabled={index === 0}
+                                        aria-label={`Mover ${status.name} para cima`}
+                                        className="flex h-7 w-[26px] items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-slate-700"
+                                      >
+                                        <ChevronUp className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => moverColuna(index, index + 1)}
+                                        disabled={index === kanbanStatuses.length - 1}
+                                        aria-label={`Mover ${status.name} para baixo`}
+                                        className="flex h-7 w-[26px] items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-slate-700"
+                                      >
+                                        <ChevronDown className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+
+                                    <div className="flex min-w-0 items-center gap-[9px]">
+                                      <span className="h-[9px] w-[9px] flex-shrink-0 rounded-full" style={{ backgroundColor: status.color }} />
+                                      <div className="min-w-0">
+                                        <span className="text-[13.5px] font-semibold text-slate-900 dark:text-white">{status.name}</span>
+                                        {status.isDefault && (
+                                          <span
+                                            title="Etapa em que os projetos novos começam"
+                                            className="ml-1.5 inline-block rounded-full bg-indigo-50 px-2 py-px align-[1px] text-[10.5px] font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
+                                          >
+                                            Padrão
+                                          </span>
+                                        )}
+                                        <span className="block text-[11.5px] text-slate-400">
+                                          {status.projectCount} projeto{status.projectCount !== 1 ? 's' : ''}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        placeholder="—"
+                                        aria-label={`Prazo de ${status.name} em dias`}
+                                        value={temPrazo ? prazo : ''}
+                                        onChange={(e) => {
+                                          const value = e.target.value === '' ? null : parseInt(e.target.value);
+                                          setSlaConfig(prev => ({
+                                            ...prev,
+                                            [status.id]: {
+                                              ...prev[status.id],
+                                              sla_days: value !== null && isNaN(value) ? null : value
+                                            }
+                                          }));
+                                        }}
+                                        className={cn(inputClass, 'h-[34px] px-2 text-right tabular-nums')}
+                                      />
+                                      <span>dias</span>
+                                    </div>
+
+                                    {temPrazo ? (
+                                      <>
+                                        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                                          <div
+                                            className="h-full rounded-full bg-indigo-600 transition-[width]"
+                                            style={{ width: `${Math.round(((Number(prazo) || 0) / prazoMaximo) * 100)}%` }}
+                                          />
+                                        </div>
+                                        <div className="flex justify-center">
+                                          <PrefSwitch
+                                            label={`Contar só dias úteis em ${status.name}`}
+                                            checked={slaConfig[status.id]?.sla_exclude_weekends || false}
+                                            onChange={(checked) => setSlaConfig(prev => ({
+                                              ...prev,
+                                              [status.id]: { ...prev[status.id], sla_exclude_weekends: checked }
+                                            }))}
+                                          />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="col-span-2 text-[12.5px] text-slate-400">Sem prazo</div>
+                                    )}
+
+                                    <div className="flex justify-center">
+                                      <PrefSwitch
+                                        label={`Mostrar ${status.name} no roadmap do cliente`}
+                                        checked={roadmapVisibility[status.id] ?? true}
+                                        onChange={(checked) => setRoadmapVisibility(prev => ({ ...prev, [status.id]: checked }))}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            );
+                          })}
                           {provided.placeholder}
                         </div>
                       )}
                     </Droppable>
                   </DragDropContext>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                    {isReorderingColumns ? 'Salvando nova ordem...' : 'A ordem é salva automaticamente ao soltar o cartão.'}
+
+                  <p className="mt-3 text-[13px] text-slate-600 dark:text-slate-300">
+                    Prazo total do projeto: <strong className="tabular-nums text-slate-900 dark:text-white">{prazoTotal} dias</strong>
                   </p>
+
+                  <PrefPreview label="Como o cliente vê o roadmap" className="mt-4">
+                    {etapasVisiveis.length === 0 ? (
+                      <PrefWarn>
+                        <strong className="font-semibold">O cliente não vê nenhuma etapa.</strong> Com &quot;Cliente vê&quot; desligado em
+                        todas as colunas, o roadmap não aparece no portal do cliente.
+                      </PrefWarn>
+                    ) : (
+                      <>
+                        <div className="mb-2 flex gap-[5px]">
+                          {etapasVisiveis.map((status, i) => (
+                            <div
+                              key={status.id}
+                              className={cn(
+                                'h-3 flex-1 rounded-[3px] bg-gradient-to-r',
+                                i === etapasVisiveis.length - 1 ? 'from-sky-400 to-green-400' : 'from-blue-600 to-sky-400'
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <div className="flex gap-[5px]">
+                          {etapasVisiveis.map((status, i) => (
+                            <span
+                              key={status.id}
+                              className={cn(
+                                'flex-1 px-0.5 text-center text-[10px] leading-tight',
+                                i === etapasVisiveis.length - 1 ? 'font-bold text-green-700 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
+                              )}
+                            >
+                              {status.name}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </PrefPreview>
                 </>
               )}
-            </CollapsibleSection>
+            </PrefSection>
+          )}
 
-            <CollapsibleSection
-              title="Colunas do Kanban"
-              description="Configure as colunas do quadro Kanban e seus prazos de SLA."
-              defaultOpen={true}
-              borderColor="indigo-500"
-              icon={<Columns3 className="h-5 w-5" />}
-            >
-              {loadingKanban ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-                  <span className="ml-3 text-gray-600">Carregando colunas...</span>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    Configure o prazo máximo (SLA) para cada etapa do projeto. Quando um projeto ultrapassar o prazo, você receberá uma notificação e o cartão será destacado visualmente no quadro Kanban.
+          {/* ═════════════ FINANCEIRO ═════════════ */}
+          {areaAtiva === 'financeiro' && (
+            <>
+              <PrefSection
+                title="Dados bancários"
+                defaultOpen
+                summary={dadosBancarios.banco ? `${dadosBancarios.banco} · Ag. ${dadosBancarios.agencia} · Conta ${dadosBancarios.conta}` : 'Não informados'}
+              >
+                <p className={helpClass}>Dados para recebimentos, exibidos nas faturas enviadas aos clientes.</p>
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
+                    <div className="col-span-2">
+                      <label htmlFor="pref-banco" className={labelClass}>Banco</label>
+                      <input id="pref-banco" className={inputClass} value={dadosBancarios.banco} onChange={(e) => atualizarCampoDadosBancarios('banco', e.target.value)} placeholder="Ex: Itaú" />
+                    </div>
+                    <div className="col-span-2">
+                      <label htmlFor="pref-favorecido" className={labelClass}>Nome do favorecido</label>
+                      <input id="pref-favorecido" className={inputClass} value={dadosBancarios.favorecido} onChange={(e) => atualizarCampoDadosBancarios('favorecido', e.target.value)} placeholder="Ex: Empresa de Engenharia LTDA" />
+                    </div>
+                    <div>
+                      <label htmlFor="pref-agencia" className={labelClass}>Agência</label>
+                      <input id="pref-agencia" className={inputClass} value={dadosBancarios.agencia} onChange={(e) => atualizarCampoDadosBancarios('agencia', e.target.value)} placeholder="Ex: 1234" />
+                    </div>
+                    <div>
+                      <label htmlFor="pref-conta" className={labelClass}>Conta</label>
+                      <input id="pref-conta" className={inputClass} value={dadosBancarios.conta} onChange={(e) => atualizarCampoDadosBancarios('conta', e.target.value)} placeholder="Ex: 12345-6" />
+                    </div>
+                    <div className="col-span-2">
+                      <label htmlFor="pref-documento" className={labelClass}>CNPJ/CPF</label>
+                      <input id="pref-documento" className={inputClass} value={dadosBancarios.documento} onChange={(e) => atualizarCampoDadosBancarios('documento', e.target.value)} placeholder="Ex: 12.345.678/0001-90" />
+                    </div>
+                    <div className="col-span-2">
+                      <label htmlFor="pref-pix" className={labelClass}>Chave PIX</label>
+                      <input id="pref-pix" className={inputClass} value={dadosBancarios.chavePix} onChange={(e) => atualizarCampoDadosBancarios('chavePix', e.target.value)} placeholder="Ex: email@empresa.com.br" />
+                    </div>
                   </div>
 
-                  {kanbanStatuses.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                      <Columns3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Nenhuma coluna encontrada no Kanban.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {kanbanStatuses.map((status) => (
-                        <div
-                          key={status.id}
-                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-                        >
-                          <div className="flex items-start gap-4">
-                            {/* Indicador de cor da coluna */}
-                            <div
-                              className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
-                              style={{ backgroundColor: status.color }}
-                            />
-
-                            {/* Informações da coluna */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-medium text-gray-900 dark:text-white">
-                                  {status.name}
-                                </h4>
-                                {status.isDefault && (
-                                  <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
-                                    Padrão
-                                  </span>
-                                )}
-                                {status.projectCount > 0 && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {status.projectCount} projeto{status.projectCount !== 1 ? 's' : ''}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Configuração de SLA */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    Prazo de expiração da etapa
-                                  </label>
-                                  {editandoKanban ? (
-                                    <>
-                                      <div className="flex items-center gap-2">
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          step="1"
-                                          placeholder="Ex: 3"
-                                          value={slaConfig[status.id]?.sla_days ?? ''}
-                                          onChange={(e) => {
-                                            const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                            setSlaConfig(prev => ({
-                                              ...prev,
-                                              [status.id]: {
-                                                ...prev[status.id],
-                                                sla_days: value
-                                              }
-                                            }));
-                                          }}
-                                          className="w-32"
-                                        />
-                                        <span className="text-sm text-gray-500">dias</span>
-                                      </div>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Deixe vazio para não aplicar prazo nesta etapa
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <div className="flex items-center gap-2 h-10">
-                                      {slaConfig[status.id]?.sla_days ? (
-                                        <span className="text-base font-medium text-gray-900 dark:text-white">
-                                          {slaConfig[status.id].sla_days} {slaConfig[status.id].sla_days === 1 ? 'dia' : 'dias'}
-                                        </span>
-                                      ) : (
-                                        <span className="text-sm text-gray-500 dark:text-gray-400 italic">
-                                          Sem prazo configurado
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Opções
-                                  </label>
-                                  {editandoKanban ? (
-                                    <>
-                                      <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`weekend-${status.id}`}
-                                          checked={slaConfig[status.id]?.sla_exclude_weekends || false}
-                                          onCheckedChange={(checked) => {
-                                            setSlaConfig(prev => ({
-                                              ...prev,
-                                              [status.id]: {
-                                                ...prev[status.id],
-                                                sla_exclude_weekends: checked === true
-                                              }
-                                            }));
-                                          }}
-                                        />
-                                        <label
-                                          htmlFor={`weekend-${status.id}`}
-                                          className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                                        >
-                                          Ignorar finais de semana
-                                        </label>
-                                      </div>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        O prazo não conta sábados e domingos
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <div className="flex items-center h-10">
-                                      {slaConfig[status.id]?.sla_exclude_weekends ? (
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                                          ✓ Ignora finais de semana
-                                        </span>
-                                      ) : (
-                                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                                          Conta finais de semana
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                  <PrefPreview label="Como aparece na fatura">
+                    <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-slate-50 to-indigo-50 p-4 dark:border-indigo-900 dark:from-slate-800 dark:to-indigo-950/40">
+                      <div className="flex items-center gap-[11px]">
+                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-indigo-600 text-white">
+                          <Landmark className="h-[18px] w-[18px]" />
+                        </span>
+                        <div className="min-w-0">
+                          <span className="block truncate text-[14.5px] font-bold text-slate-900 dark:text-white">{dadosBancarios.banco || 'Banco'}</span>
+                          <span className="text-[13px] tabular-nums text-slate-600 dark:text-slate-300">
+                            Ag. {dadosBancarios.agencia || '—'} · Conta {dadosBancarios.conta || '—'}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {kanbanStatuses.length > 0 && (
-                    <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {!editandoKanban ? (
+                      </div>
+                      <div className="mt-3.5 grid grid-cols-2 gap-2.5 text-[12.5px] text-slate-800 dark:text-slate-200">
+                        <div className="min-w-0">
+                          <span className="block text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">Favorecido</span>
+                          <span className="break-words">{dadosBancarios.favorecido || '—'}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="block text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">CNPJ/CPF</span>
+                          <span className="break-words">{dadosBancarios.documento || '—'}</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2.5 border-t border-indigo-200 pt-3 text-[12.5px] text-slate-800 dark:border-indigo-900 dark:text-slate-200">
+                        <div className="min-w-0">
+                          <span className="block text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">Chave PIX</span>
+                          <span className="break-all">{dadosBancarios.chavePix || '—'}</span>
+                        </div>
                         <Button
-                          onClick={() => setEditandoKanban(true)}
-                          disabled={loadingKanban}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={!dadosBancarios.chavePix}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(dadosBancarios.chavePix);
+                              toast({ title: 'Chave PIX copiada' });
+                            } catch {
+                              toast({ title: 'Não foi possível copiar', description: 'Selecione o texto e copie manualmente.', variant: 'destructive' });
+                            }
+                          }}
+                          className="h-8 flex-shrink-0 gap-1.5 text-[12.5px]"
                         >
-                          Editar Configurações
+                          <Copy className="h-3.5 w-3.5" />
+                          Copiar
                         </Button>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={cancelarEdicaoKanban}
-                            variant="outline"
-                            disabled={loadingKanban}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            onClick={salvarConfiguracoesKanban}
-                            disabled={loadingKanban}
-                          >
-                            {loadingKanban ? 'Salvando...' : 'Salvar Configurações'}
-                          </Button>
-                        </>
-                      )}
+                      </div>
                     </div>
+                  </PrefPreview>
+                </div>
+              </PrefSection>
+
+              <PrefSection
+                title="Tabela de preços"
+                summary={
+                  faixasOrdenadas.length === 0
+                    ? 'Nenhuma faixa definida'
+                    : `${precificacaoManual ? 'Desligada · ' : ''}${faixasOrdenadas.length} ${faixasOrdenadas.length === 1 ? 'faixa' : 'faixas'} · ${formatBRL(Math.min(...faixasOrdenadas.map(f => f.valorBase)))} a ${formatBRL(Math.max(...faixasOrdenadas.map(f => f.valorBase)))}`
+                }
+              >
+                <div className="mb-3.5 flex items-center gap-3.5 border-y border-slate-200 py-[11px] dark:border-slate-700">
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[13.5px] font-semibold text-slate-900 dark:text-white">Precificação automática</span>
+                    <p className="mt-px text-[12.5px] leading-snug text-slate-500 dark:text-slate-400">
+                      {precificacaoManual
+                        ? 'Desligada: novos projetos avulsos são criados com R$ 0,00 e o preço é definido manualmente em cada um. A tabela abaixo é ignorada.'
+                        : 'Ligada: novos projetos avulsos usam a tabela abaixo para calcular o valor pela potência.'}
+                    </p>
+                  </div>
+                  <PrefSwitch
+                    label="Precificação automática"
+                    checked={!precificacaoManual}
+                    onChange={(automatica) => setPrecificacaoManual(!automatica)}
+                  />
+                </div>
+
+                {faixasOrdenadas.length === 0 ? (
+                  <PrefWarn className="mb-3.5">
+                    <strong className="font-semibold">Nenhuma faixa de potência configurada.</strong>{' '}
+                    {precificacaoManual
+                      ? 'Com a precificação automática desligada, isso não afeta os projetos novos.'
+                      : 'Com a precificação automática ligada, novos projetos avulsos serão criados com R$ 0,00.'}
+                    <div className="mt-2">
+                      <button type="button" className={linkClass} onClick={() => setFaixasPotencia(criarFaixasPotenciaPadrao())}>
+                        Restaurar faixas padrão
+                      </button>
+                    </div>
+                  </PrefWarn>
+                ) : (
+                  <>
+                    {/* Régua: uma célula por faixa, na ordem (larguras iguais para caber qualquer tabela) */}
+                    <div className="overflow-x-auto">
+                      <div className="flex min-w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700" role="img" aria-label={`Tabela com ${faixasOrdenadas.length} faixas de potência`}>
+                        {faixasOrdenadas.map((faixa, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              'flex min-w-[66px] flex-1 flex-col justify-center border-r-2 border-white px-2 py-1.5 text-indigo-950 last:border-r-0 dark:border-slate-800',
+                              ['bg-indigo-100', 'bg-indigo-200', 'bg-indigo-300'][i % 3]
+                            )}
+                          >
+                            <span className="whitespace-nowrap text-xs font-bold tabular-nums">{formatBRL(faixa.valorBase)}</span>
+                            <span className="whitespace-nowrap text-[10.5px] tabular-nums opacity-80">
+                              {faixa.potenciaMax === FAIXA_SEM_LIMITE
+                                ? `${formatNumero(faixa.potenciaMin)}+ kWp`
+                                : `${formatNumero(faixa.potenciaMin)} a ${formatNumero(faixa.potenciaMax)} kWp`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {avisosFaixas.length > 0 && (
+                      <PrefWarn className="mt-2.5">
+                        <ul className="list-disc pl-4">
+                          {avisosFaixas.map((aviso, i) => <li key={i}>{aviso}</li>)}
+                        </ul>
+                      </PrefWarn>
+                    )}
+
+                    <div className="mt-3.5">
+                      <div className="grid grid-cols-[104px_minmax(0,1fr)_minmax(0,1fr)_30px] items-center gap-2.5 pb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <span>Começa em</span>
+                        <span>Até (kWp)</span>
+                        <span>Preço (R$)</span>
+                        <span />
+                      </div>
+                      {faixasOrdenadas.map((faixa, i) => {
+                        const semLimite = faixa.potenciaMax === FAIXA_SEM_LIMITE;
+                        return (
+                          <div key={i} className="grid grid-cols-[104px_minmax(0,1fr)_minmax(0,1fr)_30px] items-center gap-2.5 py-[5px]">
+                            <span className="text-[13px] tabular-nums text-slate-500 dark:text-slate-400">{formatNumero(faixa.potenciaMin)} kWp</span>
+                            {semLimite ? (
+                              <span className="flex h-[34px] items-center rounded-lg border border-dashed border-slate-300 px-[11px] text-[13px] text-slate-500 dark:border-slate-600" title="Esta faixa cobre toda potência acima do início">
+                                ∞ (sem limite)
+                              </span>
+                            ) : (
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                aria-label={`Faixa ${i + 1}: até (kWp)`}
+                                value={isNaN(faixa.potenciaMax) ? '' : faixa.potenciaMax}
+                                onChange={(e) => atualizarFaixaAte(i, parseFloat(e.target.value))}
+                                className={cn(inputClass, 'h-[34px] tabular-nums')}
+                              />
+                            )}
+                            <MoneyInput
+                              value={faixa.valorBase}
+                              onChange={(valor) => atualizarFaixaValor(i, valor)}
+                              ariaLabel={`Faixa ${i + 1}: preço em reais`}
+                              className="h-[34px]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removerFaixa(i)}
+                              aria-label={`Remover faixa ${i + 1}`}
+                              className="flex h-[30px] w-[30px] items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:hover:bg-red-900/20"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <Button type="button" variant="outline" size="sm" onClick={adicionarFaixa} className="h-[34px] gap-1.5 text-[12.5px]">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    Adicionar faixa
+                  </Button>
+                  {ultimaFaixa && ultimaFaixa.potenciaMax !== FAIXA_SEM_LIMITE && (
+                    <button type="button" className={linkClass} onClick={() => atualizarFaixaAte(faixasOrdenadas.length - 1, FAIXA_SEM_LIMITE)}>
+                      Deixar a última faixa sem limite (∞)
+                    </button>
                   )}
                 </div>
-              )}
-            </CollapsibleSection>
+              </PrefSection>
+
+              <PrefSection title="Pacotes de projetos" summary="Lotes de projetos vendidos de uma vez">
+                <p className={helpClass}>Pacotes de projetos que podem ser vendidos aos clientes. As alterações aqui são salvas na hora.</p>
+                <PackagesTab />
+              </PrefSection>
+
+              <PrefSection title="Planos de assinatura" summary="Cobrança mensal com cota de projetos">
+                <p className={helpClass}>Planos de assinatura mensal para seus clientes. As alterações aqui são salvas na hora.</p>
+                <SubscriptionPlansTab />
+              </PrefSection>
             </>
           )}
 
-          {/* ABA FINANCEIRO */}
-          {activeTab === 'financeiro' && (
-            <CollapsibleSection
-              title="Configurações Financeiras"
-              description="Configure as preferências financeiras do sistema."
-              defaultOpen={true}
-              borderColor="green-500"
-              icon={<DollarSign className="h-5 w-5" />}
-            >
-              <div className="text-center py-12 text-gray-500">
-                <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Configurações financeiras em desenvolvimento...</p>
-              </div>
-            </CollapsibleSection>
-          )}
-
-          {/* ABA DOCUMENTOS */}
-          {activeTab === 'documentos' && (
-            <div className="space-y-6">
-
-              {/* Logo da Empresa */}
-              <CollapsibleSection
-                title="Logo da Empresa nas Pranchas"
-                description="Faça upload da logo para ser exibida no selo do Diagrama Unifilar e Diagrama de Blocos."
-                defaultOpen={false}
-                borderColor="purple-500"
-                icon={<FileUp className="h-5 w-5" />}
-              >
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Tamanho recomendado: <strong>400 × 250 px</strong> (proporção 16:10, horizontal). Formatos aceitos: PNG, JPG, WebP ou SVG. Máx. 2 MB.
-                  </p>
-
-                  {logoEmpresaUrl ? (
-                    <div className="flex flex-col gap-3">
-                      <div className="border rounded-lg p-4 flex items-center justify-center bg-gray-50 dark:bg-gray-800" style={{ minHeight: 100 }}>
-                        <img src={logoEmpresaUrl} alt="Logo da empresa" className="max-h-24 max-w-xs object-contain" />
-                      </div>
-                      <div className="flex gap-2">
-                        <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                            className="hidden"
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ''; }}
-                            disabled={uploadingLogo}
-                          />
-                          <span className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 cursor-pointer">
-                            {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
-                            Substituir logo
-                          </span>
-                        </label>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleLogoRemove}
-                          disabled={removingLogo}
-                        >
-                          {removingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                          <span className="ml-1">Remover</span>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer">
+          {/* ═════════════ DOCUMENTOS ═════════════ */}
+          {areaAtiva === 'documentos' && (
+            <>
+              <PrefSection title="Logo nas pranchas" defaultOpen summary={logoEmpresaUrl ? 'Logo enviada' : 'Nenhuma logo enviada'}>
+                <p className={helpClass}>
+                  A logo aparece no selo do Diagrama Unifilar e do Diagrama de Blocos. O envio e a remoção são gravados na hora.
+                </p>
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="flex cursor-pointer flex-col items-center gap-1.5 rounded-[10px] border-2 border-dashed border-slate-300 px-4 py-[26px] text-center text-slate-400 transition-colors hover:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 dark:border-slate-600">
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        className="hidden"
+                        className="sr-only"
                         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ''; }}
                         disabled={uploadingLogo}
                       />
-                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 flex flex-col items-center justify-center gap-2 hover:border-purple-400 transition-colors">
-                        {uploadingLogo
-                          ? <Loader2 className="h-8 w-8 text-purple-500 animate-spin" />
-                          : <FileUp className="h-8 w-8 text-gray-400" />}
-                        <p className="text-sm text-gray-500">{uploadingLogo ? 'Enviando...' : 'Clique para selecionar a logo'}</p>
-                        <p className="text-xs text-gray-400">PNG, JPG, WebP ou SVG — máx. 2 MB</p>
-                      </div>
+                      {uploadingLogo ? <Loader2 className="h-[26px] w-[26px] animate-spin text-indigo-600" /> : <FileUp className="h-[26px] w-[26px]" />}
+                      <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+                        {uploadingLogo ? 'Enviando...' : logoEmpresaUrl ? 'Substituir a logo' : 'Clique para selecionar a logo'}
+                      </span>
+                      <span className="text-[11.5px] leading-snug text-slate-500">
+                        PNG, JPG, WebP ou SVG, até 2 MB.<br />Recomendado: 400 × 250 px (horizontal).
+                      </span>
                     </label>
-                  )}
-                </div>
-              </CollapsibleSection>
-
-              {/* Dados do Responsável Técnico */}
-              <CollapsibleSection
-                title="Dados do Responsável Técnico"
-                description="Configure os dados do responsável técnico para geração de procurações."
-                defaultOpen={false}
-                borderColor="blue-500"
-                icon={<FileText className="h-5 w-5" />}
-              >
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Nome Completo</label>
-                      <Input
-                        type="text"
-                        value={responsavelTecnico.nomeCompleto}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, nomeCompleto: e.target.value }))}
-                        placeholder="Ex: João da Silva Santos"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">CPF</label>
-                      <Input
-                        type="text"
-                        value={responsavelTecnico.cpf}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, cpf: e.target.value }))}
-                        placeholder="Ex: 000.000.000-00"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">RG</label>
-                      <Input
-                        type="text"
-                        value={responsavelTecnico.rg}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, rg: e.target.value }))}
-                        placeholder="Ex: 12.345.678-9"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Órgão Expeditor</label>
-                      <Input
-                        type="text"
-                        value={responsavelTecnico.orgaoExpeditor}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, orgaoExpeditor: e.target.value }))}
-                        placeholder="Ex: SSP"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Profissão</label>
-                      <Input
-                        type="text"
-                        value={responsavelTecnico.profissao}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, profissao: e.target.value }))}
-                        placeholder="Ex: Engenheiro Eletricista"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Número de Registro Profissional</label>
-                      <Input
-                        type="text"
-                        value={responsavelTecnico.numeroRegistro}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, numeroRegistro: e.target.value }))}
-                        placeholder="Ex: 123456"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Instituição</label>
-                      <select
-                        value={responsavelTecnico.instituicao}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ 
-                          ...prev, 
-                          instituicao: e.target.value,
-                          // Limpar estado do registro se CFT for selecionado
-                          estadoRegistro: e.target.value === 'CFT' ? '' : prev.estadoRegistro
-                        }))}
-                        disabled={!editandoResponsavel}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="CREA">CREA</option>
-                        <option value="CFT">CFT</option>
-                      </select>
-                    </div>
-
-                    {/* Estado do Registro - Apenas para CREA */}
-                    {responsavelTecnico.instituicao === 'CREA' && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Estado do Registro</label>
-                        <select
-                          value={responsavelTecnico.estadoRegistro}
-                          onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, estadoRegistro: e.target.value }))}
-                          disabled={!editandoResponsavel}
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <option value="">Selecione o estado</option>
-                          <option value="AC">Acre</option>
-                          <option value="AL">Alagoas</option>
-                          <option value="AP">Amapá</option>
-                          <option value="AM">Amazonas</option>
-                          <option value="BA">Bahia</option>
-                          <option value="CE">Ceará</option>
-                          <option value="DF">Distrito Federal</option>
-                          <option value="ES">Espírito Santo</option>
-                          <option value="GO">Goiás</option>
-                          <option value="MA">Maranhão</option>
-                          <option value="MT">Mato Grosso</option>
-                          <option value="MS">Mato Grosso do Sul</option>
-                          <option value="MG">Minas Gerais</option>
-                          <option value="PA">Pará</option>
-                          <option value="PB">Paraíba</option>
-                          <option value="PR">Paraná</option>
-                          <option value="PE">Pernambuco</option>
-                          <option value="PI">Piauí</option>
-                          <option value="RJ">Rio de Janeiro</option>
-                          <option value="RN">Rio Grande do Norte</option>
-                          <option value="RS">Rio Grande do Sul</option>
-                          <option value="RO">Rondônia</option>
-                          <option value="RR">Roraima</option>
-                          <option value="SC">Santa Catarina</option>
-                          <option value="SP">São Paulo</option>
-                          <option value="SE">Sergipe</option>
-                          <option value="TO">Tocantins</option>
-                        </select>
-                      </div>
+                    {logoEmpresaUrl && (
+                      <button type="button" className={cn(linkClass, 'mt-2 inline-flex items-center gap-1.5')} onClick={handleLogoRemove} disabled={removingLogo}>
+                        {removingLogo && <Loader2 className="h-3 w-3 animate-spin" />}
+                        Remover logo
+                      </button>
                     )}
+                  </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">UF do Responsável Técnico</label>
-                      <select
-                        value={responsavelTecnico.uf || ''}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, uf: e.target.value }))}
-                        disabled={!editandoResponsavel}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
+                  <PrefPreview label="Como aparece no selo da prancha">
+                    <div className="grid max-w-[340px] grid-cols-[104px_1fr] border-[1.5px] border-slate-900 bg-white text-slate-700">
+                      <div className="flex min-h-[78px] items-center justify-center border-r-[1.5px] border-slate-900 p-1.5 text-[9px] font-bold tracking-widest text-slate-300">
+                        {logoEmpresaUrl ? <img src={logoEmpresaUrl} alt="Logo da empresa" className="max-h-[62px] max-w-full object-contain" /> : 'SUA LOGO'}
+                      </div>
+                      <div className="grid grid-cols-2">
+                        {[
+                          ['Proprietário', 'Nome do cliente'], ['Folha', '1/1'],
+                          ['Obra', 'Sistema fotovoltaico'], ['Escala', 'S/E'],
+                          ['Resp. técnico', responsavelTecnico.nomeCompleto || '—'], ['Data', '—'],
+                        ].map(([rotulo, valor], i) => (
+                          <div key={rotulo} className={cn('min-w-0 border-slate-900 px-[5px] py-[3px]', i % 2 === 0 && 'border-r', i < 4 && 'border-b')}>
+                            <span className="block text-[6.5px] uppercase tracking-wide text-slate-500">{rotulo}</span>
+                            <span className="block truncate text-[8.5px] font-semibold">{valor}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-400">Ilustração simplificada do selo.</p>
+                  </PrefPreview>
+                </div>
+              </PrefSection>
+
+              <PrefSection
+                title="Responsável técnico"
+                summary={
+                  responsavelTecnico.nomeCompleto
+                    ? `${responsavelTecnico.nomeCompleto} · ${responsavelTecnico.instituicao}${responsavelTecnico.instituicao === 'CREA' && responsavelTecnico.estadoRegistro ? `-${responsavelTecnico.estadoRegistro}` : ''} ${responsavelTecnico.numeroRegistro}`
+                    : 'Não informado'
+                }
+              >
+                <p className={helpClass}>Dados usados nas procurações e nos documentos gerados.</p>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-3.5 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="pref-resp-nome" className={labelClass}>Nome completo</label>
+                    <input id="pref-resp-nome" className={inputClass} value={responsavelTecnico.nomeCompleto} onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, nomeCompleto: e.target.value }))} placeholder="Ex: João da Silva Santos" />
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-cpf" className={labelClass}>CPF</label>
+                    <input
+                      id="pref-resp-cpf"
+                      inputMode="numeric"
+                      aria-invalid={!!respErros.cpf}
+                      className={cn(inputClass, respErros.cpf && 'border-red-500 bg-red-50 dark:bg-red-900/20')}
+                      value={responsavelTecnico.cpf}
+                      onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, cpf: maskCpf(e.target.value) }))}
+                      placeholder="Ex: 000.000.000-00"
+                    />
+                    {respErros.cpf && <p className={errorClass}>{respErros.cpf}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-rg" className={labelClass}>RG</label>
+                    <input id="pref-resp-rg" className={inputClass} value={responsavelTecnico.rg} onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, rg: e.target.value }))} placeholder="Ex: 12.345.678-9" />
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-orgao" className={labelClass}>Órgão expedidor</label>
+                    <input id="pref-resp-orgao" className={inputClass} value={responsavelTecnico.orgaoExpeditor} onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, orgaoExpeditor: e.target.value }))} placeholder="Ex: SSP" />
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-profissao" className={labelClass}>Profissão</label>
+                    <input id="pref-resp-profissao" className={inputClass} value={responsavelTecnico.profissao} onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, profissao: e.target.value }))} placeholder="Ex: Engenheiro Eletricista" />
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-registro" className={labelClass}>Nº de registro profissional</label>
+                    <input id="pref-resp-registro" className={inputClass} value={responsavelTecnico.numeroRegistro} onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, numeroRegistro: e.target.value }))} placeholder="Ex: 123456" />
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-instituicao" className={labelClass}>Instituição</label>
+                    <select
+                      id="pref-resp-instituicao"
+                      className={selectClass}
+                      value={responsavelTecnico.instituicao}
+                      onChange={(e) => setResponsavelTecnico(prev => ({
+                        ...prev,
+                        instituicao: e.target.value,
+                        // Limpar estado do registro se CFT for selecionado
+                        estadoRegistro: e.target.value === 'CFT' ? '' : prev.estadoRegistro
+                      }))}
+                    >
+                      <option value="CREA">CREA</option>
+                      <option value="CFT">CFT</option>
+                    </select>
+                  </div>
+                  {/* Estado do Registro - Apenas para CREA */}
+                  {responsavelTecnico.instituicao === 'CREA' ? (
+                    <div>
+                      <label htmlFor="pref-resp-estado-registro" className={labelClass}>Estado do registro</label>
+                      <select id="pref-resp-estado-registro" className={selectClass} value={responsavelTecnico.estadoRegistro} onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, estadoRegistro: e.target.value }))}>
                         <option value="">Selecione o estado</option>
-                        <option value="AC">Acre (AC)</option>
-                        <option value="AL">Alagoas (AL)</option>
-                        <option value="AP">Amapá (AP)</option>
-                        <option value="AM">Amazonas (AM)</option>
-                        <option value="BA">Bahia (BA)</option>
-                        <option value="CE">Ceará (CE)</option>
-                        <option value="DF">Distrito Federal (DF)</option>
-                        <option value="ES">Espírito Santo (ES)</option>
-                        <option value="GO">Goiás (GO)</option>
-                        <option value="MA">Maranhão (MA)</option>
-                        <option value="MT">Mato Grosso (MT)</option>
-                        <option value="MS">Mato Grosso do Sul (MS)</option>
-                        <option value="MG">Minas Gerais (MG)</option>
-                        <option value="PA">Pará (PA)</option>
-                        <option value="PB">Paraíba (PB)</option>
-                        <option value="PR">Paraná (PR)</option>
-                        <option value="PE">Pernambuco (PE)</option>
-                        <option value="PI">Piauí (PI)</option>
-                        <option value="RJ">Rio de Janeiro (RJ)</option>
-                        <option value="RN">Rio Grande do Norte (RN)</option>
-                        <option value="RS">Rio Grande do Sul (RS)</option>
-                        <option value="RO">Rondônia (RO)</option>
-                        <option value="RR">Roraima (RR)</option>
-                        <option value="SC">Santa Catarina (SC)</option>
-                        <option value="SP">São Paulo (SP)</option>
-                        <option value="SE">Sergipe (SE)</option>
-                        <option value="TO">Tocantins (TO)</option>
+                        {ESTADOS_BR.map(([uf, nome]) => <option key={uf} value={uf}>{nome}</option>)}
                       </select>
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">E-mail do Responsável Técnico</label>
-                      <Input
-                        type="email"
-                        value={responsavelTecnico.email || ''}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, email: e.target.value }))}
-                        placeholder="Ex: gabriel@empresa.com"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Telefone do Responsável Técnico</label>
-                      <Input
-                        type="text"
-                        value={responsavelTecnico.telefone || ''}
-                        onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, telefone: e.target.value }))}
-                        placeholder="Ex: (48) 9 9900-0387"
-                        disabled={!editandoResponsavel}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    {!editandoResponsavel ? (
-                      <Button
-                        onClick={() => setEditandoResponsavel(true)}
-                        disabled={isLoading}
-                      >
-                        Editar Dados do Responsável Técnico
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={() => {
-                            setResponsavelTecnico({...responsavelOriginal});
-                            setEditandoResponsavel(false);
-                          }}
-                          variant="outline"
-                          disabled={isLoading}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={async () => {
-                            setIsLoading(true);
-                            const sucesso = await atualizarResponsavelTecnico(responsavelTecnico);
-                            
-                            if (sucesso) {
-                              setResponsavelOriginal({...responsavelTecnico});
-                              setEditandoResponsavel(false);
-                              toast({
-                                title: 'Dados salvos',
-                                description: 'Os dados do responsável técnico foram salvos com sucesso.',
-                              });
-                            } else {
-                              toast({
-                                title: 'Erro',
-                                description: 'Não foi possível salvar os dados do responsável técnico.',
-                                variant: 'destructive',
-                              });
-                            }
-                            setIsLoading(false);
-                          }}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? 'Salvando...' : 'Salvar Dados'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CollapsibleSection>
-
-              {/* Texto da Procuração */}
-              <CollapsibleSection
-                title="Texto da Procuração"
-                description="Configure o texto padrão da procuração com as variáveis disponíveis."
-                defaultOpen={false}
-                borderColor="emerald-500"
-                icon={<FileText className="h-5 w-5" />}
-              >
-                <div className="space-y-4">
-                  {editandoProcuracao ? (
-                    <ProcuracaoRichEditor value={textoProcuracao || defaultProcuracao} onChange={setTextoProcuracao} />
                   ) : (
-                    <div className="rounded-md border border-gray-200 dark:border-gray-700 p-4">
-                      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-                        <ProcuracaoPreview html={textoProcuracao || defaultProcuracao} />
-                      </div>
-                    </div>
+                    <div className="hidden md:block" />
                   )}
-
-                  <div className="flex justify-end gap-2">
-                    {!editandoProcuracao ? (
-                      <Button
-                        onClick={() => setEditandoProcuracao(true)}
-                        disabled={isLoading}
-                      >
-                        Editar Texto da Procuração
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={() => {
-                            setTextoProcuracao(textoProcuracaoOriginal);
-                            setEditandoProcuracao(false);
-                          }}
-                          variant="outline"
-                          disabled={isLoading}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={async () => {
-                            setIsLoading(true);
-
-                            try {
-                              const sucesso = await atualizarTextoProcuracao(textoProcuracao);
-
-                              if (sucesso) {
-                                setTextoProcuracaoOriginal(textoProcuracao);
-                                setEditandoProcuracao(false);
-                                toast({
-                                  title: 'Texto salvo',
-                                  description: 'O texto da procuração foi salvo com sucesso.',
-                                });
-                              } else {
-                                toast({
-                                  title: 'Erro',
-                                  description: 'Não foi possível salvar o texto da procuração.',
-                                  variant: 'destructive',
-                                });
-                              }
-                            } catch (error) {
-                              toast({
-                                title: 'Erro',
-                                description: 'Ocorreu um erro ao salvar o texto da procuração.',
-                                variant: 'destructive',
-                              });
-                            } finally {
-                              setIsLoading(false);
-                            }
-                          }}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? 'Salvando...' : 'Salvar Texto'}
-                        </Button>
-                      </>
-                    )}
+                  <div>
+                    <label htmlFor="pref-resp-uf" className={labelClass}>UF do responsável técnico</label>
+                    <select id="pref-resp-uf" className={selectClass} value={responsavelTecnico.uf || ''} onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, uf: e.target.value }))}>
+                      <option value="">Selecione o estado</option>
+                      {ESTADOS_BR.map(([uf, nome]) => <option key={uf} value={uf}>{nome} ({uf})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-email" className={labelClass}>E-mail</label>
+                    <input
+                      id="pref-resp-email"
+                      type="email"
+                      aria-invalid={!!respErros.email}
+                      className={cn(inputClass, respErros.email && 'border-red-500 bg-red-50 dark:bg-red-900/20')}
+                      value={responsavelTecnico.email || ''}
+                      onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Ex: gabriel@empresa.com"
+                    />
+                    {respErros.email && <p className={errorClass}>{respErros.email}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="pref-resp-telefone" className={labelClass}>Telefone</label>
+                    <input
+                      id="pref-resp-telefone"
+                      inputMode="tel"
+                      aria-invalid={!!respErros.telefone}
+                      className={cn(inputClass, respErros.telefone && 'border-red-500 bg-red-50 dark:bg-red-900/20')}
+                      value={responsavelTecnico.telefone || ''}
+                      onChange={(e) => setResponsavelTecnico(prev => ({ ...prev, telefone: maskTelefone(e.target.value) }))}
+                      placeholder="Ex: (48) 99900-0387"
+                    />
+                    {respErros.telefone && <p className={errorClass}>{respErros.telefone}</p>}
                   </div>
                 </div>
-              </CollapsibleSection>
-            </div>
+              </PrefSection>
+
+              <PrefSection title="Texto da procuração" summary={`Modelo com ${totalVariaveis} ${totalVariaveis === 1 ? 'variável' : 'variáveis'}`}>
+                <p className={helpClass}>
+                  Texto padrão da procuração. As variáveis coloridas são preenchidas automaticamente com os dados de cada projeto.
+                </p>
+                <ProcuracaoRichEditor key={procuracaoEditorKey} value={textoProcuracao || defaultProcuracao} onChange={setTextoProcuracao} />
+              </PrefSection>
+            </>
           )}
 
-          {/* ABA E-MAILS */}
-          {activeTab === 'emails' && (
-            <CollapsibleSection
-              title="Notificações por E-mail"
-              description="Configure quais notificações você deseja receber por e-mail."
-              defaultOpen={true}
-              borderColor="rose-500"
-              icon={<Mail className="h-5 w-5" />}
-            >
-              {loadingEmailPrefs ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-rose-600" />
-                  <span className="ml-3 text-gray-600">Carregando preferências...</span>
+          {/* ═════════════ COMUNICAÇÃO ═════════════ */}
+          {areaAtiva === 'comunicacao' && (
+            <>
+              <PrefSection
+                title="Checklist de documentos"
+                defaultOpen
+                summary={
+                  mensagemChecklist.trim()
+                    ? `${checklistTitulo.slice(0, 60)} · ${checklistBlocos.length + 1} linhas`
+                    : 'Sem mensagem'
+                }
+              >
+                <p className={helpClass}>
+                  Lista de documentos que o cliente precisa enviar. Aparece na linha do tempo de cada projeto novo, assim que ele é
+                  criado. Em projetos com compensação de créditos, o sistema acrescenta sozinho um aviso sobre as faturas das
+                  unidades beneficiárias.
+                </p>
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="pref-checklist" className={labelClass}>Texto do checklist</label>
+                    <textarea
+                      id="pref-checklist"
+                      value={mensagemChecklist}
+                      onChange={(e) => setMensagemChecklist(e.target.value)}
+                      placeholder="Digite a mensagem padrão para os checklists..."
+                      className={cn(inputClass, 'h-auto min-h-[360px] resize-y py-2.5 leading-normal')}
+                    />
+                    {mensagemChecklist !== CHECKLIST_PADRAO && (
+                      <button type="button" className={cn(linkClass, 'mt-2')} onClick={() => setMensagemChecklist(CHECKLIST_PADRAO)}>
+                        Restaurar texto padrão
+                      </button>
+                    )}
+                  </div>
+
+                  <PrefPreview label="Como aparece na linha do tempo do projeto">
+                    <div className="mb-[7px] flex items-center gap-[7px] text-[11.5px] font-bold text-slate-700 dark:text-slate-200">
+                      <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">S</span>
+                      Sistema
+                    </div>
+                    <div className="max-h-[322px] overflow-y-auto break-words rounded-lg border border-blue-200 bg-blue-50 p-3.5 text-[12.5px] leading-normal text-slate-700 [scrollbar-width:thin] dark:border-blue-800 dark:bg-blue-900/20 dark:text-slate-300">
+                      <p className="mb-2.5 text-[13px] font-semibold text-blue-700 dark:text-blue-400">{checklistTitulo}</p>
+                      {checklistBlocos.map((bloco, i) => (
+                        bloco.tipo === 'li'
+                          ? <p key={i} className="mb-1.5 pl-4 before:-ml-3 before:mr-1.5 before:content-['•']">{bloco.texto}</p>
+                          : <p key={i} className="mb-2.5 last:mb-0">{bloco.texto}</p>
+                      ))}
+                    </div>
+                  </PrefPreview>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Escolha quais tipos de notificações você deseja receber por e-mail. Você pode ativar ou desativar cada tipo de notificação individualmente.
+              </PrefSection>
+
+              <PrefSection title="Notificações por e-mail" summary={loadingEmailPrefs ? 'Carregando...' : `${notificacoesAtivas} de ${notificacoes.length} ativas`}>
+                {loadingEmailPrefs ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+                    <span className="ml-3 text-sm text-slate-600 dark:text-slate-300">Carregando preferências...</span>
                   </div>
-
-                  <div className="space-y-4">
-                    {/* Notificação de Projeto Criado */}
-                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                          <FolderPlus className="h-5 w-5" />
+                ) : (
+                  <>
+                    <p className={helpClass}>
+                      Escolha quais notificações você deseja receber por e-mail. Esta preferência vale para o seu usuário.
+                    </p>
+                    <div className="border-t border-slate-200 dark:border-slate-700">
+                      {notificacoes.map((notificacao) => (
+                        <div key={notificacao.chave} className="flex items-center gap-3.5 border-b border-slate-100 py-[11px] dark:border-slate-700/60">
+                          <div className="min-w-0 flex-1">
+                            <span className="block text-[13.5px] font-semibold text-slate-900 dark:text-white">{notificacao.titulo}</span>
+                            <p className="mt-px text-[12.5px] leading-snug text-slate-500 dark:text-slate-400">{notificacao.desc}</p>
+                          </div>
+                          <PrefSwitch
+                            label={notificacao.titulo}
+                            checked={emailPreferences[notificacao.chave]}
+                            onChange={(checked) => setEmailPreferences(prev => ({ ...prev, [notificacao.chave]: checked }))}
+                          />
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                            Novo Projeto Criado
-                          </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Receba um e-mail quando um cliente criar um novo projeto.
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={emailPreferences.notify_project_created}
-                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_project_created', checked)}
-                        disabled={savingEmailPrefs}
-                      />
+                      ))}
                     </div>
+                  </>
+                )}
+              </PrefSection>
+            </>
+          )}
 
-                    {/* Notificação de Mudança de Status */}
-                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                          <Bell className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                            Mudança de Status
-                          </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Receba um e-mail quando o status de um projeto for alterado.
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={emailPreferences.notify_status_change}
-                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_status_change', checked)}
-                        disabled={savingEmailPrefs}
-                      />
-                    </div>
-
-                    {/* Notificação de Documento Adicionado */}
-                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
-                          <FileUp className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                            Documento Adicionado
-                          </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Receba um e-mail quando um documento for adicionado a um projeto.
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={emailPreferences.notify_document_added}
-                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_document_added', checked)}
-                        disabled={savingEmailPrefs}
-                      />
-                    </div>
-
-                    {/* Notificação de Comentário Adicionado */}
-                    <div className="flex items-start justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                          <MessageSquare className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                            Comentário Adicionado
-                          </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Receba um e-mail quando um comentário for adicionado a um projeto.
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={emailPreferences.notify_comment_added}
-                        onCheckedChange={(checked) => atualizarPreferenciaEmail('notify_comment_added', checked)}
-                        disabled={savingEmailPrefs}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                      <div className="flex-1">
-                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                          Sobre as notificações
-                        </h5>
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                          Todas as notificações estão habilitadas por padrão. Você pode desativá-las a qualquer momento usando os controles acima. As mudanças são salvas automaticamente.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CollapsibleSection>
+          {/* Barra de salvar: aparece quando algo muda */}
+          {isDirty && (
+            <div className="sticky bottom-3.5 z-20 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-900 py-[11px] pl-[18px] pr-3.5 text-[13px] text-white shadow-[0_12px_30px_-8px_rgba(15,23,42,0.45)] dark:border dark:border-slate-700">
+              <span>Você tem alterações não salvas</span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={descartarTudo}
+                  disabled={savingAll}
+                  className="h-[34px] border-slate-600 bg-transparent text-[12.5px] text-slate-200 hover:bg-slate-800 hover:text-white"
+                >
+                  Descartar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={salvarTudo}
+                  disabled={savingAll || isLoading}
+                  className="h-[34px] bg-indigo-500 text-[12.5px] text-white hover:bg-indigo-600"
+                >
+                  {savingAll ? 'Salvando...' : 'Salvar alterações'}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Confirmação ao sair da tela com alterações não salvas */}
+      <AlertDialog open={leaveHref !== null} onOpenChange={(open) => { if (!open) setLeaveHref(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair sem salvar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas em Preferências. Se sair agora, elas serão descartadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const destino = leaveHref;
+                setLeaveHref(null);
+                if (destino) {
+                  descartarTudo();
+                  router.push(destino);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              Sair sem salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
