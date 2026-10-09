@@ -363,6 +363,15 @@ function getCapacidadeCorrenteBasica(fields: Record<string, any>): string {
   return '';
 }
 
+// Ponto único usado pelo campo "Nº de Hastes (Aterramento)" (Energisa GD):
+// monofásico/bifásico usam 1 haste, trifásico usa 3. Para qualquer outro
+// valor (inclusive vazio) retorna '' e o campo permanece em branco.
+function getNumeroHastesEnergisa(fields: Record<string, any>): string {
+  if (fields.tipo_conexao === 'Trifásico') return '3';
+  if (fields.tipo_conexao === 'Monofásico' || fields.tipo_conexao === 'Bifásico') return '1';
+  return '';
+}
+
 const CPFL_PADRAO_127_220 = [
   { value: 'A1', label: 'A1 - GED 13 (Tab. 1A)' },
   { value: 'A2', label: 'A2 - GED 13 (Tab. 1A)' },
@@ -429,7 +438,7 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'dps_cc_ka', label: 'DPS CC (kA)', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'disjuntor_cc_corrente_a', label: 'Disjuntor CC (A)', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'potencia_trafo', label: 'Potência Trafo', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
-  { key: 'numero_hastes', label: 'Nº de Hastes (Aterramento)', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'numero_hastes', label: 'Nº de Hastes (Aterramento)', type: 'default_with_custom', required: false, defaultValue: getNumeroHastesEnergisa, help: 'Preenchido automaticamente a partir do Tipo de Conexão (Padrão de Entrada): Monofásico/Bifásico = 1 haste, Trifásico = 3 hastes.', group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'necessita_autotrafo', label: 'Necessita de Autotrafo ou Transformador de Acoplamento?', type: 'select', required: false, options: [{ value: 'SIM', label: 'Sim' }, { value: 'NÃO', label: 'Não' }], group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'potencia_autotrafo', label: 'Potência do Autotrafo', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'atendimento_trafo_exclusivo', label: 'Atendimento com Trafo Exclusivo (Grupo A e Rurais)?', type: 'select', required: false, options: [{ value: 'SIM', label: 'Sim' }, { value: 'NÃO', label: 'Não' }], group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
@@ -1043,6 +1052,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
       for (const field of FIELD_DEFINITIONS) {
         if (field.type !== 'default_with_custom') continue;
         if (field.key === 'cabo_cc_capacidade_corrente_a') continue; // recalculado em efeito próprio abaixo
+        if (field.key === 'numero_hastes') continue; // recalculado em efeito próprio abaixo
         if (customOverrides.has(field.key)) continue;
         const isComputed = typeof field.defaultValue === 'function';
         const currentVal = prev[field.key];
@@ -1075,6 +1085,20 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, localFields.cabo_cc_secao_mm2, localFields.cabo_cc_metodo_instalacao, localFields.cabo_cc_fator_temperatura, localFields.cabo_cc_metodo_instalacao_arranjo, localFields.cabo_cc_metodo_instalacao_profundidade]);
+
+  // Auto-fill isolado do "Nº de Hastes (Aterramento)" (Energisa GD): efeito próprio,
+  // dependente só do Tipo de Conexão, pelo mesmo motivo do efeito acima (evita recalcular
+  // os demais campos default_with_custom a cada mudança deste único campo).
+  useEffect(() => {
+    if (!open) return;
+    if (customOverrides.has('numero_hastes')) return;
+    setLocalFields(prev => {
+      const defaultVal = getNumeroHastesEnergisa(prev);
+      if (defaultVal === undefined || defaultVal === '' || defaultVal === prev.numero_hastes) return prev;
+      return { ...prev, numero_hastes: defaultVal };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, localFields.tipo_conexao]);
 
   useEffect(() => {
     if (!open) return;
