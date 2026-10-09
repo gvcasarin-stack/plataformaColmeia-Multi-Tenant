@@ -191,7 +191,22 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
         </Button>
       </div>
 
+      {/* ═══ FOLHA A4 (paisagem) — mesma estrutura de moldura/selo da prancha de
+          Padrão de Entrada (A3); o selo mantém o mesmo tamanho físico (192,5 x
+          35,7mm). Futuramente o tamanho da folha poderá ser configurável. ═══ */}
+      <div style={{ position: 'relative', width: '297mm', height: '210mm', background: '#ffffff', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+        {/* borda de corte */}
+        <div style={{ position: 'absolute', left: '0.5mm', top: '0.5mm', width: '296mm', height: '209mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
+        <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '262mm', height: '190mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        {/* marcas de centragem */}
+        <div style={{ position: 'absolute', left: '155.65mm', top: '0.5mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '155.65mm', top: '200mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '0.5mm', top: '104.65mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '287mm', top: '104.65mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
+
       {/* Diagrama */}
+      <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '262mm', height: '154.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px', fontFamily: 'Arial, sans-serif' }}>
         {numInversores === 1 ? (
           <>
@@ -427,64 +442,51 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           </div>
         </div>
 
-        {/* ═══ SELO ═══ */}
-        <div style={{ border: '1.2px solid #000', display: 'flex', flexDirection: 'row', marginTop: '48px', width: '100%', fontFamily: 'Arial, sans-serif', height: '120px', boxSizing: 'border-box', overflow: 'hidden' }}>
+      </div>
+      </div>
 
-          {/* LEFT COLUMN */}
-          <div style={{ width: '28%', borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
-            {/* PRODUTO — 30px */}
-            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 4px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold' }}>PRODUTO</div>
-              <div style={{ fontSize: '9px', fontWeight: 'bold', textAlign: 'center' }}>GFV {potenciaTotal} kWp</div>
+        {/* ═══ SELO — mesmo tamanho/estrutura da prancha de Padrão de Entrada
+            (A3): 192.5 x 35.7mm, encostado no canto inferior direito do
+            quadro. ═══ */}
+        <div style={{ position: 'absolute', left: '94.5mm', top: '164.3mm', width: '192.5mm', height: '35.7mm', border: '0.6mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', color: '#161513' }}>
+
+          {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
+          <div style={{ width: '40mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>PRODUTO</span>
+              <span style={{ fontSize: '3.6mm', fontWeight: 'bold', textAlign: 'center' }}>GFV {potenciaTotal} kWp</span>
             </div>
-            {/* Sub-col rows — 90px */}
-            <div style={{ display: 'flex', flexDirection: 'row', height: '90px' }}>
-              <div style={{ flex: 1, borderRight: '0.6px solid #000', display: 'flex', flexDirection: 'column' }}>
-                {(['DATA', 'ESCALA', 'TAMANHO', 'FOLHA', 'REVISÃO'] as const).map((label, i) => {
-                  const values = [dataDoc, 'S/ ESCALA', 'A4', '1/1', 'R0'];
-                  const h = i < 4 ? '16px' : '26px';
-                  return (
-                    <div key={label} style={{ height: h, borderBottom: i < 4 ? '0.5px solid #000' : undefined, padding: '1px 3px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: i < 4 ? 'space-between' : 'center', gap: i >= 4 ? '2px' : undefined, overflow: 'hidden' }}>
-                      <span style={{ fontSize: '5px', fontWeight: 'bold', lineHeight: 1 }}>{label}</span>
-                      <span style={{ fontSize: '5.5px', textAlign: 'center', lineHeight: 1 }}>{values[i]}</span>
-                    </div>
-                  );
-                })}
+            {([['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A4'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']] as const).map(([label, value], i, arr) => (
+              <div key={label} style={{ height: '5.54mm', borderBottom: i < arr.length - 1 ? '0.35mm solid #161513' : undefined, padding: '0 1mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <span style={{ fontSize: '2mm', fontWeight: 'bold', color: '#5a5a5a' }}>{label}</span>
+                <span style={{ fontSize: '2.2mm', textAlign: 'center' }}>{value}</span>
               </div>
-              <div style={{ width: '28%', display: 'flex', flexDirection: 'column' }}>
-                {['R1:', 'R2:', 'R3:', 'R4:', 'R5:'].map((r, i) => (
-                  <div key={r} style={{ height: i < 4 ? '16px' : '26px', borderBottom: i < 4 ? '0.5px solid #000' : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5.5px', boxSizing: 'border-box' }}>{r}</div>
-                ))}
-              </div>
+            ))}
+          </div>
+
+          {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
+          <div style={{ width: '110mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</span>
+              <span style={{ fontSize: '3.2mm', fontWeight: 'bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</span>
+            </div>
+            <div style={{ height: '14.7mm', borderBottom: '0.35mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.3mm' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>Proprietário e Obra:</span>
+              <span style={{ fontSize: '2.4mm' }}>Nome: {owner}</span>
+              <span style={{ fontSize: '2.4mm' }}>Endereço: {endereco}</span>
+              <span style={{ fontSize: '2.4mm' }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</span>
+              <span style={{ fontSize: '2.4mm' }}>CEP: {cep}</span>
+            </div>
+            <div style={{ height: '13mm', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.3mm' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>Responsável Técnico:</span>
+              <span style={{ fontSize: '2.6mm', fontWeight: 'bold' }}>{respNome}</span>
+              <span style={{ fontSize: '2.2mm' }}>TÉCNICO EM ELETROTÉCNICA</span>
+              <span style={{ fontSize: '2.2mm' }}>CFT: {respCft}</span>
             </div>
           </div>
 
-          {/* MIDDLE COLUMN */}
-          <div style={{ flex: 1, borderRight: '0.8px solid #000', display: 'flex', flexDirection: 'column', height: '120px' }}>
-            {/* Title — 30px */}
-            <div style={{ height: '30px', borderBottom: '0.7px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold', alignSelf: 'flex-start' }}>TÍTULO</div>
-              <div style={{ fontSize: '11px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.1 }}>DIAGRAMA DE BLOCOS</div>
-            </div>
-            {/* Owner — 48px */}
-            <div style={{ height: '48px', borderBottom: '0.5px solid #000', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Proprietário e Obra:</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>Nome: {owner}</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>Endereço: {endereco}</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</div>
-              <div style={{ fontSize: '6px', lineHeight: 1 }}>CEP: {cep}</div>
-            </div>
-            {/* Responsável — 42px */}
-            <div style={{ height: '42px', padding: '2px 6px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', overflow: 'hidden' }}>
-              <div style={{ fontSize: '5.5px', fontWeight: 'bold', lineHeight: 1 }}>Responsável Técnico:</div>
-              <div style={{ fontSize: '6px', fontWeight: 'bold', lineHeight: 1 }}>{respNome}</div>
-              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>TÉCNICO EM ELETROTÉCNICA</div>
-              <div style={{ fontSize: '5.5px', lineHeight: 1 }}>CFT: {respCft}</div>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN — Logo */}
-          <div style={{ width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', height: '120px', boxSizing: 'border-box' }}>
+          {/* Coluna 3: Logo da empresa */}
+          <div style={{ width: '42.5mm', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm', boxSizing: 'border-box' }}>
             {pd?.logo_empresa_url
               ? <img src={pd.logo_empresa_url} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               : null}

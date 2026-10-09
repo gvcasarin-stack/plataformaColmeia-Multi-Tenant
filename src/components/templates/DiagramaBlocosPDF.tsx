@@ -8,22 +8,16 @@ interface DiagramaBlocosPDFProps {
 const BC = '#000000';
 const BOX_W = 165;
 
+// Folha A4 paisagem em escala real (1mm = 72/25.4pt) — mesma técnica usada em
+// PadraoEntradaEnergisaPDF.tsx. Moldura NBR 10068 + selo com o mesmo tamanho
+// físico (192.5 x 35.7mm) usado na prancha de Padrão de Entrada (A3).
+const PT_PER_MM = 72 / 25.4;
+const mm = (v: number) => v * PT_PER_MM;
+const FRAME = { x: 25, y: 10, w: 262, h: 190 }; // direita=287, baixo=200
+const SELO = { x: 94.5, y: 164.3, w: 192.5, h: 35.7 };
+const SC = '#161513';
+
 const s = StyleSheet.create({
-  page: {
-    fontFamily: 'Helvetica',
-    fontSize: 8,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 60,
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  title: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 10,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: BC,
-  },
   box: {
     borderWidth: 1,
     borderColor: BC,
@@ -76,54 +70,6 @@ const s = StyleSheet.create({
     backgroundColor: BC,
     marginBottom: 4,
   },
-  // ── Seal — alturas fixas para garantir layout correto no react-pdf ──
-  sealOuter: {
-    flexDirection: 'row',
-    borderWidth: 1.2,
-    borderColor: BC,
-    marginTop: 48,
-    width: '100%',
-    height: 120,
-    overflow: 'hidden',
-  },
-  sealLeft: {
-    width: '28%',
-    height: 120,
-    borderRightWidth: 0.8,
-    borderRightColor: BC,
-    flexDirection: 'column',
-  },
-  sealProduto: {
-    height: 30,
-    borderBottomWidth: 0.7,
-    borderBottomColor: BC,
-    padding: 2,
-    flexDirection: 'column',
-    justifyContent: 'center',
-  },
-  sealProdutoLabel: { fontFamily: 'Helvetica-Bold', fontSize: 5.5 },
-  sealProdutoValue: { fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center', marginTop: 1 },
-  sealSubcols: { flexDirection: 'row', height: 90 },
-  sealSubLeft: { flex: 1, borderRightWidth: 0.6, borderRightColor: BC, flexDirection: 'column' },
-  sealSubRow: { height: 16, padding: 1, flexDirection: 'column', justifyContent: 'space-between', borderBottomWidth: 0.5, borderBottomColor: BC },
-  sealSubRowLast: { height: 26, padding: 1, flexDirection: 'column', justifyContent: 'center', gap: 2 },
-  sealSubLabel: { fontFamily: 'Helvetica-Bold', fontSize: 5 },
-  sealSubValue: { fontSize: 5.5, textAlign: 'center' },
-  sealRcol: { width: '28%', flexDirection: 'column' },
-  sealRrow: { height: 16, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 0.5, borderBottomColor: BC },
-  sealRrowLast: { height: 26, alignItems: 'center', justifyContent: 'center' },
-  sealMid: { flex: 1, height: 120, borderRightWidth: 0.8, borderRightColor: BC, flexDirection: 'column' },
-  sealTitleBlock: { height: 30, borderBottomWidth: 0.7, borderBottomColor: BC, padding: 2, alignItems: 'center', justifyContent: 'center' },
-  sealTitleLabel: { fontFamily: 'Helvetica-Bold', fontSize: 5.5, alignSelf: 'flex-start' },
-  sealTitleValue: { fontFamily: 'Helvetica-Bold', fontSize: 11, textAlign: 'center' },
-  sealOwner: { height: 48, padding: 2, alignItems: 'center', justifyContent: 'space-evenly', borderBottomWidth: 0.5, borderBottomColor: BC },
-  sealResp: { height: 42, padding: 2, alignItems: 'center', justifyContent: 'space-evenly' },
-  sealOwnerBold: { fontFamily: 'Helvetica-Bold', fontSize: 5.5 },
-  sealOwnerNormal: { fontSize: 6, textAlign: 'center' },
-  sealRespBold: { fontFamily: 'Helvetica-Bold', fontSize: 6, textAlign: 'center' },
-  sealRespNormal: { fontSize: 5.5, textAlign: 'center' },
-  sealRight: { width: '20%', height: 120, alignItems: 'center', justifyContent: 'center', padding: 4 },
-  sealLogoText: { fontSize: 6, color: '#999999' },
 });
 
 function fmt2(val: string | number | undefined): string {
@@ -279,7 +225,19 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
 
   return (
     <Document>
-      <Page size="A4" style={s.page}>
+      <Page size="A4" orientation="landscape" style={{ backgroundColor: '#FFFFFF', fontFamily: 'Helvetica', fontSize: 8 }}>
+        <View style={{ position: 'relative', width: '100%', height: '100%' }}>
+          {/* borda de corte */}
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(0.5), width: mm(296), height: mm(209), borderWidth: 0.75, borderColor: SC }} />
+          {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
+          <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y), width: mm(FRAME.w), height: mm(FRAME.h), borderWidth: 0.75, borderColor: SC }} />
+          {/* marcas de centragem */}
+          <View style={{ position: 'absolute', left: mm(155.65), top: mm(0.5), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(155.65), top: mm(200), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(104.65), width: mm(24.5), height: 0.75, backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(287), top: mm(104.65), width: mm(9.5), height: 0.75, backgroundColor: SC }} />
+
+        <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y), width: mm(FRAME.w), height: mm(164.3 - FRAME.y), paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', fontFamily: 'Helvetica', fontSize: 8 }}>
         {numInversores === 1 ? (
           <>
             {/* 1. Módulos */}
@@ -474,61 +432,54 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
           <Text style={s.redeText}>DISTRIBUIÇÃO</Text>
         </View>
 
-        {/* ═══ SELO ═══ */}
-        <View style={s.sealOuter}>
+        </View>
 
-          {/* LEFT COLUMN */}
-          <View style={s.sealLeft}>
-            <View style={s.sealProduto}>
-              <Text style={s.sealProdutoLabel}>PRODUTO</Text>
-              <Text style={s.sealProdutoValue}>GFV {potenciaTotal} kWp</Text>
+        {/* ═══ SELO — mesmo tamanho/estrutura da prancha de Padrão de Entrada
+            (A3): 192.5 x 35.7mm, encostado no canto inferior direito do
+            quadro. ═══ */}
+        <View style={{ position: 'absolute', left: mm(SELO.x), top: mm(SELO.y), width: mm(SELO.w), height: mm(SELO.h), borderWidth: 0.75, borderColor: SC, flexDirection: 'row' }}>
+          {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
+          <View style={{ width: mm(40), borderRightWidth: 0.5, borderRightColor: SC }}>
+            <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 3 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>PRODUTO</Text>
+              <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>GFV {potenciaTotal} kWp</Text>
             </View>
-            <View style={s.sealSubcols}>
-              <View style={s.sealSubLeft}>
-                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>DATA</Text><Text style={s.sealSubValue}>{dataDoc}</Text></View>
-                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>ESCALA</Text><Text style={s.sealSubValue}>S/ ESCALA</Text></View>
-                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>TAMANHO</Text><Text style={s.sealSubValue}>A4</Text></View>
-                <View style={s.sealSubRow}><Text style={s.sealSubLabel}>FOLHA</Text><Text style={s.sealSubValue}>1/1</Text></View>
-                <View style={s.sealSubRowLast}><Text style={s.sealSubLabel}>REVISAO</Text><Text style={s.sealSubValue}>R0</Text></View>
+            {([['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A4'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']] as const).map(([lbl, val], i, arr) => (
+              <View key={lbl} style={{ height: mm(5.54), borderBottomWidth: i < arr.length - 1 ? 0.35 : 0, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 3 }}>
+                <Text style={{ fontSize: 5.6, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>{lbl}</Text>
+                <Text style={{ fontSize: 6.2, textAlign: 'center' }}>{val}</Text>
               </View>
-              <View style={s.sealRcol}>
-                <View style={s.sealRrow}><Text style={s.sealSubValue}>R1:</Text></View>
-                <View style={s.sealRrow}><Text style={s.sealSubValue}>R2:</Text></View>
-                <View style={s.sealRrow}><Text style={s.sealSubValue}>R3:</Text></View>
-                <View style={s.sealRrow}><Text style={s.sealSubValue}>R4:</Text></View>
-                <View style={s.sealRrowLast}><Text style={s.sealSubValue}>R5:</Text></View>
-              </View>
+            ))}
+          </View>
+
+          {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
+          <View style={{ width: mm(110), borderRightWidth: 0.5, borderRightColor: SC }}>
+            <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</Text>
+              <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</Text>
+            </View>
+            <View style={{ height: mm(14.7), borderBottomWidth: 0.35, borderBottomColor: SC, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>Proprietário e Obra:</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 2 }}>Nome: {owner}</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 1.6 }}>Endereço: {endereco}</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 1.6 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 1.6 }}>CEP: {cep}</Text>
+            </View>
+            <View style={{ height: mm(13), justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>Responsável Técnico:</Text>
+              <Text style={{ fontSize: 7.3, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 2 }}>{respNome}</Text>
+              <Text style={{ fontSize: 6.2, textAlign: 'center', marginTop: 1.6 }}>TÉCNICO EM ELETROTÉCNICA</Text>
+              <Text style={{ fontSize: 6.2, textAlign: 'center', marginTop: 1.6 }}>CFT: {respCft}</Text>
             </View>
           </View>
 
-          {/* MIDDLE COLUMN */}
-          <View style={s.sealMid}>
-            <View style={s.sealTitleBlock}>
-              <Text style={s.sealTitleLabel}>TITULO</Text>
-              <Text style={s.sealTitleValue}>DIAGRAMA DE BLOCOS</Text>
-            </View>
-            <View style={s.sealOwner}>
-              <Text style={s.sealOwnerBold}>Proprietario e Obra:</Text>
-              <Text style={s.sealOwnerNormal}>{`Nome: ${owner}`}</Text>
-              <Text style={s.sealOwnerNormal}>{`Endereco: ${endereco}`}</Text>
-              <Text style={s.sealOwnerNormal}>{`Cidade: ${uf ? `${cidade} - ${uf}` : cidade}`}</Text>
-              <Text style={s.sealOwnerNormal}>{`CEP: ${cep}`}</Text>
-            </View>
-            <View style={s.sealResp}>
-              <Text style={s.sealOwnerBold}>Responsavel Tecnico:</Text>
-              <Text style={s.sealRespBold}>{respNome}</Text>
-              <Text style={s.sealRespNormal}>TECNICO EM ELETROTECNICA</Text>
-              <Text style={s.sealRespNormal}>{`CFT: ${respCft}`}</Text>
-            </View>
-          </View>
-
-          {/* RIGHT COLUMN */}
-          <View style={s.sealRight}>
+          {/* Coluna 3: Logo da empresa */}
+          <View style={{ width: mm(42.5), alignItems: 'center', justifyContent: 'center', padding: 3 }}>
             {pd?.logo_empresa_url
-              ? <Image src={pd.logo_empresa_url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              ? <Image src={pd.logo_empresa_url} style={{ width: '100%', maxHeight: mm(27), objectFit: 'contain' }} />
               : null}
           </View>
-
+        </View>
         </View>
       </Page>
     </Document>
