@@ -923,7 +923,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
   ];
   const notificacoesAtivas = notificacoes.filter(n => emailPreferences[n.chave]).length;
 
-  const colunaGrid = 'grid grid-cols-[78px_minmax(0,1.4fr)_96px_minmax(36px,1fr)_84px_70px] items-center gap-3';
+  const colunaGrid = 'grid grid-cols-[78px_minmax(0,1.4fr)_96px_minmax(60px,1fr)_84px_70px] items-center gap-4';
   const totalVariaveis = ((textoProcuracao || defaultProcuracao).match(/\{\{\w+\}\}/g) || []).length;
 
   return (
@@ -934,7 +934,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
         <p className="mt-0.5 text-[12.5px] text-indigo-100">Configurações e preferências gerais do sistema</p>
       </div>
 
-      <div className="mx-auto flex max-w-[1024px] flex-col items-start gap-4 lg:flex-row lg:gap-7">
+      <div className="mx-auto flex max-w-[1280px] flex-col items-start gap-4 lg:flex-row lg:gap-7">
         {/* Menu lateral de áreas */}
         <nav aria-label="Áreas de preferências" className="flex w-full flex-shrink-0 gap-1 overflow-x-auto lg:sticky lg:top-3.5 lg:w-[236px] lg:flex-col">
           {areas.map((area) => {
@@ -967,7 +967,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
           })}
         </nav>
 
-        <div className="w-full min-w-0 flex-1 lg:max-w-[760px]">
+        <div className="w-full min-w-0 flex-1 lg:max-w-[1016px]">
           <div className="mb-3.5 mt-0.5">
             <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">{areaInfo.nome}</h2>
             <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">{areaInfo.desc}</p>
@@ -1021,7 +1021,7 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
                                     {...draggable.draggableProps}
                                     className={cn(
                                       colunaGrid,
-                                      'border-b border-slate-100 bg-white py-[9px] dark:border-slate-700/60 dark:bg-slate-800',
+                                      'border-b border-slate-100 bg-white py-3 dark:border-slate-700/60 dark:bg-slate-800',
                                       snapshot.isDragging && 'rounded-lg border-indigo-200 shadow-lg ring-2 ring-indigo-400/40'
                                     )}
                                   >
