@@ -2616,7 +2616,7 @@ export function ConferirInformacoesModal({ open, onClose, fields, onSave, projec
                         </p>
                       )}
                     </div>
-                    {!field.required && !reviewMode && (
+                    {!field.required && !reviewMode && field.group !== 'Energisa GD' && (
                       <div className="flex items-center gap-1.5 mt-7 flex-shrink-0">
                         <Checkbox
                           id={`skip-${field.key}`}
