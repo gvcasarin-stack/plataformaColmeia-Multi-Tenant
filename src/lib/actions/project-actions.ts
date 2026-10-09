@@ -2190,6 +2190,7 @@ export async function getProjectAction(projectId: string): Promise<{
       disjuntor_cc_corrente_a: data.disjuntor_cc_corrente_a || undefined,
       potencia_trafo: data.potencia_trafo || undefined,
       numero_hastes: data.numero_hastes || undefined,
+      material_poste_padrao: data.material_poste_padrao || undefined,
       necessita_autotrafo: data.necessita_autotrafo || undefined,
       potencia_autotrafo: data.potencia_autotrafo || undefined,
       atendimento_trafo_exclusivo: data.atendimento_trafo_exclusivo || undefined,
