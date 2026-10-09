@@ -205,8 +205,8 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
         <div style={{ position: 'absolute', left: '0.5mm', top: '104.65mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
         <div style={{ position: 'absolute', left: '287mm', top: '104.65mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
 
-      {/* Diagrama */}
-      <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '262mm', height: '154.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
+      {/* Diagrama — 10mm mais abaixo do topo do quadro, a pedido do usuário */}
+      <div style={{ position: 'absolute', left: '25mm', top: '20mm', width: '262mm', height: '144.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px', fontFamily: 'Arial, sans-serif' }}>
         {numInversores === 1 ? (
           <>

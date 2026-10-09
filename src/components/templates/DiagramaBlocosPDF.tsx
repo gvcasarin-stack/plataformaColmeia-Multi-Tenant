@@ -239,7 +239,8 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
           <View style={{ position: 'absolute', left: mm(0.5), top: mm(104.65), width: mm(24.5), height: 0.75, backgroundColor: SC }} />
           <View style={{ position: 'absolute', left: mm(287), top: mm(104.65), width: mm(9.5), height: 0.75, backgroundColor: SC }} />
 
-        <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y), width: mm(FRAME.w), height: mm(164.3 - FRAME.y), paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', fontFamily: 'Helvetica', fontSize: 8 }}>
+        {/* Diagrama — 10mm mais abaixo do topo do quadro, a pedido do usuário */}
+        <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y + 10), width: mm(FRAME.w), height: mm(164.3 - FRAME.y - 10), paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', fontFamily: 'Helvetica', fontSize: 8 }}>
         {numInversores === 1 ? (
           <>
             {/* 1. Módulos */}
