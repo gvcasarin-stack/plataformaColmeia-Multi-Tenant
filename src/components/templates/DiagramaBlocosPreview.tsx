@@ -473,18 +473,18 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
               <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</span>
               <span style={{ fontSize: '3.2mm', fontWeight: 'bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</span>
             </div>
-            <div style={{ height: '14.7mm', borderBottom: '0.35mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.3mm' }}>
-              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>Proprietário e Obra:</span>
-              <span style={{ fontSize: '2.4mm' }}>Nome: {owner}</span>
-              <span style={{ fontSize: '2.4mm' }}>Endereço: {endereco}</span>
-              <span style={{ fontSize: '2.4mm' }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</span>
-              <span style={{ fontSize: '2.4mm' }}>CEP: {cep}</span>
+            <div style={{ height: '14.7mm', borderBottom: '0.35mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', lineHeight: 1.15 }}>Proprietário e Obra:</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>Nome: {owner}</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>Endereço: {endereco}</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>CEP: {cep}</span>
             </div>
-            <div style={{ height: '13mm', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.3mm' }}>
-              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>Responsável Técnico:</span>
-              <span style={{ fontSize: '2.6mm', fontWeight: 'bold' }}>{respNome}</span>
-              <span style={{ fontSize: '2.2mm' }}>TÉCNICO EM ELETROTÉCNICA</span>
-              <span style={{ fontSize: '2.2mm' }}>CFT: {respCft}</span>
+            <div style={{ height: '13mm', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', lineHeight: 1.15 }}>Responsável Técnico:</span>
+              <span style={{ fontSize: '2.6mm', fontWeight: 'bold', lineHeight: 1.15 }}>{respNome}</span>
+              <span style={{ fontSize: '2.2mm', lineHeight: 1.15 }}>TÉCNICO EM ELETROTÉCNICA</span>
+              <span style={{ fontSize: '2.2mm', lineHeight: 1.15 }}>CFT: {respCft}</span>
             </div>
           </div>
 
