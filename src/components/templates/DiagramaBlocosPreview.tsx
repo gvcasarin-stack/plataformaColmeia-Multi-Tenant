@@ -191,22 +191,24 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
         </Button>
       </div>
 
-      {/* ═══ FOLHA A4 (paisagem) — mesma estrutura de moldura/selo da prancha de
-          Padrão de Entrada (A3); o selo mantém o mesmo tamanho físico (192,5 x
-          35,7mm). Futuramente o tamanho da folha poderá ser configurável. ═══ */}
-      <div style={{ position: 'relative', width: '297mm', height: '210mm', background: '#ffffff', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+      {/* ═══ FOLHA A4 (retrato) — mesma estrutura de moldura/selo da prancha de
+          Padrão de Entrada (A3), adaptada ao A4 em pé. O selo ocupa a largura
+          inteira do quadro (padrão NBR 10068 para A4) e mantém a mesma altura
+          física (35,7mm). Futuramente o tamanho da folha poderá ser
+          configurável. ═══ */}
+      <div style={{ position: 'relative', width: '210mm', height: '297mm', background: '#ffffff', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
         {/* borda de corte */}
-        <div style={{ position: 'absolute', left: '0.5mm', top: '0.5mm', width: '296mm', height: '209mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        <div style={{ position: 'absolute', left: '0.5mm', top: '0.5mm', width: '209mm', height: '296mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
         {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
-        <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '262mm', height: '190mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '175mm', height: '277mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
         {/* marcas de centragem */}
-        <div style={{ position: 'absolute', left: '155.65mm', top: '0.5mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
-        <div style={{ position: 'absolute', left: '155.65mm', top: '200mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
-        <div style={{ position: 'absolute', left: '0.5mm', top: '104.65mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
-        <div style={{ position: 'absolute', left: '287mm', top: '104.65mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '112.15mm', top: '0.5mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '112.15mm', top: '287mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '0.5mm', top: '148.15mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '200mm', top: '148.15mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
 
       {/* Diagrama — 10mm mais abaixo do topo do quadro, a pedido do usuário */}
-      <div style={{ position: 'absolute', left: '25mm', top: '20mm', width: '262mm', height: '144.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
+      <div style={{ position: 'absolute', left: '25mm', top: '20mm', width: '175mm', height: '231.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px', fontFamily: 'Arial, sans-serif' }}>
         {numInversores === 1 ? (
           <>
@@ -449,10 +451,10 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
             do quadro (25–287mm), mantendo a mesma altura (35.7mm) usada na
             prancha A3 do Padrão de Entrada. Em A3+ a legenda fica confinada
             a um canto; em A4 ela vira uma faixa de ponta a ponta. ═══ */}
-        <div style={{ position: 'absolute', left: '25mm', top: '164.3mm', width: '262mm', height: '35.7mm', border: '0.6mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', color: '#161513' }}>
+        <div style={{ position: 'absolute', left: '25mm', top: '251.3mm', width: '175mm', height: '35.7mm', border: '0.6mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', color: '#161513' }}>
 
           {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
-          <div style={{ width: '55mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <div style={{ width: '36mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>PRODUTO</span>
               <span style={{ fontSize: '3.6mm', fontWeight: 'bold', textAlign: 'center' }}>GFV {potenciaTotal} kWp</span>
@@ -466,7 +468,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           </div>
 
           {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
-          <div style={{ width: '150mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <div style={{ width: '100mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</span>
               <span style={{ fontSize: '3.2mm', fontWeight: 'bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</span>
@@ -487,7 +489,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           </div>
 
           {/* Coluna 3: Logo da empresa */}
-          <div style={{ width: '57mm', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm', boxSizing: 'border-box' }}>
+          <div style={{ width: '39mm', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm', boxSizing: 'border-box' }}>
             {pd?.logo_empresa_url
               ? <img src={pd.logo_empresa_url} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               : null}

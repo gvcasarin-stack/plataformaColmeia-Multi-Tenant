@@ -8,15 +8,14 @@ interface DiagramaBlocosPDFProps {
 const BC = '#000000';
 const BOX_W = 165;
 
-// Folha A4 paisagem em escala real (1mm = 72/25.4pt) — mesma técnica usada em
-// PadraoEntradaEnergisaPDF.tsx. Moldura NBR 10068 + selo com o mesmo tamanho
-// físico (192.5 x 35.7mm) usado na prancha de Padrão de Entrada (A3).
+// Folha A4 retrato em escala real (1mm = 72/25.4pt) — mesma técnica usada em
+// PadraoEntradaEnergisaPDF.tsx. Moldura NBR 10068 adaptada ao A4 em pé.
 const PT_PER_MM = 72 / 25.4;
 const mm = (v: number) => v * PT_PER_MM;
-const FRAME = { x: 25, y: 10, w: 262, h: 190 }; // direita=287, baixo=200
+const FRAME = { x: 25, y: 10, w: 175, h: 277 }; // direita=200, baixo=287
 // Padrão NBR 10068 para A4: o selo ocupa a largura inteira do quadro
-// (25-287mm), mantendo a mesma altura (35.7mm) da prancha A3.
-const SELO = { x: 25, y: 164.3, w: 262, h: 35.7 };
+// (25-200mm), mantendo a mesma altura (35.7mm) da prancha A3.
+const SELO = { x: 25, y: 251.3, w: 175, h: 35.7 };
 const SC = '#161513';
 
 const s = StyleSheet.create({
@@ -227,20 +226,20 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
 
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={{ backgroundColor: '#FFFFFF', fontFamily: 'Helvetica', fontSize: 8 }}>
+      <Page size="A4" style={{ backgroundColor: '#FFFFFF', fontFamily: 'Helvetica', fontSize: 8 }}>
         <View style={{ position: 'relative', width: '100%', height: '100%' }}>
           {/* borda de corte */}
-          <View style={{ position: 'absolute', left: mm(0.5), top: mm(0.5), width: mm(296), height: mm(209), borderWidth: 0.75, borderColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(0.5), width: mm(209), height: mm(296), borderWidth: 0.75, borderColor: SC }} />
           {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
           <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y), width: mm(FRAME.w), height: mm(FRAME.h), borderWidth: 0.75, borderColor: SC }} />
           {/* marcas de centragem */}
-          <View style={{ position: 'absolute', left: mm(155.65), top: mm(0.5), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
-          <View style={{ position: 'absolute', left: mm(155.65), top: mm(200), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
-          <View style={{ position: 'absolute', left: mm(0.5), top: mm(104.65), width: mm(24.5), height: 0.75, backgroundColor: SC }} />
-          <View style={{ position: 'absolute', left: mm(287), top: mm(104.65), width: mm(9.5), height: 0.75, backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(112.15), top: mm(0.5), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(112.15), top: mm(287), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(148.15), width: mm(24.5), height: 0.75, backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(200), top: mm(148.15), width: mm(9.5), height: 0.75, backgroundColor: SC }} />
 
         {/* Diagrama — 10mm mais abaixo do topo do quadro, a pedido do usuário */}
-        <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y + 10), width: mm(FRAME.w), height: mm(164.3 - FRAME.y - 10), paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', fontFamily: 'Helvetica', fontSize: 8 }}>
+        <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y + 10), width: mm(FRAME.w), height: mm(251.3 - FRAME.y - 10), paddingHorizontal: 20, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', fontFamily: 'Helvetica', fontSize: 8 }}>
         {numInversores === 1 ? (
           <>
             {/* 1. Módulos */}
@@ -442,7 +441,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
             quadro. ═══ */}
         <View style={{ position: 'absolute', left: mm(SELO.x), top: mm(SELO.y), width: mm(SELO.w), height: mm(SELO.h), borderWidth: 0.75, borderColor: SC, flexDirection: 'row' }}>
           {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
-          <View style={{ width: mm(55), borderRightWidth: 0.5, borderRightColor: SC }}>
+          <View style={{ width: mm(36), borderRightWidth: 0.5, borderRightColor: SC }}>
             <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 3 }}>
               <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>PRODUTO</Text>
               <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>GFV {potenciaTotal} kWp</Text>
@@ -456,7 +455,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
           </View>
 
           {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
-          <View style={{ width: mm(150), borderRightWidth: 0.5, borderRightColor: SC }}>
+          <View style={{ width: mm(100), borderRightWidth: 0.5, borderRightColor: SC }}>
             <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 4 }}>
               <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</Text>
               <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</Text>
@@ -477,7 +476,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
           </View>
 
           {/* Coluna 3: Logo da empresa */}
-          <View style={{ width: mm(57), alignItems: 'center', justifyContent: 'center', padding: 3 }}>
+          <View style={{ width: mm(39), alignItems: 'center', justifyContent: 'center', padding: 3 }}>
             {pd?.logo_empresa_url
               ? <Image src={pd.logo_empresa_url} style={{ width: '100%', maxHeight: mm(27), objectFit: 'contain' }} />
               : null}
