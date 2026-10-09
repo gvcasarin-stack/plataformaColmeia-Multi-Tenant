@@ -31,14 +31,27 @@ export interface AdminContext {
  * Em caso de falha devolve a resposta de erro pronta.
  */
 export async function requireCredenciaisAdmin(): Promise<AdminContext | NextResponse> {
-  const supabaseAuth = createSupabaseServerClient();
-  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+  const supabase = createSupabaseServiceRoleClient();
 
-  if (authError || !user) {
+  // A sessão do navegador não chega ao servidor por cookie neste projeto, então a página envia
+  // o access token em Authorization: Bearer. O token é validado no Supabase (não é só decodificado).
+  // Sem o cabeçalho, tenta a sessão por cookies.
+  const authorization = headers().get('authorization') || '';
+  const token = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : '';
+
+  let user: { id: string; email?: string } | null = null;
+  if (token) {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (!error) user = data.user;
+  } else {
+    const { data, error } = await createSupabaseServerClient().auth.getUser();
+    if (!error) user = data.user;
+  }
+
+  if (!user) {
     return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
   }
 
-  const supabase = createSupabaseServiceRoleClient();
   const { data: profile, error: profileError } = await supabase
     .from('users')
     .select('id, tenant_id, role')

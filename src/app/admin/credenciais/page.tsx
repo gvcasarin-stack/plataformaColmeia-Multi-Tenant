@@ -15,6 +15,18 @@ import {
 import { cn } from '@/lib/utils';
 import { devLog } from '@/lib/utils/productionLogger';
 import { DISTRIBUIDORAS } from '@/lib/constants/distribuidoras';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+
+// As rotas /api/admin/credenciais identificam o usuário pelo access token da sessão,
+// enviado em Authorization: Bearer (a sessão não chega ao servidor por cookie).
+const authFetch = async (url: string, init: RequestInit = {}) => {
+  const { data: { session } } = await createSupabaseBrowserClient().auth.getSession();
+  const headers = new Headers(init.headers);
+  if (session?.access_token) {
+    headers.set('Authorization', `Bearer ${session.access_token}`);
+  }
+  return fetch(url, { ...init, headers });
+};
 
 type Envio = 'plataforma' | 'email';
 
@@ -137,7 +149,7 @@ export default function CredenciaisPage() {
   const fetchCredenciais = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/credenciais', { cache: 'no-store' });
+      const response = await authFetch('/api/admin/credenciais', { cache: 'no-store' });
       const result = await response.json().catch(() => ({}));
 
       if (response.ok && result.success) {
@@ -310,7 +322,7 @@ export default function CredenciaisPage() {
       setReauthLoading(true);
       setReauthError('');
 
-      const response = await fetch(`/api/admin/credenciais/${editingId}/revelar`, {
+      const response = await authFetch(`/api/admin/credenciais/${editingId}/revelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: reauthPassword }),
@@ -378,7 +390,7 @@ export default function CredenciaisPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(editingId ? `/api/admin/credenciais/${editingId}` : '/api/admin/credenciais', {
+      const response = await authFetch(editingId ? `/api/admin/credenciais/${editingId}` : '/api/admin/credenciais', {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -413,7 +425,7 @@ export default function CredenciaisPage() {
 
     try {
       setDeleting(true);
-      const response = await fetch(`/api/admin/credenciais/${deleteTarget.id}`, { method: 'DELETE' });
+      const response = await authFetch(`/api/admin/credenciais/${deleteTarget.id}`, { method: 'DELETE' });
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok || !result.success) {
