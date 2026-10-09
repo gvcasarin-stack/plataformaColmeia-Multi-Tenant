@@ -14,7 +14,9 @@ const BOX_W = 165;
 const PT_PER_MM = 72 / 25.4;
 const mm = (v: number) => v * PT_PER_MM;
 const FRAME = { x: 25, y: 10, w: 262, h: 190 }; // direita=287, baixo=200
-const SELO = { x: 94.5, y: 164.3, w: 192.5, h: 35.7 };
+// Padrão NBR 10068 para A4: o selo ocupa a largura inteira do quadro
+// (25-287mm), mantendo a mesma altura (35.7mm) da prancha A3.
+const SELO = { x: 25, y: 164.3, w: 262, h: 35.7 };
 const SC = '#161513';
 
 const s = StyleSheet.create({
@@ -439,7 +441,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
             quadro. ═══ */}
         <View style={{ position: 'absolute', left: mm(SELO.x), top: mm(SELO.y), width: mm(SELO.w), height: mm(SELO.h), borderWidth: 0.75, borderColor: SC, flexDirection: 'row' }}>
           {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
-          <View style={{ width: mm(40), borderRightWidth: 0.5, borderRightColor: SC }}>
+          <View style={{ width: mm(55), borderRightWidth: 0.5, borderRightColor: SC }}>
             <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 3 }}>
               <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>PRODUTO</Text>
               <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>GFV {potenciaTotal} kWp</Text>
@@ -453,7 +455,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
           </View>
 
           {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
-          <View style={{ width: mm(110), borderRightWidth: 0.5, borderRightColor: SC }}>
+          <View style={{ width: mm(150), borderRightWidth: 0.5, borderRightColor: SC }}>
             <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 4 }}>
               <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</Text>
               <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</Text>
@@ -474,7 +476,7 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
           </View>
 
           {/* Coluna 3: Logo da empresa */}
-          <View style={{ width: mm(42.5), alignItems: 'center', justifyContent: 'center', padding: 3 }}>
+          <View style={{ width: mm(57), alignItems: 'center', justifyContent: 'center', padding: 3 }}>
             {pd?.logo_empresa_url
               ? <Image src={pd.logo_empresa_url} style={{ width: '100%', maxHeight: mm(27), objectFit: 'contain' }} />
               : null}

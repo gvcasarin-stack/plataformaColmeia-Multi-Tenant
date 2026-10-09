@@ -445,13 +445,14 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
       </div>
       </div>
 
-        {/* ═══ SELO — mesmo tamanho/estrutura da prancha de Padrão de Entrada
-            (A3): 192.5 x 35.7mm, encostado no canto inferior direito do
-            quadro. ═══ */}
-        <div style={{ position: 'absolute', left: '94.5mm', top: '164.3mm', width: '192.5mm', height: '35.7mm', border: '0.6mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', color: '#161513' }}>
+        {/* ═══ SELO — padrão NBR 10068 para folha A4: ocupa a largura inteira
+            do quadro (25–287mm), mantendo a mesma altura (35.7mm) usada na
+            prancha A3 do Padrão de Entrada. Em A3+ a legenda fica confinada
+            a um canto; em A4 ela vira uma faixa de ponta a ponta. ═══ */}
+        <div style={{ position: 'absolute', left: '25mm', top: '164.3mm', width: '262mm', height: '35.7mm', border: '0.6mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', color: '#161513' }}>
 
           {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
-          <div style={{ width: '40mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <div style={{ width: '55mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>PRODUTO</span>
               <span style={{ fontSize: '3.6mm', fontWeight: 'bold', textAlign: 'center' }}>GFV {potenciaTotal} kWp</span>
@@ -465,7 +466,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           </div>
 
           {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
-          <div style={{ width: '110mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <div style={{ width: '150mm', borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</span>
               <span style={{ fontSize: '3.2mm', fontWeight: 'bold', textAlign: 'center' }}>DIAGRAMA DE BLOCOS</span>
@@ -486,7 +487,7 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
           </div>
 
           {/* Coluna 3: Logo da empresa */}
-          <div style={{ width: '42.5mm', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm', boxSizing: 'border-box' }}>
+          <div style={{ width: '57mm', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm', boxSizing: 'border-box' }}>
             {pd?.logo_empresa_url
               ? <img src={pd.logo_empresa_url} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               : null}
