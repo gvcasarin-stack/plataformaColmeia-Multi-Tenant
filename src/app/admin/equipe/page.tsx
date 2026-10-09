@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
-import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2, Loader2, Check, X, Key, Eye, EyeOff } from "lucide-react";
+import { PlusCircle, Trash2, Edit, Users, Search, Mail, Phone, Building2, Loader2, Check, X, Key, Eye, EyeOff, UserPlus, AlertTriangle, Info, ShieldCheck } from "lucide-react";
 import { devLog } from "@/lib/utils/productionLogger";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { PermissionsCheckboxes } from '@/components/admin/PermissionsCheckboxes';
+import { PermissionsCheckboxes, PERMISSION_KEYS, TOTAL_PERMISSIONS, countActivePermissions } from '@/components/admin/PermissionsCheckboxes';
 import { UserPermissions, ADMIN_PERMISSIONS, COLABORADOR_PERMISSIONS } from '@/types/user';
 import { generateSecurePassword } from '@/lib/utils/passwordGenerator';
 
@@ -46,6 +47,62 @@ interface Cliente {
   billing_mode?: string;
 }
 
+type ModalTab = 'dados' | 'permissoes' | 'clientes';
+
+const EMPTY_FORM: FormData = {
+  name: '',
+  email: '',
+  role: 'colaborador',
+  phone: '',
+  department: '',
+  permissions: COLABORADOR_PERMISSIONS,
+  password: ''
+};
+
+const ROLE_OPTIONS: { value: 'colaborador' | 'admin'; label: string; description: string }[] = [
+  { value: 'colaborador', label: 'Colaborador', description: 'Acesso definido pelas permissões e pelos clientes escolhidos' },
+  { value: 'admin', label: 'Administrador', description: 'Acesso total a todas as funcionalidades e clientes' },
+];
+
+const isAdminRole = (role: string) => role === 'admin' || role === 'superadmin';
+
+const AVATAR_COLORS = [
+  'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+  'bg-orange-500', 'bg-indigo-500', 'bg-teal-500', 'bg-red-500'
+];
+
+const getMemberAvatarColor = (name: string) => {
+  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+};
+
+const getMemberInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.trim().substring(0, 2).toUpperCase();
+};
+
+// Máscara (DDD) 99999-9999. Números com DDI (+) ou com mais de 11 dígitos ficam como foram digitados.
+const maskPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  if (value.trim().startsWith('+') || digits.length > 11) return value;
+  if (!digits) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+// Fotografias do formulário e dos clientes permitidos, usadas para saber se há alterações não salvas
+const serializeForm = (form: FormData) => JSON.stringify([
+  form.name, form.email, form.password, form.phone, form.department, form.role,
+  isAdminRole(form.role) ? 'all' : PERMISSION_KEYS.map(key => (form.permissions?.[key] ? 1 : 0)).join('')
+]);
+
+const serializeClientes = (todos: boolean, ids: string[]) => (todos ? 'all' : [...ids].sort().join(','));
+
 export default function EquipePage() {
   const { user, refreshUserProfile } = useAuth();
   const router = useRouter();
@@ -67,6 +124,15 @@ export default function EquipePage() {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  // Modal: aba ativa, troca de função pendente, descarte de alterações e fotografias do estado inicial
+  const [activeTab, setActiveTab] = useState<ModalTab>('dados');
+  const [pendingAdmin, setPendingAdmin] = useState(false);
+  const [stashedPermissions, setStashedPermissions] = useState<UserPermissions | null>(null);
+  const [discardAsk, setDiscardAsk] = useState(false);
+  const [baseline, setBaseline] = useState('');
+  const [baselineClientes, setBaselineClientes] = useState<string | null>(null);
+  const editRequestRef = useRef(0);
 
   // 🔒 VALIDAÇÃO DE EMAIL: Estados para verificar se email já existe
   const [emailCheckLoading, setEmailCheckLoading] = useState(false);
@@ -121,7 +187,7 @@ export default function EquipePage() {
   };
 
   // 🆕 Carregar clientes permitidos de um colaborador
-  const fetchClientesPermitidos = async (colaboradorId: string, clientesDisponiveisParam: Cliente[]) => {
+  const fetchClientesPermitidos = async (colaboradorId: string, clientesDisponiveisParam: Cliente[], requestId: number) => {
     if (!user?.id) return;
 
     try {
@@ -131,6 +197,9 @@ export default function EquipePage() {
       const response = await fetch(`/api/admin/team-members/${colaboradorId}/clientes-permitidos`, { headers });
       const result = await response.json();
 
+      // O modal já foi reaberto para outro membro: descarta esta resposta
+      if (editRequestRef.current !== requestId) return;
+
       if (result.success) {
         const clienteIds = result.cliente_ids || [];
         const temRestricao = result.tem_restricao || false;
@@ -138,31 +207,36 @@ export default function EquipePage() {
         setClientesSelecionados(clienteIds);
 
         // ✅ LÓGICA CORRIGIDA:
-        // - Se NÃO tem restrição → Checkbox "permitir todos" = true
-        // - Se TEM restrição e tem TODOS os clientes → Checkbox = true
-        // - Caso contrário → Checkbox = false
-        if (!temRestricao) {
-          setPermitirTodosClientes(true);
-        } else {
+        // - Se NÃO tem restrição → "Todos os clientes"
+        // - Se TEM restrição e tem TODOS os clientes → "Todos os clientes"
+        // - Caso contrário → "Clientes específicos"
+        let permitirTodos = true;
+        if (temRestricao) {
           // ✅ CORREÇÃO RACE CONDITION: Usar parâmetro ao invés do estado React
           const todosClientesIds = clientesDisponiveisParam.map(c => c.id);
-          const temTodos = todosClientesIds.length > 0 &&
+          permitirTodos = todosClientesIds.length > 0 &&
                           clienteIds.length === todosClientesIds.length &&
                           todosClientesIds.every(id => clienteIds.includes(id));
-          setPermitirTodosClientes(temTodos);
         }
+        setPermitirTodosClientes(permitirTodos);
+        setBaselineClientes(serializeClientes(permitirTodos, clienteIds));
 
         devLog.log('[EquipePage] Clientes permitidos carregados:', {
           quantidade: clienteIds.length,
           temRestricao,
-          permitirTodos: !temRestricao
+          permitirTodos
         });
-
-        // ✅ Marcar como carregado
-        setClientesPermitidosCarregados(true);
+      } else {
+        // Sem dados confiáveis: mantém o estado inicial; os clientes só são salvos se forem alterados
+        setBaselineClientes(serializeClientes(true, []));
       }
+
+      // ✅ Marcar como carregado
+      setClientesPermitidosCarregados(true);
     } catch (error) {
       devLog.error('[EquipePage] Erro ao carregar clientes permitidos:', error);
+      if (editRequestRef.current !== requestId) return;
+      setBaselineClientes(serializeClientes(true, []));
       setClientesPermitidosCarregados(true); // Marcar como carregado mesmo com erro
     }
   };
@@ -175,8 +249,12 @@ export default function EquipePage() {
       const { createTenantHeaders } = await import('@/lib/utils/tenant-helper');
       const headers = await createTenantHeaders(user.id);
 
+      // "Todos os clientes" = enviar todos os IDs (a API grava isso como sem restrição).
+      // Sem a lista de clientes carregada não há como representar "todos": não altera nada.
+      if (permitirTodosClientes && clientesDisponiveis.length === 0) return;
+
       // ✅ Enviar array real de IDs selecionados (API decide a lógica)
-      const clienteIds = clientesSelecionados;
+      const clienteIds = permitirTodosClientes ? clientesDisponiveis.map(c => c.id) : clientesSelecionados;
 
       const response = await fetch(`/api/admin/team-members/${colaboradorId}/clientes-permitidos`, {
         method: 'PUT',
@@ -308,17 +386,49 @@ export default function EquipePage() {
     }));
   };
 
-  const handleRoleChange = (value: string) => {
-    // ✅ Aplicar preset de permissões baseado no role
-    const permissions = value === 'admin' || value === 'superadmin'
-      ? ADMIN_PERMISSIONS
-      : COLABORADOR_PERMISSIONS;
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const phone = maskPhone(e.target.value);
+    setFormData(prev => ({ ...prev, phone }));
+  };
+
+  // Troca de função: virar Administrador pede confirmação; voltar para Colaborador
+  // restaura as permissões que estavam configuradas em vez de zerar para o padrão.
+  const handleRolePick = (value: 'colaborador' | 'admin') => {
+    const current = isAdminRole(formData.role) ? 'admin' : formData.role;
+    if (value === current) {
+      setPendingAdmin(false);
+      return;
+    }
+
+    if (value === 'admin') {
+      setPendingAdmin(true);
+      return;
+    }
 
     setFormData(prev => ({
       ...prev,
-      role: value,
-      permissions
+      role: 'colaborador',
+      permissions: stashedPermissions ?? (isAdminRole(prev.role) ? COLABORADOR_PERMISSIONS : prev.permissions)
     }));
+    if (stashedPermissions) {
+      toast({
+        title: 'Permissões restauradas',
+        description: 'As permissões que estavam configuradas antes da troca de função foram restauradas.',
+      });
+    }
+    setPendingAdmin(false);
+  };
+
+  const handleConfirmAdmin = () => {
+    if (!isAdminRole(formData.role)) {
+      setStashedPermissions(formData.permissions);
+    }
+    setFormData(prev => ({
+      ...prev,
+      role: 'admin',
+      permissions: ADMIN_PERMISSIONS
+    }));
+    setPendingAdmin(false);
   };
 
   const handlePermissionsChange = (permissions: UserPermissions) => {
@@ -329,40 +439,49 @@ export default function EquipePage() {
   };
 
   // 🆕 Handlers para Clientes Permitidos
-  const handleTogglePermitirTodos = () => {
-    const novoEstado = !permitirTodosClientes;
-    setPermitirTodosClientes(novoEstado);
-
-    if (novoEstado) {
-      // ✅ Marcou "permitir todos" → Selecionar TODOS os clientes
-      setClientesSelecionados(clientesDisponiveis.map(c => c.id));
-    } else {
-      // ✅ Desmarcou "permitir todos" → Limpar array (sem acesso)
-      setClientesSelecionados([]);
-    }
-  };
-
+  // Trocar entre "Todos" e "Específicos" não apaga a seleção já feita
   const handleToggleCliente = (clienteId: string) => {
-    setClientesSelecionados(prev => {
-      const novoArray = prev.includes(clienteId)
+    setClientesSelecionados(prev =>
+      prev.includes(clienteId)
         ? prev.filter(id => id !== clienteId)
-        : [...prev, clienteId];
-
-      // ✅ Atualizar checkbox "permitir todos" baseado na seleção
-      const todosClientesIds = clientesDisponiveis.map(c => c.id);
-      const temTodos = todosClientesIds.length > 0 &&
-                      novoArray.length === todosClientesIds.length &&
-                      todosClientesIds.every(id => novoArray.includes(id));
-      setPermitirTodosClientes(temTodos);
-
-      return novoArray;
-    });
+        : [...prev, clienteId]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user?.id) return;
+
+    if (pendingAdmin) {
+      setActiveTab('dados');
+      toast({
+        title: "Confirme a troca de função",
+        description: "Confirme ou cancele a troca para Administrador antes de salvar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      setActiveTab('dados');
+      toast({
+        title: "Nome obrigatório",
+        description: "Informe o nome do membro.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editMode && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setActiveTab('dados');
+      toast({
+        title: "E-mail inválido",
+        description: "Informe um e-mail válido para o novo membro.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // ✅ VERIFICAÇÃO GLOBAL: Verificar email antes de submeter (apenas para novos membros)
     if (!editMode) {
@@ -399,14 +518,32 @@ export default function EquipePage() {
       
       const url = editMode ? `/api/admin/team-members/${currentUserId}` : '/api/admin/team-members';
       const method = editMode ? 'PUT' : 'POST';
-      
+
+      // Administrador salva com acesso total. Colaborador sempre tem um dos dois painéis:
+      // com ou sem dados financeiros (as duas chaves são excludentes).
+      let permissionsToSave: UserPermissions = formData.permissions;
+      if (isAdminRole(formData.role)) {
+        permissionsToSave = ADMIN_PERMISSIONS;
+      } else if (formData.role === 'colaborador') {
+        permissionsToSave = {
+          ...formData.permissions,
+          can_view_dashboard: !formData.permissions?.can_view_dashboard_financials
+        };
+      }
+
+      // Clientes permitidos só são enviados quando mudaram (ou quando o membro acabou de virar colaborador)
+      const originalRole = editMode ? teamMembers.find(m => m.id === currentUserId)?.role : undefined;
+      const clientesAlterados = !editMode ||
+        originalRole !== 'colaborador' ||
+        (baselineClientes !== null && serializeClientes(permitirTodosClientes, clientesSelecionados) !== baselineClientes);
+
       const response = await fetch(url, {
         method,
         headers: {
           ...headers,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, name: formData.name.trim(), permissions: permissionsToSave }),
       });
 
       const result = await response.json();
@@ -414,7 +551,7 @@ export default function EquipePage() {
       if (response.ok) {
         if (result.success) {
           // 🆕 Salvar clientes permitidos (apenas para colaboradores)
-          if (formData.role === 'colaborador' && (editMode || result.userId)) {
+          if (formData.role === 'colaborador' && (editMode || result.userId) && clientesPermitidosCarregados && clientesAlterados) {
             const userId = editMode ? currentUserId : result.userId;
             await salvarClientesPermitidos(userId!);
           }
@@ -455,12 +592,12 @@ export default function EquipePage() {
     }
   };
 
-  const handleEdit = async (member: TeamMember) => {
+  const handleEdit = async (member: TeamMember, tab: ModalTab = 'dados') => {
     // ✅ Carregar permissions do membro (com fallback baseado no role)
     const memberPermissions = (member as any).permissions ||
       (member.role === 'admin' || member.role === 'superadmin' ? ADMIN_PERMISSIONS : COLABORADOR_PERMISSIONS);
 
-    setFormData({
+    const memberForm: FormData = {
       name: member.name,
       email: member.email,
       role: member.role,
@@ -468,16 +605,38 @@ export default function EquipePage() {
       department: member.department || '',
       permissions: memberPermissions,
       password: ''
-    });
+    };
+
+    const requestId = ++editRequestRef.current;
+
+    setFormData(memberForm);
+    setBaseline(serializeForm(memberForm));
     setCurrentUserId(member.id);
     setEditMode(true);
+    setShowPassword(false);
+    setActiveTab(tab === 'clientes' && member.role !== 'colaborador' ? 'dados' : tab);
+    setPendingAdmin(false);
+    setStashedPermissions(null);
+    setDiscardAsk(false);
+    // Limpa o estado de clientes do membro aberto anteriormente até o novo carregar
+    setClientesSelecionados([]);
+    setBuscaCliente('');
+    setPermitirTodosClientes(true);
+    setBaselineClientes(null);
+    setClientesPermitidosCarregados(false);
     setOpen(true);
 
-    // 🆕 Carregar clientes disponíveis e clientes permitidos para colaboradores
+    // 🆕 Carregar clientes disponíveis (para qualquer função, caso o membro vire colaborador
+    // na edição) e os clientes permitidos de quem já é colaborador
+    // ✅ CORREÇÃO RACE CONDITION: Passar dados diretamente ao invés de depender do estado
+    const clientes = await fetchClientesDisponiveis();
+    if (editRequestRef.current !== requestId) return;
+
     if (member.role === 'colaborador') {
-      // ✅ CORREÇÃO RACE CONDITION: Passar dados diretamente ao invés de depender do estado
-      const clientes = await fetchClientesDisponiveis();
-      await fetchClientesPermitidos(member.id, clientes || []);
+      await fetchClientesPermitidos(member.id, clientes || [], requestId);
+    } else {
+      setBaselineClientes(serializeClientes(true, []));
+      setClientesPermitidosCarregados(true);
     }
   };
 
@@ -561,15 +720,13 @@ export default function EquipePage() {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      role: 'colaborador',
-      phone: '',
-      department: '',
-      permissions: COLABORADOR_PERMISSIONS, // ✅ Reset com preset padrão
-      password: ''
-    });
+    setFormData(EMPTY_FORM); // ✅ Reset com preset padrão
+    setBaseline(serializeForm(EMPTY_FORM));
+    setBaselineClientes(serializeClientes(true, []));
+    setActiveTab('dados');
+    setPendingAdmin(false);
+    setStashedPermissions(null);
+    setDiscardAsk(false);
     setShowPassword(false);
     setEditMode(false);
     setCurrentUserId(null);
@@ -586,15 +743,12 @@ export default function EquipePage() {
 
   // ✅ Função para abrir modal de adicionar (usado pelos botões "Adicionar Membro")
   const handleAddMember = async () => {
+    const requestId = ++editRequestRef.current;
     resetForm();
     // 🆕 Carregar clientes disponíveis quando abrir para adicionar novo membro
-    const clientes = await fetchClientesDisponiveis();
-
-    // ✅ Inicializar novo colaborador com todos os clientes selecionados
-    if (clientes && clientes.length > 0) {
-      setClientesSelecionados(clientes.map(c => c.id));
-      setPermitirTodosClientes(true);
-    }
+    // (novo colaborador começa em "Todos os clientes", que ao salvar envia todos os IDs)
+    await fetchClientesDisponiveis();
+    if (editRequestRef.current !== requestId) return;
 
     // ✅ Marcar como carregado (novo membro não tem dados para carregar)
     setClientesPermitidosCarregados(true);
@@ -652,6 +806,59 @@ export default function EquipePage() {
     );
   }
 
+  // ---- Estado derivado do modal de membro ----
+  const fullAccess = isAdminRole(formData.role);
+  const isColaborador = formData.role === 'colaborador';
+  const currentTab: ModalTab = activeTab === 'clientes' && !isColaborador ? 'dados' : activeTab;
+  const shownRole = pendingAdmin || fullAccess ? 'admin' : formData.role;
+  const headerName = formData.name.trim();
+  const activeCount = countActivePermissions(formData.permissions);
+  const clientesCarregando = loadingClientes || (editMode && !clientesPermitidosCarregados);
+  const nenhumCliente = !permitirTodosClientes && clientesSelecionados.length === 0;
+  const clientesFiltrados = clientesDisponiveis.filter(cliente =>
+    (cliente.company_name || cliente.name || '').toLowerCase().includes(buscaCliente.toLowerCase().trim())
+  );
+  const isDirty = serializeForm(formData) !== baseline ||
+    (isColaborador && baselineClientes !== null &&
+      serializeClientes(permitirTodosClientes, clientesSelecionados) !== baselineClientes);
+
+  const modalTabs: { id: ModalTab; label: string; badge?: string; warn?: boolean }[] = [
+    { id: 'dados', label: 'Dados' },
+    { id: 'permissoes', label: 'Permissões', badge: fullAccess ? 'Total' : `${activeCount}/${TOTAL_PERMISSIONS}` },
+    ...(isColaborador
+      ? [{
+          id: 'clientes' as ModalTab,
+          label: 'Clientes permitidos',
+          badge: clientesCarregando ? '…' : permitirTodosClientes ? 'Todos' : String(clientesSelecionados.length),
+          warn: !clientesCarregando && nenhumCliente,
+        }]
+      : []),
+  ];
+
+  const closeModal = () => {
+    setOpen(false);
+    setDiscardAsk(false);
+    setPendingAdmin(false);
+  };
+
+  // Fechar (X, Cancelar, Esc, clique fora) pede confirmação se houver alterações não salvas
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setOpen(true);
+      return;
+    }
+    if (loading) return;
+    if (discardAsk) {
+      setDiscardAsk(false);
+      return;
+    }
+    if (isDirty) {
+      setDiscardAsk(true);
+      return;
+    }
+    closeModal();
+  };
+
   return (
     <div className="space-y-8">
       {/* Header com Gradiente Melhorado */}
@@ -687,7 +894,7 @@ export default function EquipePage() {
           />
         </div>
         
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
             <Button
               onClick={handleAddMember}
@@ -697,339 +904,565 @@ export default function EquipePage() {
               Adicionar Membro
             </Button>
           </DialogTrigger>
-          
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>
-                {editMode ? 'Editar Membro' : 'Adicionar Novo Membro'}
-              </DialogTitle>
-              <DialogDescription>
-                {editMode ? 'Atualize as informações do membro da equipe.' : 'Adicione um novo membro à sua equipe.'}
-              </DialogDescription>
+
+          <DialogContent className="flex h-[min(720px,90vh)] max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]">
+            {/* Cabeçalho com a identidade do membro */}
+            <DialogHeader className="flex-shrink-0 flex-row items-center gap-3.5 space-y-0 pl-6 pr-14 pt-[22px] text-left">
+              <div
+                className={cn(
+                  'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-base font-semibold',
+                  headerName ? `${getMemberAvatarColor(headerName)} text-white` : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {headerName ? getMemberInitials(headerName) : <UserPlus className="h-5 w-5" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="truncate text-[17px] font-semibold leading-6 tracking-tight">
+                  <span className="sr-only">{editMode ? 'Editar membro: ' : 'Adicionar membro: '}</span>
+                  {headerName || (editMode ? 'Membro sem nome' : 'Novo membro')}
+                </DialogTitle>
+                <DialogDescription className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] leading-[18px]">
+                  <span className="min-w-0 truncate">
+                    {editMode ? formData.email : (formData.email.trim() || 'Preencha os dados e defina o acesso')}
+                  </span>
+                  <span
+                    className={cn(
+                      'inline-flex flex-shrink-0 items-center rounded-full px-2 py-px text-[11.5px] font-semibold leading-4',
+                      fullAccess
+                        ? 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-200'
+                        : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {fullAccess ? 'Administrador' : isColaborador ? 'Colaborador' : formData.role}
+                  </span>
+                </DialogDescription>
+              </div>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-              <div className="overflow-y-auto flex-1 pr-3 py-1 space-y-4 custom-scrollbar">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Nome completo"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <div className="relative">
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="email@exemplo.com"
-                      required
-                      disabled={editMode}
-                      className={`${editMode ? 'bg-gray-100 cursor-not-allowed' : ''} ${emailError ? 'border-red-500' : emailAvailable ? 'border-green-500' : ''}`}
-                    />
-                    {!editMode && emailCheckLoading && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                      </div>
+            {/* Abas */}
+            <div role="tablist" aria-label="Seções do membro" className="mt-3.5 flex flex-shrink-0 gap-1 overflow-x-auto border-b px-4">
+              {modalTabs.map((tab) => {
+                const selected = currentTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`equipe-tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-controls={`equipe-panel-${tab.id}`}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      '-mb-px inline-flex items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-2.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600',
+                      selected && 'border-teal-600 text-teal-700 hover:text-teal-700 dark:text-teal-400'
                     )}
-                    {!editMode && emailAvailable === true && !emailCheckLoading && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Check className="w-5 h-5 text-green-500" />
-                      </div>
-                    )}
-                    {!editMode && emailAvailable === false && !emailCheckLoading && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <X className="w-5 h-5 text-red-500" />
-                      </div>
-                    )}
-                  </div>
-                  {editMode && (
-                    <p className="text-xs text-gray-500">O email não pode ser alterado</p>
-                  )}
-                  {!editMode && emailError && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <X className="h-4 w-4" />
-                      {emailError}
-                    </p>
-                  )}
-                  {!editMode && emailAvailable === true && !emailCheckLoading && (
-                    <p className="text-sm text-green-600 flex items-center gap-1">
-                      <Check className="h-4 w-4" />
-                      Email disponível!
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* ✅ Senha de acesso — definida pelo admin na hora (digitada ou gerada),
-                  em vez de depender do e-mail de convite para o próprio usuário criar. */}
-              {!editMode && (
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha de Acesso</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        placeholder="Senha do membro"
-                        autoComplete="new-password"
-                        className="pr-10"
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        onClick={() => setShowPassword((p) => !p)}
-                        tabIndex={-1}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 whitespace-nowrap"
-                      onClick={() => {
-                        const pwd = generateSecurePassword();
-                        setFormData(prev => ({ ...prev, password: pwd }));
-                        setShowPassword(true);
-                      }}
-                    >
-                      <Key className="h-3.5 w-3.5" />
-                      Gerar Senha Segura
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500">Mínimo 8 caracteres. As credenciais também serão enviadas por e-mail.</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">Função</Label>
-                  <Select value={formData.role} onValueChange={handleRoleChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a função" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="colaborador">Colaborador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="department">Departamento</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o departamento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Engenharia">Engenharia</SelectItem>
-                      <SelectItem value="Financeiro">Financeiro</SelectItem>
-                      <SelectItem value="Administrativo">Administrativo</SelectItem>
-                      <SelectItem value="Diretor">Diretor</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Comercial">Comercial</SelectItem>
-                      <SelectItem value="Outro">Outro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-
-              {/* ✅ Componente de Permissões */}
-              <PermissionsCheckboxes
-                role={formData.role}
-                permissions={formData.permissions}
-                onChange={handlePermissionsChange}
-              />
-
-              {/* 🆕 CLIENTES PERMITIDOS - Apenas para Colaboradores */}
-              {formData.role === 'colaborador' && (
-                <div className="space-y-4 mt-6 pt-6 border-t">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-teal-600" />
-                    <Label className="text-base font-semibold">Clientes Permitidos</Label>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Selecione os clientes cujos projetos este colaborador pode acessar
-                  </p>
-
-                  {/* ✅ Loading skeleton enquanto carrega */}
-                  {editMode && !clientesPermitidosCarregados ? (
-                    <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg animate-pulse">
-                      <div className="h-4 w-4 bg-gray-300 rounded"></div>
-                      <div className="h-4 bg-gray-300 rounded w-64"></div>
-                    </div>
-                  ) : (
-                    /* Checkbox: Permitir todos */
-                    <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                      <input
-                        type="checkbox"
-                        id="permitir-todos-clientes"
-                        checked={permitirTodosClientes}
-                        onChange={handleTogglePermitirTodos}
-                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                      />
-                      <label
-                        htmlFor="permitir-todos-clientes"
-                        className="text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer"
+                    {tab.label}
+                    {tab.badge && (
+                      <span
+                        className={cn(
+                          'rounded-full px-[7px] py-px text-[11px] font-semibold leading-4 tabular-nums',
+                          tab.warn
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                            : selected
+                              ? 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-200'
+                              : 'bg-muted text-muted-foreground'
+                        )}
                       >
-                        Permitir acesso a todos os clientes ({clientesDisponiveis.length})
-                      </label>
-                    </div>
-                  )}
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-                  {/* Busca de Clientes */}
-                  {!permitirTodosClientes && (
-                    <>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-[22px] [scrollbar-width:thin]">
+
+                {/* Aba: Dados */}
+                {currentTab === 'dados' && (
+                  <div role="tabpanel" id="equipe-panel-dados" aria-labelledby="equipe-tab-dados" className="space-y-5">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className={cn('space-y-2', editMode && 'sm:col-span-2')}>
+                        <Label htmlFor="name">Nome</Label>
                         <Input
-                          placeholder="Buscar cliente..."
-                          value={buscaCliente}
-                          onChange={(e) => setBuscaCliente(e.target.value)}
-                          className="pl-10"
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          placeholder="Nome completo"
+                          autoComplete="off"
+                          className="h-10 focus-visible:ring-teal-600"
                         />
                       </div>
 
-                      {/* Lista de Clientes */}
-                      <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3 bg-white dark:bg-gray-900">
-                        {loadingClientes ? (
-                          <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
-                          </div>
-                        ) : clientesDisponiveis.length === 0 ? (
-                          <p className="text-sm text-gray-500 text-center py-4">
-                            Nenhum cliente cadastrado
-                          </p>
-                        ) : (
-                          <>
-                            {/* Selecionados */}
-                            {clientesSelecionados.length > 0 && (
-                              <div className="space-y-2">
-                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                  Selecionados ({clientesSelecionados.length})
-                                </p>
-                                {clientesDisponiveis
-                                  .filter(cliente => 
-                                    clientesSelecionados.includes(cliente.id) &&
-                                    (cliente.company_name || cliente.name).toLowerCase().includes(buscaCliente.toLowerCase())
-                                  )
-                                  .map(cliente => (
-                                    <div key={cliente.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                                      <input
-                                        type="checkbox"
-                                        id={`cliente-${cliente.id}`}
-                                        checked={true}
-                                        onChange={() => handleToggleCliente(cliente.id)}
-                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                                      />
-                                      <label 
-                                        htmlFor={`cliente-${cliente.id}`}
-                                        className="text-sm text-gray-900 dark:text-gray-100 cursor-pointer flex-1"
-                                      >
-                                        {cliente.company_name || cliente.name}
-                                        {cliente.email && (
-                                          <span className="text-xs text-gray-500 ml-2">({cliente.email})</span>
-                                        )}
-                                      </label>
-                                    </div>
-                                  ))}
+                      {/* E-mail só é editável ao adicionar; na edição ele aparece no cabeçalho */}
+                      {!editMode && (
+                        <div className="space-y-2">
+                          <Label htmlFor="email">E-mail</Label>
+                          <div className="relative">
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              value={formData.email}
+                              onChange={handleInputChange}
+                              placeholder="email@exemplo.com"
+                              autoComplete="off"
+                              className={cn(
+                                'h-10 pr-10 focus-visible:ring-teal-600',
+                                emailError ? 'border-red-500' : emailAvailable ? 'border-green-500' : ''
+                              )}
+                            />
+                            {emailCheckLoading && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
                               </div>
                             )}
+                            {emailAvailable === true && !emailCheckLoading && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Check className="w-5 h-5 text-green-500" />
+                              </div>
+                            )}
+                            {emailAvailable === false && !emailCheckLoading && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <X className="w-5 h-5 text-red-500" />
+                              </div>
+                            )}
+                          </div>
+                          {emailError && (
+                            <p className="text-[12.5px] text-red-500 flex items-center gap-1">
+                              <X className="h-3.5 w-3.5 flex-shrink-0" />
+                              {emailError}
+                            </p>
+                          )}
+                          {emailAvailable === true && !emailCheckLoading && (
+                            <p className="text-[12.5px] text-green-600 flex items-center gap-1">
+                              <Check className="h-3.5 w-3.5 flex-shrink-0" />
+                              Email disponível!
+                            </p>
+                          )}
+                        </div>
+                      )}
 
-                            {/* Disponíveis */}
-                            {clientesDisponiveis.some(c => !clientesSelecionados.includes(c.id)) && (
-                              <div className="space-y-2 mt-4">
-                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                  Disponíveis ({clientesDisponiveis.filter(c => !clientesSelecionados.includes(c.id)).length})
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefone</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          inputMode="tel"
+                          value={formData.phone}
+                          onChange={handlePhoneChange}
+                          placeholder="(11) 99999-9999"
+                          autoComplete="off"
+                          className="h-10 focus-visible:ring-teal-600"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="department">Departamento</Label>
+                        <Select
+                          value={formData.department}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+                        >
+                          <SelectTrigger id="department" className="focus:ring-teal-600">
+                            <SelectValue placeholder="Selecione o departamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Engenharia">Engenharia</SelectItem>
+                            <SelectItem value="Financeiro">Financeiro</SelectItem>
+                            <SelectItem value="Administrativo">Administrativo</SelectItem>
+                            <SelectItem value="Diretor">Diretor</SelectItem>
+                            <SelectItem value="Marketing">Marketing</SelectItem>
+                            <SelectItem value="Comercial">Comercial</SelectItem>
+                            <SelectItem value="Outro">Outro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <fieldset className="min-w-0 space-y-2">
+                      <legend className="mb-2 text-sm font-medium leading-none">Função</legend>
+                      {!fullAccess && !isColaborador && (
+                        <p className="text-xs text-muted-foreground">
+                          Função atual: {formData.role}. Escolher uma opção abaixo altera a função.
+                        </p>
+                      )}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {ROLE_OPTIONS.map((option) => {
+                          const checked = shownRole === option.value;
+                          return (
+                            <label
+                              key={option.value}
+                              className={cn(
+                                'relative flex min-w-0 cursor-pointer items-start gap-2.5 rounded-lg border bg-background px-3.5 py-3 transition-colors hover:border-slate-300 focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2',
+                                checked && 'border-teal-600 bg-teal-50 ring-1 ring-teal-600 hover:border-teal-600 dark:bg-teal-950/40'
+                              )}
+                            >
+                              <input
+                                type="radio"
+                                name="equipe-role"
+                                value={option.value}
+                                checked={checked}
+                                onChange={() => handleRolePick(option.value)}
+                                className="sr-only"
+                              />
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  'mt-0.5 h-4 w-4 flex-shrink-0 rounded-full border-[1.5px] border-slate-300 bg-background',
+                                  checked && 'border-[5px] border-teal-600'
+                                )}
+                              />
+                              <span>
+                                <span className="block text-sm font-semibold leading-5">{option.label}</span>
+                                <span className="mt-px block text-[12.5px] leading-[17px] text-muted-foreground">{option.description}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      {pendingAdmin && (
+                        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-[13px] leading-[19px] text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                          <div>
+                            <p>
+                              <strong className="font-semibold">Tornar Administrador?</strong> Passa a ter acesso total, incluindo
+                              financeiro, equipe e todos os clientes. As permissões atuais ficam guardadas caso você volte para
+                              Colaborador antes de salvar.
+                            </p>
+                            <div className="mt-2.5 flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleConfirmAdmin}
+                                className="h-8 bg-teal-600 text-[13px] text-white hover:bg-teal-700"
+                              >
+                                Tornar Administrador
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setPendingAdmin(false)}
+                                className="h-8 text-[13px] text-foreground"
+                              >
+                                Manter Colaborador
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </fieldset>
+
+                    {/* ✅ Senha de acesso — definida pelo admin na hora (digitada ou gerada),
+                        em vez de depender do e-mail de convite para o próprio usuário criar. */}
+                    {!editMode && (
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Senha de Acesso</Label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              id="password"
+                              name="password"
+                              type={showPassword ? 'text' : 'password'}
+                              value={formData.password}
+                              onChange={handleInputChange}
+                              placeholder="Senha do membro"
+                              autoComplete="new-password"
+                              className="h-10 pr-10 focus-visible:ring-teal-600"
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              onClick={() => setShowPassword((p) => !p)}
+                              tabIndex={-1}
+                            >
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="gap-1.5 whitespace-nowrap px-3"
+                            onClick={() => {
+                              const pwd = generateSecurePassword();
+                              setFormData(prev => ({ ...prev, password: pwd }));
+                              setShowPassword(true);
+                            }}
+                          >
+                            <Key className="h-3.5 w-3.5" />
+                            Gerar Senha Segura
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">Mínimo 8 caracteres. As credenciais também serão enviadas por e-mail.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Aba: Permissões */}
+                {currentTab === 'permissoes' && (
+                  <div role="tabpanel" id="equipe-panel-permissoes" aria-labelledby="equipe-tab-permissoes">
+                    <PermissionsCheckboxes
+                      role={formData.role}
+                      permissions={formData.permissions}
+                      onChange={handlePermissionsChange}
+                    />
+                  </div>
+                )}
+
+                {/* Aba: Clientes permitidos — apenas para Colaboradores */}
+                {currentTab === 'clientes' && isColaborador && (
+                  <div role="tabpanel" id="equipe-panel-clientes" aria-labelledby="equipe-tab-clientes" className="space-y-5">
+                    <p className="max-w-[68ch] text-[13px] leading-[19px] text-muted-foreground">
+                      Define de quais clientes este colaborador enxerga projetos.{' '}
+                      {formData.permissions?.can_view_all_projects
+                        ? 'Como “Visualizar todos os projetos” está ligado, ele vê todos os projetos desses clientes.'
+                        : 'Como “Visualizar todos os projetos” está desligado, ele vê apenas os projetos em que é responsável.'}{' '}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('permissoes')}
+                        className="rounded-sm font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 dark:text-teal-400"
+                      >
+                        Alterar em Permissões
+                      </button>
+                    </p>
+
+                    {clientesCarregando ? (
+                      <div className="flex items-center justify-center py-10">
+                        <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                      </div>
+                    ) : (
+                      <>
+                        <div role="radiogroup" aria-label="Clientes permitidos" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {[
+                            {
+                              todos: true,
+                              label: 'Todos os clientes',
+                              description: `Os ${clientesDisponiveis.length} atuais e os que forem cadastrados depois`,
+                            },
+                            { todos: false, label: 'Clientes específicos', description: 'Somente os que você escolher abaixo' },
+                          ].map((option) => {
+                            const checked = permitirTodosClientes === option.todos;
+                            return (
+                              <label
+                                key={option.label}
+                                className={cn(
+                                  'relative flex min-w-0 cursor-pointer items-start gap-2.5 rounded-lg border bg-background px-3.5 py-3 transition-colors hover:border-slate-300 focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2',
+                                  checked && 'border-teal-600 bg-teal-50 ring-1 ring-teal-600 hover:border-teal-600 dark:bg-teal-950/40'
+                                )}
+                              >
+                                <input
+                                  type="radio"
+                                  name="equipe-client-mode"
+                                  checked={checked}
+                                  onChange={() => setPermitirTodosClientes(option.todos)}
+                                  className="sr-only"
+                                />
+                                <span
+                                  aria-hidden="true"
+                                  className={cn(
+                                    'mt-0.5 h-4 w-4 flex-shrink-0 rounded-full border-[1.5px] border-slate-300 bg-background',
+                                    checked && 'border-[5px] border-teal-600'
+                                  )}
+                                />
+                                <span>
+                                  <span className="block text-sm font-semibold leading-5">{option.label}</span>
+                                  <span className="mt-px block text-[12.5px] leading-[17px] text-muted-foreground">{option.description}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+
+                        {!permitirTodosClientes && (
+                          <div className="space-y-3">
+                            {nenhumCliente ? (
+                              <div
+                                role="status"
+                                className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-[13px] leading-[19px] text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+                              >
+                                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                <p>
+                                  <strong className="font-semibold">Nenhum cliente selecionado.</strong> Se salvar assim, este
+                                  colaborador não verá nenhum projeto.
                                 </p>
-                                {clientesDisponiveis
-                                  .filter(cliente => 
-                                    !clientesSelecionados.includes(cliente.id) &&
-                                    (cliente.company_name || cliente.name).toLowerCase().includes(buscaCliente.toLowerCase())
-                                  )
-                                  .map(cliente => (
-                                    <div key={cliente.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <span className="text-[13px] font-medium leading-none">
+                                    {clientesSelecionados.length} {clientesSelecionados.length === 1 ? 'cliente selecionado' : 'clientes selecionados'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setClientesSelecionados([])}
+                                    className="rounded-sm text-[12.5px] font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 dark:text-teal-400"
+                                  >
+                                    Limpar seleção
+                                  </button>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {clientesDisponiveis
+                                    .filter(cliente => clientesSelecionados.includes(cliente.id))
+                                    .map(cliente => (
+                                      <span
+                                        key={cliente.id}
+                                        className="inline-flex max-w-full items-center gap-1 rounded-full border border-teal-200 bg-teal-50 py-[3px] pl-2.5 pr-1 text-[13px] font-medium leading-[18px] text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-200"
+                                      >
+                                        <span className="truncate">{cliente.company_name || cliente.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleCliente(cliente.id)}
+                                          aria-label={`Remover ${cliente.company_name || cliente.name}`}
+                                          className="flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full hover:bg-teal-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 dark:hover:bg-teal-900"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </span>
+                                    ))}
+                                </div>
+                                {clientesDisponiveis.length > 0 && clientesDisponiveis.every(cliente => clientesSelecionados.includes(cliente.id)) && (
+                                  <div className="flex items-start gap-2.5 rounded-lg border bg-muted/50 px-3.5 py-3 text-[13px] leading-[19px] text-muted-foreground">
+                                    <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                                    <p>
+                                      Todos os clientes estão marcados. Ao salvar, isso equivale a “Todos os clientes”: os que
+                                      forem cadastrados depois também entram.
+                                    </p>
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                              <Input
+                                placeholder="Buscar cliente..."
+                                aria-label="Buscar cliente"
+                                value={buscaCliente}
+                                onChange={(e) => setBuscaCliente(e.target.value)}
+                                className="h-10 pl-10 focus-visible:ring-teal-600"
+                              />
+                            </div>
+
+                            {/* Lista de clientes: ordem fixa, marcar não muda o item de lugar */}
+                            <div className="max-h-[232px] divide-y divide-border overflow-y-auto rounded-lg border [scrollbar-width:thin]">
+                              {clientesDisponiveis.length === 0 ? (
+                                <p className="px-3 py-[18px] text-center text-[13px] text-muted-foreground">
+                                  Nenhum cliente cadastrado
+                                </p>
+                              ) : clientesFiltrados.length === 0 ? (
+                                <p className="px-3 py-[18px] text-center text-[13px] text-muted-foreground">
+                                  Nenhum cliente encontrado para “{buscaCliente}”.
+                                </p>
+                              ) : (
+                                clientesFiltrados.map(cliente => {
+                                  const checked = clientesSelecionados.includes(cliente.id);
+                                  return (
+                                    <label
+                                      key={cliente.id}
+                                      htmlFor={`cliente-${cliente.id}`}
+                                      className="flex cursor-pointer items-center gap-2.5 px-3 py-[9px] text-sm leading-5 hover:bg-muted/50"
+                                    >
                                       <input
                                         type="checkbox"
                                         id={`cliente-${cliente.id}`}
-                                        checked={false}
+                                        checked={checked}
                                         onChange={() => handleToggleCliente(cliente.id)}
-                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                        className="h-4 w-4 flex-shrink-0 cursor-pointer accent-teal-600"
                                       />
-                                      <label 
-                                        htmlFor={`cliente-${cliente.id}`}
-                                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1"
-                                      >
+                                      <span className={cn('min-w-0 flex-1 break-words', checked ? 'font-medium text-foreground' : 'text-muted-foreground')}>
                                         {cliente.company_name || cliente.name}
                                         {cliente.email && (
-                                          <span className="text-xs text-gray-500 ml-2">({cliente.email})</span>
+                                          <span className="ml-1.5 text-[12.5px] font-normal text-muted-foreground/80">{cliente.email}</span>
                                         )}
-                                      </label>
-                                    </div>
-                                  ))}
-                              </div>
+                                      </span>
+                                    </label>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Rodapé: resumo do acesso + ações. Com alterações não salvas, fechar pede confirmação. */}
+              {discardAsk ? (
+                <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-4 border-t border-amber-200 bg-amber-50 px-6 py-3.5 dark:border-amber-800 dark:bg-amber-900/20">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Descartar as alterações não salvas?</p>
+                  <div className="ml-auto flex gap-2">
+                    <Button type="button" variant="outline" className="text-foreground" onClick={() => setDiscardAsk(false)}>
+                      Continuar editando
+                    </Button>
+                    <Button type="button" className="bg-red-600 text-white hover:bg-red-700" onClick={closeModal}>
+                      Descartar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-4 border-t bg-muted/40 px-6 py-3.5">
+                  <div aria-live="polite" className="min-w-0 text-[13px] leading-[18px] text-muted-foreground">
+                    {fullAccess ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0 text-teal-700 dark:text-teal-400" />
+                        <strong className="font-semibold text-foreground">Acesso total</strong>
+                        <span>a todas as funcionalidades e clientes</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span>
+                          <strong className="font-semibold tabular-nums text-foreground">{activeCount}</strong> de {TOTAL_PERMISSIONS} permissões
+                        </span>
+                        {isColaborador && !clientesCarregando && (
+                          <>
+                            <span className="text-muted-foreground/50">·</span>
+                            {permitirTodosClientes ? (
+                              <span>Todos os clientes</span>
+                            ) : nenhumCliente ? (
+                              <span className="font-semibold text-amber-700 dark:text-amber-400">Nenhum cliente</span>
+                            ) : (
+                              <span>
+                                <strong className="font-semibold tabular-nums text-foreground">{clientesSelecionados.length}</strong>{' '}
+                                {clientesSelecionados.length === 1 ? 'cliente' : 'clientes'}
+                              </span>
                             )}
                           </>
                         )}
                       </div>
-
-                      <p className="text-xs text-gray-500 dark:text-gray-400 italic flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        Dica: Deixe vazio para bloquear acesso a todos os clientes
-                      </p>
-                    </>
-                  )}
+                    )}
+                    {editMode && isDirty && (
+                      <div className="mt-0.5 flex items-center gap-1.5 text-xs">
+                        <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
+                        Alterações não salvas
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleOpenChange(false)}
+                      disabled={loading}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading || (editMode ? !isDirty : (emailAvailable === false || emailCheckLoading))}
+                      className="bg-teal-600 hover:bg-teal-700"
+                    >
+                      {loading ? 'Salvando...' : editMode ? 'Atualizar' : 'Adicionar'}
+                    </Button>
+                  </div>
                 </div>
               )}
-              </div>
-
-              <DialogFooter className="flex-shrink-0 mt-4 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading || (!editMode && (emailAvailable === false || emailCheckLoading))}
-                  className="bg-teal-600 hover:bg-teal-700"
-                >
-                  {loading ? 'Salvando...' : editMode ? 'Atualizar' : 'Adicionar'}
-                </Button>
-              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -1085,8 +1518,9 @@ export default function EquipePage() {
             const isAdmin = member.role === 'admin' || member.role === 'superadmin';
 
             // ✅ Contar permissões ativas
-            const activePermissions = Object.values(memberPermissions).filter(v => v === true).length;
-            const totalPermissions = 12;
+            // (mesma contagem do rodapé do modal, para os dois números baterem)
+            const activePermissions = countActivePermissions(memberPermissions);
+            const totalPermissions = TOTAL_PERMISSIONS;
 
             // ✅ Mapear permissões para labels legíveis
             const permissionLabels: { [key: string]: string } = {
@@ -1226,7 +1660,7 @@ export default function EquipePage() {
                           )}
                         </div>
                         <button
-                          onClick={() => handleEdit(member)}
+                          onClick={() => handleEdit(member, 'permissoes')}
                           className="text-xs text-teal-600 hover:text-teal-700 font-medium mt-2 hover:underline"
                         >
                           Ver todas as permissões →
