@@ -144,6 +144,11 @@ const MATERIAL_ISOLACAO_CA_OPTIONS = [
   { value: 'EPR/XLPE 90ºC', label: 'EPR/XLPE 90ºC' },
 ];
 
+const MATERIAL_CABO_CA_OPTIONS = [
+  { value: 'Cobre', label: 'Cobre' },
+  { value: 'Alumínio', label: 'Alumínio' },
+];
+
 const METODO_INSTALACAO_CA_OPTIONS = [
   { codigo: 'A1', descricao: 'Condutores isolados em eletroduto embutido em parede isolante' },
   { codigo: 'A2', descricao: 'Cabo multipolar em eletroduto embutido em parede isolante' },
@@ -1085,6 +1090,13 @@ export function EquipamentoListItem(props: Props) {
                     value={inv.cabo_ca_material_isolacao || ''}
                     onChange={v => updateField('cabo_ca_material_isolacao', v)}
                     options={MATERIAL_ISOLACAO_CA_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Material do Cabo"
+                    value={inv.cabo_ca_material_cabo || ''}
+                    onChange={v => updateField('cabo_ca_material_cabo', v)}
+                    options={MATERIAL_CABO_CA_OPTIONS}
                     placeholder="Selecione"
                   />
                   <SelectField
