@@ -934,9 +934,9 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
         <p className="mt-0.5 text-[12.5px] text-indigo-100">Configurações e preferências gerais do sistema</p>
       </div>
 
-      <div className="mx-auto flex max-w-[1280px] flex-col items-start gap-4 lg:flex-row lg:gap-7">
+      <div className="flex max-w-[1280px] flex-col items-start gap-4 lg:flex-row lg:gap-7">
         {/* Menu lateral de áreas */}
-        <nav aria-label="Áreas de preferências" className="flex w-full flex-shrink-0 gap-1 overflow-x-auto lg:sticky lg:top-3.5 lg:w-[236px] lg:flex-col">
+        <nav aria-label="Áreas de preferências" className="flex w-full flex-shrink-0 gap-1 overflow-x-auto lg:sticky lg:top-3.5 lg:w-[300px] lg:flex-col">
           {areas.map((area) => {
             const ativa = area.id === areaAtiva;
             return (
@@ -946,10 +946,10 @@ Assim sendo, durante o prazo de 1 (um) ano, contado a partir da data de assinatu
                 aria-current={ativa ? 'true' : undefined}
                 onClick={() => setActiveTab(area.id)}
                 className={cn(
-                  'flex flex-shrink-0 items-start gap-[11px] rounded-[10px] px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2',
+                  'flex flex-shrink-0 items-start gap-[11px] rounded-[10px] border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2',
                   ativa
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                    ? 'border-indigo-100 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800'
                 )}
               >
                 <span className={cn('mt-0.5 flex-shrink-0', ativa ? 'text-indigo-600 dark:text-indigo-300' : 'text-slate-400')}>{area.icon}</span>
