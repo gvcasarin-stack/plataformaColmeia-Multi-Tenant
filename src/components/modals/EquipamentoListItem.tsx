@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { parseStringsModulos, fmtBR } from '@/lib/utils/equipmentParser';
 import type { ModuloItem, InversorItem, InversorUnitConfig, StringConfig } from '@/lib/utils/equipmentParser';
-import { getCapacidadeCorrenteCA } from '@/lib/utils/nbr5410CaTables';
+import { getCapacidadeCorrenteCA, getCapacidadeCorrenteCorrigidaCA } from '@/lib/utils/nbr5410CaTables';
 import type { EquipmentCatalogItem } from '@/lib/services/equipmentCatalogService';
 
 type Tipo = 'modulo' | 'inversor';
@@ -419,6 +419,28 @@ export function EquipamentoListItem(props: Props) {
     updateField('cabo_ca_capacidade_corrente_a', calc);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invIsolacaoCa, invMaterialCaboCa, invSecaoFaseCa, invMetodoCa, invTipoConexaoCa]);
+
+  // Auto-calcula Cabeamento CA — Cap. de Corrente Corrigida (A) = capacidade básica
+  // (acima) × Fator de Temperatura × Fator de Agrupamento. Campo separado da
+  // capacidade básica para manter o valor de tabela auditável ao lado do valor
+  // final já corrigido.
+  const invCapBasicaCa = tipo === 'inversor' ? (props.item as InversorItem).cabo_ca_capacidade_corrente_a : undefined;
+  const invFatorTempCa = tipo === 'inversor' ? (props.item as InversorItem).cabo_ca_fator_temperatura : undefined;
+  const invFatorAgrupCa = tipo === 'inversor' ? (props.item as InversorItem).cabo_ca_fator_agrupamento : undefined;
+
+  useEffect(() => {
+    if (tipo !== 'inversor') return;
+    const calc = getCapacidadeCorrenteCorrigidaCA({
+      capacidadeBasicaA: invCapBasicaCa,
+      fatorTemperatura: invFatorTempCa,
+      fatorAgrupamento: invFatorAgrupCa,
+    });
+    if (!calc) return;
+    const inv = props.item as InversorItem;
+    if (calc === inv.cabo_ca_capacidade_corrente_corrigida_a) return;
+    updateField('cabo_ca_capacidade_corrente_corrigida_a', calc);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invCapBasicaCa, invFatorTempCa, invFatorAgrupCa]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -1171,6 +1193,7 @@ export function EquipamentoListItem(props: Props) {
                     placeholder="Selecione"
                   />
                   <Field label="Cap. de Corrente (A)" value={inv.cabo_ca_capacidade_corrente_a || ''} onChange={v => updateField('cabo_ca_capacidade_corrente_a', v)} suffix="A" placeholder="Ex: 41" />
+                  <Field label="Cap. de Corrente Corrigida (A)" value={inv.cabo_ca_capacidade_corrente_corrigida_a || ''} onChange={v => updateField('cabo_ca_capacidade_corrente_corrigida_a', v)} suffix="A" placeholder="Ex: 32" />
                 </div>
               </div>
             </>

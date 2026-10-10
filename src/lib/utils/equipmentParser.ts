@@ -90,6 +90,7 @@ export interface InversorItem {
   cabo_ca_secao_terra_mm2?: string;
   cabo_ca_metodo_instalacao?: string;
   cabo_ca_capacidade_corrente_a?: string;
+  cabo_ca_capacidade_corrente_corrigida_a?: string;
   cabo_ca_fator_temperatura?: string;
   cabo_ca_fator_agrupamento?: string;
   units_config?: InversorUnitConfig[]; // config por unidade física

@@ -153,3 +153,21 @@ export function getCapacidadeCorrenteCA(params: {
   const valor = tabela[materialKey]?.[secaoKey]?.[metodo]?.[condutores as '2' | '3'];
   return valor !== undefined ? fromTabelaValor(valor) : '';
 }
+
+/**
+ * Capacidade de corrente corrigida = capacidade básica (tabelada) × Fator de
+ * Temperatura × Fator de Agrupamento. Retorna '' se a capacidade básica ou
+ * algum dos fatores não estiver disponível/numérico.
+ */
+export function getCapacidadeCorrenteCorrigidaCA(params: {
+  capacidadeBasicaA?: string;
+  fatorTemperatura?: string;
+  fatorAgrupamento?: string;
+}): string {
+  const base = parseFloat(String(params.capacidadeBasicaA || '').replace(',', '.'));
+  const ft = parseFloat(String(params.fatorTemperatura || '').replace(',', '.'));
+  const fa = parseFloat(String(params.fatorAgrupamento || '').replace(',', '.'));
+  if (isNaN(base) || base <= 0 || isNaN(ft) || ft <= 0 || isNaN(fa) || fa <= 0) return '';
+  const corrigida = Math.round(base * ft * fa * 100) / 100;
+  return String(corrigida).replace('.', ',');
+}
