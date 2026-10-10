@@ -313,9 +313,9 @@ export function PadraoEntradaEnergisaPreview({ projectData = {} }: PadraoEntrada
             <text x="312.5" y="274.0" fontSize="2.4" textAnchor="middle">CEP: {cep}</text>
 
             {/* Responsável Técnico */}
-            <text x="312.5" y="276.0" fontSize="2.3" fontWeight="bold" textAnchor="middle" fill="#5a5a5a">Responsável Técnico:</text>
-            <text x="312.5" y="279.67" fontSize="2.6" fontWeight="bold" textAnchor="middle">{respNome}</text>
-            <text x="312.5" y="283.33" fontSize="2.2" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
+            <text x="312.5" y="277.0" fontSize="2.3" fontWeight="bold" textAnchor="middle" fill="#5a5a5a">Responsável Técnico:</text>
+            <text x="312.5" y="280.33" fontSize="2.6" fontWeight="bold" textAnchor="middle">{respNome}</text>
+            <text x="312.5" y="283.67" fontSize="2.2" textAnchor="middle">TÉCNICO EM ELETROTÉCNICA</text>
             <text x="312.5" y="287" fontSize="2.2" textAnchor="middle">CFT: {respCft}</text>
           </g>
         </svg>
