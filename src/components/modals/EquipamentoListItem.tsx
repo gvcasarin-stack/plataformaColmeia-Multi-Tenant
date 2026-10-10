@@ -1075,6 +1075,11 @@ export function EquipamentoListItem(props: Props) {
                     options={DISJUNTOR_POLOS_OPTIONS}
                     placeholder="Polos"
                   />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Cabeamento CA</p>
+                <div className="grid grid-cols-2 gap-2">
                   <SelectField
                     label="Material de Isolação"
                     value={inv.cabo_ca_material_isolacao || ''}
@@ -1082,11 +1087,27 @@ export function EquipamentoListItem(props: Props) {
                     options={MATERIAL_ISOLACAO_CA_OPTIONS}
                     placeholder="Selecione"
                   />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Cabeamento CA</p>
-                <div className="grid grid-cols-2 gap-2">
+                  <SelectField
+                    label="Fator de Temperatura"
+                    value={inv.cabo_ca_fator_temperatura || ''}
+                    onChange={v => updateField('cabo_ca_fator_temperatura', v)}
+                    options={TEMP_FATOR_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Método de Instalação"
+                    value={inv.cabo_ca_metodo_instalacao || ''}
+                    onChange={v => updateField('cabo_ca_metodo_instalacao', v)}
+                    options={METODO_INSTALACAO_CA_OPTIONS}
+                    placeholder="Selecione"
+                  />
+                  <SelectField
+                    label="Fator de Agrupamento"
+                    value={inv.cabo_ca_fator_agrupamento || ''}
+                    onChange={v => updateField('cabo_ca_fator_agrupamento', v)}
+                    options={AGRUPAMENTO_OPTIONS}
+                    placeholder="Selecione"
+                  />
                   <SelectField
                     label="Seção Transversal do(s) Condutor(es) Fase (mm²)"
                     value={inv.cabo_ca_secao_fase_mm2 || ''}
@@ -1109,27 +1130,6 @@ export function EquipamentoListItem(props: Props) {
                     placeholder="Selecione"
                   />
                   <Field label="Cap. de Corrente (A)" value={inv.cabo_ca_capacidade_corrente_a || ''} onChange={v => updateField('cabo_ca_capacidade_corrente_a', v)} suffix="A" placeholder="Ex: 41" />
-                  <SelectField
-                    label="Fator de Temperatura"
-                    value={inv.cabo_ca_fator_temperatura || ''}
-                    onChange={v => updateField('cabo_ca_fator_temperatura', v)}
-                    options={TEMP_FATOR_OPTIONS}
-                    placeholder="Selecione"
-                  />
-                  <SelectField
-                    label="Fator de Agrupamento"
-                    value={inv.cabo_ca_fator_agrupamento || ''}
-                    onChange={v => updateField('cabo_ca_fator_agrupamento', v)}
-                    options={AGRUPAMENTO_OPTIONS}
-                    placeholder="Selecione"
-                  />
-                  <SelectField
-                    label="Método de Instalação"
-                    value={inv.cabo_ca_metodo_instalacao || ''}
-                    onChange={v => updateField('cabo_ca_metodo_instalacao', v)}
-                    options={METODO_INSTALACAO_CA_OPTIONS}
-                    placeholder="Selecione"
-                  />
                 </div>
               </div>
             </>
