@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { parseStringsModulos, fmtBR } from '@/lib/utils/equipmentParser';
 import type { ModuloItem, InversorItem, InversorUnitConfig, StringConfig } from '@/lib/utils/equipmentParser';
+import { getCapacidadeCorrenteCA } from '@/lib/utils/nbr5410CaTables';
 import type { EquipmentCatalogItem } from '@/lib/services/equipmentCatalogService';
 
 type Tipo = 'modulo' | 'inversor';
@@ -390,6 +391,34 @@ export function EquipamentoListItem(props: Props) {
     if (nearest !== undefined) updateField('disjuntor_ca_corrente_a', String(nearest));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invCorrNominal]);
+
+  // Auto-calcula Cabeamento CA — Cap. de Corrente (A) (NBR 5410, Tabelas 36/37) a
+  // partir de Material de Isolação + Material do Cabo + Seção da Fase + Método de
+  // Instalação + Tipo de Conexão (nº de condutores carregados). Recalcula sempre
+  // que uma dessas mudar — mesmo padrão (rápido, sem recalcular o resto do
+  // formulário) usado no CC. Combinações ainda não tabeladas (ex.: métodos E/F/G)
+  // mantêm o campo em preenchimento manual.
+  const invIsolacaoCa = tipo === 'inversor' ? (props.item as InversorItem).cabo_ca_material_isolacao : undefined;
+  const invMaterialCaboCa = tipo === 'inversor' ? (props.item as InversorItem).cabo_ca_material_cabo : undefined;
+  const invSecaoFaseCa = tipo === 'inversor' ? (props.item as InversorItem).cabo_ca_secao_fase_mm2 : undefined;
+  const invMetodoCa = tipo === 'inversor' ? (props.item as InversorItem).cabo_ca_metodo_instalacao : undefined;
+  const invTipoConexaoCa = tipo === 'inversor' ? (props.item as InversorItem).tipo_conexao_rede_ca : undefined;
+
+  useEffect(() => {
+    if (tipo !== 'inversor') return;
+    const calc = getCapacidadeCorrenteCA({
+      isolacao: invIsolacaoCa,
+      materialCabo: invMaterialCaboCa,
+      secaoFaseMm2: invSecaoFaseCa,
+      metodoInstalacao: invMetodoCa,
+      tipoConexaoRedeCa: invTipoConexaoCa,
+    });
+    if (!calc) return;
+    const inv = props.item as InversorItem;
+    if (calc === inv.cabo_ca_capacidade_corrente_a) return;
+    updateField('cabo_ca_capacidade_corrente_a', calc);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invIsolacaoCa, invMaterialCaboCa, invSecaoFaseCa, invMetodoCa, invTipoConexaoCa]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
