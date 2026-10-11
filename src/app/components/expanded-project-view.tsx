@@ -73,6 +73,7 @@ import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPrev
 import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
 import { DiagramaUnifilarA4Preview } from '@/components/templates/DiagramaUnifilarA4Preview'
 import { PlantaSituacaoPreview } from '@/components/templates/PlantaSituacaoPreview'
+import { PlantaSituacaoA4Preview } from '@/components/templates/PlantaSituacaoA4Preview'
 import { ListaRateioEquatorialPreview } from '@/components/templates/ListaRateioEquatorialPreview'
 import { AnexoG1CPFLPreview } from '@/components/templates/AnexoG1CPFLPreview'
 import { PadraoEntradaEnergisaPreview } from '@/components/templates/PadraoEntradaEnergisaPreview'
@@ -3336,6 +3337,38 @@ export const ExpandedProjectView = ({
                                 </CardContent>
                               </Card>
 
+                              {(user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
+                                <Card
+                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'planta-situacao-a4' ? null : 'planta-situacao-a4')}
+                                  className={`border cursor-pointer group transition-all duration-200 ${
+                                    activeTemplatePreview === 'planta-situacao-a4'
+                                      ? 'border-teal-500 dark:border-teal-400 shadow-md ring-2 ring-teal-200 dark:ring-teal-800'
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`p-2 rounded-lg transition-colors ${
+                                        activeTemplatePreview === 'planta-situacao-a4'
+                                          ? 'bg-teal-100 dark:bg-teal-900/50'
+                                          : 'bg-teal-50 dark:bg-teal-900/30 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50'
+                                      }`}>
+                                        <MapPin className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">
+                                          Planta de Situação A4
+                                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
+                                        </h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          Versão de teste em prancha A4 padronizada, com moldura e selo (visível só para superadmin).
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
                               {selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && gerarProjetoFields.modalidade_compensacao === 'Autoconsumo Remoto' && (
                                 <Card
                                   onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'lista-rateio' ? null : 'lista-rateio')}
@@ -3579,6 +3612,33 @@ export const ExpandedProjectView = ({
                               <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                                   <PlantaSituacaoPreview
+                                    projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }}
+                                    onSaveConfig={async (config) => {
+                                      const serialized = JSON.stringify(config);
+                                      await fetch(`/api/projects/${project.id}/conferir-info`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ fields: { planta_situacao_config: serialized } }),
+                                      });
+                                      setGerarProjetoFields(prev => ({ ...prev, planta_situacao_config: serialized }));
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeTemplatePreview === 'planta-situacao-a4' &&
+                            (user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-teal-500" />
+                                Pré-visualização — Planta de Situação A4 (teste)
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
+                              </h3>
+                              <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                                  <PlantaSituacaoA4Preview
                                     projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }}
                                     onSaveConfig={async (config) => {
                                       const serialized = JSON.stringify(config);
