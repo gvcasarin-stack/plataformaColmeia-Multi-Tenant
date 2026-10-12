@@ -370,14 +370,18 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // aproveitar melhor a largura da folha A4 — ainda sem sobrepor nada do topo do
   // diagrama (que termina em topBR); a legenda e o conteúdo mais abaixo (colunas
   // do inversor) não compartilham a mesma faixa vertical, então não colidem.
-  const legendX = topBR + 35;
+  // Gap um pouco maior (55, era 35) a pedido do usuário, para dar mais respiro
+  // entre o circuito e a legenda.
+  const legendX = topBR + 55;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
   const miQccShift = isSaidaAgrupada ? 75 : 0;
   // Com 1 só inversor o circuito (Padrão de Entrada → Gerador) fica bem mais estreito
   // que a folha, deixando um vão grande antes da legenda. Desloca esse bloco pra
-  // direita, aproximando-o da legenda (que não se move), pra aproveitar melhor o
-  // espaço. Não afeta multi-inversor (que já usa a largura toda).
-  const hShift = !isMultiInv ? 50 : 0;
+  // direita, aproximando-o da legenda (que não se move) — reduzido de 50 para 30 a
+  // pedido do usuário, para abrir mais espaço entre o circuito e a legenda (que
+  // também se deslocou para a direita). Não afeta multi-inversor (que já usa a
+  // largura toda).
+  const hShift = !isMultiInv ? 30 : 0;
   const hShiftTransform = hShift ? `translate(${hShift}, 0)` : undefined;
 
   const vbMinX = numInversores >= 4 ? -100 : (numInversores >= 3 ? -25 : 0);
