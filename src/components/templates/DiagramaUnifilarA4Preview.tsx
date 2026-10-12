@@ -338,10 +338,14 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // translate não faz nada, e o restante do diagrama fica byte-a-byte igual ao
   // de sempre.
   const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0);
-  // A altura do viewBox precisa crescer junto com o YSHIFT, senão o selo (que fica
-  // no fim do desenho, dentro do <g> deslocado) passa do limite inferior e é
-  // cortado. Com YSHIFT=0 (sem DPS) o valor fica exatamente 1295, como sempre foi.
-  const vbHeight = 1295 + YSHIFT;
+  // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
+  // o conteúdo realmente desenhado (o último elemento, nas colunas do inversor,
+  // termina em y=1020, ou 1095 com saídas agrupadas), em vez do valor fixo antigo
+  // 1295 (dimensionado para o selo que ficava dentro do SVG — já removido nesta
+  // versão A4, que usa selo padronizado fora do SVG). Isso aumenta a escala final
+  // do desenho em pelo menos ~30% (testado para 1 inversor) sem cortar nada.
+  const vbHBottomMax = isSaidaAgrupada ? 1095 : 1020;
+  const vbHeight = vbHBottomMax + 50 + YSHIFT;
   // Com DPS, D1 sobe (fica na altura onde antes ficava a derivação do DPS, um
   // pouco abaixo dela) — sem DPS, fica exatamente onde sempre esteve (y=145).
   const d1Y = hasDpsEntrada ? 138 : 145;
@@ -362,7 +366,11 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   const placa2YEnergisaShift = isEnergisa ? 10 : 0;
   const placa2Y = (hasDpsEntrada ? 146 : 132) + placa2YEnergisaShift;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
-  const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
+  // Legenda deslocada para a esquerda (mais próxima do Padrão de Entrada) para
+  // aproveitar melhor a largura da folha A4 — ainda sem sobrepor nada do topo do
+  // diagrama (que termina em topBR); a legenda e o conteúdo mais abaixo (colunas
+  // do inversor) não compartilham a mesma faixa vertical, então não colidem.
+  const legendX = topBR + 35;
   const miInvShift = isSaidaAgrupada ? 75 : 0;
   const miQccShift = isSaidaAgrupada ? 75 : 0;
   // Com 1 só inversor o circuito (Padrão de Entrada → Gerador) fica bem mais estreito
@@ -371,6 +379,14 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // espaço. Não afeta multi-inversor (que já usa a largura toda).
   const hShift = !isMultiInv ? 50 : 0;
   const hShiftTransform = hShift ? `translate(${hShift}, 0)` : undefined;
+
+  const vbMinX = numInversores >= 4 ? -100 : (numInversores >= 3 ? -25 : 0);
+  // vbWidth acompanha de perto o conteúdo realmente desenhado: a legenda
+  // (legendX+238) ou, se for maior, a caixa ANTI-ILHAMENTO da última coluna no
+  // multi-inversor — em vez do valor fixo antigo, bem mais largo que o desenho
+  // real.
+  const rightAI = isMultiInv ? (miColBX(numInversores - 1) + miColW + 170) : 0;
+  const vbWidth = Math.max(legendX + 238, rightAI) + 15;
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
@@ -431,11 +447,11 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
 
       {/* Diagrama — área de conteúdo entre o topo do quadro e o selo */}
       <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '175mm', height: '241.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
-      <div style={{ padding: '12px' }}>
+      <div style={{ padding: '4px' }}>
         <svg
-          viewBox={numInversores >= 4 ? `-100 -25 1200 ${vbHeight}` : (numInversores >= 3 ? `-25 -25 1085 ${vbHeight}` : `0 -25 1060 ${vbHeight}`)}
+          viewBox={`${vbMinX} -25 ${vbWidth} ${vbHeight}`}
           width="100%"
-          style={{ maxWidth: numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060), display: 'block', margin: '0 auto' }}
+          style={{ maxWidth: vbWidth, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >

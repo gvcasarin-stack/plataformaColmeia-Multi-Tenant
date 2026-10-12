@@ -324,10 +324,14 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // sem legenda do Ramal de Entrada) o translate nao faz nada e o resto do
   // diagrama fica igual ao de sempre.
   const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0);
-  // A altura do viewBox precisa crescer junto com o YSHIFT, senao o selo (que fica
-  // no fim do desenho, dentro do <G> deslocado) passa do limite inferior e e
-  // cortado. Com YSHIFT=0 (sem DPS) o valor fica exatamente 1295, como sempre foi.
-  const VB_H = 1295 + YSHIFT;
+  // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
+  // o conteudo realmente desenhado (o ultimo elemento, nas colunas do inversor,
+  // termina em y=1020, ou 1095 com saidas agrupadas), em vez do valor fixo antigo
+  // 1295 (dimensionado para o selo que ficava dentro do SVG — ja removido nesta
+  // versao A4, que usa selo padronizado fora do Svg). Isso aumenta a escala final
+  // do desenho em pelo menos ~30% (testado para 1 inversor) sem cortar nada.
+  const vbHBottomMax = (isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas') ? 1095 : 1020;
+  const VB_H = vbHBottomMax + 50 + YSHIFT;
   // Com DPS, D1 sobe (fica na altura onde antes ficava a derivacao do DPS, um
   // pouco abaixo dela) — sem DPS, fica exatamente onde sempre esteve (y=145).
   const d1Y = hasDpsEntrada ? 138 : 145;
@@ -337,7 +341,11 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // ate o simbolo do DPS) — o simbolo, texto e Terra do DPS continuam no lugar.
   const dpsTapLineY = dpsTapY + 5;
   const cargasX = isMultiInv ? Math.max(Math.round(miColBX(0)) - 55, numInversores >= 4 ? 45 : (numInversores >= 3 ? 64 : 100)) : 195;
-  const legendX = isMultiInv ? (numInversores >= 4 ? 851 : 810) : 650;
+  // Legenda deslocada para a esquerda (mais proxima do Padrao de Entrada) para
+  // aproveitar melhor a largura da folha A4 — ainda sem sobrepor nada do topo do
+  // diagrama (que termina em topBR); a legenda e o conteudo mais abaixo (colunas
+  // do inversor) nao compartilham a mesma faixa vertical, entao nao colidem.
+  const legendX = topBR + 35;
   const isSaidaAgrupada = isMultiInv && fv(pd.setup_configuracao_saidas) === 'agrupadas';
   const miInvShift = isSaidaAgrupada ? 75 : 0;
   const miQccShift = isSaidaAgrupada ? 75 : 0;
@@ -361,10 +369,14 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   const SC = '#161513';
 
   const VB_MINX = numInversores >= 4 ? -100 : (numInversores >= 3 ? -25 : 0);
-  const VB_W = numInversores >= 4 ? 1200 : (numInversores >= 3 ? 1085 : 1060);
+  // VB_W acompanha de perto o conteudo realmente desenhado: a legenda (legendX+238)
+  // ou, se for maior, a caixa ANTI-ILHAMENTO da ultima coluna no multi-inversor —
+  // em vez do valor fixo antigo, bem mais largo que o desenho real.
+  const rightAI = isMultiInv ? (miColBX(numInversores - 1) + miColW + 170) : 0;
+  const VB_W = Math.max(legendX + 238, rightAI) + 15;
   const VB_MINY = -25;
 
-  const CONTENT_PAD_MM = 5;
+  const CONTENT_PAD_MM = 1;
   const CONTENT_W_MM = FRAME.w - CONTENT_PAD_MM * 2;
   const CONTENT_H_MM = (SELO.y - FRAME.y) - CONTENT_PAD_MM * 2;
   const SVG_SCALE = Math.min(mm(CONTENT_W_MM) / VB_W, mm(CONTENT_H_MM) / VB_H);
