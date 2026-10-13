@@ -323,12 +323,15 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // desce a mesma quantidade que o retangulo cresceu — com YSHIFT=0 (sem DPS e
   // sem legenda do Ramal de Entrada) o translate nao faz nada e o resto do
   // diagrama fica igual ao de sempre.
-  // -4.2 = reducao de 15% na distancia entre o retangulo do Padrao de Entrada e
-  // o Quadro de Distribuicao (vao de 28 unidades no caso comum, sem Ramal de
-  // Entrada) — a pedido do usuario. Desloca so o Quadro de Distribuicao (e tudo
-  // que vem depois, dentro do <G> abaixo) 4.2 unidades mais pra cima; o Padrao de
-  // Entrada e a legenda do Ramal de Entrada (fora deste <G>) nao se alteram.
-  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 4.2;
+  // -9.2 = reducao total de ~33% na distancia entre o retangulo do Padrao de
+  // Entrada e o Quadro de Distribuicao (vao de 28 unidades no caso comum, sem
+  // Ramal de Entrada: -4.2 do primeiro pedido do usuario + -5 do segundo pedido)
+  // — desloca o Quadro de Distribuicao (e tudo que vem depois, dentro do <G>
+  // abaixo — isso inclui a LEGENDA, que tambem fica dentro desse <G>) a mesma
+  // quantidade mais pra cima. O Padrao de Entrada e a legenda do Ramal de
+  // Entrada (fora deste <G>) nao se alteram. VB_MINY abaixo foi ajustado na
+  // mesma proporcao para a LEGENDA nao ultrapassar o limite superior do viewBox.
+  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 9.2;
   // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
   // o conteudo realmente desenhado (o ultimo elemento, nas colunas do inversor,
   // termina em y=1020, ou 1095 com saidas agrupadas), em vez do valor fixo antigo
@@ -383,7 +386,10 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // em vez do valor fixo antigo, bem mais largo que o desenho real.
   const rightAI = isMultiInv ? (miColBX(numInversores - 1) + miColW + 170) : 0;
   const VB_W = Math.max(legendX + 238, rightAI) + 15;
-  const VB_MINY = -25;
+  // -34.2 = -25 (original) - 9.2 (mesmo ajuste do YSHIFT acima), pra manter a
+  // mesma folga de 5 unidades no topo da LEGENDA (que fica dentro do <G> que
+  // translada por YSHIFT, entao sobe junto com o Quadro de Distribuicao).
+  const VB_MINY = -34.2;
 
   const CONTENT_PAD_MM = 1;
   const CONTENT_W_MM = FRAME.w - CONTENT_PAD_MM * 2;
@@ -392,7 +398,14 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   const SVG_W = VB_W * SVG_SCALE;
   const SVG_H = VB_H * SVG_SCALE;
   const CONTENT_LEFT = mm(FRAME.x + CONTENT_PAD_MM) + (mm(CONTENT_W_MM) - SVG_W) / 2;
-  const CONTENT_TOP = mm(FRAME.y + CONTENT_PAD_MM) + (mm(CONTENT_H_MM) - SVG_H) / 2;
+  // "Jogar todo o desenho 5 unidades pra cima", a pedido do usuario — desloca a
+  // posicao do Svg inteiro (e das imagens sobrepostas, que usam CONTENT_TOP) um
+  // pouco mais pra cima dentro da area de conteudo, sem tocar no viewBox (zero
+  // risco de corte). Limitado pela folga vertical realmente disponivel (quando o
+  // desenho ja usa quase toda a altura do quadro, o deslocamento aplicado fica
+  // menor que 5 unidades, nunca ultrapassando o limite superior do quadro).
+  const TOP_SHIFT_PT = Math.max(0, Math.min(5 * SVG_SCALE, (mm(CONTENT_H_MM) - SVG_H) / 2));
+  const CONTENT_TOP = mm(FRAME.y + CONTENT_PAD_MM) + (mm(CONTENT_H_MM) - SVG_H) / 2 - TOP_SHIFT_PT;
 
   const placaImgLeft = CONTENT_LEFT + (14 - VB_MINX) * SVG_SCALE;
   const placaImgTop = CONTENT_TOP + (44 - VB_MINY) * SVG_SCALE;

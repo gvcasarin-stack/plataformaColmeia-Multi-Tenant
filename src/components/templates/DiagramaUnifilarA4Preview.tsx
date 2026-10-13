@@ -337,12 +337,16 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // abaixo — com YSHIFT=0 (caso sem DPS e sem legenda do Ramal de Entrada) o
   // translate não faz nada, e o restante do diagrama fica byte-a-byte igual ao
   // de sempre.
-  // -4.2 = redução de 15% na distância entre o retângulo do Padrão de Entrada e
-  // o Quadro de Distribuição (vão de 28 unidades no caso comum, sem Ramal de
-  // Entrada) — a pedido do usuário. Desloca só o Quadro de Distribuição (e tudo
-  // que vem depois, dentro do <g> abaixo) 4.2 unidades mais pra cima; o Padrão de
-  // Entrada e a legenda do Ramal de Entrada (fora deste <g>) não se alteram.
-  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 4.2;
+  // -9.2 = redução total de ~33% na distância entre o retângulo do Padrão de
+  // Entrada e o Quadro de Distribuição (vão de 28 unidades no caso comum, sem
+  // Ramal de Entrada: -4.2 do primeiro pedido do usuário + -5 do segundo pedido)
+  // — desloca o Quadro de Distribuição (e tudo que vem depois, dentro do <g>
+  // abaixo — isso inclui a LEGENDA, que também fica dentro desse <g>) a mesma
+  // quantidade mais pra cima. O Padrão de Entrada e a legenda do Ramal de
+  // Entrada (fora deste <g>) não se alteram. O minY do viewBox abaixo foi
+  // ajustado na mesma proporção para a LEGENDA não ultrapassar o limite
+  // superior do viewBox.
+  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 9.2;
   // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
   // o conteúdo realmente desenhado (o último elemento, nas colunas do inversor,
   // termina em y=1020, ou 1095 com saídas agrupadas), em vez do valor fixo antigo
@@ -456,9 +460,12 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
 
       {/* Diagrama — área de conteúdo entre o topo do quadro e o selo */}
       <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '175mm', height: '241.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
-      <div style={{ padding: '4px' }}>
+      {/* "Jogar todo o desenho 5 unidades pra cima", a pedido do usuário — leve
+          ajuste de posição (a área acima tem rolagem própria, então isso nunca
+          corta nada, só muda o ponto de partida do scroll). */}
+      <div style={{ padding: '4px', marginTop: '-1mm' }}>
         <svg
-          viewBox={`${vbMinX} -25 ${vbWidth} ${vbHeight}`}
+          viewBox={`${vbMinX} -34.2 ${vbWidth} ${vbHeight}`}
           width="100%"
           style={{ maxWidth: vbWidth, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
