@@ -725,8 +725,11 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
           <rect x="490" y="635" width="90" height="16" fill="white" stroke="#000" strokeWidth="0.8" />
           <text x="535" y="646" fontSize="6" textAnchor="middle">ANTI-ILHAMENTO</text>
 
-          {/* Wire INVERSOR → QUADRO CC */}
-          <line x1={CX} y1="609" x2={CX} y2="708" stroke="#000" strokeWidth="1" />
+          {/* Wire INVERSOR → QUADRO CC — y2 reduzido de 708 para 703 (5% menos que o
+              vão de 99 unidades entre o Inversor e o Quadro CC) a pedido do usuário —
+              o Quadro CC em diante foi deslocado 5 unidades pra cima (ver
+              <g transform="translate(0,-5)"> abaixo). */}
+          <line x1={CX} y1="609" x2={CX} y2="703" stroke="#000" strokeWidth="1" />
 
           {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
           <line x1={CX} y1="644" x2={CX + 12} y2="644" stroke="#000" strokeWidth="0.6" strokeDasharray="3,2" />
@@ -738,6 +741,10 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
           <text x={CX + 15} y="674" fontSize="5.5" fontWeight="bold">Cabo PE - HEPR/XLPO 1,8 kV:</text>
           <text x={CX + 15} y="681" fontSize="5.5">1 #6,0mm² (T)</text>
 
+          {/* Quadro de Proteção CC em diante (até o Gerador/Módulos) deslocado 5
+              unidades pra cima — reduz em 5% a distância entre o Inversor e o
+              Quadro CC (vão de 99 unidades), a pedido do usuário. */}
+          <g transform="translate(0, -5)">
           {/* ═══════════════ QUADRO DE PROTEÇÃO CC ═══════════════ */}
           <rect x={BX} y="708" width={BW} height="140" fill="white" stroke="#000" strokeWidth="1.2" />
           {/* Label — upper right (same style as QUADRO CA) */}
@@ -806,6 +813,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
           <text x={CX + 55} y="1002" fontSize="5.5">Potência total: {potKwp} kWp</text>
           <text x={CX + 55} y="1011" fontSize="5.5">{tensaoLabel}: {tensaoStr} V</text>
           <text x={CX + 55} y="1020" fontSize="5.5">{corrLabel}: {corrStr} A</text>
+          </g>
           </>)}
 
           {/* ── Multi-inverter columns ── */}

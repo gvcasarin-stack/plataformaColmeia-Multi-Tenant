@@ -653,7 +653,10 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
           <Rect x={490} y={635} width={90} height={16} fill="white" stroke="#000" strokeWidth={0.8} />
           <Text x={535} y={646} fontSize={6} textAnchor="middle" fill="#000">ANTI-ILHAMENTO</Text>
 
-          <Line x1={CX} y1={609} x2={CX} y2={708} stroke="#000" strokeWidth={1} />
+          {/* y2 reduzido de 708 para 703 (5% menos que o vao de 99 unidades entre o
+              Inversor e o Quadro CC) a pedido do usuario — o Quadro CC em diante foi
+              deslocado 5 unidades pra cima (ver <G transform="translate(0,-5)"> abaixo). */}
+          <Line x1={CX} y1={609} x2={CX} y2={703} stroke="#000" strokeWidth={1} />
 
           {/* CC cables annotation — between INVERSOR and QUADRO CC (tap from main line) */}
           <Line x1={CX} y1={644} x2={CX + 12} y2={644} stroke="#000" strokeWidth={0.6} />
@@ -665,6 +668,10 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
           <Text x={CX + 15} y={674} fontSize={5.5} fontFamily="Helvetica-Bold" fill="#000">Cabo PE - HEPR/XLPO 1,8 kV:</Text>
           <Text x={CX + 15} y={681} fontSize={5.5} fill="#000">1 #6,0mm² (T)</Text>
 
+          {/* Quadro de Protecao CC em diante (ate o Gerador/Modulos) deslocado 5
+              unidades pra cima — reduz em 5% a distancia entre o Inversor e o
+              Quadro CC (vao de 99 unidades), a pedido do usuario. */}
+          <G transform="translate(0, -5)">
           {/* ═══ QUADRO DE PROTEÇÃO CC ═══ */}
           <Rect x={BX} y={708} width={BW} height={140} fill="white" stroke="#000" strokeWidth={1.2} />
           {/* Label — upper right (same style as QUADRO CA) */}
@@ -728,6 +735,7 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
           <Text x={CX + 55} y={1002} fontSize={5.5} fill="#000">Potencia total: {potKwp} kWp</Text>
           <Text x={CX + 55} y={1011} fontSize={5.5} fill="#000">{tensaoLabel}: {tensaoStr} V</Text>
           <Text x={CX + 55} y={1020} fontSize={5.5} fill="#000">{corrLabel}: {corrStr} A</Text>
+          </G>
           </>)}
 
           {/* ── Multi-inverter columns ── */}
