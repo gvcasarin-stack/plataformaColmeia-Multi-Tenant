@@ -327,10 +327,9 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // Entrada e o Quadro de Distribuicao (vao de 28 unidades no caso comum, sem
   // Ramal de Entrada: -4.2 do primeiro pedido do usuario + -5 do segundo pedido)
   // — desloca o Quadro de Distribuicao (e tudo que vem depois, dentro do <G>
-  // abaixo — isso inclui a LEGENDA, que tambem fica dentro desse <G>) a mesma
-  // quantidade mais pra cima. O Padrao de Entrada e a legenda do Ramal de
-  // Entrada (fora deste <G>) nao se alteram. VB_MINY abaixo foi ajustado na
-  // mesma proporcao para a LEGENDA nao ultrapassar o limite superior do viewBox.
+  // abaixo) a mesma quantidade mais pra cima. O Padrao de Entrada, a legenda do
+  // Ramal de Entrada e a LEGENDA (glossario, fora deste <G> — ver mais abaixo,
+  // agora com posicao fixa alinhada a Rede de Baixa Tensao) nao se alteram.
   const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 9.2;
   // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
   // o conteudo realmente desenhado (o ultimo elemento, nas colunas do inversor,
@@ -386,9 +385,11 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // em vez do valor fixo antigo, bem mais largo que o desenho real.
   const rightAI = isMultiInv ? (miColBX(numInversores - 1) + miColW + 170) : 0;
   const VB_W = Math.max(legendX + 238, rightAI) + 15;
-  // -34.2 = -25 (original) - 9.2 (mesmo ajuste do YSHIFT acima), pra manter a
-  // mesma folga de 5 unidades no topo da LEGENDA (que fica dentro do <G> que
-  // translada por YSHIFT, entao sobe junto com o Quadro de Distribuicao).
+  // -34.2 = -25 (original) - 9.2 (mesmo ajuste do YSHIFT acima). A LEGENDA
+  // (glossario) agora tem posicao fixa, fora do <G> que translada por YSHIFT,
+  // entao essa folga extra ficou sem uso critico — mantida mesmo assim, sem
+  // nenhum efeito colateral (nao influencia a escala) e so da mais respiro no
+  // topo do quadro.
   const VB_MINY = -34.2;
 
   const CONTENT_PAD_MM = 1;
@@ -951,10 +952,13 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
             })}
           </>)}
           </G>
+          </G>
 
-          {/* ═══ LEGENDA ═══ */}
-          <Rect x={legendX} y={-20} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
-          <Text x={legendX + 119} y={-4} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">LEGENDA:</Text>
+          {/* ═══ LEGENDA ═══ — fora do <G> que translada por YSHIFT (posicao fixa,
+              nao depende de DPS/Ramal de Entrada), alinhada com a linha da Rede de
+              Baixa Tensao (y=28), onde comeca o diagrama, a pedido do usuario. */}
+          <Rect x={legendX} y={28} width={238} height={215} fill="white" stroke="#000" strokeWidth={1} />
+          <Text x={legendX + 119} y={44} fontSize={8} fontFamily="Helvetica-Bold" textAnchor="middle" fill="#000">LEGENDA:</Text>
           {[
             'D1: Disjuntor de entrada ou geral da',
             '       unidade consumidora',
@@ -971,11 +975,8 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
             'NP: Numero de polos do disjuntor',
             'YYY A: Corrente nominal',
           ].map((ln, i) => (
-            <Text key={i} x={legendX + 8} y={10 + i * 13} fontSize={6.5} fill="#000">{ln}</Text>
+            <Text key={i} x={legendX + 8} y={58 + i * 13} fontSize={6.5} fill="#000">{ln}</Text>
           ))}
-
-
-          </G>
         </Svg>
 
         {/* ═══ SELO — mesma estrutura padronizada do Diagrama de Blocos

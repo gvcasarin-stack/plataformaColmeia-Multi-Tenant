@@ -341,11 +341,9 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // Entrada e o Quadro de Distribuição (vão de 28 unidades no caso comum, sem
   // Ramal de Entrada: -4.2 do primeiro pedido do usuário + -5 do segundo pedido)
   // — desloca o Quadro de Distribuição (e tudo que vem depois, dentro do <g>
-  // abaixo — isso inclui a LEGENDA, que também fica dentro desse <g>) a mesma
-  // quantidade mais pra cima. O Padrão de Entrada e a legenda do Ramal de
-  // Entrada (fora deste <g>) não se alteram. O minY do viewBox abaixo foi
-  // ajustado na mesma proporção para a LEGENDA não ultrapassar o limite
-  // superior do viewBox.
+  // abaixo) a mesma quantidade mais pra cima. O Padrão de Entrada, a legenda do
+  // Ramal de Entrada e a LEGENDA (glossário, fora deste <g> — ver mais abaixo,
+  // agora com posição fixa alinhada à Rede de Baixa Tensão) não se alteram.
   const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 9.2;
   // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
   // o conteúdo realmente desenhado (o último elemento, nas colunas do inversor,
@@ -1040,10 +1038,14 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
             })}
           </>)}
           </g>
+          </g>
 
-          {/* ═══════════════ LEGENDA (top right) ═══════════════ */}
-          <rect x={legendX} y="-20" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
-          <text x={legendX + 119} y="-4" fontSize="8" fontWeight="bold" textAnchor="middle">LEGENDA:</text>
+          {/* ═══════════════ LEGENDA (top right) ═══════════════ — fora do <g> que
+              translada por YSHIFT (posição fixa, não depende de DPS/Ramal de
+              Entrada), alinhada com a linha da Rede de Baixa Tensão (y=28), onde
+              começa o diagrama, a pedido do usuário. */}
+          <rect x={legendX} y="28" width="238" height="215" fill="white" stroke="#000" strokeWidth="1" />
+          <text x={legendX + 119} y="44" fontSize="8" fontWeight="bold" textAnchor="middle">LEGENDA:</text>
           {[
             'D1: Disjuntor de entrada ou geral da',
             '       unidade consumidora',
@@ -1060,11 +1062,8 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
             'NP: Número de polos do disjuntor',
             'YYY A: Corrente nominal',
           ].map((ln, i) => (
-            <text key={i} x={legendX + 8} y={10 + i * 13} fontSize="6.5">{ln}</text>
+            <text key={i} x={legendX + 8} y={58 + i * 13} fontSize="6.5">{ln}</text>
           ))}
-
-
-          </g>
         </svg>
       </div>
       </div>
