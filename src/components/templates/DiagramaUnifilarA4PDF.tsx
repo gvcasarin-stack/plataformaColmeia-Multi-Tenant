@@ -317,7 +317,11 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // visual da legenda do Ramal de Ligacao (acima), com os campos do Ramal de
   // Entrada. Precisa de espaco vertical extra, somado ao YSHIFT abaixo.
   const hasRamalEntradaLegend = isEnergisa;
-  const RAMAL_ENTRADA_GAP = 58;
+  // Reduzido de 58 para 50 (8 pontos mais proximo) a pedido do usuario — espaco
+  // extra reservado so quando ha a legenda do Ramal de Entrada (Energisa); ainda
+  // sobra folga suficiente entre o fim do texto dessa legenda e o Quadro de
+  // Distribuicao (nao sobrepoe nada).
+  const RAMAL_ENTRADA_GAP = 50;
   const ramalEntradaTapY = padraoEntradaBottom + 43;
   // Tudo que fica abaixo do Padrao de Entrada (Quadro de Distribuicao em diante)
   // desce a mesma quantidade que o retangulo cresceu — com YSHIFT=0 (sem DPS e
