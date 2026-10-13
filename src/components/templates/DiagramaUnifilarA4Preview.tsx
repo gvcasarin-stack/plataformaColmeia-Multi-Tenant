@@ -337,7 +337,12 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // abaixo — com YSHIFT=0 (caso sem DPS e sem legenda do Ramal de Entrada) o
   // translate não faz nada, e o restante do diagrama fica byte-a-byte igual ao
   // de sempre.
-  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0);
+  // -4.2 = redução de 15% na distância entre o retângulo do Padrão de Entrada e
+  // o Quadro de Distribuição (vão de 28 unidades no caso comum, sem Ramal de
+  // Entrada) — a pedido do usuário. Desloca só o Quadro de Distribuição (e tudo
+  // que vem depois, dentro do <g> abaixo) 4.2 unidades mais pra cima; o Padrão de
+  // Entrada e a legenda do Ramal de Entrada (fora deste <g>) não se alteram.
+  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 4.2;
   // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
   // o conteúdo realmente desenhado (o último elemento, nas colunas do inversor,
   // termina em y=1020, ou 1095 com saídas agrupadas), em vez do valor fixo antigo

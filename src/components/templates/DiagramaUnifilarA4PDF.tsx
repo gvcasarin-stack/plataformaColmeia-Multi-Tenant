@@ -323,7 +323,12 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // desce a mesma quantidade que o retangulo cresceu — com YSHIFT=0 (sem DPS e
   // sem legenda do Ramal de Entrada) o translate nao faz nada e o resto do
   // diagrama fica igual ao de sempre.
-  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0);
+  // -4.2 = reducao de 15% na distancia entre o retangulo do Padrao de Entrada e
+  // o Quadro de Distribuicao (vao de 28 unidades no caso comum, sem Ramal de
+  // Entrada) — a pedido do usuario. Desloca so o Quadro de Distribuicao (e tudo
+  // que vem depois, dentro do <G> abaixo) 4.2 unidades mais pra cima; o Padrao de
+  // Entrada e a legenda do Ramal de Entrada (fora deste <G>) nao se alteram.
+  const YSHIFT = (padraoEntradaBH - 150) + (hasRamalEntradaLegend ? RAMAL_ENTRADA_GAP : 0) - 4.2;
   // Altura "base" do viewBox, antes do YSHIFT — ajustada para acompanhar de perto
   // o conteudo realmente desenhado (o ultimo elemento, nas colunas do inversor,
   // termina em y=1020, ou 1095 com saidas agrupadas), em vez do valor fixo antigo
