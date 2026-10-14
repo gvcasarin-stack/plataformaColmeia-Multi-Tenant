@@ -379,7 +379,7 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   // nessas duas, convencao NBR ja usada no Padrao de Entrada em A3 paisagem).
   const PT_PER_MM = 72 / 25.4;
   const mm = (v: number) => v * PT_PER_MM;
-  const sheetTier: 'A4' | 'A2' | 'A1' = numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A4');
+  const sheetTier: 'A4' | 'A2' | 'A1' = numInversores >= 4 ? 'A1' : (numInversores >= 2 ? 'A2' : 'A4');
   const PAGE_W_MM = sheetTier === 'A1' ? 841 : (sheetTier === 'A2' ? 594 : 210);
   const PAGE_H_MM = sheetTier === 'A1' ? 594 : (sheetTier === 'A2' ? 420 : 297);
   const FRAME = sheetTier === 'A4'
