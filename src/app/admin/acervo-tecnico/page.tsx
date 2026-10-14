@@ -59,6 +59,7 @@ const CATEGORIAS = [
   { value: 'normas_tecnicas', label: 'Normas Técnicas' },
   { value: 'diagrama_unifilar', label: 'Diagrama Unifilar' },
   { value: 'placa_advertencia', label: 'Placa de Advertência' },
+  { value: 'logo_distribuidora', label: 'Logo da Distribuidora' },
   { value: 'outro', label: 'Outro' },
 ];
 
@@ -1010,7 +1011,7 @@ export default function AcervoTecnicoPage() {
                   <CardContent className="space-y-4">
                     <div>
                       <Label className="text-sm">Nome *</Label>
-                      <Input value={newNome} onChange={e => setNewNome(e.target.value)} placeholder="Ex: Caixa Monofásica Padrão" className="mt-1" />
+                      <Input value={newNome} onChange={e => setNewNome(e.target.value)} placeholder={selectedCategoria === 'logo_distribuidora' ? 'Ex: Logo Equatorial' : 'Ex: Caixa Monofásica Padrão'} className="mt-1" />
                     </div>
                     <div>
                       <Label className="text-sm">Descrição</Label>
@@ -1036,7 +1037,7 @@ export default function AcervoTecnicoPage() {
                       </div>
                     )}
                     <div>
-                      <Label className="text-sm">{selectedCategoria === 'normas_tecnicas' ? 'Arquivo PDF' : 'Imagem'}</Label>
+                      <Label className="text-sm">{selectedCategoria === 'normas_tecnicas' ? 'Arquivo PDF' : selectedCategoria === 'logo_distribuidora' ? 'Logo (PNG, SVG ou JPG)' : 'Imagem'}</Label>
                       <input ref={fileInputRef} type="file"
                         accept={selectedCategoria === 'normas_tecnicas' ? 'application/pdf' : 'image/*'}
                         className="hidden" onChange={e => handleFileSelect(e, 'new')} />
