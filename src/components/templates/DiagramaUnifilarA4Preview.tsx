@@ -403,6 +403,21 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   const rightAI = isMultiInv ? (miColBX(numInversores - 1) + miColW + 170) : 0;
   const vbWidth = Math.max(legendX + 238, rightAI) + 15;
 
+  // Moldura NBR 10068 + selo padronizado. 1-2 inversores continuam em A4
+  // retrato (nada muda); a pedido do usuário, 3 inversores passam a usar A2
+  // paisagem e 4+ inversores A1 paisagem — mesma convenção do PDF (selo
+  // ocupando a metade direita da folha nessas duas, como no Padrão de
+  // Entrada em A3 paisagem).
+  const sheetTier: 'A4' | 'A2' | 'A1' = numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A4');
+  const PAGE_W_MM = sheetTier === 'A1' ? 841 : (sheetTier === 'A2' ? 594 : 210);
+  const PAGE_H_MM = sheetTier === 'A1' ? 594 : (sheetTier === 'A2' ? 420 : 297);
+  const FRAME = sheetTier === 'A4'
+    ? { x: 25, y: 10, w: 175, h: 277 } // inalterado
+    : { x: 25, y: 10, w: PAGE_W_MM - 35, h: PAGE_H_MM - 20 };
+  const SELO = sheetTier === 'A4'
+    ? { x: 25, y: 251.3, w: 175, h: 35.7 } // full-width (inalterado)
+    : { x: FRAME.x + FRAME.w / 2, y: FRAME.y + FRAME.h - 35.7, w: FRAME.w / 2, h: 35.7 };
+
   const handleGeneratePdf = async () => {
     setGenerating(true);
     try {
@@ -449,7 +464,9 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
           usada no Diagrama de Blocos. O diagrama original (viewBox dinâmico)
           fica dentro da área de conteúdo, com rolagem se necessário — a
           escala-para-caber de fato é aplicada apenas no PDF. ═══ */}
-      <div style={{ position: 'relative', width: '210mm', height: '297mm', background: '#ffffff', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ position: 'relative', width: `${PAGE_W_MM}mm`, height: `${PAGE_H_MM}mm`, background: '#ffffff', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+        {sheetTier === 'A4' ? (
+        <>
         {/* borda de corte */}
         <div style={{ position: 'absolute', left: '0.5mm', top: '0.5mm', width: '209mm', height: '296mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
         {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
@@ -459,9 +476,23 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
         <div style={{ position: 'absolute', left: '112.15mm', top: '287mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
         <div style={{ position: 'absolute', left: '0.5mm', top: '148.15mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
         <div style={{ position: 'absolute', left: '200mm', top: '148.15mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
+        </>
+        ) : (
+        <>
+        {/* borda de corte — A2/A1 paisagem */}
+        <div style={{ position: 'absolute', left: '0.5mm', top: '0.5mm', width: `${PAGE_W_MM - 1}mm`, height: `${PAGE_H_MM - 1}mm`, border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
+        <div style={{ position: 'absolute', left: `${FRAME.x}mm`, top: `${FRAME.y}mm`, width: `${FRAME.w}mm`, height: `${FRAME.h}mm`, border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        {/* marcas de centragem — no ponto médio real do quadro */}
+        <div style={{ position: 'absolute', left: `${FRAME.x + FRAME.w / 2}mm`, top: '0.5mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: `${FRAME.x + FRAME.w / 2}mm`, top: `${FRAME.y + FRAME.h}mm`, width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '0.5mm', top: `${FRAME.y + FRAME.h / 2}mm`, width: `${FRAME.x - 0.5}mm`, height: '0.7mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: `${FRAME.x + FRAME.w}mm`, top: `${FRAME.y + FRAME.h / 2}mm`, width: `${PAGE_W_MM - 0.5 - (FRAME.x + FRAME.w)}mm`, height: '0.7mm', background: '#161513' }} />
+        </>
+        )}
 
       {/* Diagrama — área de conteúdo entre o topo do quadro e o selo */}
-      <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '175mm', height: '241.3mm', overflow: 'auto', boxSizing: 'border-box' }}>
+      <div style={{ position: 'absolute', left: `${FRAME.x}mm`, top: `${FRAME.y}mm`, width: `${FRAME.w}mm`, height: `${SELO.y - FRAME.y}mm`, overflow: 'auto', boxSizing: 'border-box' }}>
       {/* "Jogar todo o desenho 5 unidades pra cima", a pedido do usuário — leve
           ajuste de posição (a área acima tem rolagem própria, então isso nunca
           corta nada, só muda o ponto de partida do scroll). */}
@@ -469,7 +500,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
         <svg
           viewBox={`${vbMinX} -34.2 ${vbWidth} ${vbHeight}`}
           width="100%"
-          style={{ maxWidth: vbWidth, display: 'block', margin: '0 auto' }}
+          style={{ maxWidth: sheetTier === 'A4' ? vbWidth : undefined, display: 'block', margin: '0 auto' }}
           xmlns="http://www.w3.org/2000/svg"
           fontFamily="Arial, Helvetica, sans-serif"
         >
@@ -1072,8 +1103,9 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
       </div>
       </div>
 
-        {/* ═══ SELO — mesma estrutura padronizada do Diagrama de Blocos (A4
-            retrato, selo full-width 175x35,7mm). ═══ */}
+        {sheetTier === 'A4' ? (
+        /* ═══ SELO — mesma estrutura padronizada do Diagrama de Blocos (A4
+            retrato, selo full-width 175x35,7mm). ═══ */
         <div style={{ position: 'absolute', left: '25mm', top: '251.3mm', width: '175mm', height: '35.7mm', border: '0.6mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', color: '#161513' }}>
 
           {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
@@ -1119,6 +1151,56 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
           </div>
 
         </div>
+        ) : (
+        /* ═══ SELO — A2/A1 paisagem: mesma convenção do Padrão de Entrada em
+            A3 paisagem (selo ocupando a metade direita da folha, mesma altura
+            de 35,7mm, só com as colunas escaladas pra largura disponível). ═══ */
+        <div style={{ position: 'absolute', left: `${SELO.x}mm`, top: `${SELO.y}mm`, width: `${SELO.w}mm`, height: '35.7mm', border: '0.6mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', color: '#161513' }}>
+
+          {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
+          <div style={{ width: `${SELO.w * 36 / 175}mm`, borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a' }}>PRODUTO</span>
+              <span style={{ fontSize: '3.6mm', fontWeight: 'bold', textAlign: 'center' }}>GFV {potKwp} kWp</span>
+            </div>
+            {([['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', sheetTier], ['FOLHA', '1/1'], ['REVISÃO', 'R0']] as const).map(([label, value], i, arr) => (
+              <div key={label} style={{ height: '5.54mm', borderBottom: i < arr.length - 1 ? '0.35mm solid #161513' : undefined, padding: '0 1mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <span style={{ fontSize: '2mm', fontWeight: 'bold', color: '#5a5a5a' }}>{label}</span>
+                <span style={{ fontSize: '2.2mm', textAlign: 'center' }}>{value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
+          <div style={{ width: `${SELO.w * 100 / 175}mm`, borderRight: '0.5mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ height: '8mm', borderBottom: '0.5mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</span>
+              <span style={{ fontSize: '3.2mm', fontWeight: 'bold', textAlign: 'center' }}>DIAGRAMA UNIFILAR</span>
+            </div>
+            <div style={{ height: '14.7mm', borderBottom: '0.35mm solid #161513', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', lineHeight: 1.15 }}>Proprietário e Obra:</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>Nome: {owner}</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>Endereço: {endereco}</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</span>
+              <span style={{ fontSize: '2.4mm', lineHeight: 1.15 }}>CEP: {cep}</span>
+            </div>
+            <div style={{ height: '13mm', padding: '0 1.5mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <span style={{ fontSize: '2.3mm', fontWeight: 'bold', color: '#5a5a5a', lineHeight: 1.15 }}>Responsável Técnico:</span>
+              <span style={{ fontSize: '2.6mm', fontWeight: 'bold', lineHeight: 1.15 }}>{respNome}</span>
+              <span style={{ fontSize: '2.2mm', lineHeight: 1.15 }}>TÉCNICO EM ELETROTÉCNICA</span>
+              <span style={{ fontSize: '2.2mm', lineHeight: 1.15 }}>CFT: {respCft}</span>
+            </div>
+          </div>
+
+          {/* Coluna 3: Logo da empresa */}
+          <div style={{ width: `${SELO.w * 39 / 175}mm`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm', boxSizing: 'border-box' }}>
+            {pd.logo_empresa_url
+              ? <img src={pd.logo_empresa_url} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              : null}
+          </div>
+
+        </div>
+        )}
       </div>
 
       {/* PDF download button */}

@@ -371,16 +371,23 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
   const hShift = !isMultiInv ? 30 : 0;
   const hShiftTransform = hShift ? `translate(${hShift}, 0)` : undefined;
 
-  // ── Folha A4 retrato em escala real (1mm = 72/25.4pt), mesmo padrão do
-  // Diagrama de Blocos: moldura NBR 10068 fixa + selo padronizado full-width.
-  // O diagrama (viewBox dinâmico conforme nº de inversores/YSHIFT) é escalado
-  // para caber na área de conteúdo do quadro — a folha aqui é sempre A4 fixo,
-  // ao contrário do arquivo original (que ajusta o tamanho da pagina p/
-  // A1/A2/A3 conforme o numero de inversores).
+  // ── Folha em escala real (1mm = 72/25.4pt) — moldura NBR 10068 + selo
+  // padronizado. 1-2 inversores continuam em A4 retrato (nao muda nada do que
+  // ja estava); a pedido do usuario, 3 inversores passam a usar A2 paisagem e
+  // 4+ inversores A1 paisagem — mais espaco pra cada coluna de inversor
+  // extra, com a mesma moldura/selo (selo ocupando a metade direita da folha
+  // nessas duas, convencao NBR ja usada no Padrao de Entrada em A3 paisagem).
   const PT_PER_MM = 72 / 25.4;
   const mm = (v: number) => v * PT_PER_MM;
-  const FRAME = { x: 25, y: 10, w: 175, h: 277 }; // direita=200, baixo=287
-  const SELO = { x: 25, y: 251.3, w: 175, h: 35.7 };
+  const sheetTier: 'A4' | 'A2' | 'A1' = numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : 'A4');
+  const PAGE_W_MM = sheetTier === 'A1' ? 841 : (sheetTier === 'A2' ? 594 : 210);
+  const PAGE_H_MM = sheetTier === 'A1' ? 594 : (sheetTier === 'A2' ? 420 : 297);
+  const FRAME = sheetTier === 'A4'
+    ? { x: 25, y: 10, w: 175, h: 277 } // direita=200, baixo=287 (inalterado)
+    : { x: 25, y: 10, w: PAGE_W_MM - 35, h: PAGE_H_MM - 20 };
+  const SELO = sheetTier === 'A4'
+    ? { x: 25, y: 251.3, w: 175, h: 35.7 } // full-width (inalterado)
+    : { x: FRAME.x + FRAME.w / 2, y: FRAME.y + FRAME.h - 35.7, w: FRAME.w / 2, h: 35.7 }; // metade direita
   const SC = '#161513';
 
   const VB_MINX = numInversores >= 4 ? -100 : (numInversores >= 3 ? -25 : 0);
@@ -438,8 +445,10 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
 
   return (
     <Document>
-      <Page size="A4" style={{ backgroundColor: '#FFFFFF' }}>
+      <Page size={sheetTier} orientation={sheetTier === 'A4' ? undefined : 'landscape'} style={{ backgroundColor: '#FFFFFF' }}>
         <View style={{ position: 'relative', width: '100%', height: '100%' }}>
+          {sheetTier === 'A4' ? (
+          <>
           {/* borda de corte */}
           <View style={{ position: 'absolute', left: mm(0.5), top: mm(0.5), width: mm(209), height: mm(296), borderWidth: 0.75, borderColor: SC }} />
           {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
@@ -449,6 +458,20 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
           <View style={{ position: 'absolute', left: mm(112.15), top: mm(287), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
           <View style={{ position: 'absolute', left: mm(0.5), top: mm(148.15), width: mm(24.5), height: 0.75, backgroundColor: SC }} />
           <View style={{ position: 'absolute', left: mm(200), top: mm(148.15), width: mm(9.5), height: 0.75, backgroundColor: SC }} />
+          </>
+          ) : (
+          <>
+          {/* borda de corte — A2/A1 paisagem */}
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(0.5), width: mm(PAGE_W_MM - 1), height: mm(PAGE_H_MM - 1), borderWidth: 0.75, borderColor: SC }} />
+          {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
+          <View style={{ position: 'absolute', left: mm(FRAME.x), top: mm(FRAME.y), width: mm(FRAME.w), height: mm(FRAME.h), borderWidth: 0.75, borderColor: SC }} />
+          {/* marcas de centragem — no ponto medio real do quadro */}
+          <View style={{ position: 'absolute', left: mm(FRAME.x + FRAME.w / 2), top: mm(0.5), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(FRAME.x + FRAME.w / 2), top: mm(FRAME.y + FRAME.h), width: 0.75, height: mm(9.5), backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(0.5), top: mm(FRAME.y + FRAME.h / 2), width: mm(FRAME.x - 0.5), height: 0.75, backgroundColor: SC }} />
+          <View style={{ position: 'absolute', left: mm(FRAME.x + FRAME.w), top: mm(FRAME.y + FRAME.h / 2), width: mm(PAGE_W_MM - 0.5 - (FRAME.x + FRAME.w)), height: 0.75, backgroundColor: SC }} />
+          </>
+          )}
 
         <Svg style={{ position: 'absolute', left: CONTENT_LEFT, top: CONTENT_TOP }} width={SVG_W} height={SVG_H} viewBox={`${VB_MINX} ${VB_MINY} ${VB_W} ${VB_H}`}>
 
@@ -983,8 +1006,9 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
           ))}
         </Svg>
 
-        {/* ═══ SELO — mesma estrutura padronizada do Diagrama de Blocos
-            (A4 retrato, selo full-width 175x35,7mm). ═══ */}
+        {sheetTier === 'A4' ? (
+        /* ═══ SELO — mesma estrutura padronizada do Diagrama de Blocos
+            (A4 retrato, selo full-width 175x35,7mm). ═══ */
         <View style={{ position: 'absolute', left: mm(SELO.x), top: mm(SELO.y), width: mm(SELO.w), height: mm(SELO.h), borderWidth: 0.75, borderColor: SC, flexDirection: 'row' }}>
           {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
           <View style={{ width: mm(36), borderRightWidth: 0.5, borderRightColor: SC }}>
@@ -1028,6 +1052,55 @@ export function DiagramaUnifilarA4PDF({ projectData, placaAdvertencia }: Diagram
               : null}
           </View>
         </View>
+        ) : (
+        /* ═══ SELO — A2/A1 paisagem: mesma convenção do Padrão de Entrada em
+            A3 paisagem (selo ocupando a metade direita da folha, mesma altura
+            de 35,7mm e mesmas proporções de coluna, só escaladas pra largura
+            disponível). ═══ */
+        <View style={{ position: 'absolute', left: mm(SELO.x), top: mm(SELO.y), width: mm(SELO.w), height: mm(SELO.h), borderWidth: 0.75, borderColor: SC, flexDirection: 'row' }}>
+          {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
+          <View style={{ width: mm(SELO.w * 36 / 175), borderRightWidth: 0.5, borderRightColor: SC }}>
+            <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 3 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>PRODUTO</Text>
+              <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 1 }}>GFV {potKwp} kWp</Text>
+            </View>
+            {([['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', sheetTier], ['FOLHA', '1/1'], ['REVISÃO', 'R0']] as const).map(([lbl, val], i, arr) => (
+              <View key={lbl} style={{ height: mm(5.54), borderBottomWidth: i < arr.length - 1 ? 0.35 : 0, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 3 }}>
+                <Text style={{ fontSize: 5.6, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>{lbl}</Text>
+                <Text style={{ fontSize: 6.2, textAlign: 'center' }}>{val}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
+          <View style={{ width: mm(SELO.w * 100 / 175), borderRightWidth: 0.5, borderRightColor: SC }}>
+            <View style={{ height: mm(8), borderBottomWidth: 0.5, borderBottomColor: SC, justifyContent: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</Text>
+              <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>DIAGRAMA UNIFILAR</Text>
+            </View>
+            <View style={{ height: mm(14.7), borderBottomWidth: 0.35, borderBottomColor: SC, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>Proprietário e Obra:</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 2 }}>Nome: {owner}</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 1.6 }}>Endereço: {endereco}</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 1.6 }}>Cidade: {uf ? `${cidade} - ${uf}` : cidade}</Text>
+              <Text style={{ fontSize: 6.8, textAlign: 'center', marginTop: 1.6 }}>CEP: {cep}</Text>
+            </View>
+            <View style={{ height: mm(13), justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#5a5a5a' }}>Responsável Técnico:</Text>
+              <Text style={{ fontSize: 7.3, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginTop: 2 }}>{respNome}</Text>
+              <Text style={{ fontSize: 6.2, textAlign: 'center', marginTop: 1.6 }}>TÉCNICO EM ELETROTÉCNICA</Text>
+              <Text style={{ fontSize: 6.2, textAlign: 'center', marginTop: 1.6 }}>CFT: {respCft}</Text>
+            </View>
+          </View>
+
+          {/* Coluna 3: Logo da empresa */}
+          <View style={{ width: mm(SELO.w * 39 / 175), alignItems: 'center', justifyContent: 'center', padding: 3 }}>
+            {pd.logo_empresa_url
+              ? <Image src={pd.logo_empresa_url} style={{ width: '100%', maxHeight: mm(27), objectFit: 'contain' }} />
+              : null}
+          </View>
+        </View>
+        )}
 
         {/* Placa de Advertência (CPFL) — mesma técnica do logo acima (imagem fora do Svg, posição absoluta escalada) */}
         {isCPFL && placaAdvertencia && (
