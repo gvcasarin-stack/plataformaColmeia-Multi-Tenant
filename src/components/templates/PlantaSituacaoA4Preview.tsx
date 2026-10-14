@@ -311,7 +311,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         filename: `Planta de Situacao A4 (teste) - ${clientName || 'projeto'}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 1.5, useCORS: true, allowTaint: true, width: previewRef.current.offsetWidth, height: previewRef.current.offsetHeight },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' },
       }).from(previewRef.current).save();
     } catch (err) { console.error('Erro ao gerar PDF:', err); }
     finally { setGenerating(false); }
@@ -471,13 +471,15 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         </div>
       )}
 
-      {/* ══ Prancha A4 (retrato) — moldura NBR 10068 + selo padronizado, mesmo
-          padrão já aplicado ao Diagrama de Blocos e ao Diagrama Unifilar A4 ══ */}
+      {/* ══ Prancha A3 (paisagem) — moldura NBR 10068 + selo padronizado, mesma
+          convenção já usada no Padrão de Entrada em A3 paisagem (selo ocupando
+          a metade direita da folha). Altura igual à da prancha A4 retrato
+          anterior (297mm); só a largura dobra (210→420mm). ══ */}
       <div
         ref={previewRef}
         style={{
           position: 'relative',
-          width: '210mm',
+          width: '420mm',
           height: '297mm',
           backgroundColor: '#ffffff',
           fontFamily: 'Arial, Helvetica, sans-serif',
@@ -487,14 +489,14 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         }}
       >
         {/* borda de corte */}
-        <div style={{ position: 'absolute', left: '0.5mm', top: '0.5mm', width: '209mm', height: '296mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        <div style={{ position: 'absolute', left: '0.5mm', top: '0.5mm', width: '419mm', height: '296mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
         {/* quadro NBR 10068 (margem esq. 25mm p/ encadernação) */}
-        <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '175mm', height: '277mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
+        <div style={{ position: 'absolute', left: '25mm', top: '10mm', width: '385mm', height: '277mm', border: '0.6mm solid #161513', boxSizing: 'border-box' }} />
         {/* marcas de centragem */}
-        <div style={{ position: 'absolute', left: '112.15mm', top: '0.5mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
-        <div style={{ position: 'absolute', left: '112.15mm', top: '287mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
-        <div style={{ position: 'absolute', left: '0.5mm', top: '148.15mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
-        <div style={{ position: 'absolute', left: '200mm', top: '148.15mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '217.5mm', top: '0.5mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '217.5mm', top: '287mm', width: '0.7mm', height: '9.5mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '0.5mm', top: '148.5mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
+        <div style={{ position: 'absolute', left: '410mm', top: '148.5mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
 
         {/* Área do mapa — dentro da área de conteúdo do quadro (entre o topo e o selo) */}
         <div
@@ -503,7 +505,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             position: 'absolute',
             left: '30mm',
             top: '15mm',
-            width: '165mm',
+            width: '375mm',
             height: '231.3mm',
             border: '1px solid #333',
             overflow: 'hidden',
@@ -650,20 +652,21 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
           )}
         </div>
 
-        {/* ═══ SELO — mesma estrutura padronizada do Diagrama de Blocos e do
-            Diagrama Unifilar A4 (full-width 175x35,7mm), renderizada em 2x +
-            scale(0.5) para contornar fonte mínima do browser em html2canvas
-            (técnica já usada no selo anterior desta prancha). ═══ */}
-        <div style={{ position: 'absolute', left: '25mm', top: '251.3mm', width: '175mm', height: '35.7mm', overflow: 'hidden', boxSizing: 'border-box' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: 'scale(0.5)', width: '350mm', height: '71.4mm', border: '1.2mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', overflow: 'hidden', backgroundColor: '#fff', color: '#161513' }}>
+        {/* ═══ SELO — mesma convenção do Padrão de Entrada em A3 paisagem
+            (selo ocupando a metade direita da folha, 192,5x35,7mm),
+            renderizada em 2x + scale(0.5) para contornar fonte mínima do
+            browser em html2canvas (técnica já usada no selo anterior desta
+            prancha). ═══ */}
+        <div style={{ position: 'absolute', left: '217.5mm', top: '251.3mm', width: '192.5mm', height: '35.7mm', overflow: 'hidden', boxSizing: 'border-box' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', transform: 'scale(0.5)', width: '385mm', height: '71.4mm', border: '1.2mm solid #161513', display: 'flex', flexDirection: 'row', boxSizing: 'border-box', overflow: 'hidden', backgroundColor: '#fff', color: '#161513' }}>
 
             {/* Coluna 1: Produto / Data / Escala / Tamanho / Folha / Revisão */}
-            <div style={{ width: '72mm', borderRight: '1mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ width: '80mm', borderRight: '1mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
               <div style={{ height: '16mm', borderBottom: '1mm solid #161513', padding: '0 2mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <span style={{ fontSize: '4.6mm', fontWeight: 'bold', color: '#5a5a5a' }}>PRODUTO</span>
                 <span style={{ fontSize: '7.2mm', fontWeight: 'bold', textAlign: 'center' }}>GFV {potencia ? `${potencia} kWp` : '___'}</span>
               </div>
-              {([['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A4'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']] as const).map(([label, value], i, arr) => (
+              {([['DATA', dataDoc], ['ESCALA', 'S/ ESCALA'], ['TAMANHO', 'A3'], ['FOLHA', '1/1'], ['REVISÃO', 'R0']] as const).map(([label, value], i, arr) => (
                 <div key={label} style={{ height: '11.08mm', borderBottom: i < arr.length - 1 ? '0.7mm solid #161513' : undefined, padding: '0 2mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <span style={{ fontSize: '4mm', fontWeight: 'bold', color: '#5a5a5a' }}>{label}</span>
                   <span style={{ fontSize: '4.4mm', textAlign: 'center' }}>{value}</span>
@@ -672,7 +675,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             </div>
 
             {/* Coluna 2: Título + Proprietário e Obra + Responsável Técnico */}
-            <div style={{ width: '200mm', borderRight: '1mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ width: '220mm', borderRight: '1mm solid #161513', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
               <div style={{ height: '16mm', borderBottom: '1mm solid #161513', padding: '0 3mm', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <span style={{ fontSize: '4.6mm', fontWeight: 'bold', color: '#5a5a5a', textAlign: 'center' }}>TÍTULO</span>
                 <span style={{ fontSize: '6.4mm', fontWeight: 'bold', textAlign: 'center' }}>PLANTA DE SITUAÇÃO</span>
@@ -693,7 +696,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             </div>
 
             {/* Coluna 3: Logo da empresa */}
-            <div style={{ width: '78mm', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2mm', boxSizing: 'border-box' }}>
+            <div style={{ width: '85mm', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2mm', boxSizing: 'border-box' }}>
               {logoUrl
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
