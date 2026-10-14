@@ -425,7 +425,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
       const { DiagramaUnifilarA4PDF } = await import('./DiagramaUnifilarA4PDF');
       const React = await import('react');
       const clientName = pd?.nomeClienteFinal || 'projeto';
-      const filename = `Diagrama Unifilar A4 (teste) - ${clientName}.pdf`;
+      const filename = `Diagrama Unifilar (teste) - ${clientName}.pdf`;
       const blob = await pdf(React.createElement(DiagramaUnifilarA4PDF, { projectData, placaAdvertencia })).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -455,7 +455,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
           {generating ? (
             <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
           ) : (
-            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Diagrama Unifilar A4 (teste)</>
+            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Diagrama Unifilar (teste)</>
           )}
         </Button>
       </div>
@@ -1214,7 +1214,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
           {generating ? (
             <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
           ) : (
-            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Diagrama Unifilar A4 (teste)</>
+            <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Diagrama Unifilar (teste)</>
           )}
         </Button>
       </div>

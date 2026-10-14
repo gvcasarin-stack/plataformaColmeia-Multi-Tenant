@@ -3298,11 +3298,11 @@ export const ExpandedProjectView = ({
                                       </div>
                                       <div className="flex-1">
                                         <h4 className="font-medium text-gray-800 dark:text-gray-200">
-                                          Diagrama Unifilar A4
+                                          Diagrama Unifilar (teste)
                                           <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
                                         </h4>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Versão de teste em prancha A4 padronizada, com moldura e selo (visível só para superadmin).
+                                          Versão de teste em prancha padronizada, com moldura e selo (visível só para superadmin).
                                         </p>
                                       </div>
                                     </div>
@@ -3357,11 +3357,11 @@ export const ExpandedProjectView = ({
                                       </div>
                                       <div className="flex-1">
                                         <h4 className="font-medium text-gray-800 dark:text-gray-200">
-                                          Planta de Situação A4
+                                          Planta de Situação (teste)
                                           <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
                                         </h4>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Versão de teste em prancha A4 padronizada, com moldura e selo (visível só para superadmin).
+                                          Versão de teste em prancha padronizada, com moldura e selo (visível só para superadmin).
                                         </p>
                                       </div>
                                     </div>
@@ -3592,7 +3592,7 @@ export const ExpandedProjectView = ({
                             <div className="mt-6">
                               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                 <FileText className="h-5 w-5 text-indigo-500" />
-                                Pré-visualização — Diagrama Unifilar A4 (teste)
+                                Pré-visualização — Diagrama Unifilar (teste)
                                 <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
                               </h3>
                               <div className="rounded-md border border-indigo-200 dark:border-indigo-700 p-4 max-h-[900px] overflow-y-auto">
@@ -3633,7 +3633,7 @@ export const ExpandedProjectView = ({
                             <div className="mt-6">
                               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                 <MapPin className="h-5 w-5 text-teal-500" />
-                                Pré-visualização — Planta de Situação A4 (teste)
+                                Pré-visualização — Planta de Situação (teste)
                                 <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
                               </h3>
                               <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">

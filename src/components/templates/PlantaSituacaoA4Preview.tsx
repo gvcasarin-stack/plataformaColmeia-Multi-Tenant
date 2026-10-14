@@ -308,7 +308,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       const html2pdf = (await import('html2pdf.js')).default;
       await html2pdf().set({
         margin: 0,
-        filename: `Planta de Situacao A4 (teste) - ${clientName || 'projeto'}.pdf`,
+        filename: `Planta de Situacao (teste) - ${clientName || 'projeto'}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 1.5, useCORS: true, allowTaint: true, width: previewRef.current.offsetWidth, height: previewRef.current.offsetHeight },
         jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' },
@@ -329,7 +329,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
           {generating
             ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
-            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação A4 (teste)</>}
+            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação (teste)</>}
         </Button>
       </div>
 
@@ -498,14 +498,17 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         <div style={{ position: 'absolute', left: '0.5mm', top: '148.5mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
         <div style={{ position: 'absolute', left: '410mm', top: '148.5mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
 
-        {/* Área do mapa — dentro da área de conteúdo do quadro (entre o topo e o selo) */}
+        {/* Área do mapa — mesmo tamanho/nitidez da versão A4 anterior (a imagem de
+            satélite é buscada em resolução fixa do Mapbox; esticá-la pra 375mm de
+            largura deixava a imagem com aspecto "estourado") — centralizada
+            horizontalmente na área de conteúdo do quadro, que agora é mais larga. */}
         <div
           ref={mapRef}
           style={{
             position: 'absolute',
-            left: '30mm',
+            left: '135mm',
             top: '15mm',
-            width: '375mm',
+            width: '165mm',
             height: '231.3mm',
             border: '1px solid #333',
             overflow: 'hidden',
@@ -711,7 +714,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
           {generating
             ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
-            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação A4 (teste)</>}
+            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação (teste)</>}
         </Button>
       </div>
     </>
