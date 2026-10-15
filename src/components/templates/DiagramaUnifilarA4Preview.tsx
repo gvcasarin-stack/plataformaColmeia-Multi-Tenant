@@ -408,8 +408,10 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // paisagem e 4+ inversores A1 paisagem — mesma convenção do PDF (selo
   // ocupando a metade direita da folha nessas duas, como no Padrão de
   // Entrada em A3 paisagem).
-  const sheetTier: 'A4' | 'A2' | 'A1' = numInversores >= 4 ? 'A1' : (numInversores >= 2 ? 'A2' : 'A4');
-  const PAGE_W_MM = sheetTier === 'A1' ? 841 : (sheetTier === 'A2' ? 594 : 210);
+  // 2 inversores volta para A3 (A2 ficava grande demais só para 2) — a pedido
+  // do usuário: 1->A4, 2->A3, 3->A2, 4+->A1.
+  const sheetTier: 'A4' | 'A3' | 'A2' | 'A1' = numInversores >= 4 ? 'A1' : (numInversores >= 3 ? 'A2' : (numInversores >= 2 ? 'A3' : 'A4'));
+  const PAGE_W_MM = sheetTier === 'A1' ? 841 : (sheetTier === 'A2' ? 594 : (sheetTier === 'A3' ? 420 : 210));
   const PAGE_H_MM = sheetTier === 'A1' ? 594 : (sheetTier === 'A2' ? 420 : 297);
   const FRAME = sheetTier === 'A4'
     ? { x: 25, y: 10, w: 175, h: 277 } // inalterado
