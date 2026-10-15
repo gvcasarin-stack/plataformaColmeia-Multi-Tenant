@@ -432,6 +432,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
   // dele: botão "Gerar PDF", avisos etc.) e usa a MENOR das duas escalas,
   // garantindo que a folha sempre caiba inteira, sem nenhuma rolagem.
   const previewWrapRef = useRef<HTMLDivElement>(null);
+  const bottomBarRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
   useEffect(() => {
     const el = previewWrapRef.current;
@@ -453,8 +454,19 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
     const updateScale = () => {
       const availableWidth = el.clientWidth;
       const scrollAncestor = findScrollAncestor(el);
+      // Reserva o espaço do botão "Gerar PDF" que fica ABAIXO da folha
+      // (altura + margem própria, invariável independente da escala atual)
+      // e o padding inferior do próprio cartão com rolagem, para que a
+      // escala calculada já deixe espaço pra eles e não sobre scroll.
+      const bottomBar = bottomBarRef.current;
+      const bottomBarHeight = bottomBar
+        ? bottomBar.getBoundingClientRect().height + parseFloat(getComputedStyle(bottomBar).marginTop || '0')
+        : 0;
+      const scrollAncestorPaddingBottom = scrollAncestor
+        ? parseFloat(getComputedStyle(scrollAncestor).paddingBottom || '0')
+        : 0;
       const availableHeight = scrollAncestor
-        ? scrollAncestor.getBoundingClientRect().bottom - el.getBoundingClientRect().top
+        ? scrollAncestor.getBoundingClientRect().bottom - el.getBoundingClientRect().top - scrollAncestorPaddingBottom - bottomBarHeight
         : window.innerHeight * 0.8;
       if (availableWidth <= 0 || availableHeight <= 0) return;
       const scale = Math.min(1, availableWidth / sheetWidthPx, availableHeight / sheetHeightPx);
@@ -1258,7 +1270,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
       </div>
 
       {/* PDF download button */}
-      <div className="mt-6 flex justify-center">
+      <div ref={bottomBarRef} className="mt-6 flex justify-center">
         <Button
           onClick={handleGeneratePdf}
           disabled={generating}

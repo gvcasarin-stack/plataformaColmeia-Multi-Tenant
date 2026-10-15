@@ -315,6 +315,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const SHEET_W_MM = 420;
   const SHEET_H_MM = 297;
   const previewWrapRef = useRef<HTMLDivElement>(null);
+  const bottomBarRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
   useEffect(() => {
     const el = previewWrapRef.current;
@@ -336,8 +337,19 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
     const updateScale = () => {
       const availableWidth = el.clientWidth;
       const scrollAncestor = findScrollAncestor(el);
+      // Reserva o espaço do botão "Gerar PDF" que fica ABAIXO da folha
+      // (altura + margem própria, invariável independente da escala atual)
+      // e o padding inferior do próprio cartão com rolagem, para que a
+      // escala calculada já deixe espaço pra eles e não sobre scroll.
+      const bottomBar = bottomBarRef.current;
+      const bottomBarHeight = bottomBar
+        ? bottomBar.getBoundingClientRect().height + parseFloat(getComputedStyle(bottomBar).marginTop || '0')
+        : 0;
+      const scrollAncestorPaddingBottom = scrollAncestor
+        ? parseFloat(getComputedStyle(scrollAncestor).paddingBottom || '0')
+        : 0;
       const availableHeight = scrollAncestor
-        ? scrollAncestor.getBoundingClientRect().bottom - el.getBoundingClientRect().top
+        ? scrollAncestor.getBoundingClientRect().bottom - el.getBoundingClientRect().top - scrollAncestorPaddingBottom - bottomBarHeight
         : window.innerHeight * 0.8;
       if (availableWidth <= 0 || availableHeight <= 0) return;
       const scale = Math.min(1, availableWidth / sheetWidthPx, availableHeight / sheetHeightPx);
@@ -775,7 +787,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       </div>
 
       {/* Botão PDF — fora da área impressa */}
-      <div className="mt-6 flex justify-center">
+      <div ref={bottomBarRef} className="mt-6 flex justify-center">
         <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
           {generating
             ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
