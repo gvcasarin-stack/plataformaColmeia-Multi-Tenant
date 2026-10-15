@@ -299,6 +299,31 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
     finally { setSaving(false); }
   };
 
+  // Escala-para-caber da pré-visualização — a folha A3 paisagem (420mm de
+  // largura) não cabia na tela, forçando rolagem horizontal. Mede a largura
+  // disponível do contêiner via ResizeObserver (confiável já na primeira
+  // medição) e encolhe a folha inteira só na exibição (o PDF gerado continua
+  // no tamanho real, sem nenhuma mudança) — mesma técnica já usada no
+  // Diagrama Unifilar. Como o desenho/arraste do mapa usa
+  // getBoundingClientRect() (que já reflete o tamanho visual após o
+  // transform), a interatividade (marcar propriedade, arrastar tarjas)
+  // continua funcionando normalmente com a folha encolhida.
+  const SHEET_W_MM = 420;
+  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  useEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el) return;
+    const MM_TO_PX = 96 / 25.4;
+    const sheetWidthPx = SHEET_W_MM * MM_TO_PX;
+    const ro = new ResizeObserver((entries) => {
+      const availableWidth = entries[0]?.contentRect.width ?? el.offsetWidth;
+      setPreviewScale(availableWidth > 0 ? Math.min(1, availableWidth / sheetWidthPx) : 1);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // ── Gerar PDF — agora via @react-pdf/renderer (PDF vetorial nativo), mesma
   // tecnologia já usada no Diagrama Unifilar/Diagrama de Blocos/Padrão de
   // Entrada, em vez de html2canvas/jsPDF (que tinha as bordas do selo
@@ -481,7 +506,10 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       {/* ══ Prancha A3 (paisagem) — moldura NBR 10068 + selo padronizado, mesma
           convenção já usada no Padrão de Entrada em A3 paisagem (selo ocupando
           a metade direita da folha). Altura igual à da prancha A4 retrato
-          anterior (297mm); só a largura dobra (210→420mm). ══ */}
+          anterior (297mm); só a largura dobra (210→420mm). O wrapper abaixo só
+          encolhe a EXIBIÇÃO pra caber na tela (via CSS transform), sem alterar
+          nada do conteúdo/tamanho real usado no PDF. ══ */}
+      <div ref={previewWrapRef} style={{ width: '100%', height: `${297 * previewScale}mm`, overflow: 'hidden' }}>
       <div
         style={{
           position: 'relative',
@@ -492,6 +520,8 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
           color: '#000',
           margin: '0 auto',
           boxSizing: 'border-box',
+          transform: `scale(${previewScale})`,
+          transformOrigin: 'top center',
         }}
       >
         {/* borda de corte */}
@@ -714,6 +744,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Botão PDF — fora da área impressa */}
