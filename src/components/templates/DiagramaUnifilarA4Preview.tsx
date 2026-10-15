@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { getTotalKwp, getTotalModulosQtd, getAllInversores } from '@/lib/utils/equipmentParser';
@@ -420,6 +420,26 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
     ? { x: 25, y: 251.3, w: 175, h: 35.7 } // full-width (inalterado)
     : { x: FRAME.x + FRAME.w / 2, y: FRAME.y + FRAME.h - 35.7, w: FRAME.w / 2, h: 35.7 };
 
+  // Escala-para-caber da pré-visualização — a folha (até 841mm de largura, no
+  // caso A1) não cabia na tela, forçando rolagem horizontal. Mede a largura
+  // disponível do contêiner e encolhe a folha inteira (só na exibição; o PDF
+  // gerado continua no tamanho real) para que ela sempre apareça por inteiro.
+  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  useEffect(() => {
+    const MM_TO_PX = 96 / 25.4;
+    const updateScale = () => {
+      const el = previewWrapRef.current;
+      if (!el) return;
+      const availableWidth = el.offsetWidth;
+      const sheetWidthPx = PAGE_W_MM * MM_TO_PX;
+      setPreviewScale(availableWidth > 0 ? Math.min(1, availableWidth / sheetWidthPx) : 1);
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [PAGE_W_MM]);
+
   const handleGeneratePdf = async () => {
     setGenerating(true);
     try {
@@ -462,11 +482,14 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
         </Button>
       </div>
 
-      {/* ═══ FOLHA A4 (retrato) — mesma estrutura de moldura/selo padronizada
-          usada no Diagrama de Blocos. O diagrama original (viewBox dinâmico)
-          fica dentro da área de conteúdo, com rolagem se necessário — a
-          escala-para-caber de fato é aplicada apenas no PDF. ═══ */}
-      <div style={{ position: 'relative', width: `${PAGE_W_MM}mm`, height: `${PAGE_H_MM}mm`, background: '#ffffff', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+      {/* ═══ FOLHA — mesma estrutura de moldura/selo padronizada usada no
+          Diagrama de Blocos. O diagrama original (viewBox dinâmico) fica
+          dentro da área de conteúdo, com rolagem se necessário — a
+          escala-para-caber de fato é aplicada apenas no PDF. O wrapper abaixo
+          só encolhe a EXIBIÇÃO da folha pra caber na tela (via CSS transform),
+          sem alterar nada do conteúdo/tamanho real usado no PDF. ═══ */}
+      <div ref={previewWrapRef} style={{ width: '100%', height: `${PAGE_H_MM * previewScale}mm`, overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: `${PAGE_W_MM}mm`, height: `${PAGE_H_MM}mm`, background: '#ffffff', margin: '0 auto', fontFamily: 'Arial, sans-serif', transform: `scale(${previewScale})`, transformOrigin: 'top center' }}>
         {sheetTier === 'A4' ? (
         <>
         {/* borda de corte */}
@@ -1203,6 +1226,7 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
 
         </div>
         )}
+      </div>
       </div>
 
       {/* PDF download button */}
