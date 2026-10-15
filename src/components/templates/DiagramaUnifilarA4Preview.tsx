@@ -422,22 +422,24 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
 
   // Escala-para-caber da pré-visualização — a folha (até 841mm de largura, no
   // caso A1) não cabia na tela, forçando rolagem horizontal. Mede a largura
-  // disponível do contêiner e encolhe a folha inteira (só na exibição; o PDF
-  // gerado continua no tamanho real) para que ela sempre apareça por inteiro.
+  // disponível do contêiner (via ResizeObserver, que dispara já na primeira
+  // medição e em qualquer mudança de tamanho do contêiner — mais confiável
+  // que só ouvir o resize da janela) e encolhe a folha inteira (só na
+  // exibição; o PDF gerado continua no tamanho real) para que ela sempre
+  // apareça por inteiro, mesmo que "mais de longe".
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
   useEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el) return;
     const MM_TO_PX = 96 / 25.4;
-    const updateScale = () => {
-      const el = previewWrapRef.current;
-      if (!el) return;
-      const availableWidth = el.offsetWidth;
-      const sheetWidthPx = PAGE_W_MM * MM_TO_PX;
+    const sheetWidthPx = PAGE_W_MM * MM_TO_PX;
+    const ro = new ResizeObserver((entries) => {
+      const availableWidth = entries[0]?.contentRect.width ?? el.offsetWidth;
       setPreviewScale(availableWidth > 0 ? Math.min(1, availableWidth / sheetWidthPx) : 1);
-    };
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [PAGE_W_MM]);
 
   const handleGeneratePdf = async () => {
