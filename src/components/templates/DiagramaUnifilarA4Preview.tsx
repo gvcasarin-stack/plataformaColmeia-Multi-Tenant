@@ -462,11 +462,21 @@ export function DiagramaUnifilarA4Preview({ projectData }: DiagramaUnifilarA4Pre
       const bottomBarHeight = bottomBar
         ? bottomBar.getBoundingClientRect().height + parseFloat(getComputedStyle(bottomBar).marginTop || '0')
         : 0;
+      // Soma o padding inferior do próprio cartão com rolagem E de qualquer
+      // wrapper intermediário entre a folha e esse cartão (ex.: a div
+      // "bg-white rounded-lg p-4" que envolve o preview), já que o padding
+      // deles também ocupa espaço dentro da área com rolagem.
+      let wrapperPaddingBottom = 0;
+      let wrapperNode = el.parentElement;
+      while (wrapperNode && wrapperNode !== scrollAncestor) {
+        wrapperPaddingBottom += parseFloat(getComputedStyle(wrapperNode).paddingBottom || '0');
+        wrapperNode = wrapperNode.parentElement;
+      }
       const scrollAncestorPaddingBottom = scrollAncestor
         ? parseFloat(getComputedStyle(scrollAncestor).paddingBottom || '0')
         : 0;
       const availableHeight = scrollAncestor
-        ? scrollAncestor.getBoundingClientRect().bottom - el.getBoundingClientRect().top - scrollAncestorPaddingBottom - bottomBarHeight
+        ? scrollAncestor.getBoundingClientRect().bottom - el.getBoundingClientRect().top - scrollAncestorPaddingBottom - wrapperPaddingBottom - bottomBarHeight
         : window.innerHeight * 0.8;
       if (availableWidth <= 0 || availableHeight <= 0) return;
       const scale = Math.min(1, availableWidth / sheetWidthPx, availableHeight / sheetHeightPx);
