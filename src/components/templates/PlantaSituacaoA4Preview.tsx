@@ -103,7 +103,6 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   // Zoom do mapa
   const [mapZoom, setMapZoom] = useState(19);
 
-  const previewRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const pd = projectData || {};
 
@@ -300,24 +299,27 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
     finally { setSaving(false); }
   };
 
-  // ── Gerar PDF ──
+  // ── Gerar PDF — agora via @react-pdf/renderer (PDF vetorial nativo), mesma
+  // tecnologia já usada no Diagrama Unifilar/Diagrama de Blocos/Padrão de
+  // Entrada, em vez de html2canvas/jsPDF (que tinha as bordas do selo
+  // sumindo no PDF final — limitação conhecida do html2canvas com
+  // `transform: scale()` + bordas aninhadas). A pré-visualização interativa
+  // abaixo continua exatamente igual; só a geração do PDF final muda. ──
   const handleGeneratePdf = async () => {
-    if (!previewRef.current) return;
     setGenerating(true);
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      await html2pdf().set({
-        margin: 0,
-        filename: `Planta de Situacao (teste) - ${clientName || 'projeto'}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 1.5, useCORS: true, allowTaint: true, width: previewRef.current.offsetWidth, height: previewRef.current.offsetHeight },
-        // format explícito [420, 297] (em vez de 'a3'/'landscape') e
-        // pagebreak desativado — corrige a folha saindo em 2 páginas (o nome
-        // 'a3' + orientation não batia exatamente com o canvas capturado,
-        // sobrando uma fatia que ia pra 2ª página e cortava o selo ao meio).
-        jsPDF: { unit: 'mm', format: [420, 297], orientation: 'landscape' },
-        pagebreak: { mode: ['avoid-all'] },
-      }).from(previewRef.current).save();
+      const { pdf } = await import('@react-pdf/renderer');
+      const { PlantaSituacaoA4PDF } = await import('./PlantaSituacaoA4PDF');
+      const React = await import('react');
+      const blob = await pdf(React.createElement(PlantaSituacaoA4PDF, { projectData })).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Planta de Situacao (teste) - ${clientName || 'projeto'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) { console.error('Erro ao gerar PDF:', err); }
     finally { setGenerating(false); }
   };
@@ -481,7 +483,6 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
           a metade direita da folha). Altura igual à da prancha A4 retrato
           anterior (297mm); só a largura dobra (210→420mm). ══ */}
       <div
-        ref={previewRef}
         style={{
           position: 'relative',
           width: '420mm',
