@@ -163,7 +163,10 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
             </>
           ) : isBifasico ? (
             <>
-              <Text style={[s.overlay, ov(87.1, 8.45, 4.0)]}>{materialPoste || 'concreto'}</Text>
+              {/* y reduzido de 8.45 para 7.45 (~1mm mais pra cima) a pedido do
+                  usuario — ajuste so no PDF final (bifasico/"concreto"), a
+                  pre-visualizacao ja estava ok. */}
+              <Text style={[s.overlay, ov(87.1, 7.45, 4.0)]}>{materialPoste || 'concreto'}</Text>
               {caboMultiplex && <Text style={[s.overlay, ov(68.3, 39.85, 4.0)]}>{caboMultiplex}</Text>}
               <Text style={[s.overlay, ov(91.8, 62.95, 4.0)]}>{'Ø3/4"'}</Text>
               <Text style={[s.overlay, ov(153.3, 60.45, 4.0)]}>{'Ø3/4"'}</Text>
