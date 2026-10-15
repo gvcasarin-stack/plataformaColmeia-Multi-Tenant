@@ -503,18 +503,19 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         <div style={{ position: 'absolute', left: '0.5mm', top: '148.5mm', width: '24.5mm', height: '0.7mm', background: '#161513' }} />
         <div style={{ position: 'absolute', left: '410mm', top: '148.5mm', width: '9.5mm', height: '0.7mm', background: '#161513' }} />
 
-        {/* Área do mapa — mesma largura/nitidez de antes (165mm); altura reduzida
-            em 15% (231,3→196,6mm) a pedido do usuário, que estava achando a
-            imagem esticada verticalmente/fora de proporção — centralizada
-            horizontalmente na área de conteúdo do quadro, que agora é mais larga. */}
+        {/* Área do mapa — agora quadrada (165x165mm), bem mais próxima de 1:1 do
+            que antes, a pedido do usuário (ainda achava esticada verticalmente) —
+            centralizada horizontal e verticalmente na área de conteúdo do
+            quadro (15–246,3mm de altura disponível), em vez de encostada no
+            topo, "jogando-a mais para baixo". */}
         <div
           ref={mapRef}
           style={{
             position: 'absolute',
             left: '135mm',
-            top: '15mm',
+            top: '48.15mm',
             width: '165mm',
-            height: '196.6mm',
+            height: '165mm',
             border: '1px solid #333',
             overflow: 'hidden',
             backgroundColor: '#c8d8c8',
