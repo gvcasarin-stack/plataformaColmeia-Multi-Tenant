@@ -299,16 +299,21 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
     finally { setSaving(false); }
   };
 
-  // Escala-para-caber da pré-visualização — a folha A3 paisagem (420mm de
-  // largura) não cabia na tela, forçando rolagem horizontal. Mede a largura
-  // disponível do contêiner via ResizeObserver (confiável já na primeira
-  // medição) e encolhe a folha inteira só na exibição (o PDF gerado continua
-  // no tamanho real, sem nenhuma mudança) — mesma técnica já usada no
-  // Diagrama Unifilar. Como o desenho/arraste do mapa usa
+  // Escala-para-caber da pré-visualização — a folha A3 paisagem (420x297mm)
+  // não cabia na tela. A primeira versão só considerava a LARGURA
+  // disponível, então a folha ainda podia ficar mais alta que a área visível
+  // do cartão (que tem altura máxima própria, com rolagem vertical) — ainda
+  // exigindo rolagem. Agora mede largura E altura realmente disponíveis (a
+  // altura é calculada a partir do cartão com rolagem própria — o ancestral
+  // mais próximo com overflow-y auto/scroll — descontando o que já foi
+  // ocupado acima da folha dentro dele: botão "Gerar PDF", avisos, barra de
+  // controles) e usa a MENOR das duas escalas, garantindo que a folha sempre
+  // caiba inteira, sem nenhuma rolagem. Como o desenho/arraste do mapa usa
   // getBoundingClientRect() (que já reflete o tamanho visual após o
   // transform), a interatividade (marcar propriedade, arrastar tarjas)
   // continua funcionando normalmente com a folha encolhida.
   const SHEET_W_MM = 420;
+  const SHEET_H_MM = 297;
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
   useEffect(() => {
@@ -316,12 +321,34 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
     if (!el) return;
     const MM_TO_PX = 96 / 25.4;
     const sheetWidthPx = SHEET_W_MM * MM_TO_PX;
-    const ro = new ResizeObserver((entries) => {
-      const availableWidth = entries[0]?.contentRect.width ?? el.offsetWidth;
-      setPreviewScale(availableWidth > 0 ? Math.min(1, availableWidth / sheetWidthPx) : 1);
-    });
+    const sheetHeightPx = SHEET_H_MM * MM_TO_PX;
+
+    const findScrollAncestor = (node: HTMLElement | null): HTMLElement | null => {
+      let cur = node?.parentElement ?? null;
+      while (cur) {
+        const oy = getComputedStyle(cur).overflowY;
+        if (oy === 'auto' || oy === 'scroll') return cur;
+        cur = cur.parentElement;
+      }
+      return null;
+    };
+
+    const updateScale = () => {
+      const availableWidth = el.clientWidth;
+      const scrollAncestor = findScrollAncestor(el);
+      const availableHeight = scrollAncestor
+        ? scrollAncestor.getBoundingClientRect().bottom - el.getBoundingClientRect().top
+        : window.innerHeight * 0.8;
+      if (availableWidth <= 0 || availableHeight <= 0) return;
+      const scale = Math.min(1, availableWidth / sheetWidthPx, availableHeight / sheetHeightPx);
+      setPreviewScale(Math.max(0.1, scale));
+    };
+
+    updateScale();
+    const ro = new ResizeObserver(updateScale);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener('resize', updateScale);
+    return () => { ro.disconnect(); window.removeEventListener('resize', updateScale); };
   }, []);
 
   // ── Gerar PDF — agora via @react-pdf/renderer (PDF vetorial nativo), mesma
