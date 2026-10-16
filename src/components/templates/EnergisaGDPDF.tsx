@@ -461,7 +461,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             return (
               <View key={i} style={s.row} wrap={false}>
                 <Text style={[s.valc, { width: '12%' }]}>{item.quantidade}</Text>
-                <Text style={[s.val, { width: '26%' }]}>{item.equipamento}</Text>
+                <Text style={[s.valc, { width: '26%' }]}>{item.equipamento}</Text>
                 <Text style={[s.valc, { width: '16%' }]}>{item.potencia_unitaria_w}</Text>
                 <Text style={[s.valc, { width: '18%' }]}>{fmtBR(getCargaPotenciaTotalKw(item))}</Text>
                 <Text style={[s.valc, { width: '14%' }]}>{item.fator_demanda}</Text>

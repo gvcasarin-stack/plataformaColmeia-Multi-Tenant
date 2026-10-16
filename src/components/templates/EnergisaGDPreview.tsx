@@ -428,7 +428,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             return (
               <tr key={i}>
                 <td style={VALC}>{item.quantidade}</td>
-                <td style={VAL}>{item.equipamento}</td>
+                <td style={VALC}>{item.equipamento}</td>
                 <td style={VALC}>{item.potencia_unitaria_w}</td>
                 <td style={VALC}>{fmtBR(getCargaPotenciaTotalKw(item))}</td>
                 <td style={VALC}>{item.fator_demanda}</td>
