@@ -311,7 +311,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.lbl, w(3)]}>Potência Instalada (kW):</Text>
-            <Text style={[s.valc, w(3)]}>{get('potencia_instalada_kw')}</Text>
+            <Text style={[s.valc, w(3)]}>{get('potencia_disponibilizada_kw')}</Text>
             <Text style={[s.lbl, w(4)]}>Tensão de Atendimento (V):</Text>
             <Text style={[s.valc, w(2)]}>{get('tensao_atendimento')}</Text>
           </View>

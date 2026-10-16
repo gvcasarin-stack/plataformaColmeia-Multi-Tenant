@@ -278,7 +278,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           <tr><td colSpan={12} style={BAR}>2. DADOS DA UNIDADE CONSUMIDORA NO ATO DA VISTORIA - UC</td></tr>
           <tr>
             <td colSpan={3} style={LBL}>Potência Instalada (kW):</td>
-            <td colSpan={3} style={VALC}>{get('potencia_instalada_kw')}</td>
+            <td colSpan={3} style={VALC}>{get('potencia_disponibilizada_kw')}</td>
             <td colSpan={4} style={LBL}>Tensão de Atendimento (V):</td>
             <td colSpan={2} style={VALC}>{get('tensao_atendimento')}</td>
           </tr>

@@ -549,7 +549,6 @@ export const ExpandedProjectView = ({
     disjuntor_cc_corrente_a: (project as any).disjuntor_cc_corrente_a || '',
     potencia_trafo: (project as any).potencia_trafo || '',
     numero_hastes: (project as any).numero_hastes || '',
-    potencia_instalada_kw: (project as any).potencia_instalada_kw || '',
     demanda_contratada_kw: (project as any).demanda_contratada_kw || '',
     demanda_contratada_kwg: (project as any).demanda_contratada_kwg || '',
     material_poste_padrao: (project as any).material_poste_padrao || '',
