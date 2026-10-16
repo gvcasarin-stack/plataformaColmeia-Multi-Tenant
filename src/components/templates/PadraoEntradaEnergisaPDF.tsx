@@ -150,9 +150,13 @@ export function PadraoEntradaEnergisaPDF({ projectData = {} }: PadraoEntradaEner
 
           {isTrifasico ? (
             <>
-              <Text style={[s.overlay, ov(60.8, 10.2, 4.0)]}>{materialPoste || 'aço galvanizado'}</Text>
+              {/* y reduzido de 10.2 para 9.2 e de 64.9 para 63.9 (~1mm mais
+                  pra cima cada) a pedido do usuario — ajuste so no PDF final
+                  (trifasico/"concreto" e simbolo de diametro), a
+                  pre-visualizacao ja estava ok. */}
+              <Text style={[s.overlay, ov(60.8, 9.2, 4.0)]}>{materialPoste || 'aço galvanizado'}</Text>
               {caboMultiplex && <Text style={[s.overlay, ov(43.8, 41.3, 4.0)]}>{caboMultiplex}</Text>}
-              <Text style={[s.overlay, ov(82.8, 64.9, 4.0)]}>{'Ø1"'}</Text>
+              <Text style={[s.overlay, ov(82.8, 63.9, 4.0)]}>{'Ø1"'}</Text>
               {caixaMedicaoCorrente && <Text style={[s.overlay, ov(70.1, 81.3, 3.6)]}>{caixaMedicaoCorrente}</Text>}
               {disjuntorCorrenteLabel && <Text style={[s.overlay, ov(69.4, 94.0, 4.0)]}>{disjuntorCorrenteLabel}</Text>}
               {secaoAterramento && <Text style={[s.overlay, ov(63.8, 119.4, 4.0)]}>{`${fmtMm2(secaoAterramento)} mm²`}</Text>}
