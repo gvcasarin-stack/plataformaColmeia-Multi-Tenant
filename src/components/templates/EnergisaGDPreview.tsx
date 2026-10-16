@@ -167,8 +167,11 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
     return acc + areaUnit * qty;
   }, 0);
 
-  const potenciaGeracaoKwp = getTotalKwpFromModulos(projectData) || parseFloat(String(get('potencia')).replace(',', '.')) || 0;
+  const potenciaModulosKwp = getTotalKwpFromModulos(projectData) || parseFloat(String(get('potencia')).replace(',', '.')) || 0;
   const potenciaInversoresKw = getTotalInversorKw(projectData);
+  // Potência Instalada de Geração = menor valor entre módulos e inversor
+  // (a pedido do usuário), nunca zerando quando um dos dois está ausente.
+  const potenciaGeracaoKwp = potenciaInversoresKw > 0 ? Math.min(potenciaModulosKwp, potenciaInversoresKw) : potenciaModulosKwp;
 
   const handleGeneratePdf = async () => {
     setDownloading(true);

@@ -236,8 +236,11 @@ function DocHeader({ title, subtitle }: { title: string; subtitle: string }) {
 export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
   const get = (key: string) => projectData[key] || '';
 
-  const potenciaGeracaoKwp = getTotalKwpFromModulos(projectData) || parseFloat(String(get('potencia')).replace(',', '.')) || 0;
+  const potenciaModulosKwp = getTotalKwpFromModulos(projectData) || parseFloat(String(get('potencia')).replace(',', '.')) || 0;
   const potenciaInversoresKw = getTotalInversorKw(projectData);
+  // Potência Instalada de Geração = menor valor entre módulos e inversor
+  // (a pedido do usuário), nunca zerando quando um dos dois está ausente.
+  const potenciaGeracaoKwp = potenciaInversoresKw > 0 ? Math.min(potenciaModulosKwp, potenciaInversoresKw) : potenciaModulosKwp;
   const isPessoaJuridica = get('cpf_cnpj_cliente_final').replace(/\D/g, '').length > 11;
   const checklistSecoes = buildChecklistSecoes(isPessoaJuridica);
   const previsaoLigacao = parseMesAno(get('data_documento'));
