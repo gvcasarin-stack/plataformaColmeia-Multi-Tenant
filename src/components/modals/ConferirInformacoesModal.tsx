@@ -592,9 +592,9 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'coord_utm_fuso', label: 'Fuso UTM', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: 23K', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'], help: 'Zona UTM do local de instalação (ex: 23K), obtida via GPS ou mapa (ex: Google Maps, IBGE).' },
   { key: 'coord_utm_x', label: 'X (Long)', type: 'text', required: true, placeholder: 'Ex: 345678.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
   { key: 'coord_utm_y', label: 'Y (Lat)', type: 'text', required: true, placeholder: 'Ex: 7654321.00', group: 'Coordenadas UTM (Padrão de Entrada)', hideForDistribuidoras: ['CPFL'] },
-  // Coordenadas Lat/Long — somente CPFL
-  { key: 'latitude', label: 'Latitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -8.050944', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL', 'Energisa'], help: 'Coordenada obtida via GPS ou mapa (ex: Google Maps), em graus decimais.' },
-  { key: 'longitude', label: 'Longitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -48.491528', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL', 'Energisa'] },
+  // Coordenadas Lat/Long — somente CPFL (Energisa deriva do UTM acima, sem pedir 2x)
+  { key: 'latitude', label: 'Latitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -8.050944', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'], help: 'Coordenada obtida via GPS ou mapa (ex: Google Maps), em graus decimais.' },
+  { key: 'longitude', label: 'Longitude', icon: <MapPin className="h-3.5 w-3.5" />, type: 'text', required: true, placeholder: 'Ex: -48.491528', group: 'Coordenadas UTM (Padrão de Entrada)', onlyForDistribuidoras: ['CPFL'] },
 
   // Planta de Situação (Imagem)
   { key: 'planta_situacao_url', label: 'Imagem da Planta de Situação', icon: <ImageIcon className="h-3.5 w-3.5" />, type: 'image', required: false, group: 'Planta de Situação', onlyForDistribuidoras: ['Equatorial'] },

@@ -24,6 +24,50 @@ function toDMS(raw: string, kind: 'lat' | 'lon'): string {
   return `${deg}°${String(min).padStart(2, '0')}'${sec}"${dir}`;
 }
 
+// UTM (hemisfério sul) -> WGS84, mesma fórmula já usada na Planta de Situação.
+function utmToLatLng(easting: number, northing: number, zone: number): { lat: number; lng: number } | null {
+  try {
+    const k0 = 0.9996, a = 6378137.0, e2 = 0.00669437999014;
+    const x = easting - 500000.0;
+    const y = northing - 10000000.0;
+    const lon0 = ((zone - 1) * 6 - 180 + 3) * (Math.PI / 180);
+    const ei = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+    const mu = (y / k0) / (a * (1 - e2 / 4 - (3 * e2 * e2) / 64 - (5 * e2 * e2 * e2) / 256));
+    const phi1 = mu
+      + ((3 * ei) / 2 - (27 * Math.pow(ei, 3)) / 32) * Math.sin(2 * mu)
+      + ((21 * ei * ei) / 16 - (55 * Math.pow(ei, 4)) / 32) * Math.sin(4 * mu)
+      + ((151 * Math.pow(ei, 3)) / 96) * Math.sin(6 * mu)
+      + ((1097 * Math.pow(ei, 4)) / 512) * Math.sin(8 * mu);
+    const sinP = Math.sin(phi1), tanP = Math.tan(phi1), cosP = Math.cos(phi1);
+    const N1 = a / Math.sqrt(1 - e2 * sinP * sinP);
+    const T1 = tanP * tanP, C1 = (e2 / (1 - e2)) * cosP * cosP;
+    const R1 = (a * (1 - e2)) / Math.pow(1 - e2 * sinP * sinP, 1.5);
+    const D = x / (N1 * k0);
+    const lat = phi1 - (N1 * tanP / R1) * (
+      D * D / 2
+      - ((5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * (e2 / (1 - e2))) * Math.pow(D, 4)) / 24
+      + ((61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * (e2 / (1 - e2)) - 3 * C1 * C1) * Math.pow(D, 6)) / 720);
+    const lon = lon0 + (D - ((1 + 2 * T1 + C1) * Math.pow(D, 3)) / 6 + ((5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * (e2 / (1 - e2)) + 24 * T1 * T1) * Math.pow(D, 5)) / 120) / cosP;
+    return { lat: lat * (180 / Math.PI), lng: lon * (180 / Math.PI) };
+  } catch { return null; }
+}
+
+// Deriva lat/long a partir do UTM (Fuso/X/Y) já preenchido no Padrão de
+// Entrada — evita pedir a coordenada duas vezes pro usuário. Mantém
+// fallback para projetos antigos que já tinham latitude/longitude
+// preenchidos manualmente.
+function deriveLatLng(get: (key: string) => string): { lat: string; lng: string } {
+  const zoneMatch = String(get('coord_utm_fuso')).match(/\d+/);
+  const zone = zoneMatch ? parseInt(zoneMatch[0], 10) : NaN;
+  const x = parseFloat(String(get('coord_utm_x')).replace(',', '.'));
+  const y = parseFloat(String(get('coord_utm_y')).replace(',', '.'));
+  if (zone && !isNaN(x) && !isNaN(y)) {
+    const converted = utmToLatLng(x, y, zone);
+    if (converted) return { lat: String(converted.lat), lng: String(converted.lng) };
+  }
+  return { lat: get('latitude'), lng: get('longitude') };
+}
+
 const MODALIDADE_LABEL: Record<string, string> = {
   'Autoconsumo Local': 'Geração na própria UC',
   'Autoconsumo Remoto': 'Autoconsumo remoto',
@@ -63,6 +107,7 @@ export function FormularioRegistroANEELPreview({ projectData = {} }: FormularioR
   const municipio = [get('client_city'), get('client_state')].filter(Boolean).join(' - ');
   const endereco = [get('endereco_local'), get('numero_endereco_cliente')].filter(Boolean).join(', ');
   const dataOperacao = get('data_inicio_operacao');
+  const { lat: latDerivada, lng: lngDerivada } = deriveLatLng(get);
 
   const handleGeneratePdf = async () => {
     setDownloading(true);
@@ -141,8 +186,8 @@ export function FormularioRegistroANEELPreview({ projectData = {} }: FormularioR
                 <tr><td style={LBL}>CEP da UC com GD:</td><td style={VAL}>{get('cliente_cep')}</td></tr>
 
                 <tr><td style={SUBHEAD} colSpan={2}>Coordenadas Geodésicas (SIRGAS2000) da localização da usina em Grau, Minuto e Segundo:</td></tr>
-                <tr><td style={LBL}>Latitude:</td><td style={VAL}>{toDMS(get('latitude'), 'lat')}</td></tr>
-                <tr><td style={LBL}>Longitude:</td><td style={VAL}>{toDMS(get('longitude'), 'lon')}</td></tr>
+                <tr><td style={LBL}>Latitude:</td><td style={VAL}>{toDMS(latDerivada, 'lat')}</td></tr>
+                <tr><td style={LBL}>Longitude:</td><td style={VAL}>{toDMS(lngDerivada, 'lon')}</td></tr>
 
                 <tr><td style={BAR} colSpan={2}>TITULAR:</td></tr>
                 <tr><td style={LBL}>CPF/CNPJ do Titular:</td><td style={VAL}>{get('cpf_cnpj_cliente_final')}</td></tr>
