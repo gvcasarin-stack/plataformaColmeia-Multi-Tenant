@@ -258,7 +258,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
     <Document>
       {/* ══════════════════ Folha 1: Formulário de Orçamento de Conexão ══════════════════ */}
       <Page size="A4" style={s.page}>
-        <Text style={s.sheetLabel}>Folha 1 de 6</Text>
+        <Text style={s.sheetLabel}>Folha 1 de 7</Text>
         <DocHeader title="FORMULÁRIO DE ORÇAMENTO DE CONEXÃO" subtitle="GERAÇÃO DISTRIBUÍDA" />
 
         <View style={s.tbl}>
@@ -386,7 +386,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
 
       {/* ══════════════════ Folha 2: Relação de Carga e Cálculo de Demanda ══════════════════ */}
       <Page size="A4" style={s.page}>
-        <Text style={s.sheetLabel}>Folha 2 de 6</Text>
+        <Text style={s.sheetLabel}>Folha 2 de 7</Text>
         <DocHeader title="FORMULÁRIO DE RELAÇÃO DE CARGA" subtitle="E CÁLCULO DE DEMANDA" />
 
         <View style={s.tbl}>
@@ -490,11 +490,11 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
 
       {/* ══════════════════ Folha 3: Checklist/Declarações ══════════════════ */}
       <Page size="A4" style={s.page}>
-        <Text style={s.sheetLabel}>Folha 3 de 6</Text>
+        <Text style={s.sheetLabel}>Folha 3 de 7</Text>
         <DocHeader title="FORMULÁRIO DE ORÇAMENTO DE CONEXÃO" subtitle="GERAÇÃO DISTRIBUÍDA" />
 
         <View style={s.tbl}>
-          {checklistSecoes.map((secao) => (
+          {checklistSecoes.slice(0, 2).map((secao) => (
             <View key={secao.titulo}>
               <View style={s.row} wrap={false}>
                 <Text style={[s.bar, { width: '100%' }]}>{secao.titulo}</Text>
@@ -510,9 +510,31 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
         </View>
       </Page>
 
-      {/* ══════════════════ Folha 4: Memorial Descritivo UFV-Solar ══════════════════ */}
+      {/* Folha 4: Checklist — Solicitações e Declarações, em página própria */}
+      <Page size="A4" style={s.page}>
+        <Text style={s.sheetLabel}>Folha 4 de 7</Text>
+        <DocHeader title="FORMULÁRIO DE ORÇAMENTO DE CONEXÃO" subtitle="GERAÇÃO DISTRIBUÍDA" />
+
+        <View style={s.tbl}>
+          {checklistSecoes.slice(2).map((secao) => (
+            <View key={secao.titulo}>
+              <View style={s.row} wrap={false}>
+                <Text style={[s.bar, { width: '100%' }]}>{secao.titulo}</Text>
+              </View>
+              {secao.itens.map(([texto, marca]) => (
+                <View key={texto} style={s.row} wrap={false}>
+                  <Text style={[s.chkTxt, { width: '88%' }]}>{texto}</Text>
+                  <Text style={[s.chkMark, { width: '12%' }]}>{marca || ' '}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      </Page>
+
+      {/* ══════════════════ Folha 5: Memorial Descritivo UFV-Solar ══════════════════ */}
       <Page size="A4" orientation="landscape" style={s.page}>
-        <Text style={s.sheetLabel}>Folha 4 de 6</Text>
+        <Text style={s.sheetLabel}>Folha 5 de 7</Text>
         <View style={s.docHeader}>
           <Image src={imgUrl('/images/logo-grupo-energisa.png')} style={s.docHeaderLogo} />
           <View style={s.docHeaderTitles}>
@@ -797,9 +819,9 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
         </View>
       </Page>
 
-      {/* ══════════════════ Folha 5: Ajustes de Proteções / Requisitos de Segurança ══════════════════ */}
+      {/* ══════════════════ Folha 6: Ajustes de Proteções / Requisitos de Segurança ══════════════════ */}
       <Page size="A4" orientation="landscape" style={s.page}>
-        <Text style={s.sheetLabel}>Folha 5 de 6</Text>
+        <Text style={s.sheetLabel}>Folha 6 de 7</Text>
 
         <View style={s.tbl}>
           <View style={s.row} wrap={false}>
@@ -875,9 +897,9 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
         </View>
       </Page>
 
-      {/* ══════════════════ Folha 6: Diagrama Unifilar ══════════════════ */}
+      {/* ══════════════════ Folha 7: Diagrama Unifilar ══════════════════ */}
       <Page size="A4" orientation="landscape" style={s.page}>
-        <Text style={s.sheetLabel}>Folha 6 de 6</Text>
+        <Text style={s.sheetLabel}>Folha 7 de 7</Text>
         <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 12, color: '#29ade0', marginBottom: 6 }}>
           Diagrama Unifilar para Sistemas Fotovoltaicos Conforme NDU013.
         </Text>

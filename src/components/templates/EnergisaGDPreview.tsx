@@ -73,7 +73,7 @@ function parseMesAno(raw: string): { mes: string; ano: string } {
 function SheetLabel({ n }: { n: number }) {
   return (
     <div style={{ fontSize: '8pt', color: '#888', marginTop: '28px', marginBottom: '2px' }}>
-      Folha {n} de 6
+      Folha {n} de 7
     </div>
   );
 }
@@ -460,7 +460,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           <col style={{ width: '12%' }} />
         </colgroup>
         <tbody>
-          {checklistSecoes.map((secao) => (
+          {checklistSecoes.slice(0, 2).map((secao) => (
             <Fragment key={secao.titulo}>
               <tr><td colSpan={2} style={BAR}>{secao.titulo}</td></tr>
               {secao.itens.map(([texto, marca]) => (
@@ -473,15 +473,39 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           ))}
         </tbody>
       </table>
+
+      {/* Folha 4: Checklist — Solicitações e Declarações, em página própria */}
+      <SheetLabel n={4} />
+      <DocHeader title="FORMULÁRIO DE ORÇAMENTO DE CONEXÃO" subtitle="GERAÇÃO DISTRIBUÍDA" />
+
+      <table style={{ ...T, fontSize: '9.5pt' }}>
+        <colgroup>
+          <col style={{ width: '88%' }} />
+          <col style={{ width: '12%' }} />
+        </colgroup>
+        <tbody>
+          {checklistSecoes.slice(2).map((secao) => (
+            <Fragment key={secao.titulo}>
+              <tr><td colSpan={2} style={BAR}>{secao.titulo}</td></tr>
+              {secao.itens.map(([texto, marca]) => (
+                <tr key={texto}>
+                  <td style={{ ...VAL, lineHeight: 1.5 }}>{texto}</td>
+                  <td style={{ ...VAL, textAlign: 'center', fontWeight: 'bold' }}>{marca || ' '}</td>
+                </tr>
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
     </div>
 
-    {/* Folhas 4-6: no artifact de referência essas folhas usam um container mais
-        largo (1300px) que as folhas 1-3 (900px), para acomodar a tabela de 16
-        colunas da folha 4 e o diagrama/legenda da folha 6 sem ficarem espremidos. */}
+    {/* Folhas 5-7: usam um container mais largo (1300px) que as folhas 1-4
+        (900px), para acomodar a tabela de 16 colunas e o diagrama/legenda
+        sem ficarem espremidos. */}
     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#000', maxWidth: '1300px', margin: '0 auto', padding: '8px' }}>
 
-      {/* ══════════════════ Folha 4: Memorial Descritivo UFV-Solar ══════════════════ */}
-      <SheetLabel n={4} />
+      {/* Folha 5: Memorial Descritivo UFV-Solar */}
+      <SheetLabel n={5} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '6px' }}>
         <img src="/images/logo-grupo-energisa.png" alt="Grupo Energisa" style={{ width: '88px', height: 'auto', display: 'block' }} />
         <div style={{ flex: 1, textAlign: 'center', fontSize: '12pt', fontWeight: 800 }}>MEMORIAL DESCRITIVO DE GERAÇÃO DISTRIBUÍDA UFV-SOLAR</div>
@@ -756,8 +780,8 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
       <div style={{ marginTop: '15px', borderTop: '1px solid #000' }} />
       </div>
 
-      {/* ══════════════════ Folha 5: Ajustes de Proteções / Requisitos de Segurança ══════════════════ */}
-      <SheetLabel n={5} />
+      {/* ══════════════════ Folha 6: Ajustes de Proteções / Requisitos de Segurança ══════════════════ */}
+      <SheetLabel n={6} />
 
       <table style={T}>
         <tbody>
@@ -821,8 +845,8 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
         </div>
       </div>
 
-      {/* ══════════════════ Folha 6: Diagrama Unifilar ══════════════════ */}
-      <SheetLabel n={6} />
+      {/* ══════════════════ Folha 7: Diagrama Unifilar ══════════════════ */}
+      <SheetLabel n={7} />
       <div style={{ fontWeight: 800, fontSize: '13pt', marginBottom: '6px', color: '#29ade0' }}>
         Diagrama Unifilar para Sistemas Fotovoltaicos Conforme NDU013.
       </div>
