@@ -65,7 +65,10 @@ function deriveLatLng(get: (key: string) => string): { lat: string; lng: string 
     const converted = utmToLatLng(x, y, zone);
     if (converted) return { lat: String(converted.lat), lng: String(converted.lng) };
   }
-  return { lat: get('latitude'), lng: get('longitude') };
+  // Sem UTM válido pra converter — deixa em branco. Não usa mais o
+  // fallback antigo (campos latitude/longitude manuais), que podia conter
+  // dado obsoleto/incorreto e ser formatado como GMS por engano.
+  return { lat: '', lng: '' };
 }
 
 const MODALIDADE_LABEL: Record<string, string> = {
