@@ -395,16 +395,17 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
               })}
             </View>
             {renderFunnel()}
-            {/* QGBT + "Unidade Consumidora/Geradora" como um unico bloco
-                centralizado (em vez de anexar a caixa extra só à direita via
-                position absolute) — evita que ela encoste/ultrapasse a
-                margem direita da folha com 2+ inversores. */}
-            <View style={{ width: pdfSectionW + 22 + 120, flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ borderWidth: 1, borderColor: BC, width: pdfSectionW, paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' }}>
+            {/* QGBT no mesmo tamanho do bloco do Disjuntor do Padrão de
+                Entrada (BOX_W) e com 5% menos de distância até a caixa
+                "Unidade Consumidora/Geradora" — a pedido do usuário, pra
+                caber centralizado (junto com a parte de cima) sem encostar
+                na margem direita com 2+ inversores. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ borderWidth: 1, borderColor: BC, width: BOX_W, paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' }}>
                 <Text style={s.normalLine}>QGBT</Text>
                 <Text style={s.normalLine}>Quadro de baixa tensão</Text>
               </View>
-              <View style={[s.hLine, { alignSelf: 'center' }]} />
+              <View style={[s.hLine, { width: 20.9 }]} />
               <View style={[s.box, { width: 120 }]}>
                 <Text style={s.normalLine}>Unidade</Text>
                 <Text style={s.normalLine}>Consumidora/Geradora</Text>

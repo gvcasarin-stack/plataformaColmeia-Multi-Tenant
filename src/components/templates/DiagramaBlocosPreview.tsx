@@ -403,18 +403,20 @@ export function DiagramaBlocosPreview({ projectData }: DiagramaBlocosPreviewProp
                 return <div key={i} style={{ position: 'absolute', top: 0, left: `${i * 216 + 100}px`, width: '1px', height: '22px', backgroundColor: '#000' }} />;
               })}
             </div>
-            {/* QGBT largo — N entradas independentes visíveis no topo */}
-            <div style={{ position: 'relative', width: `${numInversores * 216 - 16}px` }}>
-              <div style={{ border: '1.5px solid #000', width: '100%', padding: '8px 10px', textAlign: 'center', backgroundColor: '#FFFFFF', fontSize: '8px', lineHeight: '1.5', boxSizing: 'border-box' }}>
+            {/* QGBT no mesmo tamanho do bloco do Disjuntor do Padrão de
+                Entrada (200px) e com 5% menos de distância até a caixa
+                "Unidade Consumidora/Geradora" — a pedido do usuário, pra
+                caber centralizado (junto com a parte de cima, sem scroll
+                horizontal) sem encostar na margem com 2+ inversores. */}
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+              <div style={BOX}>
                 <div style={NORMAL}>QGBT</div>
                 <div style={NORMAL}>Quadro de baixa tensão</div>
               </div>
-              <div style={{ position: 'absolute', top: 0, left: '100%', display: 'flex', flexDirection: 'row', alignItems: 'center', height: '100%' }}>
-                <div style={H_LINE} />
-                <div style={{ ...BOX, width: '140px' }}>
-                  <div style={NORMAL}>Unidade</div>
-                  <div style={NORMAL}>Consumidora/Geradora</div>
-                </div>
+              <div style={{ ...H_LINE, width: '20.9px' }} />
+              <div style={{ ...BOX, width: '140px' }}>
+                <div style={NORMAL}>Unidade</div>
+                <div style={NORMAL}>Consumidora/Geradora</div>
               </div>
             </div>
             <div style={V_LINE} />
