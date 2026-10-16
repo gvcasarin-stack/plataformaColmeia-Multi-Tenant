@@ -70,9 +70,7 @@ import { FormularioRegistroANEELPreview } from '@/components/templates/Formulari
 import { FormularioSolicitacaoPreview } from '@/components/templates/FormularioSolicitacaoPreview'
 import { EnergisaGDPreview } from '@/components/templates/EnergisaGDPreview'
 import { DiagramaBlocosPreview } from '@/components/templates/DiagramaBlocosPreview'
-import { DiagramaUnifilarPreview } from '@/components/templates/DiagramaUnifilarPreview'
 import { DiagramaUnifilarA4Preview } from '@/components/templates/DiagramaUnifilarA4Preview'
-import { PlantaSituacaoPreview } from '@/components/templates/PlantaSituacaoPreview'
 import { PlantaSituacaoA4Preview } from '@/components/templates/PlantaSituacaoA4Preview'
 import { ListaRateioEquatorialPreview } from '@/components/templates/ListaRateioEquatorialPreview'
 import { AnexoG1CPFLPreview } from '@/components/templates/AnexoG1CPFLPreview'
@@ -3160,8 +3158,7 @@ export const ExpandedProjectView = ({
                                 </Card>
                               )}
 
-                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') &&
-                                (user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
+                              {selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') && (
                                 <Card
                                   onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'padrao-entrada' ? null : 'padrao-entrada')}
                                   className={`border cursor-pointer group transition-all duration-200 ${
@@ -3182,10 +3179,9 @@ export const ExpandedProjectView = ({
                                       <div className="flex-1">
                                         <h4 className="font-medium text-gray-800 dark:text-gray-200">
                                           Detalhe do Padrão de Entrada
-                                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
                                         </h4>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Detalhe construtivo do padrão de entrada monofásico (em teste, visível só para superadmin).
+                                          Detalhe construtivo do padrão de entrada monofásico.
                                         </p>
                                       </div>
                                     </div>
@@ -3252,9 +3248,9 @@ export const ExpandedProjectView = ({
                               </Card>
 
                               <Card
-                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'unifilar' ? null : 'unifilar')}
+                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'unifilar-a4' ? null : 'unifilar-a4')}
                                 className={`border cursor-pointer group transition-all duration-200 ${
-                                  activeTemplatePreview === 'unifilar'
+                                  activeTemplatePreview === 'unifilar-a4'
                                     ? 'border-indigo-500 dark:border-indigo-400 shadow-md ring-2 ring-indigo-200 dark:ring-indigo-800'
                                     : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md'
                                 }`}
@@ -3262,58 +3258,28 @@ export const ExpandedProjectView = ({
                                 <CardContent className="p-5">
                                   <div className="flex items-start gap-3">
                                     <div className={`p-2 rounded-lg transition-colors ${
-                                      activeTemplatePreview === 'unifilar'
+                                      activeTemplatePreview === 'unifilar-a4'
                                         ? 'bg-indigo-100 dark:bg-indigo-900/50'
                                         : 'bg-indigo-50 dark:bg-indigo-900/30 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50'
                                     }`}>
                                       <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     <div className="flex-1">
-                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Diagrama Unifilar</h4>
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">
+                                        Diagrama Unifilar
+                                      </h4>
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Diagrama unifilar do sistema fotovoltaico.
+                                        Diagrama unifilar do sistema fotovoltaico, em prancha padronizada com moldura e selo.
                                       </p>
                                     </div>
                                   </div>
                                 </CardContent>
                               </Card>
 
-                              {(user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
-                                <Card
-                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'unifilar-a4' ? null : 'unifilar-a4')}
-                                  className={`border cursor-pointer group transition-all duration-200 ${
-                                    activeTemplatePreview === 'unifilar-a4'
-                                      ? 'border-indigo-500 dark:border-indigo-400 shadow-md ring-2 ring-indigo-200 dark:ring-indigo-800'
-                                      : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md'
-                                  }`}
-                                >
-                                  <CardContent className="p-5">
-                                    <div className="flex items-start gap-3">
-                                      <div className={`p-2 rounded-lg transition-colors ${
-                                        activeTemplatePreview === 'unifilar-a4'
-                                          ? 'bg-indigo-100 dark:bg-indigo-900/50'
-                                          : 'bg-indigo-50 dark:bg-indigo-900/30 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50'
-                                      }`}>
-                                        <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">
-                                          Diagrama Unifilar (teste)
-                                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
-                                        </h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Versão de teste em prancha padronizada, com moldura e selo (visível só para superadmin).
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-
                               <Card
-                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'planta-situacao' ? null : 'planta-situacao')}
+                                onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'planta-situacao-a4' ? null : 'planta-situacao-a4')}
                                 className={`border cursor-pointer group transition-all duration-200 ${
-                                  activeTemplatePreview === 'planta-situacao'
+                                  activeTemplatePreview === 'planta-situacao-a4'
                                     ? 'border-teal-500 dark:border-teal-400 shadow-md ring-2 ring-teal-200 dark:ring-teal-800'
                                     : 'border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-md'
                                 }`}
@@ -3321,53 +3287,23 @@ export const ExpandedProjectView = ({
                                 <CardContent className="p-5">
                                   <div className="flex items-start gap-3">
                                     <div className={`p-2 rounded-lg transition-colors ${
-                                      activeTemplatePreview === 'planta-situacao'
+                                      activeTemplatePreview === 'planta-situacao-a4'
                                         ? 'bg-teal-100 dark:bg-teal-900/50'
                                         : 'bg-teal-50 dark:bg-teal-900/30 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50'
                                     }`}>
                                       <MapPin className="h-6 w-6 text-teal-600 dark:text-teal-400" />
                                     </div>
                                     <div className="flex-1">
-                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Planta de Situação</h4>
+                                      <h4 className="font-medium text-gray-800 dark:text-gray-200">
+                                        Planta de Situação
+                                      </h4>
                                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Mapa de satélite com localização da instalação.
+                                        Mapa de satélite com localização da instalação, em prancha padronizada com moldura e selo.
                                       </p>
                                     </div>
                                   </div>
                                 </CardContent>
                               </Card>
-
-                              {(user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
-                                <Card
-                                  onClick={() => setActiveTemplatePreview(activeTemplatePreview === 'planta-situacao-a4' ? null : 'planta-situacao-a4')}
-                                  className={`border cursor-pointer group transition-all duration-200 ${
-                                    activeTemplatePreview === 'planta-situacao-a4'
-                                      ? 'border-teal-500 dark:border-teal-400 shadow-md ring-2 ring-teal-200 dark:ring-teal-800'
-                                      : 'border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600 hover:shadow-md'
-                                  }`}
-                                >
-                                  <CardContent className="p-5">
-                                    <div className="flex items-start gap-3">
-                                      <div className={`p-2 rounded-lg transition-colors ${
-                                        activeTemplatePreview === 'planta-situacao-a4'
-                                          ? 'bg-teal-100 dark:bg-teal-900/50'
-                                          : 'bg-teal-50 dark:bg-teal-900/30 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50'
-                                      }`}>
-                                        <MapPin className="h-6 w-6 text-teal-600 dark:text-teal-400" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-medium text-gray-800 dark:text-gray-200">
-                                          Planta de Situação (teste)
-                                          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
-                                        </h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                          Versão de teste em prancha padronizada, com moldura e selo (visível só para superadmin).
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
 
                               {selectedDistribuidoraGerarProjeto.toLowerCase().includes('equatorial') && gerarProjetoFields.modalidade_compensacao === 'Autoconsumo Remoto' && (
                                 <Card
@@ -3520,8 +3456,7 @@ export const ExpandedProjectView = ({
                           )}
 
                           {activeTemplatePreview === 'padrao-entrada' &&
-                            selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') &&
-                            (user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
+                            selectedDistribuidoraGerarProjeto.toLowerCase().includes('energisa') && (
                             <div className="mt-6">
                               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                 <FileText className="h-5 w-5 text-emerald-500" />
@@ -3573,27 +3508,11 @@ export const ExpandedProjectView = ({
                             </div>
                           )}
 
-                          {activeTemplatePreview === 'unifilar' && (
+                          {activeTemplatePreview === 'unifilar-a4' && (
                             <div className="mt-6">
                               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                 <FileText className="h-5 w-5 text-indigo-500" />
                                 Pré-visualização — Diagrama Unifilar
-                              </h3>
-                              <div className="rounded-md border border-indigo-200 dark:border-indigo-700 p-4 max-h-[900px] overflow-y-auto">
-                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                                  <DiagramaUnifilarPreview projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }} />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {activeTemplatePreview === 'unifilar-a4' &&
-                            (user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
-                            <div className="mt-6">
-                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                                <FileText className="h-5 w-5 text-indigo-500" />
-                                Pré-visualização — Diagrama Unifilar (teste)
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
                               </h3>
                               <div className="rounded-md border border-indigo-200 dark:border-indigo-700 p-4 max-h-[900px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
@@ -3603,38 +3522,11 @@ export const ExpandedProjectView = ({
                             </div>
                           )}
 
-                          {activeTemplatePreview === 'planta-situacao' && (
+                          {activeTemplatePreview === 'planta-situacao-a4' && (
                             <div className="mt-6">
                               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                 <MapPin className="h-5 w-5 text-teal-500" />
                                 Pré-visualização — Planta de Situação
-                              </h3>
-                              <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">
-                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                                  <PlantaSituacaoPreview
-                                    projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }}
-                                    onSaveConfig={async (config) => {
-                                      const serialized = JSON.stringify(config);
-                                      await fetch(`/api/projects/${project.id}/conferir-info`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ fields: { planta_situacao_config: serialized } }),
-                                      });
-                                      setGerarProjetoFields(prev => ({ ...prev, planta_situacao_config: serialized }));
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {activeTemplatePreview === 'planta-situacao-a4' &&
-                            (user?.role === 'superadmin' || user?.profile?.role === 'superadmin') && (
-                            <div className="mt-6">
-                              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-teal-500" />
-                                Pré-visualização — Planta de Situação (teste)
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400 align-middle">Superadmin</span>
                               </h3>
                               <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">

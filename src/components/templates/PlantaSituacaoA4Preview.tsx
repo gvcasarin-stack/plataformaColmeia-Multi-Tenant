@@ -389,7 +389,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Planta de Situacao (teste) - ${clientName || 'projeto'}.pdf`;
+      a.download = `Planta de Situacao - ${clientName || 'projeto'}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -410,7 +410,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
           {generating
             ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
-            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação (teste)</>}
+            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação</>}
         </Button>
       </div>
 
@@ -801,7 +801,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
           {generating
             ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
-            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação (teste)</>}
+            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação</>}
         </Button>
       </div>
     </>
