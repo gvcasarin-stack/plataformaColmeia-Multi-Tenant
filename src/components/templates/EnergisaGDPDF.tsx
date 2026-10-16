@@ -637,9 +637,12 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             </View>
             <View style={[w16(10), { flexDirection: 'column' }]}>
               <View style={s.row}>
-                <Text style={[s.lbl, { width: '30%', textAlign: 'center' }]}>FUSO</Text>
-                <Text style={[s.lbl, { width: '40%', textAlign: 'center' }]}>X (LONG)</Text>
-                <Text style={[s.lbl, { width: '30%', textAlign: 'center' }]}>Y (LAT)</Text>
+                {/* borderTop explícito: essa mini-tabela (FUSO/X/Y) não tem
+                    nada acima que feche a borda nas colunas X e Y, já que as
+                    linhas anteriores do formulário são mais estreitas. */}
+                <Text style={[s.lbl, { width: '30%', textAlign: 'center', borderTopWidth: B, borderColor: BC }]}>FUSO</Text>
+                <Text style={[s.lbl, { width: '40%', textAlign: 'center', borderTopWidth: B, borderColor: BC }]}>X (LONG)</Text>
+                <Text style={[s.lbl, { width: '30%', textAlign: 'center', borderTopWidth: B, borderColor: BC }]}>Y (LAT)</Text>
               </View>
               <View style={s.row}>
                 <Text style={[s.valc, { width: '30%' }]}>{get('coord_utm_fuso') || ' '}</Text>
