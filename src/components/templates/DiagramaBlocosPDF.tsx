@@ -395,17 +395,19 @@ export function DiagramaBlocosPDF({ projectData }: DiagramaBlocosPDFProps) {
               })}
             </View>
             {renderFunnel()}
-            <View style={{ width: pdfSectionW, position: 'relative' }}>
+            {/* QGBT + "Unidade Consumidora/Geradora" como um unico bloco
+                centralizado (em vez de anexar a caixa extra só à direita via
+                position absolute) — evita que ela encoste/ultrapasse a
+                margem direita da folha com 2+ inversores. */}
+            <View style={{ width: pdfSectionW + 22 + 120, flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ borderWidth: 1, borderColor: BC, width: pdfSectionW, paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' }}>
                 <Text style={s.normalLine}>QGBT</Text>
                 <Text style={s.normalLine}>Quadro de baixa tensão</Text>
               </View>
-              <View style={{ position: 'absolute', top: 0, left: pdfSectionW, flexDirection: 'row', alignItems: 'center', height: '100%' }}>
-                <View style={[s.hLine, { alignSelf: 'center' }]} />
-                <View style={[s.box, { width: 120 }]}>
-                  <Text style={s.normalLine}>Unidade</Text>
-                  <Text style={s.normalLine}>Consumidora/Geradora</Text>
-                </View>
+              <View style={[s.hLine, { alignSelf: 'center' }]} />
+              <View style={[s.box, { width: 120 }]}>
+                <Text style={s.normalLine}>Unidade</Text>
+                <Text style={s.normalLine}>Consumidora/Geradora</Text>
               </View>
             </View>
             <View style={s.vLine} />
