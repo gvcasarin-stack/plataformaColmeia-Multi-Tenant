@@ -49,6 +49,8 @@ const CONFERIR_FIELDS = [
   // Relação de Carga (Folha 2 do Formulário de Solicitação de Acesso — Energisa)
   'energisa_relacao_cargas',
   'material_poste_padrao',
+  // Energisa GD — Potência Instalada / Demanda Contratada (campos próprios, antes reaproveitavam carga_declarada_kw)
+  'potencia_instalada_kw', 'demanda_contratada_kw', 'demanda_contratada_kwg',
 ];
 
 // GET: Diagnóstico — colar no navegador para ver o estado do projeto

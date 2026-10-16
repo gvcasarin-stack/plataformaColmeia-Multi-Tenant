@@ -311,7 +311,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
           </View>
           <View style={s.row} wrap={false}>
             <Text style={[s.lbl, w(3)]}>Potência Instalada (kW):</Text>
-            <Text style={[s.valc, w(3)]}>{potenciaInversoresKw ? potenciaInversoresKw.toFixed(0) : ''}</Text>
+            <Text style={[s.valc, w(3)]}>{get('potencia_instalada_kw')}</Text>
             <Text style={[s.lbl, w(4)]}>Tensão de Atendimento (V):</Text>
             <Text style={[s.valc, w(2)]}>{get('tensao_atendimento')}</Text>
           </View>
@@ -613,7 +613,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
           <View style={s.row} wrap={false}>
             <Text style={[s.valc, w16(2)]}>{get('disjuntor_corrente_a')}</Text>
             <Text style={[s.valc, w16(4)]}>{get('inversores_fator_potencia')}</Text>
-            <Text style={[s.valc, w16(3)]}>{get('carga_declarada_kw')}</Text>
+            <Text style={[s.valc, w16(3)]}>{get('demanda_contratada_kw')}</Text>
             <Text style={[s.valc, w16(2)]}>{get('dps_ca_ka')}</Text>
             <Text style={[s.valc, w16(2)]}>{get('disjuntor_ca_corrente_a')}</Text>
             <Text style={[s.valc, w16(2)]}>{get('dps_cc_ka')}</Text>
@@ -629,7 +629,7 @@ export function EnergisaGDPDF({ projectData = {} }: EnergisaGDPDFProps) {
             <Text style={[s.valc, w16(2)]}>{get('modalidade_compensacao')}</Text>
             <Text style={[s.valc, w16(2)]}>{get('potencia_trafo')}</Text>
             <Text style={[s.valc, w16(2)]}>{get('numero_hastes')}</Text>
-            <Text style={[s.valc, w16(3)]}>{get('carga_declarada_kw')}</Text>
+            <Text style={[s.valc, w16(3)]}>{get('demanda_contratada_kwg')}</Text>
           </View>
           <View style={[s.row, { alignItems: 'stretch' }]} wrap={false}>
             <View style={[s.lbl, w16(6), { justifyContent: 'center' }]}>

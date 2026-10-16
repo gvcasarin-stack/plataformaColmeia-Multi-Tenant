@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { EquipamentoListEditor } from './EquipamentoListEditor';
 import { RelacaoCargasEditor } from './RelacaoCargasEditor';
-import { getAllModulos, getAllInversores, parseStringsModulos, getAllCargas, isModuloPreenchido, isInversorPreenchido } from '@/lib/utils/equipmentParser';
+import { getAllModulos, getAllInversores, parseStringsModulos, getAllCargas, isModuloPreenchido, isInversorPreenchido, getTotalInversorKw } from '@/lib/utils/equipmentParser';
 import type { ModuloItem, InversorItem, InversorUnitConfig, CargaItem } from '@/lib/utils/equipmentParser';
 import { validarEmail, validarCEP, validarTelefone, validarCPForCNPJ } from '@/lib/utils/validators';
 import { buscarEnderecoPorCEP } from '@/lib/utils/cep';
@@ -372,6 +372,13 @@ function getNumeroHastesEnergisa(fields: Record<string, any>): string {
   return '';
 }
 
+// Ponto único usado pelo campo "Potência Instalada (kW)" (Energisa GD):
+// soma a potência de todos os inversores cadastrados.
+function getPotenciaInstaladaEnergisa(fields: Record<string, any>): string {
+  const kw = getTotalInversorKw(fields);
+  return kw > 0 ? kw.toFixed(0) : '';
+}
+
 const CPFL_PADRAO_127_220 = [
   { value: 'A1', label: 'A1 - GED 13 (Tab. 1A)' },
   { value: 'A2', label: 'A2 - GED 13 (Tab. 1A)' },
@@ -444,6 +451,9 @@ const FIELD_DEFINITIONS: FieldDef[] = [
   { key: 'potencia_autotrafo', label: 'Potência do Autotrafo', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'atendimento_trafo_exclusivo', label: 'Atendimento com Trafo Exclusivo (Grupo A e Rurais)?', type: 'select', required: false, options: [{ value: 'SIM', label: 'Sim' }, { value: 'NÃO', label: 'Não' }], group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
   { key: 'potencia_trafo_exclusivo', label: 'Potência do Trafo Exclusivo', type: 'text', required: false, group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'potencia_instalada_kw', label: 'Potência Instalada (kW)', type: 'default_with_custom', required: false, suffix: 'kW', defaultValue: getPotenciaInstaladaEnergisa, help: 'Preenchido automaticamente com a soma da potência dos inversores.', group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'demanda_contratada_kw', label: 'Demanda Contratada (kW)', type: 'default_with_custom', required: false, suffix: 'kW', defaultValue: '0', group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
+  { key: 'demanda_contratada_kwg', label: 'Demanda Contratada (kWg)', type: 'default_with_custom', required: false, suffix: 'kWg', defaultValue: '0', group: 'Energisa GD', onlyForDistribuidoras: ['Energisa'] },
 
   // Responsável Legal
   { key: 'responsavel_legal_nome', label: 'Nome do Responsável Legal', icon: <User className="h-3.5 w-3.5" />, type: 'text', required: true, group: 'Responsável Legal' },

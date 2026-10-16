@@ -278,7 +278,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           <tr><td colSpan={12} style={BAR}>2. DADOS DA UNIDADE CONSUMIDORA NO ATO DA VISTORIA - UC</td></tr>
           <tr>
             <td colSpan={3} style={LBL}>Potência Instalada (kW):</td>
-            <td colSpan={3} style={VALC}>{potenciaInversoresKw ? potenciaInversoresKw.toFixed(0) : ''}</td>
+            <td colSpan={3} style={VALC}>{get('potencia_instalada_kw')}</td>
             <td colSpan={4} style={LBL}>Tensão de Atendimento (V):</td>
             <td colSpan={2} style={VALC}>{get('tensao_atendimento')}</td>
           </tr>
@@ -584,7 +584,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
           <tr>
             <td colSpan={2} style={VALC}>{get('disjuntor_corrente_a')}</td>
             <td colSpan={4} style={VALC}>{get('inversores_fator_potencia')}</td>
-            <td colSpan={3} style={VALC}>{get('carga_declarada_kw')}</td>
+            <td colSpan={3} style={VALC}>{get('demanda_contratada_kw')}</td>
             <td colSpan={2} style={VALC} rowSpan={3}>{get('dps_ca_ka')}</td>
             <td colSpan={2} style={VALC} rowSpan={3}>{get('disjuntor_ca_corrente_a')}</td>
             <td colSpan={2} style={VALC} rowSpan={3}>{get('dps_cc_ka')}</td>
@@ -600,7 +600,7 @@ export function EnergisaGDPreview({ projectData = {} }: EnergisaGDPreviewProps) 
             <td colSpan={2} style={VALC}>{get('modalidade_compensacao')}</td>
             <td colSpan={2} style={VALC}>{get('potencia_trafo')}</td>
             <td colSpan={2} style={VALC}>{get('numero_hastes')}</td>
-            <td colSpan={3} style={VALC}>{get('carga_declarada_kw')}</td>
+            <td colSpan={3} style={VALC}>{get('demanda_contratada_kwg')}</td>
           </tr>
           <tr>
             <td colSpan={6} style={{ ...LBL, textAlign: 'center' }} rowSpan={2}>Coordenadas do padrão de entrada em UTM:</td>
