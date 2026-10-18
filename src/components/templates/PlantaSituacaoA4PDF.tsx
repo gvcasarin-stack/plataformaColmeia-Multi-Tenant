@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, Image, Svg, Polygon, Path, Circle, G } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image, Svg, Polygon, Path, Circle, G, Defs, ClipPath, Line } from '@react-pdf/renderer';
 
 // ── Gerador de PDF da Planta de Situação (A3 paisagem) via @react-pdf/renderer
 // — mesma tecnologia já usada no Diagrama Unifilar, Diagrama de Blocos e
@@ -15,6 +15,38 @@ interface PolygonConfig {
   color: string;
   thickness: number;
   rotation?: number;
+  fillStyle?: 'none' | 'solid' | 'hatched';
+  hatchColor?: string;
+  hatchType?: 'diagonal' | 'cross' | 'horizontal';
+}
+
+// Gera linhas de hachura cobrindo a caixa delimitadora dos pontos do
+// polígono (espaço local 0-100, antes da rotação), no ângulo pedido. O
+// excesso é cortado depois via ClipPath — não precisa recortar aqui.
+function buildHatchLines(points: Array<{ x: number; y: number }>, angleDeg: number, spacing: number): Array<{ x1: number; y1: number; x2: number; y2: number }> {
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const half = Math.sqrt((maxX - minX) ** 2 + (maxY - minY) ** 2) / 2 + spacing;
+  const rad = (angleDeg * Math.PI) / 180;
+  const dx = Math.cos(rad), dy = Math.sin(rad);
+  const px = -dy, py = dx;
+  const lines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+  for (let o = -half; o <= half; o += spacing) {
+    const bx = cx + px * o, by = cy + py * o;
+    lines.push({ x1: bx - dx * half, y1: by - dy * half, x2: bx + dx * half, y2: by + dy * half });
+  }
+  return lines;
+}
+
+function hatchLinesFor(polygon: PolygonConfig): Array<{ x1: number; y1: number; x2: number; y2: number }> {
+  const spacing = 3;
+  if (polygon.hatchType === 'cross') {
+    return [...buildHatchLines(polygon.points, 45, spacing), ...buildHatchLines(polygon.points, -45, spacing)];
+  }
+  if (polygon.hatchType === 'horizontal') return buildHatchLines(polygon.points, 0, spacing);
+  return buildHatchLines(polygon.points, 45, spacing);
 }
 interface PlantaConfig {
   polygon?: PolygonConfig | null;
@@ -200,10 +232,29 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
             {/* Polígono da propriedade */}
             {polygon && (
               <Svg style={{ position: 'absolute', top: 0, left: 0 }} width={mm(MAP.w)} height={mm(MAP.h)} viewBox="0 0 100 100" preserveAspectRatio="none">
+                <Defs>
+                  <ClipPath id="polyClip">
+                    <Polygon points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')} />
+                  </ClipPath>
+                </Defs>
                 <G transform={`rotate(${polyRotation}, ${polyCX}, ${polyCY})`}>
+                  {polygon.fillStyle === 'solid' && (
+                    <Polygon
+                      points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
+                      fill={polygon.color}
+                      fillOpacity={0.15}
+                    />
+                  )}
+                  {polygon.fillStyle === 'hatched' && (
+                    <G clipPath="url(#polyClip)">
+                      {hatchLinesFor(polygon).map((ln, i) => (
+                        <Line key={i} x1={ln.x1} y1={ln.y1} x2={ln.x2} y2={ln.y2} stroke={polygon.hatchColor || polygon.color} strokeWidth={0.4} />
+                      ))}
+                    </G>
+                  )}
                   <Polygon
                     points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
-                    fill={polygon.color + '15'}
+                    fill="none"
                     stroke={polygon.color}
                     strokeWidth={polygon.thickness}
                   />

@@ -10,6 +10,38 @@ interface PolygonConfig {
   color: string;
   thickness: number;
   rotation?: number;
+  fillStyle?: 'none' | 'solid' | 'hatched';
+  hatchColor?: string;
+  hatchType?: 'diagonal' | 'cross' | 'horizontal';
+}
+
+// Gera linhas de hachura cobrindo a caixa delimitadora dos pontos do
+// polígono (espaço local 0-100, antes da rotação), no ângulo pedido —
+// mesma lógica usada no PDF, pra pré-visualização e PDF final baterem.
+function buildHatchLines(points: Array<{ x: number; y: number }>, angleDeg: number, spacing: number): Array<{ x1: number; y1: number; x2: number; y2: number }> {
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const half = Math.sqrt((maxX - minX) ** 2 + (maxY - minY) ** 2) / 2 + spacing;
+  const rad = (angleDeg * Math.PI) / 180;
+  const dx = Math.cos(rad), dy = Math.sin(rad);
+  const px = -dy, py = dx;
+  const lines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+  for (let o = -half; o <= half; o += spacing) {
+    const bx = cx + px * o, by = cy + py * o;
+    lines.push({ x1: bx - dx * half, y1: by - dy * half, x2: bx + dx * half, y2: by + dy * half });
+  }
+  return lines;
+}
+
+function hatchLinesFor(polygon: PolygonConfig): Array<{ x1: number; y1: number; x2: number; y2: number }> {
+  const spacing = 3;
+  if (polygon.hatchType === 'cross') {
+    return [...buildHatchLines(polygon.points, 45, spacing), ...buildHatchLines(polygon.points, -45, spacing)];
+  }
+  if (polygon.hatchType === 'horizontal') return buildHatchLines(polygon.points, 0, spacing);
+  return buildHatchLines(polygon.points, 45, spacing);
 }
 interface PlantaConfig {
   polygon?: PolygonConfig | null;
@@ -88,6 +120,9 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const [polyColor, setPolyColor] = useState('#e53e3e');
   const [polyThickness, setPolyThickness] = useState(2.5);
+  const [polyFillStyle, setPolyFillStyle] = useState<'none' | 'solid' | 'hatched'>('none');
+  const [polyHatchColor, setPolyHatchColor] = useState('#e53e3e');
+  const [polyHatchType, setPolyHatchType] = useState<'diagonal' | 'cross' | 'horizontal'>('diagonal');
   const [polyDrag, setPolyDrag] = useState<{ isDragging: boolean; startX: number; startY: number; origPoints: Array<{ x: number; y: number }> | null }>({ isDragging: false, startX: 0, startY: 0, origPoints: null });
 
   // Tarja de endereço (arrastável + rotacionável)
@@ -111,7 +146,14 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
     if (!pd.planta_situacao_config) return;
     try {
       const cfg: PlantaConfig = JSON.parse(String(pd.planta_situacao_config));
-      if (cfg.polygon) { setPolygon(cfg.polygon); setPolyColor(cfg.polygon.color || '#e53e3e'); setPolyThickness(cfg.polygon.thickness || 2.5); }
+      if (cfg.polygon) {
+        setPolygon(cfg.polygon);
+        setPolyColor(cfg.polygon.color || '#e53e3e');
+        setPolyThickness(cfg.polygon.thickness || 2.5);
+        setPolyFillStyle(cfg.polygon.fillStyle || 'none');
+        setPolyHatchColor(cfg.polygon.hatchColor || cfg.polygon.color || '#e53e3e');
+        setPolyHatchType(cfg.polygon.hatchType || 'diagonal');
+      }
       if (cfg.labelPos) { setLabelPos({ x: cfg.labelPos.x, y: cfg.labelPos.y }); if (cfg.labelPos.rotation !== undefined) setLabelRotation(cfg.labelPos.rotation); }
       if (cfg.infoPos) { setInfoPos({ x: cfg.infoPos.x, y: cfg.infoPos.y }); if (cfg.infoPos.rotation !== undefined) setInfoRotation(cfg.infoPos.rotation); }
       if (cfg.mapZoom) setMapZoom(cfg.mapZoom);
@@ -191,7 +233,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         const first = prev[0];
         const dist = Math.sqrt((p.x - first.x) ** 2 + (p.y - first.y) ** 2);
         if (dist < 5) {
-          setPolygon({ points: prev, color: polyColor, thickness: polyThickness, rotation: 0 });
+          setPolygon({ points: prev, color: polyColor, thickness: polyThickness, rotation: 0, fillStyle: polyFillStyle, hatchColor: polyHatchColor, hatchType: polyHatchType });
           setMousePos(null);
           setMode('view');
           return [];
@@ -200,7 +242,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       return [...prev, p];
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, getPct, polyColor, polyThickness]);
+  }, [mode, getPct, polyColor, polyThickness, polyFillStyle, polyHatchColor, polyHatchType]);
 
   // ── Mouse move: linha fantasma enquanto desenha ──
   const handleMapMouseMove = useCallback((e: React.MouseEvent) => {
@@ -211,11 +253,11 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   // ── Finalizar polígono via botão ──
   const finalizePolygon = useCallback(() => {
     if (drawingPoints.length < 3) return;
-    setPolygon({ points: drawingPoints, color: polyColor, thickness: polyThickness, rotation: 0 });
+    setPolygon({ points: drawingPoints, color: polyColor, thickness: polyThickness, rotation: 0, fillStyle: polyFillStyle, hatchColor: polyHatchColor, hatchType: polyHatchType });
     setDrawingPoints([]);
     setMousePos(null);
     setMode('view');
-  }, [drawingPoints, polyColor, polyThickness]);
+  }, [drawingPoints, polyColor, polyThickness, polyFillStyle, polyHatchColor, polyHatchType]);
 
   // ── Cancelar desenho ──
   const cancelDraw = useCallback(() => {
@@ -402,6 +444,9 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const applyPolyColor = (c: string) => { setPolyColor(c); setPolygon(prev => prev ? { ...prev, color: c } : prev); };
   const applyPolyThickness = (t: number) => { setPolyThickness(t); setPolygon(prev => prev ? { ...prev, thickness: t } : prev); };
   const applyPolyRotation = (delta: number) => { setPolygon(prev => prev ? { ...prev, rotation: ((prev.rotation || 0) + delta + 360) % 360 } : prev); };
+  const applyPolyFillStyle = (s: 'none' | 'solid' | 'hatched') => { setPolyFillStyle(s); setPolygon(prev => prev ? { ...prev, fillStyle: s } : prev); };
+  const applyPolyHatchColor = (c: string) => { setPolyHatchColor(c); setPolygon(prev => prev ? { ...prev, hatchColor: c } : prev); };
+  const applyPolyHatchType = (t: 'diagonal' | 'cross' | 'horizontal') => { setPolyHatchType(t); setPolygon(prev => prev ? { ...prev, hatchType: t } : prev); };
 
   return (
     <>
@@ -486,6 +531,52 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
               </button>
             ))}
           </div>
+
+          {/* Separador */}
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+
+          {/* Preenchimento do polígono */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">Preench.:</span>
+            {([
+              { value: 'none', label: 'Nenhum' },
+              { value: 'solid', label: 'Sólido' },
+              { value: 'hatched', label: 'Hachurado' },
+            ] as const).map(opt => (
+              <button key={opt.value} onClick={() => applyPolyFillStyle(opt.value)}
+                className={`text-xs px-1.5 py-0.5 rounded border ${polyFillStyle === opt.value ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {polyFillStyle === 'hatched' && (
+            <>
+              {/* Cor da hachura */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Cor hach.:</span>
+                {COLORS.map(c => (
+                  <button key={c} onClick={() => applyPolyHatchColor(c)} title={c}
+                    style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: polyHatchColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+                ))}
+              </div>
+
+              {/* Tipo de hachura */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Tipo:</span>
+                {([
+                  { value: 'diagonal', label: 'Diagonal' },
+                  { value: 'cross', label: 'Cruzada' },
+                  { value: 'horizontal', label: 'Horizontal' },
+                ] as const).map(opt => (
+                  <button key={opt.value} onClick={() => applyPolyHatchType(opt.value)}
+                    className={`text-xs px-1.5 py-0.5 rounded border ${polyHatchType === opt.value ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Separador */}
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
@@ -663,16 +754,44 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
               preserveAspectRatio="none"
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: mode === 'draw' ? 'none' : 'all', overflow: 'visible' }}
             >
+              <defs>
+                <clipPath id="polyClipPreview">
+                  <polygon points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')} />
+                </clipPath>
+              </defs>
               <g transform={`rotate(${polyRotation}, ${polyCX}, ${polyCY})`}>
+                {/* Camada invisível que recebe o clique/arraste em toda a área
+                    do polígono, mesmo quando não há preenchimento visível. */}
                 <polygon
                   points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
-                  fill={polygon.color + '15'}
+                  fill="transparent"
+                  stroke="none"
+                  style={{ cursor: polyDrag.isDragging ? 'grabbing' : 'grab' }}
+                  onMouseDown={handlePolyMouseDown}
+                />
+                {polygon.fillStyle === 'solid' && (
+                  <polygon
+                    points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
+                    fill={polygon.color}
+                    fillOpacity={0.15}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                )}
+                {polygon.fillStyle === 'hatched' && (
+                  <g clipPath="url(#polyClipPreview)" style={{ pointerEvents: 'none' }}>
+                    {hatchLinesFor(polygon).map((ln, i) => (
+                      <line key={i} x1={ln.x1} y1={ln.y1} x2={ln.x2} y2={ln.y2} stroke={polygon.hatchColor || polygon.color} strokeWidth={0.3} vectorEffect="non-scaling-stroke" />
+                    ))}
+                  </g>
+                )}
+                <polygon
+                  points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
+                  fill="none"
                   stroke={polygon.color}
                   strokeWidth={polygon.thickness}
                   vectorEffect="non-scaling-stroke"
                   strokeLinejoin="round"
-                  style={{ cursor: polyDrag.isDragging ? 'grabbing' : 'grab' }}
-                  onMouseDown={handlePolyMouseDown}
+                  style={{ pointerEvents: 'none' }}
                 />
               </g>
             </svg>
