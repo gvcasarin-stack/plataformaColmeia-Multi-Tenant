@@ -58,6 +58,7 @@ interface PlantaConfig {
   infoPos?: { x: number; y: number; rotation?: number };
   mapZoom?: number;
   equipMarker?: EquipMarkerConfig | null;
+  entradaMarker?: EquipMarkerConfig | null;
 }
 interface PlantaSituacaoA4PreviewProps {
   projectData?: Record<string, any>;
@@ -163,6 +164,15 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const [equipDrag, setEquipDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
   const [equipTagDrag, setEquipTagDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
 
+  // Marcador do Padrão de Entrada (bolinha + tag "Padrão de Entrada") —
+  // mesmo formato/opções do marcador de equipamento acima.
+  const [entradaMarker, setEntradaMarker] = useState<EquipMarkerConfig | null>(null);
+  const [entradaColor, setEntradaColor] = useState('#dd6b20');
+  const [entradaSize, setEntradaSize] = useState<'P' | 'M' | 'G'>('M');
+  const [placingEntrada, setPlacingEntrada] = useState(false);
+  const [entradaDrag, setEntradaDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
+  const [entradaTagDrag, setEntradaTagDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
+
   // Zoom do mapa
   const [mapZoom, setMapZoom] = useState(19);
 
@@ -189,6 +199,11 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         setEquipMarker(cfg.equipMarker);
         setEquipColor(cfg.equipMarker.color || '#3182ce');
         setEquipSize(cfg.equipMarker.size || 'M');
+      }
+      if (cfg.entradaMarker) {
+        setEntradaMarker(cfg.entradaMarker);
+        setEntradaColor(cfg.entradaMarker.color || '#dd6b20');
+        setEntradaSize(cfg.entradaMarker.size || 'M');
       }
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,7 +270,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const polyRotation = polygon?.rotation || 0;
 
   // ── Clique no mapa: adicionar ponto do polígono (ou posicionar o
-  //     marcador de equipamento, quando nesse modo) ──
+  //     marcador de equipamento/padrão de entrada, quando nesses modos) ──
   const handleMapMouseDown = useCallback((e: React.MouseEvent) => {
     if (placingEquip) {
       e.preventDefault();
@@ -267,6 +282,18 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         tagRotation: 0,
       });
       setPlacingEquip(false);
+      return;
+    }
+    if (placingEntrada) {
+      e.preventDefault();
+      const p = getPct(e);
+      setEntradaMarker({
+        x: p.x, y: p.y,
+        color: entradaColor, size: entradaSize,
+        tagX: Math.min(97, p.x + 8), tagY: Math.max(3, p.y - 8),
+        tagRotation: 0,
+      });
+      setPlacingEntrada(false);
       return;
     }
     if (mode !== 'draw') return;
@@ -288,7 +315,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       return [...prev, p];
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, getPct, polyColor, polyThickness, polyFillStyle, polyHatchColor, polyHatchType, placingEquip, equipColor, equipSize]);
+  }, [mode, getPct, polyColor, polyThickness, polyFillStyle, polyHatchColor, polyHatchType, placingEquip, equipColor, equipSize, placingEntrada, entradaColor, entradaSize]);
 
   // ── Mouse move: linha fantasma enquanto desenha ──
   const handleMapMouseMove = useCallback((e: React.MouseEvent) => {
@@ -314,46 +341,62 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
 
   // ── Arrastar polígono ──
   const handlePolyMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw' || placingEquip || !polygon || !mapRef.current) return;
+    if (mode === 'draw' || placingEquip || placingEntrada || !polygon || !mapRef.current) return;
     e.stopPropagation(); e.preventDefault();
     const b = mapRef.current.getBoundingClientRect();
     const startX = ((e.clientX - b.left) / b.width) * 100;
     const startY = ((e.clientY - b.top) / b.height) * 100;
     setPolyDrag({ isDragging: true, startX, startY, origPoints: polygon.points.map(p => ({ ...p })) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, placingEquip, polygon]);
+  }, [mode, placingEquip, placingEntrada, polygon]);
 
   // ── Arrastar tarja de endereço ──
   const handleLabelMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw' || placingEquip) return;
+    if (mode === 'draw' || placingEquip || placingEntrada) return;
     e.stopPropagation(); e.preventDefault();
     setLabelDrag({ isDragging: true, ...getDragOffset(e, labelPos) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, placingEquip, labelPos]);
+  }, [mode, placingEquip, placingEntrada, labelPos]);
 
   // ── Arrastar tag de identificação ──
   const handleInfoMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw' || placingEquip) return;
+    if (mode === 'draw' || placingEquip || placingEntrada) return;
     e.stopPropagation(); e.preventDefault();
     setInfoDrag({ isDragging: true, ...getDragOffset(e, infoPos) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, placingEquip, infoPos]);
+  }, [mode, placingEquip, placingEntrada, infoPos]);
 
   // ── Arrastar bolinha de equipamento ──
   const handleEquipMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw' || placingEquip || !equipMarker) return;
+    if (mode === 'draw' || placingEquip || placingEntrada || !equipMarker) return;
     e.stopPropagation(); e.preventDefault();
     setEquipDrag({ isDragging: true, ...getDragOffset(e, { x: equipMarker.x, y: equipMarker.y }) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, placingEquip, equipMarker]);
+  }, [mode, placingEquip, placingEntrada, equipMarker]);
 
   // ── Arrastar tag do equipamento ──
   const handleEquipTagMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw' || placingEquip || !equipMarker) return;
+    if (mode === 'draw' || placingEquip || placingEntrada || !equipMarker) return;
     e.stopPropagation(); e.preventDefault();
     setEquipTagDrag({ isDragging: true, ...getDragOffset(e, { x: equipMarker.tagX, y: equipMarker.tagY }) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, placingEquip, equipMarker]);
+  }, [mode, placingEquip, placingEntrada, equipMarker]);
+
+  // ── Arrastar bolinha do Padrão de Entrada ──
+  const handleEntradaMouseDown = useCallback((e: React.MouseEvent) => {
+    if (mode === 'draw' || placingEquip || placingEntrada || !entradaMarker) return;
+    e.stopPropagation(); e.preventDefault();
+    setEntradaDrag({ isDragging: true, ...getDragOffset(e, { x: entradaMarker.x, y: entradaMarker.y }) });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, placingEquip, placingEntrada, entradaMarker]);
+
+  // ── Arrastar tag do Padrão de Entrada ──
+  const handleEntradaTagMouseDown = useCallback((e: React.MouseEvent) => {
+    if (mode === 'draw' || placingEquip || placingEntrada || !entradaMarker) return;
+    e.stopPropagation(); e.preventDefault();
+    setEntradaTagDrag({ isDragging: true, ...getDragOffset(e, { x: entradaMarker.tagX, y: entradaMarker.tagY }) });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, placingEquip, placingEntrada, entradaMarker]);
 
   // ── Eventos globais de mouse para drag ──
   useEffect(() => {
@@ -390,6 +433,16 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         const tagY = clamp(((e.clientY - equipTagDrag.offsetY - b.top) / b.height) * 100);
         setEquipMarker(prev => prev ? { ...prev, tagX, tagY } : prev);
       }
+      if (entradaDrag.isDragging) {
+        const x = clamp(((e.clientX - entradaDrag.offsetX - b.left) / b.width) * 100);
+        const y = clamp(((e.clientY - entradaDrag.offsetY - b.top) / b.height) * 100);
+        setEntradaMarker(prev => prev ? { ...prev, x, y } : prev);
+      }
+      if (entradaTagDrag.isDragging) {
+        const tagX = clamp(((e.clientX - entradaTagDrag.offsetX - b.left) / b.width) * 100);
+        const tagY = clamp(((e.clientY - entradaTagDrag.offsetY - b.top) / b.height) * 100);
+        setEntradaMarker(prev => prev ? { ...prev, tagX, tagY } : prev);
+      }
     };
     const onUp = () => {
       if (labelDrag.isDragging) setLabelDrag(p => ({ ...p, isDragging: false }));
@@ -397,18 +450,20 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       if (polyDrag.isDragging) setPolyDrag(p => ({ ...p, isDragging: false }));
       if (equipDrag.isDragging) setEquipDrag(p => ({ ...p, isDragging: false }));
       if (equipTagDrag.isDragging) setEquipTagDrag(p => ({ ...p, isDragging: false }));
+      if (entradaDrag.isDragging) setEntradaDrag(p => ({ ...p, isDragging: false }));
+      if (entradaTagDrag.isDragging) setEntradaTagDrag(p => ({ ...p, isDragging: false }));
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [labelDrag, infoDrag, polyDrag, equipDrag, equipTagDrag]);
+  }, [labelDrag, infoDrag, polyDrag, equipDrag, equipTagDrag, entradaDrag, entradaTagDrag]);
 
   // ── Salvar config ──
   const handleSave = async () => {
     if (!onSaveConfig) return;
     setSaving(true);
     try {
-      await onSaveConfig({ polygon, labelPos: { ...labelPos, rotation: labelRotation }, infoPos: { ...infoPos, rotation: infoRotation }, mapZoom, equipMarker });
+      await onSaveConfig({ polygon, labelPos: { ...labelPos, rotation: labelRotation }, infoPos: { ...infoPos, rotation: infoRotation }, mapZoom, equipMarker, entradaMarker });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) { console.error('Erro ao salvar config planta:', err); }
@@ -511,6 +566,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
         infoPos: { ...infoPos, rotation: infoRotation },
         mapZoom,
         equipMarker,
+        entradaMarker,
       };
       const pdfProjectData = { ...projectData, planta_situacao_config: JSON.stringify(liveConfig) };
       const blob = await pdf(React.createElement(PlantaSituacaoA4PDF, { projectData: pdfProjectData })).toBlob();
@@ -538,6 +594,11 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const applyEquipColor = (c: string) => { setEquipColor(c); setEquipMarker(prev => prev ? { ...prev, color: c } : prev); };
   const applyEquipSize = (s: 'P' | 'M' | 'G') => { setEquipSize(s); setEquipMarker(prev => prev ? { ...prev, size: s } : prev); };
   const applyEquipTagRotation = (delta: number) => { setEquipMarker(prev => prev ? { ...prev, tagRotation: ((prev.tagRotation || 0) + delta + 360) % 360 } : prev); };
+
+  // ── Atualizar atributos do marcador do Padrão de Entrada existente ──
+  const applyEntradaColor = (c: string) => { setEntradaColor(c); setEntradaMarker(prev => prev ? { ...prev, color: c } : prev); };
+  const applyEntradaSize = (s: 'P' | 'M' | 'G') => { setEntradaSize(s); setEntradaMarker(prev => prev ? { ...prev, size: s } : prev); };
+  const applyEntradaTagRotation = (delta: number) => { setEntradaMarker(prev => prev ? { ...prev, tagRotation: ((prev.tagRotation || 0) + delta + 360) % 360 } : prev); };
 
   return (
     <>
@@ -605,7 +666,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
 
           {/* Marcar equipamento (bolinha + tag "Inversor e Quadro de Proteção") */}
           {!placingEquip ? (
-            <Button size="sm" variant="outline" onClick={() => setPlacingEquip(true)} disabled={mode === 'draw'}>
+            <Button size="sm" variant="outline" onClick={() => { setPlacingEntrada(false); setPlacingEquip(true); }} disabled={mode === 'draw' || placingEntrada}>
               <MapPin className="h-3.5 w-3.5 mr-1.5" />
               Marcar Equipamento
             </Button>
@@ -650,6 +711,61 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
                 <button onClick={() => applyEquipTagRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
                 <span className="text-xs w-8 text-center font-mono">{equipMarker.tagRotation || 0}°</span>
                 <button onClick={() => applyEquipTagRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+              </div>
+            </>
+          )}
+
+          {/* Separador */}
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+
+          {/* Marcar Padrão de Entrada (bolinha + tag "Padrão de Entrada") —
+              mesmo formato/opções do marcador de equipamento acima. */}
+          {!placingEntrada ? (
+            <Button size="sm" variant="outline" onClick={() => { setPlacingEquip(false); setPlacingEntrada(true); }} disabled={mode === 'draw' || placingEquip}>
+              <MapPin className="h-3.5 w-3.5 mr-1.5" />
+              Marcar Padrão de Entrada
+            </Button>
+          ) : (
+            <>
+              <span className="text-xs text-blue-600 font-medium">Clique no mapa para posicionar</span>
+              <Button size="sm" variant="outline" onClick={() => setPlacingEntrada(false)}>Cancelar</Button>
+            </>
+          )}
+
+          {entradaMarker && mode === 'view' && !placingEntrada && (
+            <Button size="sm" variant="outline" onClick={() => setEntradaMarker(null)}>
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
+            </Button>
+          )}
+
+          {entradaMarker && (
+            <>
+              {/* Cor da bolinha */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Cor entr.:</span>
+                {COLORS.map(c => (
+                  <button key={c} onClick={() => applyEntradaColor(c)} title={c}
+                    style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: entradaColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+                ))}
+              </div>
+
+              {/* Tamanho da bolinha */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Tam.:</span>
+                {(['P', 'M', 'G'] as const).map(s => (
+                  <button key={s} onClick={() => applyEntradaSize(s)}
+                    className={`text-xs px-1.5 py-0.5 rounded border ${entradaSize === s ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              {/* Rotação da tag do Padrão de Entrada */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Rot. entr.:</span>
+                <button onClick={() => applyEntradaTagRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+                <span className="text-xs w-8 text-center font-mono">{entradaMarker.tagRotation || 0}°</span>
+                <button onClick={() => applyEntradaTagRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
               </div>
             </>
           )}
@@ -835,7 +951,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             border: '1px solid #333',
             overflow: 'hidden',
             backgroundColor: '#c8d8c8',
-            cursor: mode === 'draw' || placingEquip ? 'crosshair' : 'default',
+            cursor: mode === 'draw' || placingEquip || placingEntrada ? 'crosshair' : 'default',
             boxSizing: 'border-box',
           }}
           onMouseDown={handleMapMouseDown}
@@ -960,7 +1076,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
                   boxShadow: '0 0 0 1px rgba(0,0,0,0.5)',
                   transform: 'translate(-50%, -50%)',
                   zIndex: 11,
-                  cursor: equipDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip ? 'default' : 'grab'),
+                  cursor: equipDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip || placingEntrada ? 'default' : 'grab'),
                 }}
               />
               <div
@@ -979,11 +1095,57 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
                   textAlign: 'center',
                   whiteSpace: 'nowrap',
                   zIndex: 10,
-                  cursor: equipTagDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip ? 'default' : 'grab'),
+                  cursor: equipTagDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip || placingEntrada ? 'default' : 'grab'),
                   userSelect: 'none',
                 }}
               >
                 Inversor e Quadro de Proteção
+              </div>
+            </>
+          )}
+
+          {/* Marcador do Padrão de Entrada — bolinha arrastável + tag "Padrão
+              de Entrada" arrastável/rotacionável independentemente */}
+          {entradaMarker && (
+            <>
+              <div
+                onMouseDown={handleEntradaMouseDown}
+                style={{
+                  position: 'absolute',
+                  left: `${entradaMarker.x}%`,
+                  top: `${entradaMarker.y}%`,
+                  width: EQUIP_SIZES[entradaMarker.size].px,
+                  height: EQUIP_SIZES[entradaMarker.size].px,
+                  borderRadius: '50%',
+                  backgroundColor: entradaMarker.color,
+                  border: '2px solid #ffffff',
+                  boxShadow: '0 0 0 1px rgba(0,0,0,0.5)',
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 11,
+                  cursor: entradaDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip || placingEntrada ? 'default' : 'grab'),
+                }}
+              />
+              <div
+                onMouseDown={handleEntradaTagMouseDown}
+                style={{
+                  position: 'absolute',
+                  left: `${entradaMarker.tagX}%`,
+                  top: `${entradaMarker.tagY}%`,
+                  transform: `translate(-50%, -50%) rotate(${entradaMarker.tagRotation || 0}deg)`,
+                  backgroundColor: 'rgba(255,255,255,0.93)',
+                  border: '1.5px solid #333',
+                  borderRadius: 4,
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  zIndex: 10,
+                  cursor: entradaTagDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip || placingEntrada ? 'default' : 'grab'),
+                  userSelect: 'none',
+                }}
+              >
+                Padrão de Entrada
               </div>
             </>
           )}
