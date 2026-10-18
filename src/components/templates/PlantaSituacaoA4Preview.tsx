@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { Fragment, useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2, MapPin, AlertCircle, Square, Trash2, Save, Check } from 'lucide-react';
 
@@ -600,6 +600,14 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const applyEntradaSize = (s: 'P' | 'M' | 'G') => { setEntradaSize(s); setEntradaMarker(prev => prev ? { ...prev, size: s } : prev); };
   const applyEntradaTagRotation = (delta: number) => { setEntradaMarker(prev => prev ? { ...prev, tagRotation: ((prev.tagRotation || 0) + delta + 360) % 360 } : prev); };
 
+  // ── Passo a passo discreto — só indica progresso, não bloqueia nada ──
+  const steps = [
+    { key: 'prop', label: 'Marque a propriedade', done: !!polygon },
+    { key: 'entrada', label: 'Marque o Padrão de Entrada', done: !!entradaMarker },
+    { key: 'equip', label: 'Marque o equipamento', done: !!equipMarker },
+    { key: 'save', label: 'Salve', done: saved },
+  ];
+
   return (
     <>
       {/* Botão PDF — fora da área impressa */}
@@ -627,280 +635,302 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
 
       {/* Barra de controles */}
       {onSaveConfig && (
-        <div className="flex flex-wrap gap-2 mb-4 items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
 
-          {/* Marcar propriedade / Cancelar */}
-          {mode === 'view' ? (
-            <Button size="sm" variant="outline"
-              onClick={() => setMode('draw')}>
-              <Square className="h-3.5 w-3.5 mr-1.5" />
-              Marcar Propriedade
-            </Button>
-          ) : (
-            <>
-              <span className="text-xs text-red-600 font-medium">
-                {drawingPoints.length === 0
-                  ? 'Clique no mapa para adicionar pontos'
-                  : `${drawingPoints.length} ponto${drawingPoints.length > 1 ? 's' : ''} — clique perto do 1º para fechar`}
-              </span>
-              {drawingPoints.length >= 3 && (
-                <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={finalizePolygon}>
-                  <Check className="h-3.5 w-3.5 mr-1.5" />
-                  Finalizar
-                </Button>
+          {/* Passo a passo — discreto, só indica progresso, não bloqueia nada */}
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-gray-400 dark:text-gray-500 mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
+            {steps.map((step, i) => (
+              <Fragment key={step.key}>
+                <span className={`flex items-center gap-1 ${step.done ? 'text-green-600 dark:text-green-500' : ''}`}>
+                  <span className={`flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold leading-none ${step.done ? 'bg-green-600 text-white' : 'bg-gray-300 dark:bg-gray-600 text-white'}`}>
+                    {step.done ? '✓' : i + 1}
+                  </span>
+                  {step.label}
+                </span>
+                {i < steps.length - 1 && <span className="text-gray-300 dark:text-gray-600">›</span>}
+              </Fragment>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-stretch gap-2.5">
+
+            {/* Grupo: Propriedade */}
+            <div className="flex flex-col gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Propriedade</span>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Marcar propriedade / Cancelar */}
+                {mode === 'view' ? (
+                  <Button size="sm" variant="outline"
+                    onClick={() => setMode('draw')}>
+                    <Square className="h-3.5 w-3.5 mr-1.5" />
+                    Marcar Propriedade
+                  </Button>
+                ) : (
+                  <>
+                    <span className="text-xs text-red-600 font-medium">
+                      {drawingPoints.length === 0
+                        ? 'Clique no mapa para adicionar pontos'
+                        : `${drawingPoints.length} ponto${drawingPoints.length > 1 ? 's' : ''} — clique perto do 1º para fechar`}
+                    </span>
+                    {drawingPoints.length >= 3 && (
+                      <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={finalizePolygon}>
+                        <Check className="h-3.5 w-3.5 mr-1.5" />
+                        Finalizar
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={cancelDraw}>
+                      Cancelar
+                    </Button>
+                  </>
+                )}
+
+                {polygon && mode === 'view' && (
+                  <Button size="sm" variant="outline" onClick={() => setPolygon(null)}>
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
+                  </Button>
+                )}
+              </div>
+
+              {polygon && (
+                <div className="flex flex-wrap items-center gap-2.5 pt-1.5 mt-0.5 border-t border-gray-100 dark:border-gray-800">
+                  {/* Cor da linha */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500">Cor:</span>
+                    {COLORS.map(c => (
+                      <button key={c} onClick={() => applyPolyColor(c)} title={c}
+                        style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: polyColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+                    ))}
+                  </div>
+
+                  {/* Espessura */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Esp:</span>
+                    {THICKNESS_OPTIONS.map(t => (
+                      <button key={t} onClick={() => applyPolyThickness(t)}
+                        className={`text-xs px-1.5 py-0.5 rounded border ${polyThickness === t ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Preenchimento do polígono */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Preench.:</span>
+                    {([
+                      { value: 'none', label: 'Nenhum' },
+                      { value: 'solid', label: 'Sólido' },
+                      { value: 'hatched', label: 'Hachurado' },
+                    ] as const).map(opt => (
+                      <button key={opt.value} onClick={() => applyPolyFillStyle(opt.value)}
+                        className={`text-xs px-1.5 py-0.5 rounded border ${polyFillStyle === opt.value ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {polyFillStyle === 'hatched' && (
+                    <>
+                      {/* Cor da hachura */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500">Cor hach.:</span>
+                        {COLORS.map(c => (
+                          <button key={c} onClick={() => applyPolyHatchColor(c)} title={c}
+                            style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: polyHatchColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+                        ))}
+                      </div>
+
+                      {/* Tipo de hachura */}
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">Tipo:</span>
+                        {([
+                          { value: 'diagonal', label: 'Diagonal' },
+                          { value: 'cross', label: 'Cruzada' },
+                          { value: 'horizontal', label: 'Horizontal' },
+                        ] as const).map(opt => (
+                          <button key={opt.value} onClick={() => applyPolyHatchType(opt.value)}
+                            className={`text-xs px-1.5 py-0.5 rounded border ${polyHatchType === opt.value ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Rotação da propriedade (polígono) */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Rot.:</span>
+                    <button onClick={() => applyPolyRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+                    <span className="text-xs w-8 text-center font-mono">{polyRotation}°</span>
+                    <button onClick={() => applyPolyRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+                  </div>
+                </div>
               )}
-              <Button size="sm" variant="outline" onClick={cancelDraw}>
-                Cancelar
+            </div>
+
+            {/* Grupo: Padrão de Entrada */}
+            <div className="flex flex-col gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Padrão de Entrada</span>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {!placingEntrada ? (
+                  <Button size="sm" variant="outline" onClick={() => { setPlacingEquip(false); setPlacingEntrada(true); }} disabled={mode === 'draw' || placingEquip}>
+                    <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                    Marcar
+                  </Button>
+                ) : (
+                  <>
+                    <span className="text-xs text-blue-600 font-medium">Clique no mapa para posicionar</span>
+                    <Button size="sm" variant="outline" onClick={() => setPlacingEntrada(false)}>Cancelar</Button>
+                  </>
+                )}
+
+                {entradaMarker && mode === 'view' && !placingEntrada && (
+                  <Button size="sm" variant="outline" onClick={() => setEntradaMarker(null)}>
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
+                  </Button>
+                )}
+              </div>
+
+              {entradaMarker && (
+                <div className="flex flex-wrap items-center gap-2.5 pt-1.5 mt-0.5 border-t border-gray-100 dark:border-gray-800">
+                  {/* Cor da bolinha */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500">Cor:</span>
+                    {COLORS.map(c => (
+                      <button key={c} onClick={() => applyEntradaColor(c)} title={c}
+                        style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: entradaColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+                    ))}
+                  </div>
+
+                  {/* Tamanho da bolinha */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Tam.:</span>
+                    {(['P', 'M', 'G'] as const).map(s => (
+                      <button key={s} onClick={() => applyEntradaSize(s)}
+                        className={`text-xs px-1.5 py-0.5 rounded border ${entradaSize === s ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Rotação da tag do Padrão de Entrada */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Rot.:</span>
+                    <button onClick={() => applyEntradaTagRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+                    <span className="text-xs w-8 text-center font-mono">{entradaMarker.tagRotation || 0}°</span>
+                    <button onClick={() => applyEntradaTagRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Grupo: Equipamento */}
+            <div className="flex flex-col gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Equipamento</span>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {!placingEquip ? (
+                  <Button size="sm" variant="outline" onClick={() => { setPlacingEntrada(false); setPlacingEquip(true); }} disabled={mode === 'draw' || placingEntrada}>
+                    <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                    Marcar
+                  </Button>
+                ) : (
+                  <>
+                    <span className="text-xs text-blue-600 font-medium">Clique no mapa para posicionar</span>
+                    <Button size="sm" variant="outline" onClick={() => setPlacingEquip(false)}>Cancelar</Button>
+                  </>
+                )}
+
+                {equipMarker && mode === 'view' && !placingEquip && (
+                  <Button size="sm" variant="outline" onClick={() => setEquipMarker(null)}>
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
+                  </Button>
+                )}
+              </div>
+
+              {equipMarker && (
+                <div className="flex flex-wrap items-center gap-2.5 pt-1.5 mt-0.5 border-t border-gray-100 dark:border-gray-800">
+                  {/* Cor da bolinha */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500">Cor:</span>
+                    {COLORS.map(c => (
+                      <button key={c} onClick={() => applyEquipColor(c)} title={c}
+                        style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: equipColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+                    ))}
+                  </div>
+
+                  {/* Tamanho da bolinha */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Tam.:</span>
+                    {(['P', 'M', 'G'] as const).map(s => (
+                      <button key={s} onClick={() => applyEquipSize(s)}
+                        className={`text-xs px-1.5 py-0.5 rounded border ${equipSize === s ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Rotação da tag do equipamento */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Rot.:</span>
+                    <button onClick={() => applyEquipTagRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+                    <span className="text-xs w-8 text-center font-mono">{equipMarker.tagRotation || 0}°</span>
+                    <button onClick={() => applyEquipTagRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Grupo: Tarjas e mapa */}
+            <div className="flex flex-col gap-1.5 px-2.5 py-2 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Tarjas e mapa</span>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Zoom do mapa */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-500">Zoom:</span>
+                  <select
+                    value={mapZoom}
+                    onChange={e => setMapZoom(Number(e.target.value))}
+                    className="text-xs border border-gray-300 rounded px-1.5 py-0.5 bg-white"
+                  >
+                    {[15, 16, 17, 18, 19, 20, 21].map(z => (
+                      <option key={z} value={z}>{z}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Rotação da tarja (rua) */}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500">Rot. rua:</span>
+                  <button onClick={() => setLabelRotation(r => r - 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+                  <span className="text-xs w-8 text-center font-mono">{labelRotation}°</span>
+                  <button onClick={() => setLabelRotation(r => r + 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+                </div>
+
+                {/* Rotação da tag de identificação */}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500">Rot. tag:</span>
+                  <button onClick={() => setInfoRotation(r => r - 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+                  <span className="text-xs w-8 text-center font-mono">{infoRotation}°</span>
+                  <button onClick={() => setInfoRotation(r => r + 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Grupo: Ações */}
+            <div className="flex flex-col gap-1.5 px-2.5 py-2 justify-center">
+              <Button size="sm" variant="outline" onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  : saved ? <Check className="h-3.5 w-3.5 mr-1.5 text-green-600" />
+                  : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                {saved ? 'Salvo!' : 'Salvar'}
               </Button>
-            </>
-          )}
+              <span className="text-[10px] text-gray-400 max-w-[140px]">Arraste as tags e o polígono para reposicionar</span>
+            </div>
 
-          {polygon && mode === 'view' && (
-            <Button size="sm" variant="outline" onClick={() => setPolygon(null)}>
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
-            </Button>
-          )}
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Marcar equipamento (bolinha + tag "Inversor e Quadro de Proteção") */}
-          {!placingEquip ? (
-            <Button size="sm" variant="outline" onClick={() => { setPlacingEntrada(false); setPlacingEquip(true); }} disabled={mode === 'draw' || placingEntrada}>
-              <MapPin className="h-3.5 w-3.5 mr-1.5" />
-              Marcar Equipamento
-            </Button>
-          ) : (
-            <>
-              <span className="text-xs text-blue-600 font-medium">Clique no mapa para posicionar</span>
-              <Button size="sm" variant="outline" onClick={() => setPlacingEquip(false)}>Cancelar</Button>
-            </>
-          )}
-
-          {equipMarker && mode === 'view' && !placingEquip && (
-            <Button size="sm" variant="outline" onClick={() => setEquipMarker(null)}>
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
-            </Button>
-          )}
-
-          {equipMarker && (
-            <>
-              {/* Cor da bolinha */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500">Cor equip.:</span>
-                {COLORS.map(c => (
-                  <button key={c} onClick={() => applyEquipColor(c)} title={c}
-                    style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: equipColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
-                ))}
-              </div>
-
-              {/* Tamanho da bolinha */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">Tam.:</span>
-                {(['P', 'M', 'G'] as const).map(s => (
-                  <button key={s} onClick={() => applyEquipSize(s)}
-                    className={`text-xs px-1.5 py-0.5 rounded border ${equipSize === s ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              {/* Rotação da tag do equipamento */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">Rot. equip.:</span>
-                <button onClick={() => applyEquipTagRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
-                <span className="text-xs w-8 text-center font-mono">{equipMarker.tagRotation || 0}°</span>
-                <button onClick={() => applyEquipTagRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
-              </div>
-            </>
-          )}
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Marcar Padrão de Entrada (bolinha + tag "Padrão de Entrada") —
-              mesmo formato/opções do marcador de equipamento acima. */}
-          {!placingEntrada ? (
-            <Button size="sm" variant="outline" onClick={() => { setPlacingEquip(false); setPlacingEntrada(true); }} disabled={mode === 'draw' || placingEquip}>
-              <MapPin className="h-3.5 w-3.5 mr-1.5" />
-              Marcar Padrão de Entrada
-            </Button>
-          ) : (
-            <>
-              <span className="text-xs text-blue-600 font-medium">Clique no mapa para posicionar</span>
-              <Button size="sm" variant="outline" onClick={() => setPlacingEntrada(false)}>Cancelar</Button>
-            </>
-          )}
-
-          {entradaMarker && mode === 'view' && !placingEntrada && (
-            <Button size="sm" variant="outline" onClick={() => setEntradaMarker(null)}>
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
-            </Button>
-          )}
-
-          {entradaMarker && (
-            <>
-              {/* Cor da bolinha */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500">Cor entr.:</span>
-                {COLORS.map(c => (
-                  <button key={c} onClick={() => applyEntradaColor(c)} title={c}
-                    style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: entradaColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
-                ))}
-              </div>
-
-              {/* Tamanho da bolinha */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">Tam.:</span>
-                {(['P', 'M', 'G'] as const).map(s => (
-                  <button key={s} onClick={() => applyEntradaSize(s)}
-                    className={`text-xs px-1.5 py-0.5 rounded border ${entradaSize === s ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              {/* Rotação da tag do Padrão de Entrada */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">Rot. entr.:</span>
-                <button onClick={() => applyEntradaTagRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
-                <span className="text-xs w-8 text-center font-mono">{entradaMarker.tagRotation || 0}°</span>
-                <button onClick={() => applyEntradaTagRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
-              </div>
-            </>
-          )}
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Cor da linha */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500">Cor:</span>
-            {COLORS.map(c => (
-              <button key={c} onClick={() => applyPolyColor(c)} title={c}
-                style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: polyColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
-            ))}
           </div>
-
-          {/* Espessura */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Esp:</span>
-            {THICKNESS_OPTIONS.map(t => (
-              <button key={t} onClick={() => applyPolyThickness(t)}
-                className={`text-xs px-1.5 py-0.5 rounded border ${polyThickness === t ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Preenchimento do polígono */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Preench.:</span>
-            {([
-              { value: 'none', label: 'Nenhum' },
-              { value: 'solid', label: 'Sólido' },
-              { value: 'hatched', label: 'Hachurado' },
-            ] as const).map(opt => (
-              <button key={opt.value} onClick={() => applyPolyFillStyle(opt.value)}
-                className={`text-xs px-1.5 py-0.5 rounded border ${polyFillStyle === opt.value ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          {polyFillStyle === 'hatched' && (
-            <>
-              {/* Cor da hachura */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500">Cor hach.:</span>
-                {COLORS.map(c => (
-                  <button key={c} onClick={() => applyPolyHatchColor(c)} title={c}
-                    style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: polyHatchColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
-                ))}
-              </div>
-
-              {/* Tipo de hachura */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">Tipo:</span>
-                {([
-                  { value: 'diagonal', label: 'Diagonal' },
-                  { value: 'cross', label: 'Cruzada' },
-                  { value: 'horizontal', label: 'Horizontal' },
-                ] as const).map(opt => (
-                  <button key={opt.value} onClick={() => applyPolyHatchType(opt.value)}
-                    className={`text-xs px-1.5 py-0.5 rounded border ${polyHatchType === opt.value ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Zoom do mapa */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500">Zoom:</span>
-            <select
-              value={mapZoom}
-              onChange={e => setMapZoom(Number(e.target.value))}
-              className="text-xs border border-gray-300 rounded px-1.5 py-0.5 bg-white"
-            >
-              {[15, 16, 17, 18, 19, 20, 21].map(z => (
-                <option key={z} value={z}>{z}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Rotação da propriedade (polígono) */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Rot. prop.:</span>
-            <button onClick={() => applyPolyRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
-            <span className="text-xs w-8 text-center font-mono">{polyRotation}°</span>
-            <button onClick={() => applyPolyRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
-          </div>
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Rotação da tarja (rua) */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Rot. rua:</span>
-            <button onClick={() => setLabelRotation(r => r - 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
-            <span className="text-xs w-8 text-center font-mono">{labelRotation}°</span>
-            <button onClick={() => setLabelRotation(r => r + 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
-          </div>
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Rotação da tag de identificação */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Rot. tag:</span>
-            <button onClick={() => setInfoRotation(r => r - 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
-            <span className="text-xs w-8 text-center font-mono">{infoRotation}°</span>
-            <button onClick={() => setInfoRotation(r => r + 5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
-          </div>
-
-          {/* Separador */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-          {/* Salvar */}
-          <Button size="sm" variant="outline" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              : saved ? <Check className="h-3.5 w-3.5 mr-1.5 text-green-600" />
-              : <Save className="h-3.5 w-3.5 mr-1.5" />}
-            {saved ? 'Salvo!' : 'Salvar'}
-          </Button>
-
-          <span className="text-xs text-gray-400 ml-1">Arraste as tags e o polígono para reposicionar</span>
         </div>
       )}
 
