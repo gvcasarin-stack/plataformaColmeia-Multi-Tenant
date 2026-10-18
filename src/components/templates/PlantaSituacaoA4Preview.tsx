@@ -501,7 +501,19 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       const { pdf } = await import('@react-pdf/renderer');
       const { PlantaSituacaoA4PDF } = await import('./PlantaSituacaoA4PDF');
       const React = await import('react');
-      const blob = await pdf(React.createElement(PlantaSituacaoA4PDF, { projectData })).toBlob();
+      // Usa a config ao vivo do editor (polígono/hachura/marcador de
+      // equipamento/tarjas), em vez do que está salvo no banco — garante que
+      // o PDF saia igual ao que está sendo exibido na pré-visualização,
+      // mesmo que o usuário gere o PDF antes de clicar em "Salvar".
+      const liveConfig = {
+        polygon,
+        labelPos: { ...labelPos, rotation: labelRotation },
+        infoPos: { ...infoPos, rotation: infoRotation },
+        mapZoom,
+        equipMarker,
+      };
+      const pdfProjectData = { ...projectData, planta_situacao_config: JSON.stringify(liveConfig) };
+      const blob = await pdf(React.createElement(PlantaSituacaoA4PDF, { projectData: pdfProjectData })).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
