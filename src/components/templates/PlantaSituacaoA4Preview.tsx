@@ -43,11 +43,21 @@ function hatchLinesFor(polygon: PolygonConfig): Array<{ x1: number; y1: number; 
   if (polygon.hatchType === 'horizontal') return buildHatchLines(polygon.points, 0, spacing);
   return buildHatchLines(polygon.points, 45, spacing);
 }
+interface EquipMarkerConfig {
+  x: number;
+  y: number;
+  color: string;
+  size: 'P' | 'M' | 'G';
+  tagX: number;
+  tagY: number;
+  tagRotation?: number;
+}
 interface PlantaConfig {
   polygon?: PolygonConfig | null;
   labelPos?: { x: number; y: number; rotation?: number };
   infoPos?: { x: number; y: number; rotation?: number };
   mapZoom?: number;
+  equipMarker?: EquipMarkerConfig | null;
 }
 interface PlantaSituacaoA4PreviewProps {
   projectData?: Record<string, any>;
@@ -90,6 +100,14 @@ function lngToUtmZone(lng: number): number {
 // ─── Cores e espessuras disponíveis ─────────────────────────────────────────
 const COLORS = ['#e53e3e', '#3182ce', '#38a169', '#1a1a1a', '#dd6b20'];
 const THICKNESS_OPTIONS = [1.5, 2.5, 3.5, 5];
+
+// Tamanhos da bolinha de equipamento — px pra pré-visualização (HTML), mm
+// pro PDF (mesma proporção já usada no pin do mapa: ~4.35px por mm).
+const EQUIP_SIZES: Record<'P' | 'M' | 'G', { px: number; mm: number; label: string }> = {
+  P: { px: 10, mm: 2.3, label: 'P' },
+  M: { px: 16, mm: 3.7, label: 'M' },
+  G: { px: 24, mm: 5.5, label: 'G' },
+};
 
 const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
@@ -135,6 +153,16 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const [infoRotation, setInfoRotation] = useState(0);
   const [infoDrag, setInfoDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
 
+  // Marcador de equipamento (bolinha + tag "Inversor e Quadro de Proteção") —
+  // arrastáveis independentemente, bolinha com cor/tamanho configuráveis e
+  // tag rotacionável, igual ao padrão da tarja de endereço/tag de UC.
+  const [equipMarker, setEquipMarker] = useState<EquipMarkerConfig | null>(null);
+  const [equipColor, setEquipColor] = useState('#3182ce');
+  const [equipSize, setEquipSize] = useState<'P' | 'M' | 'G'>('M');
+  const [placingEquip, setPlacingEquip] = useState(false);
+  const [equipDrag, setEquipDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
+  const [equipTagDrag, setEquipTagDrag] = useState({ isDragging: false, offsetX: 0, offsetY: 0 });
+
   // Zoom do mapa
   const [mapZoom, setMapZoom] = useState(19);
 
@@ -157,6 +185,11 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       if (cfg.labelPos) { setLabelPos({ x: cfg.labelPos.x, y: cfg.labelPos.y }); if (cfg.labelPos.rotation !== undefined) setLabelRotation(cfg.labelPos.rotation); }
       if (cfg.infoPos) { setInfoPos({ x: cfg.infoPos.x, y: cfg.infoPos.y }); if (cfg.infoPos.rotation !== undefined) setInfoRotation(cfg.infoPos.rotation); }
       if (cfg.mapZoom) setMapZoom(cfg.mapZoom);
+      if (cfg.equipMarker) {
+        setEquipMarker(cfg.equipMarker);
+        setEquipColor(cfg.equipMarker.color || '#3182ce');
+        setEquipSize(cfg.equipMarker.size || 'M');
+      }
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pd.planta_situacao_config]);
@@ -221,8 +254,21 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const polyCY = polygon ? polygon.points.reduce((s, p) => s + p.y, 0) / polygon.points.length : 50;
   const polyRotation = polygon?.rotation || 0;
 
-  // ── Clique no mapa: adicionar ponto do polígono ──
+  // ── Clique no mapa: adicionar ponto do polígono (ou posicionar o
+  //     marcador de equipamento, quando nesse modo) ──
   const handleMapMouseDown = useCallback((e: React.MouseEvent) => {
+    if (placingEquip) {
+      e.preventDefault();
+      const p = getPct(e);
+      setEquipMarker({
+        x: p.x, y: p.y,
+        color: equipColor, size: equipSize,
+        tagX: Math.min(97, p.x + 8), tagY: Math.max(3, p.y - 8),
+        tagRotation: 0,
+      });
+      setPlacingEquip(false);
+      return;
+    }
     if (mode !== 'draw') return;
     e.preventDefault();
     const p = getPct(e);
@@ -242,7 +288,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
       return [...prev, p];
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, getPct, polyColor, polyThickness, polyFillStyle, polyHatchColor, polyHatchType]);
+  }, [mode, getPct, polyColor, polyThickness, polyFillStyle, polyHatchColor, polyHatchType, placingEquip, equipColor, equipSize]);
 
   // ── Mouse move: linha fantasma enquanto desenha ──
   const handleMapMouseMove = useCallback((e: React.MouseEvent) => {
@@ -268,30 +314,46 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
 
   // ── Arrastar polígono ──
   const handlePolyMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw' || !polygon || !mapRef.current) return;
+    if (mode === 'draw' || placingEquip || !polygon || !mapRef.current) return;
     e.stopPropagation(); e.preventDefault();
     const b = mapRef.current.getBoundingClientRect();
     const startX = ((e.clientX - b.left) / b.width) * 100;
     const startY = ((e.clientY - b.top) / b.height) * 100;
     setPolyDrag({ isDragging: true, startX, startY, origPoints: polygon.points.map(p => ({ ...p })) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, polygon]);
+  }, [mode, placingEquip, polygon]);
 
   // ── Arrastar tarja de endereço ──
   const handleLabelMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw') return;
+    if (mode === 'draw' || placingEquip) return;
     e.stopPropagation(); e.preventDefault();
     setLabelDrag({ isDragging: true, ...getDragOffset(e, labelPos) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, labelPos]);
+  }, [mode, placingEquip, labelPos]);
 
   // ── Arrastar tag de identificação ──
   const handleInfoMouseDown = useCallback((e: React.MouseEvent) => {
-    if (mode === 'draw') return;
+    if (mode === 'draw' || placingEquip) return;
     e.stopPropagation(); e.preventDefault();
     setInfoDrag({ isDragging: true, ...getDragOffset(e, infoPos) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, infoPos]);
+  }, [mode, placingEquip, infoPos]);
+
+  // ── Arrastar bolinha de equipamento ──
+  const handleEquipMouseDown = useCallback((e: React.MouseEvent) => {
+    if (mode === 'draw' || placingEquip || !equipMarker) return;
+    e.stopPropagation(); e.preventDefault();
+    setEquipDrag({ isDragging: true, ...getDragOffset(e, { x: equipMarker.x, y: equipMarker.y }) });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, placingEquip, equipMarker]);
+
+  // ── Arrastar tag do equipamento ──
+  const handleEquipTagMouseDown = useCallback((e: React.MouseEvent) => {
+    if (mode === 'draw' || placingEquip || !equipMarker) return;
+    e.stopPropagation(); e.preventDefault();
+    setEquipTagDrag({ isDragging: true, ...getDragOffset(e, { x: equipMarker.tagX, y: equipMarker.tagY }) });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, placingEquip, equipMarker]);
 
   // ── Eventos globais de mouse para drag ──
   useEffect(() => {
@@ -318,23 +380,35 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
           })),
         } : prev);
       }
+      if (equipDrag.isDragging) {
+        const x = clamp(((e.clientX - equipDrag.offsetX - b.left) / b.width) * 100);
+        const y = clamp(((e.clientY - equipDrag.offsetY - b.top) / b.height) * 100);
+        setEquipMarker(prev => prev ? { ...prev, x, y } : prev);
+      }
+      if (equipTagDrag.isDragging) {
+        const tagX = clamp(((e.clientX - equipTagDrag.offsetX - b.left) / b.width) * 100);
+        const tagY = clamp(((e.clientY - equipTagDrag.offsetY - b.top) / b.height) * 100);
+        setEquipMarker(prev => prev ? { ...prev, tagX, tagY } : prev);
+      }
     };
     const onUp = () => {
       if (labelDrag.isDragging) setLabelDrag(p => ({ ...p, isDragging: false }));
       if (infoDrag.isDragging) setInfoDrag(p => ({ ...p, isDragging: false }));
       if (polyDrag.isDragging) setPolyDrag(p => ({ ...p, isDragging: false }));
+      if (equipDrag.isDragging) setEquipDrag(p => ({ ...p, isDragging: false }));
+      if (equipTagDrag.isDragging) setEquipTagDrag(p => ({ ...p, isDragging: false }));
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [labelDrag, infoDrag, polyDrag]);
+  }, [labelDrag, infoDrag, polyDrag, equipDrag, equipTagDrag]);
 
   // ── Salvar config ──
   const handleSave = async () => {
     if (!onSaveConfig) return;
     setSaving(true);
     try {
-      await onSaveConfig({ polygon, labelPos: { ...labelPos, rotation: labelRotation }, infoPos: { ...infoPos, rotation: infoRotation }, mapZoom });
+      await onSaveConfig({ polygon, labelPos: { ...labelPos, rotation: labelRotation }, infoPos: { ...infoPos, rotation: infoRotation }, mapZoom, equipMarker });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) { console.error('Erro ao salvar config planta:', err); }
@@ -448,6 +522,11 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
   const applyPolyHatchColor = (c: string) => { setPolyHatchColor(c); setPolygon(prev => prev ? { ...prev, hatchColor: c } : prev); };
   const applyPolyHatchType = (t: 'diagonal' | 'cross' | 'horizontal') => { setPolyHatchType(t); setPolygon(prev => prev ? { ...prev, hatchType: t } : prev); };
 
+  // ── Atualizar atributos do marcador de equipamento existente ──
+  const applyEquipColor = (c: string) => { setEquipColor(c); setEquipMarker(prev => prev ? { ...prev, color: c } : prev); };
+  const applyEquipSize = (s: 'P' | 'M' | 'G') => { setEquipSize(s); setEquipMarker(prev => prev ? { ...prev, size: s } : prev); };
+  const applyEquipTagRotation = (delta: number) => { setEquipMarker(prev => prev ? { ...prev, tagRotation: ((prev.tagRotation || 0) + delta + 360) % 360 } : prev); };
+
   return (
     <>
       {/* Botão PDF — fora da área impressa */}
@@ -507,6 +586,60 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             <Button size="sm" variant="outline" onClick={() => setPolygon(null)}>
               <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
             </Button>
+          )}
+
+          {/* Separador */}
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
+
+          {/* Marcar equipamento (bolinha + tag "Inversor e Quadro de Proteção") */}
+          {!placingEquip ? (
+            <Button size="sm" variant="outline" onClick={() => setPlacingEquip(true)} disabled={mode === 'draw'}>
+              <MapPin className="h-3.5 w-3.5 mr-1.5" />
+              Marcar Equipamento
+            </Button>
+          ) : (
+            <>
+              <span className="text-xs text-blue-600 font-medium">Clique no mapa para posicionar</span>
+              <Button size="sm" variant="outline" onClick={() => setPlacingEquip(false)}>Cancelar</Button>
+            </>
+          )}
+
+          {equipMarker && mode === 'view' && !placingEquip && (
+            <Button size="sm" variant="outline" onClick={() => setEquipMarker(null)}>
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />Limpar
+            </Button>
+          )}
+
+          {equipMarker && (
+            <>
+              {/* Cor da bolinha */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Cor equip.:</span>
+                {COLORS.map(c => (
+                  <button key={c} onClick={() => applyEquipColor(c)} title={c}
+                    style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: c, border: equipColor === c ? '2.5px solid #333' : '1.5px solid #ccc', cursor: 'pointer', flexShrink: 0 }} />
+                ))}
+              </div>
+
+              {/* Tamanho da bolinha */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Tam.:</span>
+                {(['P', 'M', 'G'] as const).map(s => (
+                  <button key={s} onClick={() => applyEquipSize(s)}
+                    className={`text-xs px-1.5 py-0.5 rounded border ${equipSize === s ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-300'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              {/* Rotação da tag do equipamento */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Rot. equip.:</span>
+                <button onClick={() => applyEquipTagRotation(-5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">−</button>
+                <span className="text-xs w-8 text-center font-mono">{equipMarker.tagRotation || 0}°</span>
+                <button onClick={() => applyEquipTagRotation(5)} className="text-sm font-bold w-6 h-6 flex items-center justify-center rounded border bg-white border-gray-400 hover:bg-gray-100 leading-none">+</button>
+              </div>
+            </>
           )}
 
           {/* Separador */}
@@ -690,7 +823,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             border: '1px solid #333',
             overflow: 'hidden',
             backgroundColor: '#c8d8c8',
-            cursor: mode === 'draw' ? 'crosshair' : 'default',
+            cursor: mode === 'draw' || placingEquip ? 'crosshair' : 'default',
             boxSizing: 'border-box',
           }}
           onMouseDown={handleMapMouseDown}
@@ -795,6 +928,52 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
                 />
               </g>
             </svg>
+          )}
+
+          {/* Marcador de equipamento — bolinha arrastável + tag "Inversor e
+              Quadro de Proteção" arrastável/rotacionável independentemente */}
+          {equipMarker && (
+            <>
+              <div
+                onMouseDown={handleEquipMouseDown}
+                style={{
+                  position: 'absolute',
+                  left: `${equipMarker.x}%`,
+                  top: `${equipMarker.y}%`,
+                  width: EQUIP_SIZES[equipMarker.size].px,
+                  height: EQUIP_SIZES[equipMarker.size].px,
+                  borderRadius: '50%',
+                  backgroundColor: equipMarker.color,
+                  border: '2px solid #ffffff',
+                  boxShadow: '0 0 0 1px rgba(0,0,0,0.5)',
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 11,
+                  cursor: equipDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip ? 'default' : 'grab'),
+                }}
+              />
+              <div
+                onMouseDown={handleEquipTagMouseDown}
+                style={{
+                  position: 'absolute',
+                  left: `${equipMarker.tagX}%`,
+                  top: `${equipMarker.tagY}%`,
+                  transform: `translate(-50%, -50%) rotate(${equipMarker.tagRotation || 0}deg)`,
+                  backgroundColor: 'rgba(255,255,255,0.93)',
+                  border: '1.5px solid #333',
+                  borderRadius: 4,
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  zIndex: 10,
+                  cursor: equipTagDrag.isDragging ? 'grabbing' : (mode === 'draw' || placingEquip ? 'default' : 'grab'),
+                  userSelect: 'none',
+                }}
+              >
+                Inversor e Quadro de Proteção
+              </div>
+            </>
           )}
 
           {/* Preview enquanto desenha — linhas, linha fantasma e pontos */}

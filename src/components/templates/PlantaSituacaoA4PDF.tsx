@@ -48,11 +48,25 @@ function hatchLinesFor(polygon: PolygonConfig): Array<{ x1: number; y1: number; 
   if (polygon.hatchType === 'horizontal') return buildHatchLines(polygon.points, 0, spacing);
   return buildHatchLines(polygon.points, 45, spacing);
 }
+interface EquipMarkerConfig {
+  x: number;
+  y: number;
+  color: string;
+  size: 'P' | 'M' | 'G';
+  tagX: number;
+  tagY: number;
+  tagRotation?: number;
+}
+// Tamanhos da bolinha de equipamento em mm — mesma proporção da
+// pré-visualização (px / ~4.35 ≈ mm).
+const EQUIP_SIZES_MM: Record<'P' | 'M' | 'G', number> = { P: 2.3, M: 3.7, G: 5.5 };
+
 interface PlantaConfig {
   polygon?: PolygonConfig | null;
   labelPos?: { x: number; y: number; rotation?: number };
   infoPos?: { x: number; y: number; rotation?: number };
   mapZoom?: number;
+  equipMarker?: EquipMarkerConfig | null;
 }
 interface PlantaSituacaoA4PDFProps {
   projectData?: Record<string, any>;
@@ -124,6 +138,7 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
   let labelPos = { x: 50, y: 80, rotation: 0 };
   let infoPos = { x: 32, y: 50, rotation: 0 };
   let mapZoom = 19;
+  let equipMarker: EquipMarkerConfig | null = null;
   try {
     if (pd.planta_situacao_config) {
       const cfg: PlantaConfig = JSON.parse(String(pd.planta_situacao_config));
@@ -131,6 +146,7 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
       if (cfg.labelPos) labelPos = { x: cfg.labelPos.x, y: cfg.labelPos.y, rotation: cfg.labelPos.rotation || 0 };
       if (cfg.infoPos) infoPos = { x: cfg.infoPos.x, y: cfg.infoPos.y, rotation: cfg.infoPos.rotation || 0 };
       if (cfg.mapZoom) mapZoom = cfg.mapZoom;
+      if (cfg.equipMarker) equipMarker = cfg.equipMarker;
     }
   } catch { /* config inválida — usa os padrões */ }
 
@@ -267,6 +283,28 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
               <View style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1, paddingHorizontal: mm(2.5), paddingVertical: mm(1.2) }}>
                 <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>{address}</Text>
               </View>
+            )}
+
+            {/* Marcador de equipamento — bolinha + tag "Inversor e Quadro de Proteção" */}
+            {equipMarker && (
+              <>
+                <View style={{
+                  position: 'absolute',
+                  left: `${equipMarker.x}%`,
+                  top: `${equipMarker.y}%`,
+                  width: mm(EQUIP_SIZES_MM[equipMarker.size]),
+                  height: mm(EQUIP_SIZES_MM[equipMarker.size]),
+                  marginLeft: -mm(EQUIP_SIZES_MM[equipMarker.size]) / 2,
+                  marginTop: -mm(EQUIP_SIZES_MM[equipMarker.size]) / 2,
+                  borderRadius: mm(EQUIP_SIZES_MM[equipMarker.size]) / 2,
+                  backgroundColor: equipMarker.color,
+                  borderWidth: 1,
+                  borderColor: '#ffffff',
+                }} />
+                <View style={{ position: 'absolute', left: `${equipMarker.tagX}%`, top: `${equipMarker.tagY}%`, transform: `translate(-50%, -50%) rotate(${equipMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
+                  <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Inversor e Quadro de Proteção</Text>
+                </View>
+              </>
             )}
           </View>
 
