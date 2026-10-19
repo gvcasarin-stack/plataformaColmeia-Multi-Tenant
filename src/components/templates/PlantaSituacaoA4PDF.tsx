@@ -130,6 +130,14 @@ const SELO = { x: 217.5, y: 251.3, w: 192.5, h: 35.7 };
 // Área do mapa — quadrada (165x165mm), centralizada na área de conteúdo do
 // quadro, mesma posição já ajustada na pré-visualização.
 const MAP = { x: 135, y: 48.15, w: 165, h: 165 };
+// Caixa "âncora" (invisível) usada pra centralizar as tarjas/tags no ponto
+// exato: precisa ser grande o bastante pra o Yoga (motor de layout do
+// react-pdf) ter espaço disponível suficiente pra medir/quebrar o texto da
+// tag sem comprimi-lo contra uma largura zero (o que forçava quebra de
+// palavra em palavra). O conteúdo real nunca ocupa toda essa área — ele é
+// centralizado dentro dela via alignItems/justifyContent.
+const TAG_ANCHOR_W_MM = 130;
+const TAG_ANCHOR_H_MM = 40;
 
 export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
   const pd = projectData || {};
@@ -240,8 +248,8 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
                 ponto exato sem depender de transform:translate('%'), que o
                 react-pdf não resolve corretamente (trata '%' como pt cru). */}
             {(hasCoords || clientName || uc) && (
-              <View style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{ transform: `rotate(${infoPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
+              <View style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, width: mm(TAG_ANCHOR_W_MM), height: mm(TAG_ANCHOR_H_MM), marginLeft: -mm(TAG_ANCHOR_W_MM) / 2, marginTop: -mm(TAG_ANCHOR_H_MM) / 2, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ flexShrink: 0, transform: `rotate(${infoPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
                   {clientName && <Text style={{ fontSize: 6.5 }}>Cliente: {clientName}</Text>}
                   {uc && <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>UC: {uc}</Text>}
                   {hasCoords && (usingLatLng ? (
@@ -296,8 +304,8 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
             {/* Tarja de endereço — mesmo wrapper 0x0 centralizador (ver
                 comentário da tag de identificação acima) */}
             {address && (
-              <View style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{ transform: `rotate(${labelPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1, paddingHorizontal: mm(2.5), paddingVertical: mm(1.2) }}>
+              <View style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, width: mm(TAG_ANCHOR_W_MM), height: mm(TAG_ANCHOR_H_MM), marginLeft: -mm(TAG_ANCHOR_W_MM) / 2, marginTop: -mm(TAG_ANCHOR_H_MM) / 2, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ flexShrink: 0, transform: `rotate(${labelPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1, paddingHorizontal: mm(2.5), paddingVertical: mm(1.2) }}>
                   <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>{address}</Text>
                 </View>
               </View>
@@ -319,8 +327,8 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
                   borderWidth: 1,
                   borderColor: '#ffffff',
                 }} />
-                <View style={{ position: 'absolute', left: `${equipMarker.tagX}%`, top: `${equipMarker.tagY}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
-                  <View style={{ transform: `rotate(${equipMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
+                <View style={{ position: 'absolute', left: `${equipMarker.tagX}%`, top: `${equipMarker.tagY}%`, width: mm(TAG_ANCHOR_W_MM), height: mm(TAG_ANCHOR_H_MM), marginLeft: -mm(TAG_ANCHOR_W_MM) / 2, marginTop: -mm(TAG_ANCHOR_H_MM) / 2, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ flexShrink: 0, transform: `rotate(${equipMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
                     <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Inversor e Quadro de Proteção</Text>
                   </View>
                 </View>
@@ -343,8 +351,8 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
                   borderWidth: 1,
                   borderColor: '#ffffff',
                 }} />
-                <View style={{ position: 'absolute', left: `${entradaMarker.tagX}%`, top: `${entradaMarker.tagY}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
-                  <View style={{ transform: `rotate(${entradaMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
+                <View style={{ position: 'absolute', left: `${entradaMarker.tagX}%`, top: `${entradaMarker.tagY}%`, width: mm(TAG_ANCHOR_W_MM), height: mm(TAG_ANCHOR_H_MM), marginLeft: -mm(TAG_ANCHOR_W_MM) / 2, marginTop: -mm(TAG_ANCHOR_H_MM) / 2, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ flexShrink: 0, transform: `rotate(${entradaMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
                     <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Padrão de Entrada</Text>
                   </View>
                 </View>
