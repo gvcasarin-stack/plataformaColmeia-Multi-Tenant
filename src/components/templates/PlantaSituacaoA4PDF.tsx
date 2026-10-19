@@ -228,23 +228,28 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
               </Svg>
             </View>
 
-            {/* Tag identificação (cliente/UC/coords) */}
+            {/* Tag identificação (cliente/UC/coords) — wrapper 0x0 com
+                alignItems/justifyContent:'center' centraliza o conteúdo no
+                ponto exato sem depender de transform:translate('%'), que o
+                react-pdf não resolve corretamente (trata '%' como pt cru). */}
             {(hasCoords || clientName || uc) && (
-              <View style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, transform: `translate(-50%, -50%) rotate(${infoPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
-                {clientName && <Text style={{ fontSize: 6.5 }}>Cliente: {clientName}</Text>}
-                {uc && <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>UC: {uc}</Text>}
-                {hasCoords && (usingLatLng ? (
-                  <>
-                    <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Lat: {latDecimal?.toFixed(6)}</Text>
-                    <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Long: {lngDecimal?.toFixed(6)}</Text>
-                    <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Fuso: {latLngUtmZone}</Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>X: {utmX?.toFixed(0)} | Y: {utmY?.toFixed(0)}</Text>
-                    <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Fuso: {utmFusoRaw || utmZone}</Text>
-                  </>
-                ))}
+              <View style={{ position: 'absolute', left: `${infoPos.x}%`, top: `${infoPos.y}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ transform: `rotate(${infoPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
+                  {clientName && <Text style={{ fontSize: 6.5 }}>Cliente: {clientName}</Text>}
+                  {uc && <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>UC: {uc}</Text>}
+                  {hasCoords && (usingLatLng ? (
+                    <>
+                      <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Lat: {latDecimal?.toFixed(6)}</Text>
+                      <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Long: {lngDecimal?.toFixed(6)}</Text>
+                      <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Fuso: {latLngUtmZone}</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>X: {utmX?.toFixed(0)} | Y: {utmY?.toFixed(0)}</Text>
+                      <Text style={{ fontSize: 6.5, marginTop: 0.6 }}>Fuso: {utmFusoRaw || utmZone}</Text>
+                    </>
+                  ))}
+                </View>
               </View>
             )}
 
@@ -281,10 +286,13 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
               </Svg>
             )}
 
-            {/* Tarja de endereço */}
+            {/* Tarja de endereço — mesmo wrapper 0x0 centralizador (ver
+                comentário da tag de identificação acima) */}
             {address && (
-              <View style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, transform: `translate(-50%, -50%) rotate(${labelPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1, paddingHorizontal: mm(2.5), paddingVertical: mm(1.2) }}>
-                <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>{address}</Text>
+              <View style={{ position: 'absolute', left: `${labelPos.x}%`, top: `${labelPos.y}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ transform: `rotate(${labelPos.rotation}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1, paddingHorizontal: mm(2.5), paddingVertical: mm(1.2) }}>
+                  <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>{address}</Text>
+                </View>
               </View>
             )}
 
@@ -304,8 +312,10 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
                   borderWidth: 1,
                   borderColor: '#ffffff',
                 }} />
-                <View style={{ position: 'absolute', left: `${equipMarker.tagX}%`, top: `${equipMarker.tagY}%`, transform: `translate(-50%, -50%) rotate(${equipMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
-                  <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Inversor e Quadro de Proteção</Text>
+                <View style={{ position: 'absolute', left: `${equipMarker.tagX}%`, top: `${equipMarker.tagY}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ transform: `rotate(${equipMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
+                    <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Inversor e Quadro de Proteção</Text>
+                  </View>
                 </View>
               </>
             )}
@@ -326,8 +336,10 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
                   borderWidth: 1,
                   borderColor: '#ffffff',
                 }} />
-                <View style={{ position: 'absolute', left: `${entradaMarker.tagX}%`, top: `${entradaMarker.tagY}%`, transform: `translate(-50%, -50%) rotate(${entradaMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
-                  <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Padrão de Entrada</Text>
+                <View style={{ position: 'absolute', left: `${entradaMarker.tagX}%`, top: `${entradaMarker.tagY}%`, width: 0, height: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ transform: `rotate(${entradaMarker.tagRotation || 0}deg)`, backgroundColor: 'rgba(255,255,255,0.93)', borderWidth: 0.5, borderColor: '#333333', borderRadius: 1.2, paddingHorizontal: mm(2), paddingVertical: mm(1.2) }}>
+                    <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Padrão de Entrada</Text>
+                  </View>
                 </View>
               </>
             )}
