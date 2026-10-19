@@ -191,6 +191,13 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
   const polyCX = polygon ? polygon.points.reduce((s, p) => s + p.x, 0) / polygon.points.length : 50;
   const polyCY = polygon ? polygon.points.reduce((s, p) => s + p.y, 0) / polygon.points.length : 50;
   const polyRotation = polygon?.rotation || 0;
+  // O <Svg> do polígono usa viewBox 0-100 mas é desenhado no tamanho real do
+  // mapa (mm(MAP.w) pt) — como o react-pdf não suporta vector-effect
+  // (non-scaling-stroke), qualquer strokeWidth definido nessas unidades 0-100
+  // é multiplicado por esse fator de escala ao renderizar. Dividimos por ele
+  // pra manter a espessura final em pt igual à configurada (mesmo
+  // comportamento visual do preview no navegador).
+  const polySvgScale = mm(MAP.w) / 100;
 
   return (
     <Document>
@@ -272,7 +279,7 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
                   {polygon.fillStyle === 'hatched' && (
                     <G clipPath="url(#polyClip)">
                       {hatchLinesFor(polygon).map((ln, i) => (
-                        <Line key={i} x1={ln.x1} y1={ln.y1} x2={ln.x2} y2={ln.y2} stroke={polygon.hatchColor || polygon.color} strokeWidth={0.4} />
+                        <Line key={i} x1={ln.x1} y1={ln.y1} x2={ln.x2} y2={ln.y2} stroke={polygon.hatchColor || polygon.color} strokeWidth={0.4 / polySvgScale} />
                       ))}
                     </G>
                   )}
@@ -280,7 +287,7 @@ export function PlantaSituacaoA4PDF({ projectData }: PlantaSituacaoA4PDFProps) {
                     points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
                     fill="none"
                     stroke={polygon.color}
-                    strokeWidth={polygon.thickness}
+                    strokeWidth={polygon.thickness / polySvgScale}
                   />
                 </G>
               </Svg>
