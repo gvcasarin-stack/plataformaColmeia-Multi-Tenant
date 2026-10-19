@@ -1,8 +1,9 @@
 'use client';
 
 import { Fragment, useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { FileDown, Loader2, MapPin, AlertCircle, Square, Trash2, Save, Check } from 'lucide-react';
+import { FileDown, Loader2, MapPin, AlertCircle, Square, Trash2, Save, Check, ChevronRight } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface PolygonConfig {
@@ -63,6 +64,11 @@ interface PlantaConfig {
 interface PlantaSituacaoA4PreviewProps {
   projectData?: Record<string, any>;
   onSaveConfig?: (config: PlantaConfig) => Promise<void>;
+  // Elemento DOM (fora da área com rolagem da prancha) onde a barra de
+  // ferramentas deve ser renderizada via portal, pra não "roubar" altura da
+  // pré-visualização. Se não for passado, a barra renderiza no lugar de
+  // sempre (acima da prancha), sem quebrar nada.
+  toolbarPortalTarget?: HTMLElement | null;
 }
 
 // ─── UTM → WGS84 ────────────────────────────────────────────────────────────
@@ -127,11 +133,12 @@ function formatDataBR(raw: string): string {
   return str;
 }
 
-export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSituacaoA4PreviewProps) {
+export function PlantaSituacaoA4Preview({ projectData, onSaveConfig, toolbarPortalTarget }: PlantaSituacaoA4PreviewProps) {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<'view' | 'draw'>('view');
+  const [configOpen, setConfigOpen] = useState(true);
 
   // Polígono — pontos clicados, arrastável + rotacionável
   const [polygon, setPolygon] = useState<PolygonConfig | null>(null);
@@ -608,34 +615,21 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
     { key: 'save', label: 'Salve', done: saved },
   ];
 
-  return (
-    <>
-      {/* Botão PDF — fora da área impressa */}
-      <div className="mb-6 flex justify-center">
-        <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
-          {generating
-            ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
-            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação</>}
-        </Button>
-      </div>
-
-      {/* Avisos */}
-      {!hasToken && (
-        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-sm text-amber-800">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>Token Mapbox não configurado. Adicione <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_MAPBOX_TOKEN</code> nas variáveis de ambiente.</span>
-        </div>
-      )}
-      {!hasCoords && (
-        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2 text-sm text-blue-800">
-          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>Preencha as <strong>Coordenadas</strong> (UTM X/Y/Fuso, ou Latitude/Longitude para CPFL) nas informações do projeto.</span>
-        </div>
-      )}
-
-      {/* Barra de controles */}
-      {onSaveConfig && (
+  // ── Barra de controles — extraída numa variável pra poder ser renderizada
+  // via portal (fora da área com rolagem da prancha) quando um destino é
+  // fornecido, ou inline (comportamento de sempre) quando não é. ──
+  const toolbarNode = onSaveConfig ? (
         <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+
+          {/* Cabeçalho recolhível */}
+          <button
+            type="button"
+            onClick={() => setConfigOpen(o => !o)}
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2.5 hover:text-gray-900 dark:hover:text-white"
+          >
+            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${configOpen ? 'rotate-90' : ''}`} />
+            Configuração da Planta de Situação
+          </button>
 
           {/* Passo a passo — discreto, só indica progresso, não bloqueia nada */}
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-gray-400 dark:text-gray-500 mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
@@ -652,6 +646,7 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             ))}
           </div>
 
+          {configOpen && (
           <div className="flex flex-wrap items-stretch gap-2.5">
 
             {/* Grupo: Propriedade */}
@@ -931,8 +926,40 @@ export function PlantaSituacaoA4Preview({ projectData, onSaveConfig }: PlantaSit
             </div>
 
           </div>
+          )}
+        </div>
+  ) : null;
+
+  return (
+    <>
+      {/* Botão PDF — fora da área impressa */}
+      <div className="mb-6 flex justify-center">
+        <Button onClick={handleGeneratePdf} disabled={generating} size="lg" className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 text-base font-semibold shadow-lg">
+          {generating
+            ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Gerando PDF...</>
+            : <><FileDown className="mr-2 h-5 w-5" />Gerar PDF Planta de Situação</>}
+        </Button>
+      </div>
+
+      {/* Avisos */}
+      {!hasToken && (
+        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 text-sm text-amber-800">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>Token Mapbox não configurado. Adicione <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_MAPBOX_TOKEN</code> nas variáveis de ambiente.</span>
         </div>
       )}
+      {!hasCoords && (
+        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex gap-2 text-sm text-blue-800">
+          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>Preencha as <strong>Coordenadas</strong> (UTM X/Y/Fuso, ou Latitude/Longitude para CPFL) nas informações do projeto.</span>
+        </div>
+      )}
+
+      {/* Barra de controles — renderizada via portal (fora da área com
+          rolagem da prancha) quando um destino é fornecido pelo componente
+          pai; senão, renderiza aqui mesmo, como sempre. */}
+      {toolbarPortalTarget && toolbarNode ? createPortal(toolbarNode, toolbarPortalTarget) : toolbarNode}
+
 
       {/* ══ Prancha A3 (paisagem) — moldura NBR 10068 + selo padronizado, mesma
           convenção já usada no Padrão de Entrada em A3 paisagem (selo ocupando

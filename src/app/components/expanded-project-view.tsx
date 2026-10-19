@@ -474,6 +474,9 @@ export const ExpandedProjectView = ({
   const [showConferirModal, setShowConferirModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [activeTemplatePreview, setActiveTemplatePreview] = useState<string | null>(null);
+  // Destino (fora do cartão com rolagem) onde a barra de ferramentas da
+  // Planta de Situação é renderizada via portal — libera altura pra prancha.
+  const [plantaToolbarSlot, setPlantaToolbarSlot] = useState<HTMLDivElement | null>(null);
   const [gerarProjetoFields, setGerarProjetoFields] = useState({
     nomeClienteFinal: project.nomeClienteFinal || project.nome_cliente_final || '',
     cpf_cnpj_cliente_final: project.cpf_cnpj_cliente_final || '',
@@ -3530,10 +3533,13 @@ export const ExpandedProjectView = ({
                                 <MapPin className="h-5 w-5 text-teal-500" />
                                 Pré-visualização — Planta de Situação
                               </h3>
+                              {/* Destino da barra de ferramentas (fora da área com rolagem da prancha) */}
+                              <div ref={setPlantaToolbarSlot} />
                               <div className="rounded-md border border-teal-200 dark:border-teal-700 p-4 max-h-[900px] overflow-y-auto">
                                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
                                   <PlantaSituacaoA4Preview
                                     projectData={{ ...gerarProjetoFields, logo_empresa_url: logoEmpresaUrl }}
+                                    toolbarPortalTarget={plantaToolbarSlot}
                                     onSaveConfig={async (config) => {
                                       const serialized = JSON.stringify(config);
                                       await fetch(`/api/projects/${project.id}/conferir-info`, {
