@@ -40,6 +40,14 @@ export interface EquipmentCatalogItem {
   updated_at?: string;
 }
 
+// Normaliza texto para comparação robusta (case, espaços duplicados, trim)
+function normalizeForComparison(value: string | null | undefined): string {
+  return (value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 export async function listEquipment(
   tenantId: string,
   tipo?: string,
@@ -51,7 +59,8 @@ export async function listEquipment(
     .select('*')
     .eq('tenant_id', tenantId)
     .order('fabricante', { ascending: true })
-    .order('modelo', { ascending: true });
+    .order('modelo', { ascending: true })
+    .order('created_at', { ascending: true });
 
   if (tipo === 'modulo' || tipo === 'inversor') {
     query = query.eq('tipo', tipo);
@@ -63,15 +72,22 @@ export async function listEquipment(
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as EquipmentCatalogItem[];
-}
 
-// Normaliza texto para comparação robusta (case, espaços duplicados, trim)
-function normalizeForComparison(value: string | null | undefined): string {
-  return (value || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
+  // Alguns registros do catálogo acabaram duplicados (mesmo fabricante+modelo
+  // inseridos mais de uma vez, de antes da checagem de duplicidade em
+  // createEquipment() ou por requisições concorrentes de "salvar no
+  // catálogo"). Aqui não alteramos o banco — só deduplicamos a listagem,
+  // mantendo o registro mais antigo (created_at) de cada combinação
+  // fabricante+modelo normalizada.
+  const seen = new Set<string>();
+  const deduped: EquipmentCatalogItem[] = [];
+  for (const item of (data || []) as EquipmentCatalogItem[]) {
+    const key = `${normalizeForComparison(item.fabricante)}|${normalizeForComparison(item.modelo)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+  return deduped;
 }
 
 export async function createEquipment(

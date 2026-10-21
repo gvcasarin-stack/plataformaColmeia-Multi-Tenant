@@ -741,8 +741,9 @@ export function EquipamentoListItem(props: Props) {
                           className="w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
                           onMouseDown={e => { e.preventDefault(); fillFromCatalog(s); }}
                         >
-                          <span className="font-medium text-gray-800 dark:text-gray-200">{s.fabricante}</span>
-                          <span className="text-gray-500 ml-1">{s.modelo}</span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200">{s.fabricante}</span>
+                          <span className="text-gray-400 mx-1">·</span>
+                          <span className="text-gray-500 dark:text-gray-400">{s.modelo}</span>
                           {tipo === 'modulo' && s.potencia_wp && (
                             <Badge variant="outline" className="ml-1.5 text-[10px] py-0 h-4">{s.potencia_wp} Wp</Badge>
                           )}
