@@ -275,6 +275,33 @@ export function getPotenciaGeracaoReal(pd: Record<string, any> | undefined): num
   return Math.min(kwp, invKw);
 }
 
+// Monta o texto de potência dos módulos de uma unidade de inversor a partir
+// das strings configuradas — cada string pode referenciar um modelo de
+// módulo diferente (ex.: mistura de módulos "existente" e "novo" numa
+// ampliação). Se todas as strings usam o mesmo Wp, retorna "de X Wp cada";
+// se há modelos com Wp diferentes, detalha a quantidade por grupo
+// ("A de X Wp + B de Y Wp") em vez de assumir o Wp de um único modelo
+// (bug anterior: sempre usava o módulo do índice padrão da unidade).
+export function getModuloPotenciaLabel(
+  strings: StringConfig[],
+  modulosList: ModuloItem[],
+  fallbackModuloIdx = 0,
+): string {
+  const groups: Record<string, number> = {};
+  for (const st of strings) {
+    const mod = modulosList[st.modulo_idx ?? fallbackModuloIdx];
+    const wp = mod ? parseNum(mod.potencia_wp) : 0;
+    if (wp > 0 && st.quantidade > 0) {
+      const key = String(wp);
+      groups[key] = (groups[key] || 0) + st.quantidade;
+    }
+  }
+  const entries = Object.entries(groups).map(([wp, qtd]) => ({ wp: parseFloat(wp), qtd }));
+  if (entries.length === 0) return '';
+  if (entries.length === 1) return `de ${entries[0].wp} Wp cada`;
+  return entries.map(e => `${e.qtd} de ${e.wp} Wp`).join(' + ');
+}
+
 // Rótulo de situação (EXISTENTE/NOVO) a partir de um ou mais equipamentos —
 // usado para marcar blocos/itens que representam ampliação de sistema já existente.
 // Retorna string vazia quando nenhum item tem status definido (comportamento atual).
